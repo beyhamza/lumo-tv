@@ -59,8 +59,11 @@ services:
   # ------------------------------------------------------------------- api ----
   lumo-api:
     build:
-      context: ./apps/api
-      dockerfile: Dockerfile
+      # Root context, not ./apps/api: the image build generates the server
+      # interfaces from packages/contracts/openapi.yaml (ADR 0001), which a
+      # context rooted at apps/api could not see.
+      context: .
+      dockerfile: apps/api/Dockerfile
     container_name: lumo-api
     restart: unless-stopped
     depends_on:
@@ -78,8 +81,8 @@ services:
       # ADR 0005. The ingestion layer is I/O-bound and written in blocking style.
       SPRING_THREADS_VIRTUAL_ENABLED: "true"
 
-      # Liquibase owns the schema; Hibernate never touches it (ADR 0006).
-      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      # Liquibase owns the schema (ADR 0006). There is no ORM to disable:
+      # persistence is JdbcClient over hand-written SQL.
       SPRING_LIQUIBASE_ENABLED: "true"
 
       # Secrets, from the root .env. No default: the API must refuse to boot

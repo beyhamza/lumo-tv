@@ -1,0 +1,24 @@
+# Version catalogue for lumo-api.
+#
+# Spring Boot's BOM manages almost everything (spring-*, jackson, postgresql,
+# liquibase, testcontainers). Only what the BOM does NOT manage is pinned here.
+# Do not bump a version without being asked (AGENTS.md §7).
+
+[versions]
+# AGENTS.md §4: Spring Boot 4.1.x, Spring Framework 7, Java 25 (ADR 0005).
+springBoot = "4.1.1"
+# Must stay identical to packages/contracts/openapitools.json. Two different
+# generator versions would produce two different interfaces from one contract.
+openapiGenerator = "7.14.0"
+# Argon2id (AGENTS.md §5) — Spring Security's Argon2PasswordEncoder delegates to it.
+bouncycastle = "1.85.2"
+# Bounded, self-expiring maps for the auth rate limiter.
+caffeine = "3.2.4"
+
+[libraries]
+bouncycastle-provider = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
+openapi-generator = { id = "org.openapi.generator", version.ref = "openapiGenerator" }

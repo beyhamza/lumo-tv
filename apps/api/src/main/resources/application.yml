@@ -1,0 +1,113 @@
+# ==============================================================================
+# lumo-api — base configuration.
+#
+# Every value here is overridable by an environment variable; see
+# apps/api/.env.example for what each one means. Secrets have NO default: the
+# application refuses to start rather than run on a well-known key.
+# ==============================================================================
+
+spring:
+  application:
+    name: lumo-api
+
+  threads:
+    virtual:
+      # ADR 0005. The ingestion layer is I/O-bound and written in blocking
+      # style; this is what makes that viable. Do not turn it off.
+      enabled: true
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/lumo}
+    username: ${POSTGRES_USER:lumo}
+    password: ${POSTGRES_PASSWORD:lumo}
+    hikari:
+      # Sized to what the DATABASE can serve, never to the number of threads
+      # (ADR 0005 §2). Virtual threads do not create database capacity.
+      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:20}
+      # Fail fast and visibly rather than queue forever behind an exhausted pool.
+      connection-timeout: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:10000}
+      pool-name: lumo-pool
+
+  liquibase:
+    # ADR 0006: the only non-SQL file in the whole migration set.
+    change-log: classpath:db/db.changelog-master.yaml
+    enabled: ${SPRING_LIQUIBASE_ENABLED:true}
+
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+
+  mvc:
+    problemdetails:
+      # We produce application/problem+json ourselves, with a stable `code`
+      # field the framework knows nothing about. Spring's own RFC 7807 support
+      # would answer first for framework-raised exceptions and emit a body
+      # without that field, which clients branch on.
+      enabled: false
+
+server:
+  port: 8080
+  error:
+    # No stack trace, no message, no framework error page. Errors leave this
+    # application through GlobalExceptionHandler and nowhere else.
+    whitelabel:
+      enabled: false
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health}
+  endpoint:
+    health:
+      show-details: ${MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS:when_authorized}
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    tv.lumo: ${LOGGING_LEVEL_TV_LUMO:INFO}
+    # These two would print bound SQL parameters, which for `source` means the
+    # encrypted credential blob and for `channel` means stream URLs. AGENTS.md §5
+    # forbids that at ANY level, so they are pinned here rather than left to a
+    # developer's LOGGING_LEVEL_ROOT=DEBUG.
+    org.springframework.jdbc.core.JdbcTemplate: INFO
+    org.springframework.jdbc.core.StatementCreatorUtils: INFO
+
+lumo:
+  jwt:
+    # No default. Boot fails here rather than sign tokens with a guessable key.
+    secret: ${LUMO_JWT_SECRET}
+    access-ttl: ${LUMO_JWT_ACCESS_TTL_MINUTES:15}m
+    issuer: https://api.lumo.tv
+  refresh:
+    ttl: ${LUMO_REFRESH_TTL_DAYS:30}d
+  encryption:
+    # No default either. Losing this key makes every stored Xtream credential
+    # permanently unreadable; leaking it exposes every user's IPTV account.
+    master-key: ${LUMO_ENCRYPTION_MASTER_KEY}
+  device-code:
+    ttl: ${LUMO_DEVICE_CODE_TTL_MINUTES:10}m
+    poll-interval: ${LUMO_DEVICE_CODE_POLL_INTERVAL_SECONDS:5}s
+  web:
+    base-url: ${LUMO_WEB_BASE_URL:http://localhost:3000}
+  cors:
+    allowed-origins: ${LUMO_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  ingest:
+    # Explicit backpressure (ADR 0005 §1). Without these, a burst of syncs opens
+    # hundreds of connections to one user's panel and gets THAT USER banned.
+    max-concurrent-per-host: ${LUMO_INGEST_MAX_CONCURRENT_PER_HOST:4}
+    max-concurrent-syncs: ${LUMO_INGEST_MAX_CONCURRENT_SYNCS:50}
+    http-timeout: ${LUMO_INGEST_HTTP_TIMEOUT_SECONDS:10}s
+    max-payload-mb: ${LUMO_INGEST_MAX_PAYLOAD_MB:200}
+  rate-limit:
+    # Sprint 1: 5 attempts per IP per minute on the sign-in surface (US-01, US-02).
+    auth-attempts-per-minute: 5
+    device-approve-attempts-per-minute: 5

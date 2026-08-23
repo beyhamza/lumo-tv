@@ -1,0 +1,18 @@
+# Build context for apps/api/Dockerfile, which is rooted here.
+# Keep it small, and free of anything secret.
+
+.git/
+.github/
+**/.env
+**/.env.*
+!**/.env.example
+**/build/
+**/.gradle/
+**/node_modules/
+**/.next/
+**/.idea/
+**/*.iml
+**/*.log
+apps/web/
+apps/android/
+docs/

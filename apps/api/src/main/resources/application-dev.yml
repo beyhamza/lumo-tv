@@ -1,0 +1,8 @@
+# Local development profile. Never active in production.
+logging:
+  level:
+    tv.lumo: DEBUG
+management:
+  endpoint:
+    health:
+      show-details: always
