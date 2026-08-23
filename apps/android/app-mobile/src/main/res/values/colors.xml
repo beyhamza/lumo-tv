@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The only place a colour is duplicated outside core:designsystem, and it has to
+  be: the window background is painted by the framework before Compose runs. If
+  it disagrees with LumoColors.Ink, every cold start shows a flash of the wrong
+  colour before the first frame.
+-->
+<resources>
+    <color name="lumo_ink">#FF07090F</color>
+</resources>

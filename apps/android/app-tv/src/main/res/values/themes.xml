@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Televisions have no status or navigation bar to colour, so this theme only
+  needs to paint the window before the first Compose frame. Everything visible
+  afterwards comes from LumoTvTheme.
+-->
+<resources>
+    <style name="Theme.LumoTv" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/lumo_ink</item>
+    </style>
+</resources>

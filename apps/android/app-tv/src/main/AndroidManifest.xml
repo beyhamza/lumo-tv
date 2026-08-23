@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  iptv-lumo-tv — the Android TV application (tv.lumo.androidtv, ADR 0004).
+
+  Three declarations make this a TV application rather than a phone application
+  running on a television, and all three are required for the Play listing to be
+  accepted into the TV catalogue:
+
+  - `leanback` required, so the Play Store offers it to televisions;
+  - `touchscreen` NOT required, because televisions have none — a missing
+    `required="false"` here is the single most common reason a TV submission is
+    rejected;
+  - the LEANBACK_LAUNCHER category, which is what puts the app on the TV home
+    screen. The banner is what it appears as there.
+
+  As with app-mobile, permissions come from the core modules that need them.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="true" />
+
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+
+    <application
+        android:name=".LumoTvApplication"
+        android:allowBackup="false"
+        android:banner="@drawable/tv_banner"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@drawable/ic_lumo"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.LumoTv">
+
+        <activity
+            android:name=".TvActivity"
+            android:exported="true"
+            android:banner="@drawable/tv_banner"
+            android:label="@string/app_name"
+            android:launchMode="singleTop"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.LumoTv"
+            android:configChanges="keyboard|keyboardHidden|navigation|screenSize|uiMode">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

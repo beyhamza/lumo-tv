@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Distinct from the phone listing's name so the two are told apart on a
+         device that has both (ADR 0004). Not translated: it is a brand name. -->
+    <string name="app_name" translatable="false">Lumo TV</string>
+</resources>

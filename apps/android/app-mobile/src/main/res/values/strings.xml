@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A brand name is not translated, hence translatable="false": it also
+         keeps lint from demanding a French copy that would be identical. Every
+         other string in the product lives in the feature module that shows it,
+         in both languages (AGENTS.md §4). -->
+    <string name="app_name" translatable="false">Lumo</string>
+</resources>

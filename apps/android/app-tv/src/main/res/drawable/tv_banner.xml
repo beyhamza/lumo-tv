@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Android TV home-screen banner (320 x 180 dp). Same abstract mark as the
+  launcher icon; no channel artwork, ever (AGENTS.md §1).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+
+    <path
+        android:fillColor="#07090F"
+        android:pathData="M0,0h320v180h-320z" />
+
+    <path
+        android:fillColor="#4CB8FF"
+        android:pathData="M112,58h96a10,10 0 0 1 10,10v44a10,10 0 0 1 -10,10h-96a10,10 0 0 1 -10,-10v-44a10,10 0 0 1 10,-10z" />
+
+    <path
+        android:fillColor="#07090F"
+        android:pathData="M148,74l32,16l-32,16z" />
+</vector>

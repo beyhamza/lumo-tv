@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  iptv-lumo — the phone and tablet application (tv.lumo.android, ADR 0004).
+
+  No permission is declared here: each core module declares what it needs
+  (INTERNET in core:network, WAKE_LOCK in core:player) and the merger collects
+  them. That way the two applications cannot end up with different permission
+  sets from the same shared code.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      allowBackup="false": the session blob is encrypted with a key that lives in
+      this device's Keystore, so a backup restored onto another device would
+      contain a file nothing can decrypt (core:auth handles that case, but there
+      is no reason to create it). The rest of the app's data is a re-syncable
+      catalogue cache.
+    -->
+    <application
+        android:name=".LumoApplication"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@drawable/ic_lumo"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Lumo">
+
+        <!--
+          configChanges is what lets US-09's "pivoter sans interrompre la
+          lecture" work: without it a rotation recreates the Activity, which
+          tears down the player surface and restarts the stream from scratch.
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.Lumo"
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

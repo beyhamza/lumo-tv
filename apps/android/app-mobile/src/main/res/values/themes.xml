@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The XML theme exists only for what happens before Compose takes over: the
+  window background during the cold start, and the system bars. Everything the
+  user actually reads is themed by LumoMobileTheme.
+-->
+<resources>
+    <style name="Theme.Lumo" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/lumo_ink</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
