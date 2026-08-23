@@ -182,7 +182,8 @@
     "subscriptionUnavailable": "Les informations d'abonnement ne sont pas encore disponibles.",
     "unavailableTitle": "Données indisponibles",
     "unavailableBody": "Le service ne répond pas pour le moment. Réessayez dans un instant.",
-    "notImplementedBadge": "Écran en cours de construction"
+    "notImplementedBadge": "Écran en cours de construction",
+    "notImplementedBody": "Cette partie de l'API n'est pas encore en service. Rien n'est cassé de votre côté : l'écran s'affichera dès que le serveur la fournira."
   },
   "Errors": {
     "generic": "Une erreur est survenue. Réessayez.",

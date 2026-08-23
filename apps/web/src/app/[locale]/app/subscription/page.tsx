@@ -1,6 +1,7 @@
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
-import { EmptyState, Unavailable } from "@/components/app/Unavailable";
+import { NotBuiltYet, Unavailable } from "@/components/app/Unavailable";
 import { api } from "@/lib/api/client";
+import { fetched } from "@/lib/api/fetched";
 import { requireSession } from "@/lib/session/session";
 
 /**
@@ -11,6 +12,9 @@ import { requireSession } from "@/lib/session/session";
  * never asks a store, and the web never infers a plan from a Stripe response it
  * happens to have seen. Stripe writes to the `entitlement` table through
  * webhooks; this page reads the result (ADR 0003).
+ *
+ * The endpoint has no controller yet, so today this renders "not built yet"
+ * rather than an outage — see the devices page for why the distinction matters.
  */
 export default async function SubscriptionPage({
   params,
@@ -22,17 +26,9 @@ export default async function SubscriptionPage({
   const t = await getTranslations("App");
   const format = await getFormatter();
 
-  let entitlement:
-    | { plan: string; status: string; current_period_end?: string | null }
-    | null
-    | undefined;
-
-  try {
-    const { data } = await api(session.accessToken).GET("/me/entitlement", {});
-    entitlement = data ?? null;
-  } catch {
-    entitlement = undefined;
-  }
+  const entitlement = await fetched(() =>
+    api(session.accessToken).GET("/me/entitlement", {}),
+  );
 
   return (
     <>
@@ -42,28 +38,25 @@ export default async function SubscriptionPage({
       <p className="text-muted-foreground mt-2">{t("subscriptionSubtitle")}</p>
 
       <div className="mt-8">
-        {entitlement === undefined ? (
+        {entitlement.state === "unavailable" ? (
           <Unavailable />
-        ) : entitlement === null ? (
-          <EmptyState
-            title={t("subscriptionPlanFree")}
-            hint={t("subscriptionUnavailable")}
-          />
+        ) : entitlement.state === "not-implemented" ? (
+          <NotBuiltYet />
         ) : (
           <div className="border-border rounded-xl border px-5 py-6">
             <p className="text-lg font-medium">
-              {entitlement.plan === "PREMIUM"
+              {entitlement.data.plan === "PREMIUM"
                 ? t("subscriptionPlanPremium")
                 : t("subscriptionPlanFree")}
             </p>
             <p className="text-muted-foreground mt-1 text-sm">
-              {entitlement.status}
+              {entitlement.data.status}
             </p>
-            {entitlement.current_period_end ? (
+            {entitlement.data.current_period_end ? (
               <p className="text-muted-foreground mt-3 text-sm">
                 {t("subscriptionRenewsOn", {
                   date: format.dateTime(
-                    new Date(entitlement.current_period_end),
+                    new Date(entitlement.data.current_period_end),
                     { dateStyle: "long" },
                   ),
                 })}

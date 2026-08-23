@@ -1,14 +1,28 @@
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
-import { EmptyState, Unavailable } from "@/components/app/Unavailable";
+import {
+  EmptyState,
+  NotBuiltYet,
+  Unavailable,
+} from "@/components/app/Unavailable";
 import { api } from "@/lib/api/client";
+import { fetched } from "@/lib/api/fetched";
 import { requireSession } from "@/lib/session/session";
 
 /**
  * The devices linked to the account.
  *
- * This is where revoking a stolen television will live (`DELETE /me/devices/{id}`
- * in the contract). It is a read-only list for now rather than a set of buttons
- * that do nothing: a control that looks live and is not is worse than no control.
+ * `GET /me/devices` is in the contract and has no controller yet — sprint 1
+ * covers auth, sources and catalogue — so this page renders "not built yet"
+ * rather than the outage state it used to show. That was the audit's C1: a
+ * feature nobody had written was being reported as a service failure, which
+ * told the user to come back in a minute and told us nothing at all.
+ *
+ * It is not a hard-coded placeholder: the day the endpoint answers, this page
+ * lists devices with no change here.
+ *
+ * Read-only for now rather than shipping a revoke button that does nothing
+ * (`DELETE /me/devices/{id}` is in the same unimplemented group): a control that
+ * looks live and is not is worse than no control.
  */
 export default async function DevicesPage({
   params,
@@ -20,20 +34,9 @@ export default async function DevicesPage({
   const t = await getTranslations("App");
   const format = await getFormatter();
 
-  let devices: Array<{
-    id: string;
-    platform: string;
-    name?: string | null;
-    model?: string | null;
-    last_seen_at?: string | null;
-  }> | null = null;
-
-  try {
-    const { data } = await api(session.accessToken).GET("/me/devices", {});
-    devices = data?.items ?? null;
-  } catch {
-    devices = null;
-  }
+  const devices = await fetched(() =>
+    api(session.accessToken).GET("/me/devices", {}),
+  );
 
   return (
     <>
@@ -43,13 +46,15 @@ export default async function DevicesPage({
       <p className="text-muted-foreground mt-2">{t("devicesSubtitle")}</p>
 
       <div className="mt-8">
-        {devices === null ? (
+        {devices.state === "unavailable" ? (
           <Unavailable />
-        ) : devices.length === 0 ? (
+        ) : devices.state === "not-implemented" ? (
+          <NotBuiltYet />
+        ) : devices.data.items.length === 0 ? (
           <EmptyState title={t("devicesEmpty")} hint={t("devicesEmptyHint")} />
         ) : (
           <ul className="space-y-3">
-            {devices.map((device) => (
+            {devices.data.items.map((device) => (
               <li
                 key={device.id}
                 className="border-border flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border px-5 py-4"

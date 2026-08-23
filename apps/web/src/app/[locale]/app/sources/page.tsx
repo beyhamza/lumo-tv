@@ -1,21 +1,31 @@
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
-import { EmptyState, Unavailable } from "@/components/app/Unavailable";
+import {
+  EmptyState,
+  NotBuiltYet,
+  Unavailable,
+} from "@/components/app/Unavailable";
 import { api } from "@/lib/api/client";
+import { fetched } from "@/lib/api/fetched";
+import type { SourceStatus } from "@/lib/api/types";
 import { requireSession } from "@/lib/session/session";
 
 /**
  * The user's sources.
  *
- * The first page in this codebase that reads real data through the generated
- * client, and it shows the shape the others follow: the access token comes from
- * the session cookie (never from client JavaScript), a transport failure and an
- * API error both land in the same "unavailable" state, and an empty list is
- * told apart from a failed one.
+ * The shape every page in this zone follows: the access token comes from the
+ * session cookie (never from client JavaScript), and `fetched` separates the
+ * three outcomes that must not be confused — data, nothing yet, and no answer.
  *
- * Note what is NOT rendered: no `username`, no host credentials of any kind. The
- * contract does not return the Xtream password at all — it never leaves the
- * server (docs/domain-model.md, `source`) — and this page has no reason to show
- * the rest.
+ * The row type comes from the contract rather than being written out here. A
+ * local `{ id: string; label: string; … }` reads fine and hides a rename: an
+ * optional property that disappears from the contract is still assignable to an
+ * optional property declared locally, so the mismatch would surface at runtime
+ * (ADR 0001).
+ *
+ * Note what is NOT rendered: no `username`, no host. The contract does not
+ * return the Xtream password at all — it never leaves the server
+ * (docs/domain-model.md, `source`) — and this page has no reason to show the
+ * rest.
  */
 export default async function SourcesPage({
   params,
@@ -27,20 +37,7 @@ export default async function SourcesPage({
   const t = await getTranslations("App");
   const format = await getFormatter();
 
-  let sources: Array<{
-    id: string;
-    label: string;
-    status: string;
-    channel_count?: number | null;
-    last_synced_at?: string | null;
-  }> | null = null;
-
-  try {
-    const { data } = await api(session.accessToken).GET("/sources", {});
-    sources = data?.items ?? null;
-  } catch {
-    sources = null;
-  }
+  const sources = await fetched(() => api(session.accessToken).GET("/sources", {}));
 
   return (
     <>
@@ -50,13 +47,15 @@ export default async function SourcesPage({
       <p className="text-muted-foreground mt-2">{t("sourcesSubtitle")}</p>
 
       <div className="mt-8">
-        {sources === null ? (
+        {sources.state === "unavailable" ? (
           <Unavailable />
-        ) : sources.length === 0 ? (
+        ) : sources.state === "not-implemented" ? (
+          <NotBuiltYet />
+        ) : sources.data.items.length === 0 ? (
           <EmptyState title={t("sourcesEmpty")} hint={t("sourcesEmptyHint")} />
         ) : (
           <ul className="space-y-3">
-            {sources.map((source) => (
+            {sources.data.items.map((source) => (
               <li
                 key={source.id}
                 className="border-border flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border px-5 py-4"
@@ -83,7 +82,7 @@ export default async function SourcesPage({
 }
 
 function statusLabel(
-  status: string,
+  status: SourceStatus,
   t: (
     key:
       | "sourceStatusPending"
@@ -99,9 +98,11 @@ function statusLabel(
       return t("sourceStatusSyncing");
     case "READY":
       return t("sourceStatusReady");
+    // `ERROR` and, should the contract ever add one, anything else: an unknown
+    // status must not blank the row out. Typing the parameter as the contract's
+    // union is what would make a new value a compile error here rather than a
+    // silent default.
     default:
-      // Includes ERROR and any status added to the contract later: an unknown
-      // value must not blank the row out.
       return t("sourceStatusError");
   }
 }
