@@ -17,6 +17,7 @@ import tv.lumo.api.generated.model.UpdateSourceRequest;
 import tv.lumo.api.ingest.HostNormaliser;
 import tv.lumo.api.ingest.IngestionException;
 import tv.lumo.api.ingest.IngestionService;
+import tv.lumo.api.ingest.SourceUrl;
 import tv.lumo.api.ingest.xtream.XtreamClient;
 import tv.lumo.api.shared.crypto.CredentialCipher;
 import tv.lumo.api.shared.error.ApiException;
@@ -104,14 +105,12 @@ public class SourceService {
             expiresAt = account.expiresAt();
             maxConnections = account.maxConnections();
             sealedPassword = cipher.seal(request.getPassword());
-        } else {
-            validate(() -> {
-                // Cheap shape check: reject a malformed URL now rather than after
-                // the client has been told PENDING and started polling.
-                java.net.URI.create(request.getM3uUrl());
-                return null;
-            });
         }
+
+        // Both kinds may carry an EPG URL, so this runs for both. Rejecting now
+        // rather than at ingestion means the client hears 422 instead of being
+        // told PENDING and then polling its way to an error.
+        requireFetchableUrls(request.getM3uUrl(), request.getEpgUrl());
 
         // One statement, so atomic on its own; no transaction is opened around
         // the third-party call above (ADR 0005 §2).
@@ -127,6 +126,11 @@ public class SourceService {
 
     public Source update(UUID sourceId, UUID userId, UpdateSourceRequest request) {
         requireOwned(sourceId, userId);
+
+        // Same rule as on create. Without it a PATCH is a way around the
+        // validation: the row would take any string and the failure would only
+        // surface inside the ingestion worker.
+        requireFetchableUrls(request.getM3uUrl(), request.getEpgUrl());
 
         byte[] sealedPassword = request.getPassword() == null ? null : cipher.seal(request.getPassword());
         String host = request.getHost() == null ? null : HostNormaliser.normalise(request.getHost());
@@ -175,6 +179,25 @@ public class SourceService {
         return sources.findOwned(sourceId, userId)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.SOURCE_NOT_FOUND,
                         "No such source on this account"));
+    }
+
+    /**
+     * Refuses any URL ingestion could not fetch, before it is stored.
+     *
+     * <p>Null means "not supplied" and is skipped — a PATCH sends only what it
+     * changes, and an M3U source has no EPG URL until someone adds one.
+     *
+     * <p>The check is {@link SourceUrl#parse}, so it is exactly the check the
+     * ingestion worker applies. That symmetry is the point: a URL that would be
+     * refused later must not be accepted now.
+     */
+    private void requireFetchableUrls(String m3uUrl, String epgUrl) {
+        if (m3uUrl != null) {
+            validate(() -> SourceUrl.parse(m3uUrl));
+        }
+        if (epgUrl != null) {
+            validate(() -> SourceUrl.parse(epgUrl));
+        }
     }
 
     /** Null until the first successful ingestion, which is what the contract says. */

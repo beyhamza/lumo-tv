@@ -197,8 +197,12 @@ public class IngestionService {
     // ---- M3U ----------------------------------------------------------------
 
     private void ingestM3u(SourceRepository.SourceRow source) {
-        URI uri = URI.create(source.m3uUrl());
-        String host = uri.getHost() == null ? source.m3uUrl() : uri.getHost();
+        // Rejects anything that is not an absolute http(s) URL, and guarantees a
+        // non-null host. The host is what reaches the logs; the URL never does
+        // (AGENTS.md §5). Re-validated here rather than trusted from the row: a
+        // source stored before that rule existed is still in the table.
+        URI uri = SourceUrl.parse(source.m3uUrl());
+        String host = SourceUrl.hostOf(uri);
 
         // An M3U has no category list: groups are discovered while streaming and
         // created on first sight. computeIfAbsent means one statement per distinct
@@ -235,8 +239,8 @@ public class IngestionService {
     // ---- XMLTV --------------------------------------------------------------
 
     private void ingestEpg(SourceRepository.SourceRow source) {
-        URI uri = URI.create(source.epgUrl());
-        String host = uri.getHost() == null ? source.epgUrl() : uri.getHost();
+        URI uri = SourceUrl.parse(source.epgUrl());
+        String host = SourceUrl.hostOf(uri);
 
         CatalogWriteRepository.Batcher<CatalogWriteRepository.ProgrammeUpsert> batcher =
                 CatalogWriteRepository.batcher(batch -> catalogWrites.upsertProgrammes(source.id(), batch));
