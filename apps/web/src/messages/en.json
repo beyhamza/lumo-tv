@@ -110,7 +110,34 @@
     "haveAccount": "Already have an account?",
     "forgotPassword": "Forgotten your password?",
     "toRegister": "Create an account",
-    "toLogin": "Sign in"
+    "toLogin": "Sign in",
+    "passwordResetDone": "Your password has been changed. Sign in with the new one."
+  },
+  "VerifyEmail": {
+    "metaTitle": "Confirm your email address",
+    "metaDescription": "Confirm the email address on your Lumo TV account.",
+    "title": "Confirm your email address",
+    "body": "One last step: confirm that this address is yours.",
+    "confirm": "Confirm my address",
+    "successTitle": "Address confirmed",
+    "successBody": "Your email address is confirmed. You can sign in.",
+    "missingToken": "This link is incomplete. Open the one in the email we sent you."
+  },
+  "Password": {
+    "forgotMetaTitle": "Forgotten password",
+    "forgotMetaDescription": "Get a link to choose a new password.",
+    "forgotTitle": "Forgotten password",
+    "forgotSubtitle": "Enter your email address: if an account uses it, you will receive a link.",
+    "submitForgot": "Send the link",
+    "sentTitle": "Check your inbox",
+    "sentBody": "If an account exists for that address, a link is on its way. It is valid for one hour.",
+    "resetMetaTitle": "Choose a new password",
+    "resetMetaDescription": "Choose a new password for your Lumo TV account.",
+    "resetTitle": "New password",
+    "resetSubtitle": "Choose a password. Every one of your sessions will be signed out.",
+    "newPasswordLabel": "New password",
+    "submitReset": "Change my password",
+    "missingToken": "This link is incomplete or out of date. Ask for a new one."
   },
   "Activate": {
     "metaTitle": "Activate a television",
@@ -166,6 +193,10 @@
     "PASSWORD_TOO_WEAK": "That password is too weak. Use at least ten characters.",
     "RATE_LIMITED": "Too many attempts. Wait a moment before trying again.",
     "UNAUTHENTICATED": "Your session has expired. Sign in again.",
+    "VERIFICATION_TOKEN_INVALID": "This confirmation link is not valid. It may already have been used.",
+    "VERIFICATION_TOKEN_EXPIRED": "This confirmation link has expired. Sign in to get a new one.",
+    "RESET_TOKEN_INVALID": "This reset link is not valid. It may already have been used.",
+    "RESET_TOKEN_EXPIRED": "This reset link has expired. Ask for a new one.",
     "DEVICE_CODE_NOT_FOUND": "No such code. Check the eight characters shown on your television.",
     "DEVICE_CODE_EXPIRED": "That code has expired. Your television is already showing a new one.",
     "DEVICE_CODE_ALREADY_USED": "That code has already been used."

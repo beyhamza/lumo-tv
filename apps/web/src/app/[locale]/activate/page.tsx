@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { approveDeviceCode } from "@/actions/activate";
 import { hrefFor } from "@/i18n/navigation";
+import { errorMessage } from "@/lib/api/error-message";
 import type { Locale } from "@/i18n/routing";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { getSession } from "@/lib/session/session";
@@ -146,23 +147,4 @@ export default async function ActivatePage({
       </main>
     </div>
   );
-}
-
-const TRANSLATED_CODES = [
-  "VALIDATION_FAILED",
-  "RATE_LIMITED",
-  "UNAUTHENTICATED",
-  "DEVICE_CODE_NOT_FOUND",
-  "DEVICE_CODE_EXPIRED",
-  "DEVICE_CODE_ALREADY_USED",
-] as const;
-
-function errorMessage(
-  code: string,
-  t: (key: (typeof TRANSLATED_CODES)[number] | "network" | "generic") => string,
-): string {
-  if ((TRANSLATED_CODES as readonly string[]).includes(code)) {
-    return t(code as (typeof TRANSLATED_CODES)[number]);
-  }
-  return code === "NETWORK" ? t("network") : t("generic");
 }

@@ -29,7 +29,7 @@ export default async function LoginPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const { next } = await searchParams;
+  const { next, status } = await searchParams;
   const t = await getTranslations("Auth");
 
   return (
@@ -37,11 +37,28 @@ export default async function LoginPage({
       <h1 className="text-2xl font-semibold tracking-tight">{t("loginTitle")}</h1>
       <p className="text-muted-foreground mt-2 text-sm">{t("loginSubtitle")}</p>
 
+      {/* Where a completed reset lands: the account's sessions have just been
+          revoked server-side, so there is nowhere to go but back through here. */}
+      {status === "password-reset" ? (
+        <p role="status" className="mt-4 text-sm">
+          {t("passwordResetDone")}
+        </p>
+      ) : null}
+
       <div className="mt-8">
         <SignInForm next={typeof next === "string" ? next : undefined} />
       </div>
 
       <p className="text-muted-foreground mt-6 text-sm">
+        <a
+          href={hrefFor(locale as Locale, "/forgot-password")}
+          className="text-foreground underline underline-offset-4"
+        >
+          {t("forgotPassword")}
+        </a>
+      </p>
+
+      <p className="text-muted-foreground mt-2 text-sm">
         {t("noAccount")}{" "}
         <a href={hrefFor(locale as Locale, "/register")} className="text-foreground underline underline-offset-4">
           {t("toRegister")}

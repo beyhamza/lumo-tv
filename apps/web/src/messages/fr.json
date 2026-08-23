@@ -110,7 +110,34 @@
     "haveAccount": "Vous avez déjà un compte ?",
     "forgotPassword": "Mot de passe oublié ?",
     "toRegister": "Créer un compte",
-    "toLogin": "Se connecter"
+    "toLogin": "Se connecter",
+    "passwordResetDone": "Votre mot de passe a été changé. Connectez-vous avec le nouveau."
+  },
+  "VerifyEmail": {
+    "metaTitle": "Confirmer votre adresse email",
+    "metaDescription": "Confirmez l'adresse email de votre compte Lumo TV.",
+    "title": "Confirmer votre adresse email",
+    "body": "Une dernière étape : confirmez que cette adresse est bien la vôtre.",
+    "confirm": "Confirmer mon adresse",
+    "successTitle": "Adresse confirmée",
+    "successBody": "Votre adresse email est confirmée. Vous pouvez vous connecter.",
+    "missingToken": "Ce lien est incomplet. Ouvrez celui qui figure dans l'email que nous vous avons envoyé."
+  },
+  "Password": {
+    "forgotMetaTitle": "Mot de passe oublié",
+    "forgotMetaDescription": "Recevez un lien pour choisir un nouveau mot de passe.",
+    "forgotTitle": "Mot de passe oublié",
+    "forgotSubtitle": "Indiquez votre adresse email : si un compte y est associé, vous recevrez un lien.",
+    "submitForgot": "Envoyer le lien",
+    "sentTitle": "Vérifiez votre boîte mail",
+    "sentBody": "Si un compte existe pour cette adresse, un lien vient d'être envoyé. Il est valable une heure.",
+    "resetMetaTitle": "Choisir un nouveau mot de passe",
+    "resetMetaDescription": "Choisissez un nouveau mot de passe pour votre compte Lumo TV.",
+    "resetTitle": "Nouveau mot de passe",
+    "resetSubtitle": "Choisissez un mot de passe. Toutes vos sessions seront déconnectées.",
+    "newPasswordLabel": "Nouveau mot de passe",
+    "submitReset": "Changer mon mot de passe",
+    "missingToken": "Ce lien est incomplet ou périmé. Demandez-en un nouveau."
   },
   "Activate": {
     "metaTitle": "Activer un téléviseur",
@@ -166,6 +193,10 @@
     "PASSWORD_TOO_WEAK": "Ce mot de passe est trop faible. Utilisez au moins dix caractères.",
     "RATE_LIMITED": "Trop de tentatives. Patientez un instant avant de réessayer.",
     "UNAUTHENTICATED": "Votre session a expiré. Reconnectez-vous.",
+    "VERIFICATION_TOKEN_INVALID": "Ce lien de confirmation n'est pas valide. Il a peut-être déjà été utilisé.",
+    "VERIFICATION_TOKEN_EXPIRED": "Ce lien de confirmation a expiré. Connectez-vous pour en recevoir un nouveau.",
+    "RESET_TOKEN_INVALID": "Ce lien de réinitialisation n'est pas valide. Il a peut-être déjà été utilisé.",
+    "RESET_TOKEN_EXPIRED": "Ce lien de réinitialisation a expiré. Demandez-en un nouveau.",
     "DEVICE_CODE_NOT_FOUND": "Ce code n'existe pas. Vérifiez les huit caractères affichés sur votre téléviseur.",
     "DEVICE_CODE_EXPIRED": "Ce code a expiré. Votre téléviseur en affiche déjà un nouveau.",
     "DEVICE_CODE_ALREADY_USED": "Ce code a déjà été utilisé."
