@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The module that needs the permission declares it. Both applications inherit it
+  through the manifest merger, so neither can forget it and neither can drift
+  from the other (ADR 0004).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Offline detection: US-08 shows the cached catalogue with an indicator
+         rather than an error when the network is gone. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+</manifest>
