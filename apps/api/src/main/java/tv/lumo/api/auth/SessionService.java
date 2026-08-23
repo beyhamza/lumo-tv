@@ -39,17 +39,20 @@ public class SessionService {
     private final AccessTokenService accessTokens;
     private final RefreshTokenRepository refreshTokens;
     private final DeviceRepository devices;
+    private final TokenChainRevoker revoker;
     private final UserMapper userMapper;
     private final LumoProperties properties;
 
     public SessionService(AccessTokenService accessTokens,
                           RefreshTokenRepository refreshTokens,
                           DeviceRepository devices,
+                          TokenChainRevoker revoker,
                           UserMapper userMapper,
                           LumoProperties properties) {
         this.accessTokens = accessTokens;
         this.refreshTokens = refreshTokens;
         this.devices = devices;
+        this.revoker = revoker;
         this.userMapper = userMapper;
         this.properties = properties;
     }
@@ -87,11 +90,15 @@ public class SessionService {
 
         if (row.isRevoked()) {
             // Someone is holding a token that was already spent. Either the
-            // legitimate device replayed it, or it leaked. We cannot tell them
-            // apart, so we assume the worse case and kill the chain.
-            int revoked = refreshTokens.revokeDeviceChain(row.deviceId());
-            log.warn("Refresh token reuse detected for device {}; revoked {} live token(s) on that device",
-                    row.deviceId(), revoked);
+            // legitimate device replayed it, or it leaked. The two are
+            // indistinguishable from here, so assume the worse case.
+            //
+            // The revocation MUST commit in its own transaction. Doing it inline
+            // would put it in the transaction this method is about to fail, and
+            // the rollback would undo it: the caller would get a correct-looking
+            // REFRESH_TOKEN_REUSED while every stolen token on that device stayed
+            // valid. See TokenChainRevoker.
+            revoker.revokeDeviceChainNow(row.deviceId());
             throw ApiException.unauthenticated(ErrorCode.REFRESH_TOKEN_REUSED,
                     "Refresh token was already used; the device token chain has been revoked");
         }
