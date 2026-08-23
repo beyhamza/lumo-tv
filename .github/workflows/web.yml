@@ -50,9 +50,9 @@ env:
 
 jobs:
   build:
-    name: Lint, typecheck, test and build
+    name: Lint, typecheck, test, build and e2e
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: apps/web
@@ -107,3 +107,29 @@ jobs:
             sed -n '/Route (app)/,/^$/p' build.log
             exit 1
           fi
+
+      # Chromium only. Both Playwright projects are Chromium-based - the second
+      # is a Pixel 7 viewport, because /activate is used standing up with a
+      # phone in hand - so Firefox and WebKit would be download time spent on
+      # nothing.
+      - name: Install browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Runs against a production build, which playwright.config.ts starts
+      # itself. That repeats the build above; the alternative is a bespoke CI
+      # path that no developer runs locally, and this way `pnpm test:e2e` means
+      # the same thing on both sides.
+      - name: End-to-end tests
+        run: pnpm test:e2e
+
+      # A failed browser test is unreadable from a log alone. The report carries
+      # the trace of the retried run (trace: on-first-retry).
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 7

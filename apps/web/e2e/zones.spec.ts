@@ -4,14 +4,49 @@ import { expect, test } from "@playwright/test";
  * The three zones, tested for the properties that define them
  * (docs/architecture.md §4) rather than for their copy.
  *
- * Not run in this repository yet: the browsers have to be downloaded first
- * (`pnpm exec playwright install chromium`).
+ * The browsers are not installed by `pnpm install`. Once, per machine:
+ *
+ *     pnpm exec playwright install chromium
+ *
+ * CI installs them in the same step, so these run on every pull request that
+ * touches apps/web.
  */
 
 test.describe("marketing", () => {
-  test("the root redirects to a locale-prefixed URL", async ({ page }) => {
-    await page.goto("/");
-    await expect(page).toHaveURL(/\/fr$/);
+  test("the root sends a French browser to /fr and an English one to /en", async ({
+    browser,
+  }) => {
+    // This asserted /fr unconditionally and failed the first time it was ever
+    // run, against a Chromium that asks for English. The application was right:
+    // routing.ts sets localeDetection, so `/` negotiates. Pinning the default
+    // here would have meant testing the opposite of what the product does.
+    for (const [locale, expected] of [
+      ["fr-FR", /\/fr$/],
+      ["en-US", /\/en$/],
+    ] as const) {
+      const context = await browser.newContext({ locale });
+      const page = await context.newPage();
+
+      await page.goto("/");
+      await expect(page).toHaveURL(expected);
+
+      await context.close();
+    }
+  });
+
+  test("a locale already in the URL beats the browser's preference", async ({
+    browser,
+  }) => {
+    // The other half of the same rule, and the one that matters in practice: a
+    // link written in French opens in French for whoever it was sent to.
+    const context = await browser.newContext({ locale: "en-US" });
+    const page = await context.newPage();
+
+    await page.goto("/fr/guides");
+    await expect(page).toHaveURL(/\/fr\/guides$/);
+    await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+
+    await context.close();
   });
 
   test("the landing page carries its canonical and its alternates", async ({ page }) => {
