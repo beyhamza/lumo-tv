@@ -1,0 +1,17 @@
+# pnpm refuses to run a dependency's install scripts until someone decides,
+# per package, whether it may. Listing them here IS that decision, recorded in
+# the repository rather than in one developer's pnpm store.
+#
+# It is also load-bearing beyond security: an undecided package makes `pnpm add`
+# exit non-zero, which breaks any tool that shells out to it (the shadcn CLI
+# does).
+#
+# All false: none of these needs to compile anything for this project. sharp is
+# only used by `next/image` optimisation at build time on platforms without a
+# prebuilt binary, and @swc/core, @parcel/watcher and unrs-resolver all ship
+# prebuilt binaries.
+allowBuilds:
+  sharp: false
+  unrs-resolver: false
+  "@parcel/watcher": false
+  "@swc/core": false
