@@ -1,0 +1,47 @@
+# Spring server generator — apps/api implements these interfaces.
+#
+# interfaceOnly + skipDefaultInterface is the whole point of ADR 0001: the
+# generated interfaces have no default implementations, so a controller that
+# does not match the contract fails to compile. Drift is a build error, not a
+# runtime surprise.
+
+generatorName: spring
+inputSpec: openapi.yaml
+outputDir: generated/spring
+
+apiPackage: tv.lumo.api.generated.api
+modelPackage: tv.lumo.api.generated.model
+invokerPackage: tv.lumo.api.generated
+
+additionalProperties:
+  # Server-side interfaces only. No controllers, no delegates, no app.
+  interfaceOnly: "true"
+  # No default methods: every operation MUST be implemented explicitly.
+  skipDefaultInterface: "true"
+
+  # Spring Boot 4 / Spring Framework 7 sits on Jakarta EE namespaces.
+  useSpringBoot3: "true"
+  useJakartaEe: "true"
+
+  # Bean validation from the contract's own constraints (minLength, pattern...).
+  useBeanValidation: "true"
+  performBeanValidation: "false"
+
+  # No springdoc/swagger annotations: the contract is the documentation, and we
+  # refuse a runtime dependency whose only job is to re-describe this file.
+  documentationProvider: "none"
+  annotationLibrary: "none"
+
+  # Jackson 3 is the default in Spring Boot 4. JsonNullable would drag in
+  # jackson-databind-nullable, built against Jackson 2. Nullable properties are
+  # plain nullable fields instead.
+  openApiNullable: "false"
+
+  # One interface per tag: AuthApi, AccountApi, SourcesApi, CatalogApi, UserdataApi.
+  useTags: "true"
+
+  dateLibrary: java8
+  serializableModel: "false"
+  # Mandatory for the CI drift check: a timestamp in the header would make every
+  # regeneration differ from the committed output.
+  hideGenerationTimestamp: "true"

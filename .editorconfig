@@ -1,0 +1,82 @@
+# ==============================================================================
+# Lumo TV — editor configuration.
+#
+# Identifiers, file names, code comments, commit messages and ADR content are in
+# English (AGENTS.md §5). Product documentation and backlog are in French.
+# UTF-8 and LF everywhere: the repository is built on Windows, Linux and macOS.
+# ==============================================================================
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+max_line_length = 100
+
+# ---- Java (apps/api) ---------------------------------------------------------
+[*.java]
+indent_size = 4
+
+# ---- Kotlin (apps/android) ---------------------------------------------------
+# ktlint official style: 4 spaces, 140-column ceiling for Compose builders.
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 140
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+
+# ---- TypeScript / JavaScript (apps/web) --------------------------------------
+[*.{ts,tsx,js,jsx,mjs,cjs,css,scss}]
+indent_size = 2
+max_line_length = 100
+
+# ---- Data and configuration --------------------------------------------------
+# YAML forbids tabs. openapi.yaml is hand-written and read far more often than
+# it is edited, so it stays at two spaces like every other YAML file.
+[*.{yml,yaml,json,json5}]
+indent_size = 2
+
+[*.{xml,svg}]
+indent_size = 2
+
+# ---- SQL (Liquibase formatted-SQL changesets, ADR 0006) ----------------------
+[*.sql]
+indent_size = 4
+
+# ---- Gradle / properties -----------------------------------------------------
+[*.properties]
+indent_size = 2
+
+# ---- Shell -------------------------------------------------------------------
+[*.sh]
+indent_size = 2
+
+# ---- Markdown ----------------------------------------------------------------
+# Trailing whitespace is significant (hard line break), so it is preserved here.
+[*.md]
+indent_size = 2
+trim_trailing_whitespace = false
+max_line_length = off
+
+# ---- Files owned by tools ----------------------------------------------------
+[{gradlew,gradlew.bat,gradle/wrapper/*}]
+insert_final_newline = false
+trim_trailing_whitespace = false
+
+[*.{lock,lockb}]
+insert_final_newline = false
+
+[pnpm-lock.yaml]
+indent_size = 2
+insert_final_newline = false
+
+# Generated clients are never hand-edited; do not let an editor reformat them
+# and break the CI drift check.
+[packages/contracts/generated/**]
+trim_trailing_whitespace = false
+insert_final_newline = false
+max_line_length = off

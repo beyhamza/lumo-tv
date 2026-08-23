@@ -1,0 +1,55 @@
+# ==============================================================================
+# Line endings.
+#
+# LF in the repository and in every working copy, on every platform. This is not
+# cosmetic: packages/contracts/generated/ is committed and CI verifies it byte
+# for byte against freshly generated output (ADR 0001). Let Git rewrite those
+# files to CRLF on a Windows checkout and the drift check fails on every line of
+# every generated file, on a clean clone, for no reason anyone can see.
+#
+# `eol=lf` overrides core.autocrlf, so a developer's global Git configuration
+# cannot reintroduce the problem.
+# ==============================================================================
+
+* text=auto eol=lf
+
+# ---- Scripts: LF is mandatory, not a preference ------------------------------
+# A shell script with CRLF fails with "bad interpreter: /bin/sh^M".
+*.sh          text eol=lf
+gradlew       text eol=lf
+
+# ---- Windows-native files ----------------------------------------------------
+*.bat         text eol=crlf
+*.cmd         text eol=crlf
+gradlew.bat   text eol=crlf
+
+# ---- Binary: never touched, never diffed -------------------------------------
+*.png         binary
+*.jpg         binary
+*.jpeg        binary
+*.gif         binary
+*.webp        binary
+*.ico         binary
+*.pdf         binary
+*.zip         binary
+*.jar         binary
+*.keystore    binary
+*.jks         binary
+*.apk         binary
+*.aab         binary
+*.woff        binary
+*.woff2       binary
+*.ttf         binary
+*.otf         binary
+*.mp4         binary
+*.webm        binary
+
+# ---- Generated clients -------------------------------------------------------
+# Marked generated so review tools collapse them by default: the diff that
+# matters is openapi.yaml, and these are its mechanical consequence. They are
+# still committed and still verified byte for byte by CI.
+packages/contracts/generated/**  linguist-generated=true -diff
+
+# ---- Lockfiles ---------------------------------------------------------------
+package-lock.json   -diff
+pnpm-lock.yaml      -diff

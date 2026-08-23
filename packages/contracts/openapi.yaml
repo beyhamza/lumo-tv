@@ -1,0 +1,2249 @@
+openapi: 3.0.3
+
+# ==============================================================================
+# Lumo TV — public API contract.
+#
+# THIS FILE IS THE SINGLE SOURCE OF TRUTH (AGENTS.md §3, ADR 0001).
+# It is hand-written. Server and client types are GENERATED from it, never the
+# other way round. Any change here impacts all three applications and must be
+# announced explicitly in the pull request description.
+#
+# Naming: payload properties use the exact entity field names of
+# docs/domain-model.md §2 (snake_case, no case variants, no synonyms).
+# Query parameters use the exact spelling of docs/domain-model.md §3.
+#
+# Two invariants enforced by this document:
+#   1. The Xtream password NEVER appears in a response schema — anywhere.
+#   2. A channel's stream_url is NEVER part of a listing. It is emitted only by
+#      GET /channels/{id}/playback, per request, after an ownership check.
+# ==============================================================================
+
+info:
+  title: Lumo TV API
+  version: 1.0.0
+  description: |
+    Backend for the Lumo TV IPTV player (`lumo-api`).
+
+    Lumo hosts, provides and resells **no content**. The user brings their own
+    source — an M3U playlist or an Xtream Codes account. This API manipulates
+    metadata only: catalogue, guide, favourites, playback progress, access
+    rights. **Media never transits through this infrastructure**: the player
+    opens the stream directly against the user's own IPTV server.
+
+    ## Authentication
+
+    All operations require `Authorization: Bearer <access_token>` unless the
+    operation declares `security: []`. Access tokens are short-lived JWTs
+    (15 minutes). Refresh tokens are opaque, rotated on every use, and bound to
+    a `device`. Presenting an already-consumed refresh token revokes the whole
+    token chain for that device — that is the theft-detection mechanism.
+
+    ## Errors
+
+    Every error response is RFC 7807 `application/problem+json` and carries a
+    stable, machine-readable `code`. Clients switch on `code` and render their
+    own localised message (FR/EN). `detail` is meant for logs and is never
+    displayed raw to a user.
+
+    ## Asynchronous ingestion
+
+    Parsing is always server-side. `POST /sources` performs a fast synchronous
+    reachability and credential check, then returns `202` with the source in
+    `PENDING`; the full catalogue ingestion runs in the background. Clients poll
+    `GET /sources/{id}` until `status` reaches `READY` or `ERROR`. A source never
+    blocks an HTTP request.
+  contact:
+    name: Lumo TV
+    url: https://lumo.tv
+  license:
+    name: Proprietary — All rights reserved
+    url: https://lumo.tv/legal/license
+
+servers:
+  - url: http://localhost:8080/v1
+    description: Local development (docker-compose)
+  - url: http://10.0.2.2:8080/v1
+    description: Local development, as seen from the Android emulator
+  - url: https://api.lumo.tv/v1
+    description: Production
+
+tags:
+  - name: auth
+    description: Registration, sign-in, token rotation, TV device activation.
+  - name: account
+    description: The authenticated user, their entitlement and their devices.
+  - name: sources
+    description: User-owned M3U playlists and Xtream Codes accounts.
+  - name: catalog
+    description: Categories, channels, playback URLs and programme guide.
+  - name: userdata
+    description: Favourites, favourite groups and playback progress.
+
+security:
+  - bearerAuth: []
+
+# ==============================================================================
+# PATHS
+# ==============================================================================
+
+paths:
+
+  # ---------------------------------------------------------------- auth ------
+
+  /auth/register:
+    post:
+      tags: [auth]
+      operationId: register
+      summary: Create an account with an email and a password
+      description: |
+        Creates the account, provisions the calling `device`, issues a session
+        and sends a verification email. The user is signed in immediately.
+
+        Responses for an already-registered email are constant-time with respect
+        to an unknown email: the implementation must not leak account existence
+        through response latency (US-01).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Account created; the caller is signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: |
+            An account already exists for this email (`EMAIL_ALREADY_REGISTERED`).
+            The client invites the user to sign in or reset their password.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422':
+          description: The password does not meet the strength requirement (`PASSWORD_TOO_WEAK`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Sign in with an email and a password
+      description: |
+        On failure the response is deliberately generic (`INVALID_CREDENTIALS`)
+        and must not reveal whether the email exists. After five consecutive
+        failures a progressive delay applies and `429` is returned (US-02).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401':
+          description: Invalid credentials (`INVALID_CREDENTIALS`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      operationId: refreshSession
+      summary: Exchange a refresh token for a new token pair
+      description: |
+        Rotation: the presented refresh token is revoked and a new one is issued.
+
+        Presenting a token that was already consumed returns `401` with
+        `REFRESH_TOKEN_REUSED` and revokes **the entire token chain for that
+        device** — the device must sign in again.
+
+        Clients must serialise refresh calls (one in flight at a time). Two
+        parallel refreshes at start-up revoke each other and sign the user out;
+        this is the classic failure of this pattern (US-04).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: A new token pair. The previous refresh token is now revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401':
+          description: |
+            The refresh token is unknown, expired or revoked
+            (`REFRESH_TOKEN_INVALID`), or was already consumed
+            (`REFRESH_TOKEN_REUSED`, which revokes the device's whole chain).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: Revoke the current device's token chain
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '204':
+          description: Signed out. The refresh chain for that device is revoked.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/oauth/google:
+    post:
+      tags: [auth]
+      operationId: signInWithGoogle
+      summary: Exchange a Google ID token for a Lumo session
+      description: |
+        The server verifies the `id_token` itself — signature, `aud`, `iss`,
+        `exp`. It never trusts an email supplied by the client.
+
+        If an account already exists for the verified email, the Google identity
+        is **attached to that account**. A duplicate account is never created
+        (US-03).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleSignInRequest'
+      responses:
+        '200':
+          description: Signed in. The account was created or linked as needed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401':
+          description: The Google ID token failed verification (`OAUTH_TOKEN_INVALID`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/verify-email:
+    get:
+      tags: [auth]
+      operationId: verifyEmail
+      summary: Confirm an email address from the link sent by email
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Single-use verification token from the email link.
+          schema:
+            type: string
+            minLength: 16
+            maxLength: 512
+      responses:
+        '204':
+          description: Email verified. `email_verified_at` is now set.
+        '400':
+          description: The token is malformed or unknown (`VERIFICATION_TOKEN_INVALID`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '410':
+          description: The token has expired (`VERIFICATION_TOKEN_EXPIRED`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /auth/password/forgot:
+    post:
+      tags: [auth]
+      operationId: requestPasswordReset
+      summary: Request a password reset email
+      description: |
+        Always answers `202`, whether or not the email is registered. Account
+        enumeration through this endpoint is not possible.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '202':
+          description: If the email is registered, a reset message has been sent.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/password/reset:
+    post:
+      tags: [auth]
+      operationId: resetPassword
+      summary: Set a new password from a reset token
+      description: Succeeding revokes every refresh token of the account.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '204':
+          description: Password changed. All sessions of the account are revoked.
+        '400':
+          description: The token is malformed or unknown (`RESET_TOKEN_INVALID`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '410':
+          description: The token has expired (`RESET_TOKEN_EXPIRED`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422':
+          description: The new password does not meet the strength requirement (`PASSWORD_TOO_WEAK`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /auth/device/code:
+    post:
+      tags: [auth]
+      operationId: requestDeviceCode
+      summary: 'TV activation: request a user code (RFC 8628)'
+      description: |
+        Called by the television. Returns a short `user_code` to display, and a
+        `device_code` the TV keeps private and polls with.
+
+        Typing an email and a password on a remote control is a punitive
+        experience and the first abandonment point of a TV application; this flow
+        exists to avoid it entirely.
+
+        Properties on this endpoint and on `/auth/device/token` keep their
+        RFC 8628 names verbatim.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceCodeRequest'
+      responses:
+        '201':
+          description: A pending authorization was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceCodeResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/device/approve:
+    post:
+      tags: [auth]
+      operationId: approveDeviceCode
+      summary: 'TV activation: approve a user code from an authenticated session'
+      description: |
+        Called from `lumo.tv/activate` by an already signed-in user. Binds the
+        pending authorization to the caller's account.
+
+        Strictly rate-limited: `user_code` is short and guessable by design, so
+        this endpoint is the one an attacker would brute-force. After five
+        attempts the caller is throttled (US-05).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveDeviceRequest'
+      responses:
+        '204':
+          description: Approved. The television's next poll receives a session.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No pending authorization carries this code (`DEVICE_CODE_NOT_FOUND`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: The code was already approved, denied or consumed (`DEVICE_CODE_ALREADY_USED`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '410':
+          description: The code has expired (`DEVICE_CODE_EXPIRED`). The TV displays a new one on its own.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/device/token:
+    post:
+      tags: [auth]
+      operationId: pollDeviceToken
+      summary: 'TV activation: poll for the session (RFC 8628)'
+      description: |
+        The television polls at the `interval` returned by
+        `POST /auth/device/code`.
+
+        While the authorization is still pending the response is `400` with
+        `code: AUTHORIZATION_PENDING` — this is the nominal case, not a failure,
+        and must not be surfaced as an error. On `SLOW_DOWN` the client
+        increases its interval by 5 seconds, per RFC 8628, and keeps polling.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceTokenRequest'
+      responses:
+        '200':
+          description: Approved. The `device_code` is now consumed and cannot be reused.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+        '400':
+          description: |
+            RFC 8628 polling states, carried in `code`:
+
+            | `code` | Meaning | TV behaviour |
+            |---|---|---|
+            | `AUTHORIZATION_PENDING` | Not approved yet | Keep polling at `interval` |
+            | `SLOW_DOWN` | Polling too fast | Add 5 s to `interval`, keep polling |
+            | `ACCESS_DENIED` | The user refused | Stop, show a message |
+            | `EXPIRED_TOKEN` | The code expired | Request a new code silently |
+            | `DEVICE_CODE_NOT_FOUND` | Unknown `device_code` | Request a new code |
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  # ------------------------------------------------------------- account ------
+
+  /me:
+    get:
+      tags: [account]
+      operationId: getCurrentUser
+      summary: The authenticated user
+      responses:
+        '200':
+          description: The user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      tags: [account]
+      operationId: updateCurrentUser
+      summary: Update display name and locale
+      description: |
+        Only `display_name` and `locale` are mutable here. Email changes require
+        re-verification and are not part of v1. Omitted properties are left
+        unchanged; an explicit `null` clears `display_name`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: The updated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /me/entitlement:
+    get:
+      tags: [account]
+      operationId: getEntitlement
+      summary: The user's access rights
+      description: |
+        **The only source of truth for access rights** (ADR 0003).
+
+        A client never asks a store whether the user is premium. Both Android
+        listings and the web read this single endpoint. In v1 the table is fed by
+        Stripe webhooks; in v2 Play RTDN will write into the same table, with no
+        client-side change.
+
+        A user with no subscription has a `FREE` / `ACTIVE` entitlement; this
+        endpoint never returns `404`.
+      responses:
+        '200':
+          description: The user's single active entitlement.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entitlement'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /me/devices:
+    get:
+      tags: [account]
+      operationId: listDevices
+      summary: Devices linked to the account
+      responses:
+        '200':
+          description: The account's devices, most recently seen first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceList'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /me/devices/{id}:
+    delete:
+      tags: [account]
+      operationId: revokeDevice
+      summary: Unlink a device and revoke its tokens
+      description: |
+        Revokes the device's entire refresh-token chain. That device is signed
+        out at its next call. Removing the calling device is allowed and is
+        equivalent to signing out.
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '204':
+          description: Device unlinked and its tokens revoked.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such device on this account (`DEVICE_NOT_FOUND`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  # ------------------------------------------------------------- sources ------
+
+  /sources:
+    get:
+      tags: [sources]
+      operationId: listSources
+      summary: The user's sources
+      responses:
+        '200':
+          description: Every source owned by the caller.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceList'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [sources]
+      operationId: createSource
+      summary: Register a source, then ingest it asynchronously
+      description: |
+        Two distinct error surfaces, deliberately:
+
+        1. **Synchronous validation** — reachability and credentials are checked
+           before answering, within a bounded timeout. A failure here is a `422`
+           carrying an `IngestionErrorCode` and **no source is created**. This is
+           what makes "your credentials were refused by the server" appear while
+           the user is still looking at the form (US-06).
+        2. **Asynchronous ingestion** — once validation passes the response is
+           `202` with `status: PENDING`. Catalogue parsing runs in the
+           background. A failure there is *not* an HTTP error: the source moves
+           to `status: ERROR` and carries the reason in `error_code`, which the
+           client reads while polling `GET /sources/{id}`.
+
+        An Xtream `host` is normalised server-side: with or without a scheme,
+        with or without a port, with or without a trailing slash. Tolerate and
+        normalise rather than reject.
+
+        `kind: M3U_FILE` cannot be created through this JSON endpoint — see the
+        note on `SourceKind`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSourceRequest'
+      responses:
+        '202':
+          description: |
+            Validated and accepted. Ingestion runs in the background; the source
+            is returned in `PENDING`. Poll `GET /sources/{id}` until `READY` or
+            `ERROR`.
+          headers:
+            Location:
+              description: URL of the created source.
+              schema:
+                type: string
+                format: uri-reference
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/IngestionFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /sources/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    get:
+      tags: [sources]
+      operationId: getSource
+      summary: One source, with its current ingestion status
+      description: |
+        The endpoint clients poll after `POST /sources` or
+        `POST /sources/{id}/sync`. `status` and `error_code` carry the outcome of
+        the background ingestion.
+      responses:
+        '200':
+          description: The source.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/SourceNotFound' }
+    patch:
+      tags: [sources]
+      operationId: updateSource
+      summary: Update a source
+      description: |
+        Omitted properties are left unchanged. Changing any property that affects
+        ingestion (`host`, `username`, `password`, `m3u_url`, `epg_url`) moves the
+        source back to `PENDING` and triggers a fresh ingestion.
+
+        `password` is write-only. It is re-encrypted with AES-256-GCM and is
+        never echoed back.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSourceRequest'
+      responses:
+        '200':
+          description: The updated source.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/SourceNotFound' }
+        '422': { $ref: '#/components/responses/IngestionFailed' }
+    delete:
+      tags: [sources]
+      operationId: deleteSource
+      summary: Delete a source and everything ingested from it
+      description: |
+        Cascades: categories, channels, EPG programmes and favourites belonging
+        to this source are removed with it. Irreversible.
+      responses:
+        '204':
+          description: Source and its ingested data deleted.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/SourceNotFound' }
+
+  /sources/{id}/sync:
+    post:
+      tags: [sources]
+      operationId: syncSource
+      summary: Force a re-synchronisation
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '202':
+          description: Accepted. The source is returned in `SYNCING`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/SourceNotFound' }
+        '409':
+          description: A synchronisation is already running for this source (`SOURCE_SYNC_IN_PROGRESS`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429':
+          description: |
+            Too many manual synchronisations (`SOURCE_SYNC_RATE_LIMITED`).
+
+            This limit protects the *user's own* IPTV server: hammering a
+            third-party panel gets their account throttled or banned. It is a
+            product safeguard, not a capacity one (ADR 0005).
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  # ------------------------------------------------------------- catalog ------
+
+  /sources/{id}/categories:
+    get:
+      tags: [catalog]
+      operationId: listCategories
+      summary: Categories of a source
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+        - name: contentType
+          in: query
+          required: false
+          description: Restrict to one content type. Omitted, every category is returned.
+          schema:
+            $ref: '#/components/schemas/ContentType'
+      responses:
+        '200':
+          description: Categories ordered by `position`, each with its channel count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryList'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/SourceNotFound' }
+        '409': { $ref: '#/components/responses/SourceNotReady' }
+
+  /sources/{id}/channels:
+    get:
+      tags: [catalog]
+      operationId: listChannels
+      summary: Channels of a source, paginated
+      description: |
+        **No `stream_url` is present in this response.** A list of a thousand
+        channels does not carry a thousand stream URLs. Playback URLs are
+        obtained one at a time from `GET /channels/{id}/playback`.
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+        - name: categoryId
+          in: query
+          required: false
+          description: Restrict to one category.
+          schema:
+            type: string
+            format: uuid
+        - name: q
+          in: query
+          required: false
+          description: Free-text search on the channel name, typo-tolerant (trigram).
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: A page of channels, ordered by category then `position`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelPage'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/SourceNotFound' }
+        '409': { $ref: '#/components/responses/SourceNotReady' }
+
+  /channels/{id}/playback:
+    get:
+      tags: [catalog]
+      operationId: getChannelPlayback
+      summary: Obtain the stream URL for one channel, on demand
+      description: |
+        **The only operation in this API that emits a `stream_url`.**
+
+        Deliberately separated from the listing: the URL is issued at the moment
+        of playback, after verifying that the channel belongs to a source owned
+        by the caller. It is never logged, never cached in a shared store, and
+        never handed to anyone but its owner.
+
+        The player opens this URL directly against the user's IPTV server. The
+        media does not transit through Lumo.
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '200':
+          description: Playback details for this channel.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaybackInfo'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: |
+            No such channel, or it does not belong to a source owned by the
+            caller (`CHANNEL_NOT_FOUND`). Non-ownership is reported as `404`,
+            not `403`, so the endpoint cannot be used to probe for channel ids.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: |
+            The source cannot serve playback right now:
+
+            - `SOURCE_NOT_READY` — ingestion has not completed;
+            - `SOURCE_EXPIRED` — the user's Xtream account has expired;
+            - `SOURCE_MAX_CONNECTIONS` — the subscription's simultaneous-stream
+              limit is reached. The client explains that the *user's own*
+              subscription caps concurrent streams (US-09).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /channels/{id}/epg:
+    get:
+      tags: [catalog]
+      operationId: getChannelEpg
+      summary: Programme guide for one channel over a time range
+      description: |
+        Programmes are matched on the channel's `tvg_id` within its source.
+        Retention is a sliding window from D-1 to D+3; a range outside it returns
+        an empty list rather than an error.
+
+        A channel with no `tvg_id`, or a source with no EPG URL, returns an empty
+        list.
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+        - name: from
+          in: query
+          required: false
+          description: Inclusive lower bound. Defaults to now.
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: false
+          description: Exclusive upper bound. Defaults to `from` + 24 h. At most 4 days after `from`.
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Programmes overlapping the range, ordered by `starts_at`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EpgProgrammeList'
+        '400':
+          description: |
+            The range is invalid — `to` before `from`, or wider than four days
+            (`VALIDATION_FAILED`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such channel on a source owned by the caller (`CHANNEL_NOT_FOUND`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  # ------------------------------------------------------------ userdata ------
+
+  /me/favorites:
+    get:
+      tags: [userdata]
+      operationId: listFavorites
+      summary: The user's favourites
+      parameters:
+        - name: groupId
+          in: query
+          required: false
+          description: Restrict to one favourite group.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Favourites ordered by group then `position`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteList'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [userdata]
+      operationId: addFavorite
+      summary: Add a channel to a favourite group
+      description: |
+        `group_id` may be omitted: the channel then lands in the account's
+        default group, which is created on the first add.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddFavoriteRequest'
+      responses:
+        '201':
+          description: The created favourite.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Favorite'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: |
+            The channel or the group does not belong to the caller
+            (`CHANNEL_NOT_FOUND`, `FAVORITE_GROUP_NOT_FOUND`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: This channel is already in that group (`FAVORITE_ALREADY_EXISTS`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /me/favorites/{id}:
+    delete:
+      tags: [userdata]
+      operationId: removeFavorite
+      summary: Remove a favourite
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '204':
+          description: Favourite removed.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such favourite on this account (`FAVORITE_NOT_FOUND`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /me/favorite-groups:
+    get:
+      tags: [userdata]
+      operationId: listFavoriteGroups
+      summary: The user's favourite groups
+      responses:
+        '200':
+          description: Groups ordered by `position`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteGroupList'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [userdata]
+      operationId: createFavoriteGroup
+      summary: Create a favourite group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFavoriteGroupRequest'
+      responses:
+        '201':
+          description: The created group.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteGroup'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: A group with this name already exists (`FAVORITE_GROUP_ALREADY_EXISTS`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /me/progress:
+    put:
+      tags: [userdata]
+      operationId: saveProgress
+      summary: Save playback progress for a VOD item or an episode
+      description: |
+        Idempotent upsert keyed on `(item_type, item_ref)` for the caller.
+
+        Live channels have no progress. Sending `item_type` for a live channel is
+        a client bug, not a supported case.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveProgressRequest'
+      responses:
+        '200':
+          description: The stored progress.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaybackProgress'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+# ==============================================================================
+# COMPONENTS
+# ==============================================================================
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Short-lived access token (15 minutes) obtained from `/auth/login`,
+        `/auth/register`, `/auth/oauth/google`, `/auth/refresh` or
+        `/auth/device/token`.
+
+  # ---------------------------------------------------------- parameters ------
+
+  parameters:
+    PathId:
+      name: id
+      in: path
+      required: true
+      description: Resource identifier.
+      schema:
+        type: string
+        format: uuid
+    Page:
+      name: page
+      in: query
+      required: false
+      description: Zero-based page index.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      required: false
+      description: Page size. Capped server-side so a large catalogue cannot be pulled in one call.
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 200
+        default: 50
+
+  headers:
+    RetryAfter:
+      description: Seconds to wait before retrying.
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+
+  # ----------------------------------------------------- shared responses -----
+
+  responses:
+    BadRequest:
+      description: The request is malformed or fails validation (`VALIDATION_FAILED`).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unauthorized:
+      description: |
+        Missing, malformed or expired access token (`UNAUTHENTICATED`,
+        `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes
+        once and replays the request.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    TooManyRequests:
+      description: Rate limit exceeded (`RATE_LIMITED`).
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    SourceNotFound:
+      description: No such source on this account (`SOURCE_NOT_FOUND`).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    SourceNotReady:
+      description: |
+        The source has not finished ingesting (`SOURCE_NOT_READY`). The client
+        keeps polling `GET /sources/{id}`.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    IngestionFailed:
+      description: |
+        Synchronous validation of the source failed. `code` is one of the
+        `IngestionErrorCode` values and is what the client translates into an
+        actionable message.
+
+        This is the number-one friction point of onboarding. "Something went
+        wrong" loses users here; "your credentials were refused by the server"
+        recovers them.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  # -------------------------------------------------------------- schemas -----
+
+  schemas:
+
+    # ---- errors ------------------------------------------------------------
+
+    Problem:
+      type: object
+      description: |
+        RFC 7807 problem detail. Every error response in this API uses this
+        shape with `Content-Type: application/problem+json`.
+
+        Clients switch on `code`, never on `title` or `detail`. `detail` is
+        written for logs and support, is not localised, and is never displayed
+        raw to a user.
+      required: [type, title, status, code]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Stable URI identifying the problem type.
+          example: https://lumo.tv/errors/source-auth-failed
+        title:
+          type: string
+          description: Short, human-readable, English, non-localised summary.
+          example: Source authentication failed
+        status:
+          type: integer
+          format: int32
+          minimum: 100
+          maximum: 599
+          description: HTTP status code, repeated for convenience.
+          example: 422
+        code:
+          allOf:
+            - $ref: '#/components/schemas/ErrorCode'
+          description: |
+            Stable machine-readable code. **This is the only field a client is
+            allowed to branch on.** Clients must handle an unrecognised value
+            gracefully rather than crash: new codes may be added within v1.
+        detail:
+          type: string
+          nullable: true
+          description: |
+            Diagnostic explanation for logs and support. Never rendered raw in
+            the UI. Never contains a stream URL, an Xtream password or a token.
+          example: Connection timed out after 10s
+        instance:
+          type: string
+          format: uri-reference
+          nullable: true
+          description: Path of the request that produced this problem.
+          example: /v1/sources
+        errors:
+          type: array
+          nullable: true
+          description: Per-field details, present on validation failures only.
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    FieldError:
+      type: object
+      description: One field-level validation failure.
+      required: [field, code]
+      properties:
+        field:
+          type: string
+          description: JSON pointer to the offending property, relative to the request body.
+          example: /password
+        code:
+          type: string
+          description: Stable machine-readable reason.
+          example: TOO_SHORT
+        detail:
+          type: string
+          nullable: true
+          description: Diagnostic explanation. Not localised, not for display.
+
+    IngestionErrorCode:
+      type: string
+      description: |
+        **Complete enumeration of ingestion error codes for v1.**
+
+        These are the values that reach a user during onboarding, whether
+        synchronously in a `422` `Problem.code` or asynchronously in
+        `Source.error_code`. Each one must have an actionable FR and EN message
+        in every client — the whole point of this enumeration is that no client
+        ever falls back to a generic failure message here.
+
+        | Value | Cause | What the user should be told |
+        |---|---|---|
+        | `SOURCE_UNREACHABLE` | The host did not answer, DNS failed, or the request timed out. | The server could not be reached. Offer "Try again". Must read as clearly different from a credential refusal. |
+        | `SOURCE_AUTH_FAILED` | The panel rejected `username`/`password`. | The credentials were refused by the server. Keep the host in the form so only what is wrong is retyped. |
+        | `SOURCE_EXPIRED` | The Xtream account itself has expired. | The subscription with the provider has expired; Lumo cannot renew it. |
+        | `SOURCE_MAX_CONNECTIONS` | The panel reports the simultaneous-connection limit reached. | The subscription limits simultaneous streams; close another stream. |
+        | `SOURCE_INVALID_FORMAT` | The response is not a valid M3U playlist, XMLTV guide or Xtream payload. | The URL does not return a playlist. Explain what a correct M3U URL looks like. |
+        | `SOURCE_EMPTY` | Parsing succeeded but yielded zero channels. | The playlist is empty. Never show a success screen over an empty list. |
+        | `SOURCE_TOO_LARGE` | The payload exceeds the ingestion size ceiling. | The playlist is too large to import. |
+      enum:
+        - SOURCE_UNREACHABLE
+        - SOURCE_AUTH_FAILED
+        - SOURCE_EXPIRED
+        - SOURCE_MAX_CONNECTIONS
+        - SOURCE_INVALID_FORMAT
+        - SOURCE_EMPTY
+        - SOURCE_TOO_LARGE
+
+    ErrorCode:
+      type: string
+      description: |
+        Every stable error code this API emits, ingestion codes included.
+
+        Grouped by concern:
+
+        - **Generic** — `VALIDATION_FAILED`, `UNAUTHENTICATED`,
+          `ACCESS_TOKEN_EXPIRED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`,
+          `RATE_LIMITED`, `INTERNAL_ERROR`.
+        - **Account and sign-in** — `EMAIL_ALREADY_REGISTERED`,
+          `INVALID_CREDENTIALS`, `PASSWORD_TOO_WEAK`, `OAUTH_TOKEN_INVALID`,
+          `VERIFICATION_TOKEN_INVALID`, `VERIFICATION_TOKEN_EXPIRED`,
+          `RESET_TOKEN_INVALID`, `RESET_TOKEN_EXPIRED`.
+        - **Sessions** — `REFRESH_TOKEN_INVALID`, `REFRESH_TOKEN_REUSED`,
+          `DEVICE_NOT_FOUND`.
+        - **TV activation (RFC 8628)** — `AUTHORIZATION_PENDING`, `SLOW_DOWN`,
+          `ACCESS_DENIED`, `EXPIRED_TOKEN`, `DEVICE_CODE_NOT_FOUND`,
+          `DEVICE_CODE_EXPIRED`, `DEVICE_CODE_ALREADY_USED`.
+        - **Sources and ingestion** — `SOURCE_NOT_FOUND`, `SOURCE_NOT_READY`,
+          `SOURCE_SYNC_IN_PROGRESS`, `SOURCE_SYNC_RATE_LIMITED`, plus every
+          `IngestionErrorCode`.
+        - **Catalogue and user data** — `CHANNEL_NOT_FOUND`,
+          `FAVORITE_NOT_FOUND`, `FAVORITE_ALREADY_EXISTS`,
+          `FAVORITE_GROUP_NOT_FOUND`, `FAVORITE_GROUP_ALREADY_EXISTS`.
+      enum:
+        - VALIDATION_FAILED
+        - UNAUTHENTICATED
+        - ACCESS_TOKEN_EXPIRED
+        - FORBIDDEN
+        - NOT_FOUND
+        - CONFLICT
+        - RATE_LIMITED
+        - INTERNAL_ERROR
+        - EMAIL_ALREADY_REGISTERED
+        - INVALID_CREDENTIALS
+        - PASSWORD_TOO_WEAK
+        - OAUTH_TOKEN_INVALID
+        - VERIFICATION_TOKEN_INVALID
+        - VERIFICATION_TOKEN_EXPIRED
+        - RESET_TOKEN_INVALID
+        - RESET_TOKEN_EXPIRED
+        - REFRESH_TOKEN_INVALID
+        - REFRESH_TOKEN_REUSED
+        - DEVICE_NOT_FOUND
+        - AUTHORIZATION_PENDING
+        - SLOW_DOWN
+        - ACCESS_DENIED
+        - EXPIRED_TOKEN
+        - DEVICE_CODE_NOT_FOUND
+        - DEVICE_CODE_EXPIRED
+        - DEVICE_CODE_ALREADY_USED
+        - SOURCE_NOT_FOUND
+        - SOURCE_NOT_READY
+        - SOURCE_SYNC_IN_PROGRESS
+        - SOURCE_SYNC_RATE_LIMITED
+        - SOURCE_UNREACHABLE
+        - SOURCE_AUTH_FAILED
+        - SOURCE_EXPIRED
+        - SOURCE_MAX_CONNECTIONS
+        - SOURCE_INVALID_FORMAT
+        - SOURCE_EMPTY
+        - SOURCE_TOO_LARGE
+        - CHANNEL_NOT_FOUND
+        - FAVORITE_NOT_FOUND
+        - FAVORITE_ALREADY_EXISTS
+        - FAVORITE_GROUP_NOT_FOUND
+        - FAVORITE_GROUP_ALREADY_EXISTS
+
+    # ---- enums -------------------------------------------------------------
+
+    Locale:
+      type: string
+      description: UI language. FR and EN are supported from the first screen.
+      enum: [fr, en]
+
+    Platform:
+      type: string
+      description: The kind of installation a `device` represents.
+      enum: [ANDROID_MOBILE, ANDROID_TV, WEB]
+
+    SourceKind:
+      type: string
+      description: |
+        What the user registered.
+
+        `M3U_FILE` designates a playlist uploaded as a file. It exists in the
+        domain model and may be returned by read operations, but v1 exposes no
+        endpoint that creates one: `POST /sources` is JSON-only and accepts
+        `M3U_URL` and `XTREAM`. A multipart upload operation is not part of this
+        contract.
+      enum: [M3U_URL, M3U_FILE, XTREAM]
+
+    SourceStatus:
+      type: string
+      description: |
+        Ingestion lifecycle.
+
+        `PENDING` → accepted, not started. `SYNCING` → ingestion running.
+        `READY` → catalogue usable. `ERROR` → ingestion failed, see `error_code`.
+
+        Clients poll until `READY` or `ERROR`; those are the only terminal states.
+      enum: [PENDING, SYNCING, READY, ERROR]
+
+    ContentType:
+      type: string
+      description: |
+        Kind of catalogue a `category` groups. Only `LIVE` is exercised by
+        sprint 1; `VOD` and `SERIES` are ingested and exposed but have no
+        dedicated endpoints in v1.
+      enum: [LIVE, VOD, SERIES]
+
+    Plan:
+      type: string
+      description: Subscription tier of an `entitlement`.
+      enum: [FREE, PREMIUM]
+
+    EntitlementStatus:
+      type: string
+      description: State of the entitlement. Only `ACTIVE` grants premium features.
+      enum: [ACTIVE, PAST_DUE, CANCELED, EXPIRED]
+
+    EntitlementProvider:
+      type: string
+      description: |
+        What fed the entitlement. `STRIPE` in v1, `PLAY` reserved for v2 RTDN,
+        `MANUAL` for support-granted access.
+      enum: [STRIPE, PLAY, MANUAL]
+
+    ProgressItemType:
+      type: string
+      description: |
+        What a `playback_progress` row points at. Live channels have no
+        progress, so there is no `LIVE` value here.
+      enum: [VOD, EPISODE]
+
+    # ---- auth --------------------------------------------------------------
+
+    DeviceRegistration:
+      type: object
+      description: |
+        Identifies the installation opening the session. A `device` row is
+        created or refreshed, and the issued refresh token is bound to it — that
+        binding is what lets `DELETE /me/devices/{id}` revoke one device without
+        touching the others.
+      required: [platform]
+      properties:
+        platform:
+          $ref: '#/components/schemas/Platform'
+        name:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: User-facing device name.
+          example: Living room TV
+        model:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: Hardware model reported by the OS.
+          example: Pixel 8
+        app_version:
+          type: string
+          nullable: true
+          maxLength: 40
+          description: Version of the installed application.
+          example: 1.0.0
+
+    RegisterRequest:
+      type: object
+      required: [email, password, device]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          format: password
+          minLength: 10
+          maxLength: 200
+          writeOnly: true
+          description: |
+            At least 10 characters. Strength is measured by entropy (zxcvbn),
+            not by composition rules; clients show the unmet rule before
+            submission rather than after (US-01). Hashed with Argon2id.
+        display_name:
+          type: string
+          nullable: true
+          maxLength: 100
+        locale:
+          allOf:
+            - $ref: '#/components/schemas/Locale'
+          description: Defaults to the `Accept-Language` header, then to `en`.
+        device:
+          $ref: '#/components/schemas/DeviceRegistration'
+
+    LoginRequest:
+      type: object
+      required: [email, password, device]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          format: password
+          writeOnly: true
+          maxLength: 200
+        device:
+          $ref: '#/components/schemas/DeviceRegistration'
+
+    GoogleSignInRequest:
+      type: object
+      required: [id_token, device]
+      properties:
+        id_token:
+          type: string
+          format: password
+          writeOnly: true
+          maxLength: 4096
+          description: |
+            Google ID token from Credential Manager (Android) or Google Identity
+            Services (web). The server verifies signature, `aud`, `iss` and `exp`
+            before trusting any claim in it.
+        device:
+          $ref: '#/components/schemas/DeviceRegistration'
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          format: password
+          writeOnly: true
+          maxLength: 512
+          description: |
+            The opaque refresh token. Stored hashed server-side; the plaintext
+            exists only on the device.
+
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+
+    ResetPasswordRequest:
+      type: object
+      required: [token, password]
+      properties:
+        token:
+          type: string
+          format: password
+          writeOnly: true
+          minLength: 16
+          maxLength: 512
+          description: Single-use token from the reset email. Masked in generated `toString()`.
+        password:
+          type: string
+          format: password
+          minLength: 10
+          maxLength: 200
+          writeOnly: true
+
+    TokenPair:
+      type: object
+      description: |
+        A freshly issued access/refresh pair. The refresh token supersedes any
+        previously held one for this device.
+      required: [access_token, token_type, expires_in, refresh_token]
+      properties:
+        access_token:
+          type: string
+          format: password
+          description: |
+            Bearer JWT, valid 15 minutes. `format: password` carries no UI meaning
+            here: it makes the generators mask this property in `toString()`, so a
+            token cannot reach a log line by accident (AGENTS.md §5).
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_in:
+          type: integer
+          format: int32
+          description: Lifetime of `access_token`, in seconds.
+          example: 900
+        refresh_token:
+          type: string
+          format: password
+          description: |
+            Opaque token, single-use. Masked in generated `toString()`. Rotated on every `/auth/refresh`.
+            Presenting a consumed one revokes the device's entire chain.
+
+    AuthSession:
+      allOf:
+        - $ref: '#/components/schemas/TokenPair'
+        - type: object
+          description: A token pair plus the account it belongs to.
+          required: [user, device_id]
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            device_id:
+              type: string
+              format: uuid
+              description: The `device` this session is bound to.
+
+    DeviceCodeRequest:
+      type: object
+      description: Sent by the television to start an RFC 8628 authorization.
+      required: [platform]
+      properties:
+        platform:
+          $ref: '#/components/schemas/Platform'
+        name:
+          type: string
+          nullable: true
+          maxLength: 100
+        model:
+          type: string
+          nullable: true
+          maxLength: 100
+        app_version:
+          type: string
+          nullable: true
+          maxLength: 40
+
+    DeviceCodeResponse:
+      type: object
+      description: |
+        RFC 8628 device authorization response. Property names are the RFC's,
+        verbatim.
+      required: [device_code, user_code, verification_uri, verification_uri_complete, expires_in, interval]
+      properties:
+        device_code:
+          type: string
+          format: password
+          description: |
+            Secret held by the television and sent on every poll. Never
+            displayed. Stored hashed server-side (`device_authorization.device_code_hash`).
+        user_code:
+          type: string
+          minLength: 8
+          maxLength: 8
+          pattern: '^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$'
+          description: |
+            The 8 characters shown on screen and typed on `lumo.tv/activate`.
+
+            Drawn from an alphabet with no ambiguous glyphs: `0`/`O` and
+            `1`/`I`/`L` are all excluded, so what is read at three metres is what
+            gets typed. Transmitted unformatted; a client may insert a separator
+            for display, and the server accepts the code case-insensitively with
+            separators and spaces stripped.
+
+            Single-use, valid 10 minutes.
+        verification_uri:
+          type: string
+          format: uri
+          description: Page to open on a phone or a computer.
+          example: https://lumo.tv/activate
+        verification_uri_complete:
+          type: string
+          format: uri
+          description: |
+            Same page with the code pre-filled — this is what the QR code on the
+            television encodes, so the nominal path involves no typing at all.
+          example: https://lumo.tv/activate?code=K7RM4XPQ
+        expires_in:
+          type: integer
+          format: int32
+          description: Lifetime of the authorization, in seconds.
+          example: 600
+        interval:
+          type: integer
+          format: int32
+          description: |
+            Minimum seconds between two polls of `/auth/device/token`. Polling
+            faster earns `SLOW_DOWN`, after which the client adds 5 seconds.
+          example: 5
+
+    ApproveDeviceRequest:
+      type: object
+      required: [user_code]
+      properties:
+        user_code:
+          type: string
+          minLength: 8
+          maxLength: 12
+          description: |
+            The code read off the television screen. Accepted
+            case-insensitively; separators and spaces are stripped before
+            matching, which is why the accepted length is wider than the 8
+            characters actually stored.
+
+    DeviceTokenRequest:
+      type: object
+      required: [device_code]
+      properties:
+        device_code:
+          type: string
+          format: password
+          maxLength: 512
+          description: The secret returned by `POST /auth/device/code`. Masked in generated `toString()`.
+
+    # ---- account -----------------------------------------------------------
+
+    User:
+      type: object
+      description: |
+        The account. `password_hash` and `oauth_identity` rows are internal and
+        appear in no response.
+      required: [id, email, locale, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+          nullable: true
+        locale:
+          $ref: '#/components/schemas/Locale'
+        email_verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Null until the verification link is followed.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UpdateUserRequest:
+      type: object
+      description: Omitted properties are left unchanged.
+      properties:
+        display_name:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: An explicit `null` clears it.
+        locale:
+          $ref: '#/components/schemas/Locale'
+
+    Device:
+      type: object
+      description: One installation linked to the account.
+      required: [id, platform, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        platform:
+          $ref: '#/components/schemas/Platform'
+        name:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        app_version:
+          type: string
+          nullable: true
+        last_seen_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    DeviceList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Device'
+
+    Entitlement:
+      type: object
+      description: |
+        The user's access rights, computed server-side. `provider_ref` is a
+        billing-internal reference and is intentionally not exposed.
+      required: [plan, status, provider, updated_at]
+      properties:
+        plan:
+          $ref: '#/components/schemas/Plan'
+        status:
+          $ref: '#/components/schemas/EntitlementStatus'
+        provider:
+          $ref: '#/components/schemas/EntitlementProvider'
+        current_period_end:
+          type: string
+          format: date-time
+          nullable: true
+          description: End of the paid period. Null on `FREE`.
+        updated_at:
+          type: string
+          format: date-time
+
+    # ---- sources -----------------------------------------------------------
+
+    Source:
+      type: object
+      description: |
+        A registered source.
+
+        **This schema has no password property and never will.** The Xtream
+        password is encrypted at rest (AES-256-GCM, data key wrapped by an
+        out-of-database master key) and never leaves the `source` layer — not
+        even for its owner (`docs/domain-model.md` §2).
+      required: [id, label, kind, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+          description: Name the user gave this source.
+        kind:
+          $ref: '#/components/schemas/SourceKind'
+        host:
+          type: string
+          nullable: true
+          description: |
+            Xtream base URL, normalised server-side. Returned so an edit form can
+            keep it while the user corrects only what was wrong (US-06).
+          example: http://panel.example.org:8080
+        username:
+          type: string
+          nullable: true
+          description: Xtream username. The matching password is never returned.
+        m3u_url:
+          type: string
+          nullable: true
+          description: Playlist URL, for `M3U_URL` sources.
+        epg_url:
+          type: string
+          nullable: true
+          description: Optional XMLTV guide URL, independent of the playlist.
+        status:
+          $ref: '#/components/schemas/SourceStatus'
+        error_code:
+          type: string
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/IngestionErrorCode'
+          description: |
+            Why the last ingestion failed. Non-null only when `status` is
+            `ERROR`. A stable code, never a free-form message — the client owns
+            the wording, in FR and EN.
+        last_synced_at:
+          type: string
+          format: date-time
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            Expiry of the user's Xtream account, as reported by the panel. Shown
+            after a successful registration (US-06). Null for M3U sources.
+        max_connections:
+          type: integer
+          format: int32
+          nullable: true
+          description: |
+            Simultaneous streams the user's subscription allows, as reported by
+            the panel. Null when unknown or not applicable.
+        channel_count:
+          type: integer
+          format: int32
+          nullable: true
+          description: |
+            Channels ingested from this source. Derived, not stored on the
+            entity. Null until the first successful ingestion; it is what "we
+            found N channels" is rendered from (US-06, US-07).
+
+    SourceList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+
+    CreateSourceRequest:
+      type: object
+      description: |
+        `kind` decides which properties are required:
+
+        | `kind` | Required | Optional |
+        |---|---|---|
+        | `XTREAM` | `label`, `host`, `username`, `password` | `epg_url` |
+        | `M3U_URL` | `label`, `m3u_url` | `epg_url` |
+
+        `M3U_FILE` is not creatable through this operation.
+
+        The combination is validated server-side; a mismatch is `400`
+        `VALIDATION_FAILED` with per-field `errors`.
+      required: [label, kind]
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 100
+        kind:
+          $ref: '#/components/schemas/SourceKind'
+        host:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: |
+            Xtream base URL. Accepted with or without a scheme, with or without a
+            port, with or without a trailing slash — normalised rather than
+            rejected (US-06).
+        username:
+          type: string
+          nullable: true
+          maxLength: 200
+        password:
+          type: string
+          format: password
+          nullable: true
+          maxLength: 200
+          writeOnly: true
+          description: |
+            Xtream password. **Write-only, by contract.** Encrypted with
+            AES-256-GCM before persistence, never returned by any operation,
+            never written to a log at any level including `DEBUG`.
+        m3u_url:
+          type: string
+          nullable: true
+          maxLength: 2000
+        epg_url:
+          type: string
+          nullable: true
+          maxLength: 2000
+          description: Optional XMLTV URL, a separate field from the playlist URL.
+
+    UpdateSourceRequest:
+      type: object
+      description: |
+        Omitted properties are left unchanged. Changing `host`, `username`,
+        `password`, `m3u_url` or `epg_url` re-triggers ingestion.
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 100
+        host:
+          type: string
+          nullable: true
+          maxLength: 500
+        username:
+          type: string
+          nullable: true
+          maxLength: 200
+        password:
+          type: string
+          format: password
+          nullable: true
+          maxLength: 200
+          writeOnly: true
+          description: Write-only. Re-encrypted on write, never returned.
+        m3u_url:
+          type: string
+          nullable: true
+          maxLength: 2000
+        epg_url:
+          type: string
+          nullable: true
+          maxLength: 2000
+
+    # ---- catalog -----------------------------------------------------------
+
+    Category:
+      type: object
+      description: |
+        A grouping of channels within a source. Channels carrying no
+        `group-title` in the playlist land in a generated "Unclassified"
+        category rather than being dropped.
+      required: [id, source_id, name, content_type, position]
+      properties:
+        id:
+          type: string
+          format: uuid
+        source_id:
+          type: string
+          format: uuid
+        external_id:
+          type: string
+          nullable: true
+          description: Identifier used by the origin panel or playlist.
+        name:
+          type: string
+        content_type:
+          $ref: '#/components/schemas/ContentType'
+        position:
+          type: integer
+          format: int32
+          description: Display order within the source.
+        channel_count:
+          type: integer
+          format: int32
+          nullable: true
+          description: |
+            Channels in this category. Derived, not stored on the entity. Renders
+            "N channels" next to each category (US-08).
+
+    CategoryList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+
+    Channel:
+      type: object
+      description: |
+        A live channel.
+
+        **`stream_url` is deliberately absent.** It is a sensitive value and is
+        emitted only by `GET /channels/{id}/playback`, one channel at a time,
+        after an ownership check.
+      required: [id, source_id, name, position, is_adult]
+      properties:
+        id:
+          type: string
+          format: uuid
+        source_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        external_id:
+          type: string
+          nullable: true
+        name:
+          type: string
+        logo_url:
+          type: string
+          nullable: true
+          description: |
+            Logo advertised by the user's own playlist (`tvg-logo`). Lumo ships
+            no bundled logo and no fallback artwork of its own.
+        tvg_id:
+          type: string
+          nullable: true
+          description: EPG identifier, used to join with `epg_programme`.
+        position:
+          type: integer
+          format: int32
+        is_adult:
+          type: boolean
+          description: Flagged by the source as adult content.
+
+    ChannelPage:
+      type: object
+      description: One page of channels.
+      required: [items, page, size, total_elements, total_pages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Channel'
+        page:
+          type: integer
+          format: int32
+          description: Zero-based index of this page.
+        size:
+          type: integer
+          format: int32
+          description: Requested page size, after the server-side cap.
+        total_elements:
+          type: integer
+          format: int64
+          description: Total channels matching the filters.
+        total_pages:
+          type: integer
+          format: int32
+
+    PlaybackInfo:
+      type: object
+      description: |
+        Everything the player needs to open one channel. Issued on demand,
+        scoped to the owner.
+      required: [channel_id, stream_url]
+      properties:
+        channel_id:
+          type: string
+          format: uuid
+        stream_url:
+          type: string
+          format: password
+          description: |
+            **Sensitive.** Typed `format: password` rather than `format: uri` on
+            purpose: both map to a plain string, but `password` makes every
+            generator mask this property in `toString()`. A stream URL must never
+            reach a log line at any level, `DEBUG` included (AGENTS.md §5), and
+            the contract is the cheapest place to guarantee that.
+
+            Direct URL to the user's IPTV server, embedding their credentials in
+            most Xtream panels.
+
+            Never logged, never persisted client-side beyond the playback
+            session, never shared between accounts. The player opens it directly;
+            it does not transit through Lumo.
+        user_agent:
+          type: string
+          nullable: true
+          description: |
+            User-Agent the player should send, when the source requires a
+            specific one. Null means the client's default.
+        max_connections:
+          type: integer
+          format: int32
+          nullable: true
+          description: |
+            Simultaneous streams the user's subscription allows, echoed from the
+            source so the player can explain a rejected stream (US-09).
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            When this URL stops being valid, when the panel issues time-limited
+            links. Null means no known expiry; the client re-requests on failure
+            rather than assuming.
+
+    EpgProgramme:
+      type: object
+      description: One programme from the guide.
+      required: [id, source_id, tvg_id, starts_at, ends_at, title]
+      properties:
+        id:
+          type: string
+          format: uuid
+        source_id:
+          type: string
+          format: uuid
+        tvg_id:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+          description: Genre as advertised by the guide. Free-form, not an enum.
+
+    EpgProgrammeList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EpgProgramme'
+
+    # ---- userdata ----------------------------------------------------------
+
+    FavoriteGroup:
+      type: object
+      description: |
+        A user-defined grouping of favourites. A default group is created on the
+        first add.
+      required: [id, name, position]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        position:
+          type: integer
+          format: int32
+
+    FavoriteGroupList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FavoriteGroup'
+
+    CreateFavoriteGroupRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        position:
+          type: integer
+          format: int32
+          nullable: true
+          description: Appended last when omitted.
+
+    Favorite:
+      type: object
+      description: |
+        A channel bookmarked by the user. Survives a re-synchronisation as long
+        as the channel keeps its identity within the source.
+      required: [id, group_id, source_id, channel_id, position]
+      properties:
+        id:
+          type: string
+          format: uuid
+        group_id:
+          type: string
+          format: uuid
+        source_id:
+          type: string
+          format: uuid
+        channel_id:
+          type: string
+          format: uuid
+        position:
+          type: integer
+          format: int32
+
+    FavoriteList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Favorite'
+
+    AddFavoriteRequest:
+      type: object
+      description: |
+        `source_id` is not accepted: it is derived from the channel, so the two
+        cannot disagree.
+      required: [channel_id]
+      properties:
+        channel_id:
+          type: string
+          format: uuid
+        group_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Defaults to the account's default group, created on first use.
+        position:
+          type: integer
+          format: int32
+          nullable: true
+          description: Appended last when omitted.
+
+    PlaybackProgress:
+      type: object
+      description: Where the user stopped watching a VOD item or an episode.
+      required: [id, item_type, item_ref, position_ms, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        item_type:
+          $ref: '#/components/schemas/ProgressItemType'
+        item_ref:
+          type: string
+          description: Identifier of the item within its source.
+        position_ms:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Playback position, in milliseconds.
+        duration_ms:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 0
+          description: Total duration, when known.
+        updated_at:
+          type: string
+          format: date-time
+
+    SaveProgressRequest:
+      type: object
+      description: Upsert keyed on `(item_type, item_ref)` for the caller.
+      required: [item_type, item_ref, position_ms]
+      properties:
+        item_type:
+          $ref: '#/components/schemas/ProgressItemType'
+        item_ref:
+          type: string
+          minLength: 1
+          maxLength: 200
+        position_ms:
+          type: integer
+          format: int64
+          minimum: 0
+        duration_ms:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 0

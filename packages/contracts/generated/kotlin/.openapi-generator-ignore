@@ -1,0 +1,20 @@
+# Files the generators emit that we do not want committed.
+# Each app owns its own build configuration; the contract owns sources only.
+
+README.md
+build.gradle
+build.gradle.kts
+build.sbt
+settings.gradle
+settings.gradle.kts
+gradle.properties
+gradlew
+gradlew.bat
+gradle/**
+pom.xml
+.travis.yml
+git_push.sh
+docs/**
+api/**
+src/test/**
+src/main/AndroidManifest.xml

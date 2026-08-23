@@ -1,0 +1,122 @@
+# ==============================================================================
+# Contract check — the gate that keeps three applications in agreement.
+#
+# ADR 0001: packages/contracts/openapi.yaml is hand-written and is the single
+# source of truth. Clients are GENERATED from it and committed. This workflow
+# regenerates all three and fails if the result differs from what is in the
+# commit.
+#
+# What that buys: an agent working on apps/web cannot silently rename a field
+# and discover the mismatch days later, at runtime, inside apps/android. The
+# break happens here, on the pull request that caused it, on every surface at
+# once.
+#
+# If this job is red, the fix is never to edit generated code:
+#   npm --prefix packages/contracts run generate
+# then commit the regenerated output alongside the contract change.
+# ==============================================================================
+
+name: contract
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes an in-flight run pointless.
+concurrency:
+  group: contract-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Contract and generated clients agree
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # openapi-generator is a Java tool; the npm package is only a wrapper
+      # around the jar. Java 25 matches the backend toolchain (ADR 0005).
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: packages/contracts/package-lock.json
+
+      - name: Install contract tooling
+        run: npm ci --prefix packages/contracts
+
+      # Caches the ~30 MB generator jar between runs. Keyed on the pinned
+      # version in openapitools.json, so bumping it invalidates the cache.
+      - name: Cache openapi-generator
+        uses: actions/cache@v4
+        with:
+          path: packages/contracts/.openapi-generator-cli
+          key: openapi-generator-${{ hashFiles('packages/contracts/openapitools.json') }}
+
+      # Lints the contract, regenerates all three clients into a throwaway
+      # directory, and diffs against the committed tree.
+      - name: Verify contract and generated clients
+        run: npm --prefix packages/contracts run check
+
+      # Belt and braces: catches a hand-edit to generated code that happens to
+      # regenerate identically only because someone also edited the contract to
+      # match, and any stray file the diff above excludes.
+      - name: Fail on any uncommitted change
+        run: |
+          if [ -n "$(git status --porcelain -- packages/contracts)" ]; then
+            echo "::error::packages/contracts has uncommitted changes after the contract check."
+            git status --porcelain -- packages/contracts
+            git diff -- packages/contracts | head -200
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Guards the product rule that no amount of code review reliably catches:
+  # no real channel, bouquet logo or stream URL anywhere in the repository -
+  # fixtures, screenshots, seeds and form defaults included (AGENTS.md §1).
+  # ---------------------------------------------------------------------------
+  no-content:
+    name: No real source, stream or credential committed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Reject committed .env files
+        run: |
+          found=$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$' || true)
+          if [ -n "$found" ]; then
+            echo "::error::A .env file is committed. Secrets never enter the repository (AGENTS.md §5)."
+            echo "$found"
+            exit 1
+          fi
+
+      - name: Reject Xtream player_api endpoints and m3u_plus links
+        run: |
+          # get.php?...type=m3u_plus and player_api.php?username=&password= are
+          # the two shapes a real IPTV subscription URL takes. Either one in a
+          # tracked file means someone pasted their own provider into the repo.
+          found=$(git grep -nIE 'player_api\.php\?[^ ]*(username|password)=|get\.php\?[^ ]*type=m3u_plus' \
+                   -- . ':!packages/contracts/openapi.yaml' ':!docs/**' ':!.github/**' || true)
+          if [ -n "$found" ]; then
+            echo "::error::A real IPTV source URL appears to be committed (AGENTS.md §1)."
+            echo "$found"
+            exit 1
+          fi

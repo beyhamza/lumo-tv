@@ -1,0 +1,20 @@
+{
+  "name": "@lumo/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lumo TV API contract (source of truth) and the three client generators.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "lint": "redocly lint --config redocly.yaml openapi.yaml",
+    "generate": "sh scripts/generate.sh",
+    "generate:spring": "sh scripts/generate-spring.sh",
+    "generate:kotlin": "sh scripts/generate-kotlin.sh",
+    "generate:typescript": "sh scripts/generate-typescript.sh",
+    "check": "sh scripts/check.sh"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "2.40.1",
+    "@redocly/cli": "1.34.5",
+    "openapi-typescript": "7.13.0"
+  }
+}

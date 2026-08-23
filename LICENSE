@@ -1,0 +1,77 @@
+Lumo TV — Proprietary Software License
+Copyright (c) 2026 Lumo TV. All rights reserved.
+
+================================================================================
+1. GRANT
+================================================================================
+
+This software and its source code (the "Software") are the exclusive property of
+Lumo TV and are protected by copyright law and international treaties.
+
+No license, right or interest in the Software is granted, expressly or by
+implication, except by a separate written agreement signed by Lumo TV.
+
+================================================================================
+2. RESTRICTIONS
+================================================================================
+
+Without the prior written permission of Lumo TV, no person may:
+
+  a. copy, reproduce or distribute the Software, in whole or in part;
+  b. modify, adapt, translate or create derivative works from the Software;
+  c. sell, rent, lease, sublicense, publish or otherwise transfer the Software;
+  d. reverse engineer, decompile or disassemble the Software, except to the
+     extent that such an act cannot lawfully be prohibited;
+  e. remove or alter any copyright, trademark or other proprietary notice.
+
+================================================================================
+3. THIRD-PARTY COMPONENTS
+================================================================================
+
+The Software incorporates third-party open-source components, each governed by
+its own license. Those licenses continue to apply to those components and are
+not affected by this one. The list of components and their licenses is produced
+by the build of each application.
+
+================================================================================
+4. CONTENT
+================================================================================
+
+Lumo TV is a generic media player. It does not provide, host, index, aggregate,
+recommend or resell any audiovisual content, channel list or stream.
+
+All content is supplied by the end user, from a source the end user configures
+themselves and to which the end user warrants they hold the necessary rights.
+Media is transmitted directly between the end user's device and the end user's
+own provider; it does not transit through Lumo TV infrastructure.
+
+Lumo TV bears no responsibility for the content accessed through the Software,
+nor for the lawfulness of the sources configured by the end user.
+
+================================================================================
+5. WARRANTY DISCLAIMER
+================================================================================
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+================================================================================
+6. LIMITATION OF LIABILITY
+================================================================================
+
+IN NO EVENT SHALL LUMO TV BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+================================================================================
+7. TERMINATION
+================================================================================
+
+Any use of the Software in breach of this license terminates immediately and
+automatically all rights granted, and obliges the user to destroy every copy of
+the Software in their possession.
+
+================================================================================
+
+Contact: legal@lumo.tv

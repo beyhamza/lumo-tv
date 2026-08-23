@@ -1,0 +1,93 @@
+# ==============================================================================
+# Lumo TV — repository-wide ignores.
+#
+# Two things this file deliberately does NOT ignore:
+#   - packages/contracts/generated/  -> generated clients are committed on
+#     purpose. CI regenerates them and fails on any difference (ADR 0001).
+#   - .env.example                   -> the documentation of every variable.
+#     Only the real .env files are ignored.
+# ==============================================================================
+
+# ---- Secrets -----------------------------------------------------------------
+# Never commit a real environment file. .env.example is the documented template.
+.env
+.env.*
+!.env.example
+*.local
+secrets/
+*.pem
+*.p12
+*.jks
+*.keystore
+google-services.json
+service-account*.json
+
+# ---- Java / Gradle / Spring --------------------------------------------------
+build/
+!build-logic/
+!**/src/**/build/
+.gradle/
+gradle-app.setting
+!gradle/wrapper/gradle-wrapper.jar
+out/
+target/
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.jar
+*.war
+*.hprof
+hs_err_pid*
+replay_pid*
+
+# ---- Android -----------------------------------------------------------------
+local.properties
+.cxx/
+captures/
+*.apk
+*.aab
+*.ap_
+*.dex
+output.json
+release/
+
+# ---- Node / Next.js / pnpm ---------------------------------------------------
+node_modules/
+.pnpm-store/
+.next/
+next-env.d.ts
+.turbo/
+dist/
+.vercel
+*.tsbuildinfo
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# ---- OpenAPI tooling ---------------------------------------------------------
+# The downloaded generator jar. The generated CLIENTS are committed; the ~30 MB
+# jar that produces them is not.
+packages/contracts/.openapi-generator-cli/
+
+# ---- IDE ---------------------------------------------------------------------
+.idea/
+!.idea/icon.png
+*.iml
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+
+# ---- OS ----------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Local runtime -----------------------------------------------------------
+*.log
+logs/
+tmp/
+.pgdata/

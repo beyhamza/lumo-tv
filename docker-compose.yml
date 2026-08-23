@@ -1,0 +1,122 @@
+# ==============================================================================
+# Lumo TV — local development stack (docs/architecture.md §7).
+#
+# Brings up PostgreSQL 16 and lumo-api. The web application and both Android
+# applications run natively and point at this API:
+#   - web / desktop browser -> http://localhost:8080
+#   - Android emulator      -> http://10.0.2.2:8080   (the host, seen from the VM)
+#
+# Media never goes through this stack. The player opens the user's stream
+# directly against the user's own IPTV server.
+#
+#   cp apps/api/.env.example apps/api/.env     (then fill in the two secrets)
+#   docker compose --env-file apps/api/.env up -d
+#   docker compose --env-file apps/api/.env logs -f lumo-api
+#
+# The stack reads apps/api/.env rather than a root .env: the backend and the
+# database it owns are configured in one place, next to the application they
+# belong to. --env-file is required because compose only auto-loads a root .env.
+#
+# `depends_on: condition: service_healthy` is what makes `up` deterministic:
+# lumo-api is not started until Postgres actually answers queries. Without it,
+# Liquibase races the database on a cold start and the API dies on first boot.
+# ==============================================================================
+
+name: lumo-tv
+
+services:
+
+  # ---------------------------------------------------------------- database --
+  postgres:
+    image: postgres:16-alpine
+    container_name: lumo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lumo}
+      POSTGRES_USER: ${POSTGRES_USER:-lumo}
+      # Dev-only default. Production credentials never live in this file.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lumo}
+      # Deterministic collation: index ordering must not depend on the host
+      # locale, or a developer's machine and CI disagree on sort order.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      # Exposed so psql, a JDBC client or a test suite can reach it from the host.
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # -U/-d are required: without them pg_isready checks the *root* user and
+      # reports ready before the application database exists.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lumo} -d ${POSTGRES_DB:-lumo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      # First boot runs initdb; do not start counting failures until it is done.
+      start_period: 30s
+    networks:
+      - lumo
+
+  # ------------------------------------------------------------------- api ----
+  lumo-api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: lumo-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+
+      # `postgres` is the service name on the compose network, not localhost:
+      # inside a container, localhost is the container itself.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-lumo}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-lumo}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-lumo}
+
+      # ADR 0005. The ingestion layer is I/O-bound and written in blocking style.
+      SPRING_THREADS_VIRTUAL_ENABLED: "true"
+
+      # Liquibase owns the schema; Hibernate never touches it (ADR 0006).
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      SPRING_LIQUIBASE_ENABLED: "true"
+
+      # Secrets, from the root .env. No default: the API must refuse to boot
+      # rather than run on a well-known key.
+      LUMO_JWT_SECRET: ${LUMO_JWT_SECRET:?set LUMO_JWT_SECRET in .env}
+      LUMO_ENCRYPTION_MASTER_KEY: ${LUMO_ENCRYPTION_MASTER_KEY:?set LUMO_ENCRYPTION_MASTER_KEY in .env}
+
+      LUMO_WEB_BASE_URL: ${LUMO_WEB_BASE_URL:-http://localhost:3000}
+      LUMO_CORS_ALLOWED_ORIGINS: ${LUMO_CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+
+      # Actuator: health only. Nothing else is exposed, in any environment.
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: when_authorized
+    ports:
+      - "${LUMO_API_PORT:-8080}:8080"
+    healthcheck:
+      # Actuator liveness. curl must be present in the API image: apps/api/Dockerfile
+      # is required to install it (or to switch this probe to whatever it does ship).
+      # Do not reach for /dev/tcp here - CMD-SHELL runs /bin/sh, and on a Debian
+      # base that is dash, which has no /dev/tcp. The probe would never pass and the
+      # container would sit "starting" until it was killed.
+      test:
+        - CMD-SHELL
+        - curl -fsS http://127.0.0.1:8080/actuator/health | grep -q '"status":"UP"'
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      # Boot plus Liquibase on a cold database takes a while; do not flap.
+      start_period: 90s
+    networks:
+      - lumo
+
+volumes:
+  postgres-data:
+    name: lumo-postgres-data
+
+networks:
+  lumo:
+    name: lumo
+    driver: bridge

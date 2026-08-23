@@ -1,0 +1,20 @@
+# Lint configuration for openapi.yaml (AGENTS.md §3, ADR 0001).
+#
+# Only two rules are relaxed, and both are deliberate. Everything else stays on
+# the "recommended" ruleset: a lint failure here blocks the contract check in CI
+# before any client is generated.
+
+extends:
+  - recommended
+
+rules:
+  # The contract ships localhost servers on purpose: docker-compose exposes the
+  # API on localhost:8080, and the Android emulator reaches the host through
+  # 10.0.2.2:8080 (docs/architecture.md §7). Both entries are how a developer
+  # points a client at a local backend on day one.
+  no-server-example.com: off
+
+  # Operation descriptions carry the behavioural contract (polling states,
+  # error semantics, ownership checks) and are frequently long. Summaries stay
+  # short; descriptions are allowed to be as long as the rule they document.
+  operation-description: warn

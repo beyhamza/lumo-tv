@@ -1,0 +1,30 @@
+# Android client generator — consumed by apps/android core/network.
+#
+# One generated client serves both applicationIds (ADR 0004): everything below
+# the UI layer is shared.
+
+generatorName: kotlin
+inputSpec: openapi.yaml
+outputDir: generated/kotlin
+
+apiPackage: tv.lumo.android.network.generated.api
+modelPackage: tv.lumo.android.network.generated.model
+packageName: tv.lumo.android.network.generated
+
+library: jvm-retrofit2
+
+additionalProperties:
+  # Coroutines: every operation is a `suspend fun`, matching the Flow/Coroutines
+  # stack in AGENTS.md §4. No Call<T>, no RxJava.
+  useCoroutines: "true"
+
+  # Moshi is the generator's best-tested path for jvm-retrofit2 and emits
+  # @Json(name = "...") so the contract's snake_case survives into idiomatic
+  # camelCase Kotlin properties.
+  serializationLibrary: moshi
+
+  # java.time, available on Android through core library desugaring.
+  dateLibrary: java8
+
+  enumPropertyNaming: UPPERCASE
+  hideGenerationTimestamp: "true"
