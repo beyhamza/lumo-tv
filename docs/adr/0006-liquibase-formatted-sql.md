@@ -2,7 +2,15 @@
 
 - **Date** : 2026-08-23
 - **Status** : Accepted
-- **Supersedes** : the Flyway choice implied by ADR 0002
+- **Completes** : ADR 0002, which names Liquibase and leaves the format to this ADR
+- **Amended** : 2026-08-23, on the maintainer's instruction. The header read
+  *Supersedes: the Flyway choice implied by ADR 0002*. There is no such choice to
+  supersede: ADR 0002 has a single version, from the initial commit, and its
+  Decision reads "PostgreSQL 16, with Liquibase migrations (see ADR 0006)" — a
+  forward reference to this document, not a decision this one reverses. A reader
+  who took the header at face value would have gone looking through the history
+  for a Flyway period that never existed. Only that line changed; the decision,
+  the rules and the consequences below are untouched.
 
 ## Context
 
@@ -12,10 +20,10 @@ project needs — `citext`, partial indexes, `pg_trgm` GIN indexes, `bytea` colu
 `CREATE EXTENSION` — are awkward or impossible to express in Liquibase's abstract
 change types.
 
-Flyway is the obvious SQL-first tool. Liquibase is chosen instead for its changeset
-metadata: explicit rollback blocks, preconditions, contexts and labels, checksum
-tracking with `runOnChange`. These matter more than Flyway's simpler model once the
-schema is live.
+Flyway is the obvious SQL-first tool, and was the alternative weighed here — weighed,
+never adopted. Liquibase is chosen instead for its changeset metadata: explicit
+rollback blocks, preconditions, contexts and labels, checksum tracking with
+`runOnChange`. These matter more than Flyway's simpler model once the schema is live.
 
 ## Decision
 

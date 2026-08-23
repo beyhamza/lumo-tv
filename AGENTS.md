@@ -184,6 +184,12 @@ en silence. Rien dans le code ne le dit ; seule la sortie du build le montre.
 `docs/adr/` contient les décisions structurantes, numérotées et datées. Un ADR accepté
 ne se modifie pas : il se **remplace** par un nouvel ADR qui le supersede.
 
+Une seule exception, et elle ne porte jamais sur la décision elle-même : une **erreur
+factuelle** dans un en-tête — un ADR qui dit superseder ce qui n'a jamais existé, une
+date fausse, une référence morte — se corrige par un amendement daté, écrit dans
+l'en-tête, qui cite le texte remplacé et dit ce qui n'a pas bougé. Voir l'ADR 0006.
+Ça reste un point d'escalade (§9) : c'est un humain qui décide, pas toi.
+
 Ouvre un ADR quand tu veux : changer une brique de la stack, changer le modèle
 d'authentification, changer la stratégie de persistance ou de cache, ou introduire une
 dépendance lourde.
