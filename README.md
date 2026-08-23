@@ -36,12 +36,18 @@ lumo-tv/
 │  └─ api/               # Spring Boot
 ├─ packages/
 │  └─ contracts/         # openapi.yaml + génération des trois clients
-├─ docs/                 # architecture, modèle de domaine, ADR, backlog
+├─ docs/                 # architecture, modèle de domaine, ADR, backlog, prompts
+├─ .github/workflows/    # contrat, api, android, web
+├─ docker-data/          # état des conteneurs, sur disque et gitignoré
 └─ docker-compose.yml    # postgres + api en local
 ```
 
-Les trois `apps/*` sont encore vides : leur scaffolding est le périmètre des tâches
-S0-04 (api), S0-05 (android) et S0-06 (web) du [sprint 0](./docs/backlog/sprint-01.md).
+Les trois applications sont scaffoldées (S0-04, S0-05, S0-06) et la verticale du
+sprint 1 tourne de bout en bout en local : inscription, source M3U, ingestion,
+catalogue, lecture, activation TV. Les écrans restent des placeholders — les
+stories sont à faire. Commandes de build et conventions propres à chaque
+application dans son `AGENTS.md` : [`apps/api`](./apps/api/AGENTS.md),
+[`apps/web`](./apps/web/AGENTS.md), [`apps/android`](./apps/android/AGENTS.md).
 
 ## Le contrat d'API
 
@@ -75,6 +81,11 @@ refuse de démarrer sans eux, plutôt que de tourner sur une clé connue de tous
 ```bash
 docker compose --env-file apps/api/.env up -d
 ```
+
+L'état de la base vit dans `./docker-data/postgres`, pas dans un volume Docker :
+`ls` le montre, `rm -rf docker-data` le remet à zéro, et un clone neuf démarre
+vide. `POSTGRES_PASSWORD` n'est lu qu'au tout premier démarrage — le changer
+ensuite ne change rien tant que ce répertoire existe.
 
 Chaque application a son propre modèle d'environnement, chaque variable commentée :
 [`apps/api/.env.example`](./apps/api/.env.example),

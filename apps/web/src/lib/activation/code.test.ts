@@ -11,11 +11,11 @@ describe("normaliseActivationCode", () => {
   });
 
   it("accepts the separator people read off the screen", () => {
-    expect(normaliseActivationCode("LUMO-4X7B")).toBe("LUMO4X7B");
+    expect(normaliseActivationCode("K7RM-4XPQ")).toBe("K7RM4XPQ");
   });
 
   it("accepts lower case and spaces", () => {
-    expect(normaliseActivationCode("lumo 4x7b")).toBe("LUMO4X7B");
+    expect(normaliseActivationCode("k7rm 4xpq")).toBe("K7RM4XPQ");
     expect(normaliseActivationCode("  abcd2345  ")).toBe("ABCD2345");
   });
 

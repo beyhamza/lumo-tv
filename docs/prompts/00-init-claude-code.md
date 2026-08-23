@@ -16,7 +16,7 @@
 Tu initialises le monorepo du projet Lumo TV.
 
 Lis d'abord, intégralement et dans cet ordre : AGENTS.md, docs/architecture.md,
-docs/domain-model.md, les quatre ADR de docs/adr/, puis docs/backlog/sprint-01.md.
+docs/domain-model.md, tous les ADR de docs/adr/, puis docs/backlog/sprint-01.md.
 Ils font autorité. Si tu constates une contradiction entre eux, signale-la et
 arrête-toi plutôt que de trancher toi-même.
 

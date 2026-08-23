@@ -55,10 +55,24 @@ existant, jamais en créer un second.
 Rotation : chaque usage émet un nouveau token et révoque l'ancien. La réutilisation d'un
 token révoqué révoque **toute la chaîne** du device — c'est la détection de vol.
 
+### `user_token`
+`id`, `user_id`, `purpose` (`EMAIL_VERIFICATION` | `PASSWORD_RESET`), `token_hash`,
+`expires_at`, `consumed_at` nullable, `created_at`.
+
+Le lien envoyé par email porte le secret en clair ; la base n'en garde que le hash,
+et `consumed_at` le rend à usage unique. Un même compte peut avoir plusieurs jetons
+en vie (l'utilisateur clique deux fois sur « renvoyer »), c'est `token_hash` qui est
+unique, pas `(user_id, purpose)`.
+
 ### `device_authorization`
 `id`, `device_code_hash`, `user_code` (8 car.), `platform`, `status`
 (`PENDING` | `APPROVED` | `DENIED` | `EXPIRED` | `CONSUMED`), `user_id` nullable,
-`expires_at` (10 min), `interval_seconds` (5), `created_at`.
+`expires_at` (10 min), `interval_seconds` (5), `last_polled_at` nullable,
+`created_at`.
+
+`last_polled_at` porte le `SLOW_DOWN` de la RFC 8628 : un poll arrivé moins de
+`interval_seconds` après le précédent est refusé. La colonne est nulle tant que la
+TV n'a pas interrogé une seule fois — le premier poll n'est jamais trop rapide.
 
 ### `source`
 | Champ | Type | Note |

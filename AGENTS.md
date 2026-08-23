@@ -48,8 +48,10 @@ lumo-tv/
 │  ├─ architecture.md
 │  ├─ domain-model.md
 │  ├─ adr/                    # décisions techniques, immuables une fois acceptées
-│  └─ backlog/
-├─ prompts/                   # prompts d'initialisation
+│  ├─ backlog/
+│  └─ prompts/                # prompts d'initialisation
+├─ .github/workflows/         # contrat, api, android, web (§7)
+├─ docker-data/               # état des conteneurs, sur disque, gitignoré
 └─ docker-compose.yml         # postgres + api en local
 ```
 
@@ -169,7 +171,7 @@ semaines plus tard :
 | `contract` | Un client généré qui diverge de `openapi.yaml` (§3). Et, second job, une chaîne, un logo ou une URL de flux réelle committée (§1) |
 | `api` | Un build cassé, un test rouge. La suite démarre un vrai PostgreSQL |
 | `android` | Un build cassé, **et** une chaîne ajoutée en anglais sans sa traduction française : `MissingTranslation` est fatal (§5) |
-| `web` | Lint, types, tests, build — **et** une page marketing qui cesse d'être servie statiquement (`docs/architecture.md` §4) |
+| `web` | Lint, types, tests unitaires, build, Playwright — **et** une page marketing qui cesse d'être servie statiquement (`docs/architecture.md` §4) |
 
 La dernière est celle qu'on casse sans le voir : un `useState` dans un composant
 partagé, une lecture de `cookies()` dans un layout, et la route devient dynamique

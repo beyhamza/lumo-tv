@@ -163,11 +163,11 @@ expérience punitive ; c'est le premier point d'abandon d'une app TV.
 TV                          lumo-api                      Téléphone
  │  POST /auth/device/code      │                              │
  │─────────────────────────────►│                              │
- │  { user_code: "LUMO-4X7B",   │                              │
+ │  { user_code: "K7RM-4XPQ",   │                              │
  │    device_code, interval }   │                              │
  │◄─────────────────────────────│                              │
  │                              │                              │
- │  affiche LUMO-4X7B           │   utilisateur ouvre          │
+ │  affiche K7RM-4XPQ           │   utilisateur ouvre          │
  │                              │   lumo.tv/activate           │
  │                              │◄─────────────────────────────│
  │                              │   POST /auth/device/approve  │
