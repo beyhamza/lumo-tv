@@ -1,8 +1,9 @@
 import "server-only";
 
 import createClient from "openapi-fetch";
-import type { paths, components } from "@lumo/contracts";
+import type { paths } from "@lumo/contracts";
 import { apiBaseUrl } from "@/lib/env";
+import type { Problem } from "./types";
 
 /**
  * The typed API client (ADR 0001).
@@ -29,9 +30,6 @@ export function api(accessToken?: string) {
       : undefined,
   });
 }
-
-export type Problem = components["schemas"]["Problem"];
-export type ErrorCode = components["schemas"]["ErrorCode"];
 
 /**
  * Pulls the machine-readable code out of an RFC 7807 body.

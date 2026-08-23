@@ -3,6 +3,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
 import { api, problemCode } from "@/lib/api/client";
+import type { AuthSession, DeviceRegistration } from "@/lib/api/types";
 import type { SessionPayload } from "@/lib/session/cookie";
 import { safeRedirectTarget } from "@/lib/security/redirect-target";
 import { closeSession, getSession, openSession } from "@/lib/session/session";
@@ -34,8 +35,8 @@ export type AuthFormState = {
  * (docs/domain-model.md, `device`): a session is bound to one, and that is what
  * lets a user list and revoke their sessions from the account page.
  */
-const WEB_DEVICE = {
-  platform: "WEB" as const,
+const WEB_DEVICE: DeviceRegistration = {
+  platform: "WEB",
   name: "lumo.tv",
   model: null,
   app_version: "0.1.0",
@@ -167,14 +168,14 @@ export async function signOut(): Promise<void> {
   redirect({ href: "/login", locale });
 }
 
-/** Shapes the contract's `AuthSession` into what the cookie stores. */
-function sessionFrom(authSession: {
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
-  device_id: string;
-  user: { id: string; email: string };
-}): SessionPayload {
+/**
+ * Shapes the contract's `AuthSession` into what the cookie stores.
+ *
+ * The parameter is the contract's type, not a local description of it: a field
+ * renamed in openapi.yaml has to fail here, at build time, rather than at the
+ * first sign-in after deployment.
+ */
+function sessionFrom(authSession: AuthSession): SessionPayload {
   return {
     accessToken: authSession.access_token,
     refreshToken: authSession.refresh_token,

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { apiBaseUrl } from "@/lib/env";
+import type { RefreshRequest, TokenPair } from "@/lib/api/types";
 import type { SessionPayload } from "./cookie";
 
 /**
@@ -63,7 +64,7 @@ async function performRefresh(
     response = await fetch(`${apiBaseUrl()}/auth/refresh`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ refresh_token: session.refreshToken }),
+      body: JSON.stringify({ refresh_token: session.refreshToken } satisfies RefreshRequest),
       // Never cached: the response contains a single-use token, and a cached
       // rotation would replay a token the server has already retired.
       cache: "no-store",
@@ -80,11 +81,10 @@ async function performRefresh(
     return { status: "unavailable" };
   }
 
-  const body = (await response.json()) as {
-    access_token: string;
-    refresh_token: string;
-    expires_in: number;
-  };
+  // Typed from the contract even though the call is a bare fetch: the reason
+  // for the bare fetch is that this runs in the proxy, not that the response
+  // shape is anyone's guess.
+  const body = (await response.json()) as TokenPair;
 
   return {
     status: "rotated",
