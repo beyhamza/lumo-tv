@@ -112,7 +112,7 @@ public class SessionService {
         refreshTokens.insert(newTokenId, row.userId(), row.deviceId(), SecretTokens.hash(newToken),
                 now.plus(properties.refresh().ttl()));
         refreshTokens.markRotated(row.id(), newTokenId);
-        devices.touch(row.deviceId());
+        devices.touch(row.deviceId(), row.userId());
 
         AccessTokenService.IssuedAccessToken access = accessTokens.issue(row.userId(), row.deviceId());
         return pair(access, newToken);

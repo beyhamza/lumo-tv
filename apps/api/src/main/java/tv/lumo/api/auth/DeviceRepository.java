@@ -49,9 +49,20 @@ public class DeviceRepository {
                 .optional();
     }
 
-    public void touch(UUID deviceId) {
-        jdbc.sql("UPDATE device SET last_seen_at = now() WHERE id = :id")
+    /**
+     * Records that a device was seen.
+     *
+     * <p>Scoped on {@code user_id} even though the caller could not plausibly
+     * pass a device that is not theirs — the id comes from their own refresh
+     * token row. The rule in docs/architecture.md §2 is written without
+     * exceptions on purpose: an unscoped write on a table carrying
+     * {@code user_id} is a hole the day somebody reuses this method with an id
+     * from a request parameter, and nothing in its signature would warn them.
+     */
+    public void touch(UUID deviceId, UUID userId) {
+        jdbc.sql("UPDATE device SET last_seen_at = now() WHERE id = :id AND user_id = :userId")
                 .param("id", deviceId)
+                .param("userId", userId)
                 .update();
     }
 
