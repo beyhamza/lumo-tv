@@ -96,7 +96,7 @@ public class Category {
   }
 
   /**
-   * Identifier used by the origin panel or playlist.
+   * Identifier used by the origin panel or playlist.  One value is assigned by Lumo rather than by the source: `m3u:__unclassified__` is the group that collects M3U entries with no `group-title` (US-07). It is the only category the server invents, so it is the only one whose `name` is not the user's own wording — clients render their own translation when they see this identifier and fall back to `name` otherwise. 
    * @return externalId
    */
   

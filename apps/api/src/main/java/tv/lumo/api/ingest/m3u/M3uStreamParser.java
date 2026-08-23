@@ -38,7 +38,16 @@ public class M3uStreamParser {
 
     private static final Pattern ATTRIBUTE =
             Pattern.compile("([A-Za-z0-9-]+)\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s,]+))");
-    private static final String UNCLASSIFIED = "Unclassified";
+    /**
+     * The group an entry with no {@code group-title} falls into (US-07).
+     *
+     * <p>It is a <b>fallback label</b>, not a translated one — the server has no
+     * business inventing user-facing copy in one language. What clients key on
+     * is the stable {@code external_id} the ingestion layer gives this group
+     * ({@code m3u:__unclassified__}); this string is only what a client that
+     * does not recognise the sentinel would show.
+     */
+    public static final String UNCLASSIFIED = "Unclassified";
 
     /**
      * @return how many channels were emitted

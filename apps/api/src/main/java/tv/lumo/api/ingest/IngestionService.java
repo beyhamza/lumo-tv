@@ -46,6 +46,14 @@ public class IngestionService {
     private static final Logger log = LoggerFactory.getLogger(IngestionService.class);
     private static final int STALE_SYNC_MINUTES = 30;
 
+    /**
+     * The stable identifier of the group the server invents for entries with no
+     * {@code group-title}. Clients translate on this rather than on the English
+     * fallback name (see {@link #externalIdFor}). Documented in the contract on
+     * {@code Category.external_id}.
+     */
+    private static final String UNCLASSIFIED_EXTERNAL_ID = "m3u:__unclassified__";
+
     private final SourceRepository sources;
     private final CatalogWriteRepository catalogWrites;
     private final CredentialCipher cipher;
@@ -217,7 +225,7 @@ public class IngestionService {
         http.get(host, uri, stream -> m3uParser.parse(stream, channel -> {
             UUID categoryId = categoryIds.computeIfAbsent(channel.categoryName(), name ->
                     catalogWrites.upsertCategoryReturningId(
-                            source.id(), "m3u:" + name, name, "LIVE", categoryIds.size()));
+                            source.id(), externalIdFor(name), name, "LIVE", categoryIds.size()));
 
             // An M3U carries no stable per-channel id, so one is derived from the
             // entry itself. The stream URL is hashed rather than used directly:
@@ -237,6 +245,26 @@ public class IngestionService {
     }
 
     // ---- XMLTV --------------------------------------------------------------
+
+    /**
+     * The {@code external_id} of an M3U group.
+     *
+     * <p>Groups from the playlist are keyed by their own name. The one group the
+     * server invents — the bucket for entries with no {@code group-title} — gets
+     * a stable sentinel instead, because its name is the only user-facing string
+     * in the product that the server would otherwise author, in English, for a
+     * French user.
+     *
+     * <p>A client renders its own translation when it sees the sentinel and
+     * falls back to {@code name} otherwise. A playlist that happens to contain a
+     * group literally called "Unclassified" merges into the same bucket, which
+     * is where its channels belong anyway.
+     */
+    private static String externalIdFor(String groupName) {
+        return M3uStreamParser.UNCLASSIFIED.equals(groupName)
+                ? UNCLASSIFIED_EXTERNAL_ID
+                : "m3u:" + groupName;
+    }
 
     private void ingestEpg(SourceRepository.SourceRow source) {
         URI uri = SourceUrl.parse(source.epgUrl());
