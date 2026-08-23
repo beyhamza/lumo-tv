@@ -128,6 +128,13 @@ object NetworkModule {
                 level = HttpLoggingInterceptor.Level.BASIC
                 redactHeader("Authorization")
                 redactHeader("Cookie")
+                // BASIC logs the request line, which means the full URL, query
+                // string included — and the contract puts single-use secrets
+                // there: `GET /auth/verify-email?token=…`, and the activation
+                // code on the links the television shows. Redacting the headers
+                // and leaving the query readable would have been a half-measure
+                // (AGENTS.md §5).
+                redactQueryParams("token", "code", "user_code")
             }
 }
 
