@@ -97,14 +97,12 @@ généré compile et tourne contre Spring Boot 4.1.1 / Spring Framework 7.0.9 /
 Spring Security 7.1.1, et les 72 tests passent, dont le démarrage complet du
 contexte et les allers-retours de sérialisation.
 
-**ADR 0001 n'est donc pas remis en cause.** Deux imperfections cosmétiques,
-aucune fonctionnelle :
+**ADR 0001 n'est donc pas remis en cause.** Une imperfection cosmétique, aucune
+fonctionnelle :
 
 - 93 avertissements de dépréciation sur `org.springframework.lang.@Nullable`,
   que Spring 7 déprécie au profit de JSpecify. Uniquement dans
   `build/generated`, jamais dans le code écrit à la main.
-- Le mangling d'enum (`M3U_URL` → `M3_U_URL`, voir §7). Les valeurs **sur le
-  fil** restent correctes, et `WireFormatSerializationTest` le verrouille.
 
 Si une future version du generator ajoute un mode Boot 4, la bascule se fait
 dans `packages/contracts/config/spring.yaml` et nulle part ailleurs.
@@ -243,7 +241,7 @@ Ceux-ci ont coûté du temps ; ils sont documentés pour que ça n'arrive qu'une
 | **`TestRestTemplate`** | Supprimé. Utiliser `RestClient` + `exchange()`, qui rend la réponse brute sans lever sur un 4xx. |
 | **`CorsConfigurationSource`** | Ambigu à l'injection par type : `MvcHandlerMappingIntrospector` l'implémente aussi. Utiliser `Customizer.withDefaults()`, qui résout par **nom** de bean. |
 | **Nom de bean** | Un `@Component MailSender` entre en collision avec le `mailSender` autoconfiguré. D'où `AccountMailer`. |
-| **Enums générés** | `M3U_URL` devient la constante Java `M3_U_URL` (le camelizer d'openapi-generator coupe à la frontière chiffre-lettre). Les valeurs **sur le fil** sont correctes. Corrigeable par `x-enum-varnames` dans le contrat, mais ça renomme les constantes des trois clients d'un coup. |
+| **Enums générés** | Le camelizer d'openapi-generator coupe à la frontière chiffre-lettre : `M3U_URL` donnait la constante Java `M3_U_URL`. Corrigé par `x-enum-varnames` sur `SourceKind` dans le contrat — mesuré avant d'être écrit ici : seuls les deux clients JVM changent (le client TypeScript n'a pas de constantes), et les valeurs **sur le fil** sont identiques, ce que `WireFormatSerializationTest` verrouille. Si tu ajoutes un enum dont une valeur mélange chiffres et lettres, ajoute-lui `x-enum-varnames`. |
 | **`@Transactional`** | Auto-invocation = annotation ignorée. Appeler une méthode transactionnelle depuis la même classe ne fait rien du tout. Pire : révoquer puis lever dans la même transaction annule la révocation (voir `TokenChainRevoker`). |
 | **`writeOnly` ignoré** | openapi-generator ne traduit **pas** le `writeOnly` du contrat en `@JsonProperty(access = WRITE_ONLY)`. Les modèles de requête resérialiseraient un mot de passe tel quel. `SecretSerializationConfig` le corrige par mix-ins. |
 | **`@JsonTest`** | Slice : construit son propre `ObjectMapper` et ne prend pas les `@Configuration` applicatives. Un test de sérialisation en `@JsonTest` peut être vert tout en n'testant pas le mapper réel. Utiliser le contexte complet. |

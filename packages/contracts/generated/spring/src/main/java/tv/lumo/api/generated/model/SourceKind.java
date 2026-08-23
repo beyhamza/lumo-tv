@@ -21,9 +21,9 @@ import com.fasterxml.jackson.annotation.JsonValue;
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.14.0")
 public enum SourceKind {
   
-  M3_U_URL("M3U_URL"),
+  M3U_URL("M3U_URL"),
   
-  M3_U_FILE("M3U_FILE"),
+  M3U_FILE("M3U_FILE"),
   
   XTREAM("XTREAM");
 

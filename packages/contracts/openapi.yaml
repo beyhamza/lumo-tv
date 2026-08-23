@@ -1313,6 +1313,7 @@ components:
         `M3U_URL` and `XTREAM`. A multipart upload operation is not part of this
         contract.
       enum: [M3U_URL, M3U_FILE, XTREAM]
+      x-enum-varnames: [M3U_URL, M3U_FILE, XTREAM]
 
     SourceStatus:
       type: string

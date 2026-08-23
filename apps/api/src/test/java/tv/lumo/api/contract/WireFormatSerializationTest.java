@@ -102,12 +102,14 @@ class WireFormatSerializationTest extends PostgresIntegrationTest {
     void enumsSerialiseToContractValues() {
         JsonNode json = objectMapper.valueToTree(m3uSource());
 
-        // The Java constant is M3_U_URL, mangled by openapi-generator's camelizer.
-        // What must reach the wire is M3U_URL. This test is the guard on that gap:
-        // if the mangling ever leaked into serialisation, all three clients break.
+        // The constant and the wire value read the same today only because the
+        // contract says so: x-enum-varnames on SourceKind is what stops
+        // openapi-generator's camelizer turning M3U_URL into M3_U_URL. That is a
+        // naming fix, and this is the guard that it stayed one - if a rename ever
+        // reached serialisation, all three clients would break at once.
         assertThat(json.get("kind").stringValue()).isEqualTo("M3U_URL");
         assertThat(json.get("status").stringValue()).isEqualTo("PENDING");
-        assertThat(objectMapper.valueToTree(SourceKind.M3_U_FILE).stringValue()).isEqualTo("M3U_FILE");
+        assertThat(objectMapper.valueToTree(SourceKind.M3U_FILE).stringValue()).isEqualTo("M3U_FILE");
         assertThat(objectMapper.valueToTree(Locale.FR).stringValue()).isEqualTo("fr");
         assertThat(objectMapper.valueToTree(ErrorCode.SOURCE_AUTH_FAILED).stringValue())
                 .isEqualTo("SOURCE_AUTH_FAILED");
@@ -120,7 +122,7 @@ class WireFormatSerializationTest extends PostgresIntegrationTest {
                 {"label":"Test","kind":"M3U_URL","m3u_url":"https://test.example/p.m3u"}
                 """, CreateSourceRequest.class);
 
-        assertThat(request.getKind()).isEqualTo(SourceKind.M3_U_URL);
+        assertThat(request.getKind()).isEqualTo(SourceKind.M3U_URL);
         assertThat(request.getM3uUrl()).isEqualTo("https://test.example/p.m3u");
     }
 
@@ -241,7 +243,7 @@ class WireFormatSerializationTest extends PostgresIntegrationTest {
     @Test
     @DisplayName("an unset nullable property serialises as null rather than vanishing")
     void nullablePropertiesSerialiseAsNull() {
-        Source source = new Source(UUID.randomUUID(), "Playlist", SourceKind.M3_U_URL, SourceStatus.PENDING);
+        Source source = new Source(UUID.randomUUID(), "Playlist", SourceKind.M3U_URL, SourceStatus.PENDING);
         JsonNode json = objectMapper.valueToTree(source);
 
         // Pinned rather than assumed: openapi-typescript types these as `string |
@@ -299,7 +301,7 @@ class WireFormatSerializationTest extends PostgresIntegrationTest {
     }
 
     private static Source m3uSource() {
-        Source source = new Source(UUID.randomUUID(), "Playlist", SourceKind.M3_U_URL, SourceStatus.PENDING);
+        Source source = new Source(UUID.randomUUID(), "Playlist", SourceKind.M3U_URL, SourceStatus.PENDING);
         source.setM3uUrl("https://test.example/playlist.m3u");
         return source;
     }

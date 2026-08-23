@@ -242,9 +242,8 @@ public class SourceService {
                 requirePresent(errors, "/username", request.getUsername());
                 requirePresent(errors, "/password", request.getPassword());
             }
-            // M3_U_* is the generator's mangling of M3U_*; wire values are correct.
-            case M3_U_URL -> requirePresent(errors, "/m3u_url", request.getM3uUrl());
-            case M3_U_FILE -> errors.add(new FieldError("/kind", "UNSUPPORTED"));
+            case M3U_URL -> requirePresent(errors, "/m3u_url", request.getM3uUrl());
+            case M3U_FILE -> errors.add(new FieldError("/kind", "UNSUPPORTED"));
         }
         if (!errors.isEmpty()) {
             throw ApiException.validation("Request does not match the declared source kind", errors);

@@ -22,17 +22,17 @@ import com.squareup.moshi.JsonClass
 /**
  * What the user registered.  `M3U_FILE` designates a playlist uploaded as a file. It exists in the domain model and may be returned by read operations, but v1 exposes no endpoint that creates one: `POST /sources` is JSON-only and accepts `M3U_URL` and `XTREAM`. A multipart upload operation is not part of this contract. 
  *
- * Values: M3_U_URL,M3_U_FILE,XTREAM
+ * Values: M3U_URL,M3U_FILE,XTREAM
  */
 
 @JsonClass(generateAdapter = false)
 enum class SourceKind(val value: kotlin.String) {
 
     @Json(name = "M3U_URL")
-    M3_U_URL("M3U_URL"),
+    M3U_URL("M3U_URL"),
 
     @Json(name = "M3U_FILE")
-    M3_U_FILE("M3U_FILE"),
+    M3U_FILE("M3U_FILE"),
 
     @Json(name = "XTREAM")
     XTREAM("XTREAM");

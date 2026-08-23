@@ -127,19 +127,14 @@ public class IngestionService {
 
         log.info("Ingesting source {} ({})", sourceId, source.kind().getValue());
 
-        // M3_U_URL / M3_U_FILE are openapi-generator's mangling of M3U_URL and
-        // M3U_FILE: its camelizer splits at the digit-letter boundary. The WIRE
-        // values are correct ("M3U_URL"), only the Java constant names are ugly.
-        // Left alone rather than fixed with x-enum-varnames in the contract,
-        // which would rename constants in all three generated clients at once.
         XtreamClient.XtreamAccount account = switch (source.kind()) {
             case XTREAM -> ingestXtream(source);
-            case M3_U_URL -> {
+            case M3U_URL -> {
                 ingestM3u(source);
                 yield null;
             }
             // Not creatable through the API (see SourceKind in the contract).
-            case M3_U_FILE -> throw new IngestionException(IngestionErrorCode.SOURCE_INVALID_FORMAT,
+            case M3U_FILE -> throw new IngestionException(IngestionErrorCode.SOURCE_INVALID_FORMAT,
                     "Uploaded playlists are not ingestible in v1");
         };
 
