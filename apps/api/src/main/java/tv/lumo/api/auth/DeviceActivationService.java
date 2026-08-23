@@ -92,7 +92,8 @@ public class DeviceActivationService {
                                 "No pending authorization carries this code"));
 
         if (row.isExpired(OffsetDateTime.now())) {
-            authorizations.updateStatus(row.id(), DeviceAuthorizationRepository.Status.EXPIRED);
+            // Same as in poll(): marking the row here would be undone by the
+            // rollback this throw causes. The sweeper owns that transition.
             throw new ApiException(HttpStatus.GONE, ErrorCode.DEVICE_CODE_EXPIRED,
                     "This code has expired; the television will show a new one");
         }
@@ -108,17 +109,25 @@ public class DeviceActivationService {
      */
     @Transactional
     public AuthSession poll(String deviceCode) {
-        DeviceAuthorizationRepository.DeviceAuthorizationRow row =
-                authorizations.lockByDeviceCodeHash(SecretTokens.hash(deviceCode))
-                        .orElseThrow(() -> pollingState(ErrorCode.DEVICE_CODE_NOT_FOUND,
-                                "Unknown device code"));
+        String hash = SecretTokens.hash(deviceCode);
 
-        if (authorizations.registerPollAndCheckTooFast(row.id(), row.intervalSeconds())) {
+        // Before the lock below, not after: this runs in its own transaction so
+        // that it survives the rollback that AUTHORIZATION_PENDING causes, and a
+        // separate transaction cannot wait on a row this one has already locked.
+        if (authorizations.registerPollAndCheckTooFast(hash)) {
             throw pollingState(ErrorCode.SLOW_DOWN, "Polling faster than the advertised interval");
         }
 
+        DeviceAuthorizationRepository.DeviceAuthorizationRow row =
+                authorizations.lockByDeviceCodeHash(hash)
+                        .orElseThrow(() -> pollingState(ErrorCode.DEVICE_CODE_NOT_FOUND,
+                                "Unknown device code"));
+
         if (row.isExpired(OffsetDateTime.now())) {
-            authorizations.updateStatus(row.id(), DeviceAuthorizationRepository.Status.EXPIRED);
+            // The status transition is the sweeper's, not this path's: every
+            // branch here throws, and a write on a throwing path is rolled back.
+            // expireStaleAuthorizations() marks the row within the minute, and
+            // expires_at is what every read decides on in the meantime.
             throw pollingState(ErrorCode.EXPIRED_TOKEN, "Device code has expired");
         }
 

@@ -5,6 +5,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Access to {@code device_authorization}: the RFC 8628 TV activation flow. */
 @Repository
@@ -102,17 +104,48 @@ public class DeviceAuthorizationRepository {
      * decision uses the database clock, the same one that stamps the row. A
      * television polling faster than its {@code interval} gets {@code SLOW_DOWN}
      * (RFC 8628) rather than free reign to hammer this endpoint.
+     *
+     * <p>The self-join is the point of this statement, and it is not
+     * decoration. {@code RETURNING} sees the row as the UPDATE left it, so
+     * reading {@code last_polled_at} there yields the timestamp this very
+     * statement just wrote; {@code now()} is the transaction timestamp and
+     * therefore identical to it, the difference is always zero, and the answer
+     * was always "too fast" - on the first poll of a brand-new authorization
+     * included, when the column was still NULL. Every television polling this
+     * endpoint got SLOW_DOWN forever and no set-top box could ever have been
+     * activated. The {@code FROM} clause reads the table at the statement
+     * snapshot, which is the pre-UPDATE value, and is what makes the comparison
+     * mean what the RFC says. (PostgreSQL 18 would allow {@code RETURNING
+     * OLD.last_polled_at}; the target is 16, per ADR 0002.)
+     *
+     * <p>{@code REQUIRES_NEW} is the second half of the same defect, and is
+     * equally load-bearing. {@code AUTHORIZATION_PENDING} is the nominal answer
+     * to a poll and it leaves the service as an exception, so the caller's
+     * transaction rolls back - taking this write with it. The rate limit would
+     * have recorded nothing on any poll that was not the single successful one,
+     * which is every poll a television ever makes. In its own transaction, the
+     * record of the poll survives the rollback of the answer.
+     *
+     * <p>Consequences of that, both deliberate: this borrows a second pooled
+     * connection while the caller holds one (ADR 0005 §2 - the pool is sized for
+     * the database, and this endpoint is polled once per five seconds per
+     * activating television), and it MUST be called before the caller takes its
+     * {@code FOR UPDATE} lock on the same row. Called after, the new transaction
+     * would wait on a lock held by the transaction it suspended: a deadlock with
+     * itself, broken only by a timeout.
      */
-    public boolean registerPollAndCheckTooFast(UUID id, int intervalSeconds) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean registerPollAndCheckTooFast(String deviceCodeHash) {
         Boolean tooFast = jdbc.sql("""
-                UPDATE device_authorization
+                UPDATE device_authorization AS d
                    SET last_polled_at = now()
-                 WHERE id = :id
-             RETURNING (last_polled_at IS NOT NULL
-                        AND now() - last_polled_at < make_interval(secs => :interval)) AS too_fast
+                  FROM device_authorization AS prev
+                 WHERE d.device_code_hash = :hash AND prev.id = d.id
+             RETURNING (prev.last_polled_at IS NOT NULL
+                        AND now() - prev.last_polled_at
+                            < make_interval(secs => prev.interval_seconds)) AS too_fast
                 """)
-                .param("id", id)
-                .param("interval", intervalSeconds)
+                .param("hash", deviceCodeHash)
                 .query(Boolean.class)
                 .optional()
                 .orElse(Boolean.FALSE);
