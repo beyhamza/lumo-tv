@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_search_title">Recherche</string>
+    <string name="feature_search_placeholder">Recherchez parmi vos chaînes, vos films et vos séries.</string>
+</resources>

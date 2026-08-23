@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_auth_title">Connexion</string>
+    <string name="feature_auth_placeholder">Connectez-vous pour retrouver vos sources et vos favoris sur tous vos appareils.</string>
+</resources>

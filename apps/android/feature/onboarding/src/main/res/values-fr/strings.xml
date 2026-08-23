@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_onboarding_title">Bienvenue</string>
+    <string name="feature_onboarding_placeholder">Ajoutez une playlist M3U ou un compte Xtream Codes pour commencer à regarder.</string>
+</resources>

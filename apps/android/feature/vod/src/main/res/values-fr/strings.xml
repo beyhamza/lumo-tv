@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_vod_title">Films</string>
+    <string name="feature_vod_placeholder">Les films de votre source apparaîtront ici.</string>
+</resources>

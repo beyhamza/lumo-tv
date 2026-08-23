@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_series_title">Séries</string>
+    <string name="feature_series_placeholder">Les séries de votre source apparaîtront ici.</string>
+</resources>

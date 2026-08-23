@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for feature:onboarding. The French set lives in values-fr and ships
+  at the same time (AGENTS.md §4); lint fails the build on a missing translation.
+-->
+<resources>
+    <string name="feature_onboarding_title">Welcome</string>
+    <string name="feature_onboarding_placeholder">Add an M3U playlist or an Xtream Codes account to start watching.</string>
+</resources>

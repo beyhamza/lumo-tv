@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_source_title">Sources</string>
+    <string name="feature_source_placeholder">Vos playlists M3U et vos comptes Xtream apparaîtront ici.</string>
+</resources>
