@@ -1,0 +1,13 @@
+# The only non-SQL file in the entire migration set (ADR 0006).
+#
+# Liquibase open source requires the ROOT changelog to be XML, YAML or JSON when
+# it uses include/includeAll; SQL root changelogs exist only in Liquibase Secure
+# 4.28+. That is a hard limit of the edition we use, not a preference.
+#
+# It contains an includeAll and nothing else. Every actual change is formatted
+# SQL under changelog/. includeAll sorts alphabetically, so the zero-padded
+# filenames ARE the execution order.
+databaseChangeLog:
+  - includeAll:
+      path: db/changelog/
+      relativeToChangelogFile: false
