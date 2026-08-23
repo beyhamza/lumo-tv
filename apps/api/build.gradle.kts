@@ -64,6 +64,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // Verification and password-reset messages (US-01).
+    implementation("org.springframework.boot:spring-boot-starter-mail")
 
     // Spring Security + JOSE. Access tokens are signed and verified with
     // Spring Security's own Nimbus support; no third-party JWT library.
