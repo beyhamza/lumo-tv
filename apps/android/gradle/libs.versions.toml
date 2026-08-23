@@ -104,6 +104,10 @@ androidx-media3-ui-compose = { module = "androidx.media3:media3-ui-compose", ver
 androidx-media3-common = { module = "androidx.media3:media3-common", version.ref = "androidxMedia3" }
 
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "androidxHiltNavigationCompose" }
+# hiltViewModel() moved out of the navigation artifact in 1.4.0; the navigation
+# one still pulls this in transitively, but a module that calls the function
+# declares the library that defines it.
+androidx-hilt-lifecycle-viewmodel-compose = { module = "androidx.hilt:hilt-lifecycle-viewmodel-compose", version.ref = "androidxHiltNavigationCompose" }
 
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }

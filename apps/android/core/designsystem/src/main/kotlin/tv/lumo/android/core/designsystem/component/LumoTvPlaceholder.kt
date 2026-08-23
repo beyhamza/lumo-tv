@@ -33,6 +33,8 @@ import tv.lumo.android.core.designsystem.tv.tvOverscan
  *
  * Larger type, overscan margins, and something the remote can actually land on.
  *
+ * @param detail an optional line for observed state, matching
+ * [LumoMobilePlaceholder]'s parameter of the same name.
  * @param focusable when true the card takes D-pad focus, so every TV screen has
  * at least one focus target. A screen with nothing focusable traps the user —
  * `BACK` becomes the only key that does anything, which is exactly the
@@ -43,6 +45,7 @@ fun LumoTvPlaceholder(
     title: String,
     body: String,
     modifier: Modifier = Modifier,
+    detail: String? = null,
     focusable: Boolean = true,
     onClick: () -> Unit = {},
 ) {
@@ -92,6 +95,13 @@ fun LumoTvPlaceholder(
                 style = LumoTypeScale.tv.body,
                 color = if (focused) LumoColors.OnDark else LumoColors.OnDarkMuted,
             )
+            if (detail != null) {
+                Text(
+                    text = detail,
+                    style = LumoTypeScale.tv.label,
+                    color = LumoColors.Accent,
+                )
+            }
         }
     }
 }

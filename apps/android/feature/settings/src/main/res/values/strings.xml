@@ -6,4 +6,6 @@
 <resources>
     <string name="feature_settings_title">Settings</string>
     <string name="feature_settings_placeholder">Account, playback and language settings.</string>
+    <string name="feature_settings_session_open">Signed in on this device.</string>
+    <string name="feature_settings_session_none">Not signed in on this device.</string>
 </resources>

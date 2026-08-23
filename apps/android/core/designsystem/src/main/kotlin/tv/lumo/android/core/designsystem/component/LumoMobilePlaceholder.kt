@@ -25,12 +25,17 @@ import tv.lumo.android.core.designsystem.theme.LumoTypeScale
  * Takes resolved strings: resolution happens in the feature, from that feature's
  * own `strings.xml`, so a missing translation is caught by lint in the module
  * that owns the text (AGENTS.md §4).
+ *
+ * @param detail an optional line for something the screen actually observes, as
+ * opposed to the fixed description above it. A placeholder that renders live
+ * state is the cheapest proof that the wiring behind it exists.
  */
 @Composable
 fun LumoMobilePlaceholder(
     title: String,
     body: String,
     modifier: Modifier = Modifier,
+    detail: String? = null,
 ) {
     // Colours come from the theme rather than straight from LumoColors: the
     // phone follows the system's light/dark setting, and LumoMobileTheme is
@@ -54,5 +59,12 @@ fun LumoMobilePlaceholder(
             style = LumoTypeScale.mobile.body,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (detail != null) {
+            Text(
+                text = detail,
+                style = LumoTypeScale.mobile.label,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
 }
