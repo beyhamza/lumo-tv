@@ -50,6 +50,19 @@ class ApplicationHealthIntegrationTest extends PostgresIntegrationTest {
                         false);
     }
 
+    private Response post(String path, String json) {
+        return RestClient.create("http://localhost:" + port)
+                .post()
+                .uri(path)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(json)
+                .exchange((request, response) -> new Response(
+                        HttpStatus.valueOf(response.getStatusCode().value()),
+                        response.getHeaders().getContentType(),
+                        new String(response.getBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)),
+                        false);
+    }
+
     private record Response(HttpStatus status, MediaType contentType, String body) {
     }
 
@@ -126,6 +139,39 @@ class ApplicationHealthIntegrationTest extends PostgresIntegrationTest {
 
         assertThat(objectMapper.writeValueAsString(request))
                 .doesNotContain("must-not-appear-on-the-wire");
+    }
+
+    @Test
+    @DisplayName("the /v1 prefix reaches a controller, not merely the security filter")
+    void versionPrefixIsRouted() {
+        // Every client is configured with a base URL ending in /v1 — the contract
+        // says so, and apps/web and apps/android both take it from there. Nothing
+        // in the codebase makes that visible: the generated interfaces map
+        // "/auth/login" and there is no context-path. It comes from
+        // ApiPathConfig#configurePathMatch, one addPathPrefix call.
+        //
+        // Delete that class and every request from every client 404s, while the
+        // rest of this suite stays green — the other /v1 assertions here are
+        // satisfied by the security chain, which answers 401 for any path at all.
+        // Hence a POST that must reach the handler to fail the way it does.
+        Response response = post("/v1/auth/login", "{}");
+
+        // An empty body is a routed controller rejecting a request, not a router
+        // failing to find one. A 404 or a 401 here means the prefix is gone.
+        assertThat(response.status()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.body()).contains("\"code\":\"VALIDATION_FAILED\"");
+    }
+
+    @Test
+    @DisplayName("the same path without /v1 reaches no controller")
+    void unprefixedPathsAreNotRouted() {
+        // 401 rather than 404 because the security chain matches every request
+        // and /auth/login is not in its public list — the point is only that the
+        // login handler did not run.
+        Response response = post("/auth/login", "{}");
+
+        assertThat(response.status()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND);
+        assertThat(response.body()).doesNotContain("VALIDATION_FAILED");
     }
 
     @Test
