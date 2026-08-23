@@ -34,7 +34,16 @@ RUN --mount=type=cache,target=/root/.gradle \
 
 # Unpack the fat jar so the runtime image can layer it: dependencies (large,
 # stable) underneath application classes (small, rebuilt every time).
-RUN java -Djarmode=tools -jar build/libs/lumo-api-*.jar extract --layers --destination /extracted
+#
+# The jar is renamed BEFORE extracting, and that is not cosmetic. `extract`
+# names the file it writes into the application layer after the jar it was
+# given, so extracting lumo-api-1.0.0.jar produces /extracted/application/
+# lumo-api-1.0.0.jar - a name carrying a version the runtime stage would have
+# to know. And it cannot glob for it: ENTRYPOINT in exec form runs no shell, so
+# `java -jar lumo-api-*.jar` looks for a file whose name contains an asterisk.
+# Renaming here is what makes the runtime stage independent of the version.
+RUN cp build/libs/lumo-api-*.jar app.jar \
+ && java -Djarmode=tools -jar app.jar extract --layers --destination /extracted
 
 # ---- runtime -----------------------------------------------------------------
 FROM eclipse-temurin:25-jre AS runtime
