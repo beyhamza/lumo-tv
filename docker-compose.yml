@@ -17,6 +17,11 @@
 # database it owns are configured in one place, next to the application they
 # belong to. --env-file is required because compose only auto-loads a root .env.
 #
+# Database state lives in ./docker-data/postgres (gitignored). Starting over is
+# `docker compose down && rm -rf docker-data` - and POSTGRES_PASSWORD is only
+# read on the very first boot, so changing it in .env afterwards changes
+# nothing until that directory is gone.
+#
 # `depends_on: condition: service_healthy` is what makes `up` deterministic:
 # lumo-api is not started until Postgres actually answers queries. Without it,
 # Liquibase races the database on a cold start and the API dies on first boot.
@@ -39,11 +44,24 @@ services:
       # Deterministic collation: index ordering must not depend on the host
       # locale, or a developer's machine and CI disagree on sort order.
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      # The cluster lives one level BELOW the mount point. initdb insists on
+      # owning its data directory and chmod'ing it to 0700, and the mount root
+      # is created by the container runtime rather than by Postgres: on the
+      # hosts where taking ownership of that root is refused (Windows and macOS
+      # file sharing, NFS), a subdirectory Postgres creates itself is the
+      # difference between a cluster that initialises and one that never does.
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       # Exposed so psql, a JDBC client or a test suite can reach it from the host.
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      # A directory in the repository, not a Docker-managed volume: `ls
+      # docker-data/` shows what state exists, `rm -rf docker-data/` is the
+      # whole reset procedure, and a fresh clone starts empty instead of
+      # silently reattaching to a cluster initialised months ago with a
+      # password that is no longer in .env. docker-data/ is gitignored and
+      # excluded from the API build context.
+      - ./docker-data/postgres:/var/lib/postgresql/data
     healthcheck:
       # -U/-d are required: without them pg_isready checks the *root* user and
       # reports ready before the application database exists.
@@ -114,10 +132,6 @@ services:
       start_period: 90s
     networks:
       - lumo
-
-volumes:
-  postgres-data:
-    name: lumo-postgres-data
 
 networks:
   lumo:

@@ -16,3 +16,7 @@
 apps/web/
 apps/android/
 docs/
+
+# Local container state (docker-compose bind-mounts ./docker-data/postgres).
+# Never part of an image build, and several hundred megabytes of it.
+docker-data/

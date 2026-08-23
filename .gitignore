@@ -90,4 +90,8 @@ desktop.ini
 *.log
 logs/
 tmp/
-.pgdata/
+
+# Container state kept on disk instead of in a Docker-managed volume:
+# docker-compose.yml bind-mounts ./docker-data/postgres as the database
+# cluster. Deleting this directory is how you reset the local database.
+docker-data/
