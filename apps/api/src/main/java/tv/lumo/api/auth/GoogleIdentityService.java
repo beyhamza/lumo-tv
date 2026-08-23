@@ -27,14 +27,31 @@ public class GoogleIdentityService {
             List.of("https://accounts.google.com", "accounts.google.com");
 
     private final String clientId;
-    private volatile JwtDecoder decoder;
+
+    /**
+     * Built once in the constructor, with no lock anywhere.
+     *
+     * <p>ADR 0005 §5 says to avoid {@code synchronized} around blocking I/O and
+     * to question why a lock surrounds I/O at all. The answer here was that it
+     * did not need to: {@code withJwkSetUri(...).build()} performs NO network
+     * call — the JWKS is fetched lazily by the decoder on first use, and cached
+     * by it. So the double-checked locking this class used to carry was guarding
+     * a cheap, side-effect-free object construction. It is gone.
+     *
+     * <p>Null when Google sign-in is not configured, which keeps a deployment
+     * without it able to start.
+     */
+    private final JwtDecoder decoder;
 
     public GoogleIdentityService(@Value("${LUMO_GOOGLE_CLIENT_ID:}") String clientId) {
         this.clientId = clientId == null ? "" : clientId.trim();
+        this.decoder = this.clientId.isEmpty()
+                ? null
+                : NimbusJwtDecoder.withJwkSetUri(JWK_SET_URI).build();
     }
 
     public GoogleIdentity verify(String idToken) {
-        if (clientId.isEmpty()) {
+        if (decoder == null) {
             // Configuration is missing. Failing loudly beats accepting a token we
             // cannot bind to an audience.
             throw new ApiException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
@@ -42,7 +59,7 @@ public class GoogleIdentityService {
         }
         Jwt jwt;
         try {
-            jwt = decoder().decode(idToken);
+            jwt = decoder.decode(idToken);
         } catch (JwtException e) {
             // The token itself is never logged or echoed.
             throw ApiException.unauthenticated(ErrorCode.OAUTH_TOKEN_INVALID,
@@ -65,24 +82,6 @@ public class GoogleIdentityService {
             throw ApiException.unauthenticated(ErrorCode.OAUTH_TOKEN_INVALID, "Google email is not verified");
         }
         return new GoogleIdentity(jwt.getSubject(), email, jwt.getClaimAsString("name"));
-    }
-
-    /**
-     * Built lazily so a deployment with no Google configuration still starts, and
-     * so start-up does not depend on reaching Google's JWKS endpoint.
-     */
-    private JwtDecoder decoder() {
-        JwtDecoder local = decoder;
-        if (local == null) {
-            synchronized (this) {
-                local = decoder;
-                if (local == null) {
-                    local = NimbusJwtDecoder.withJwkSetUri(JWK_SET_URI).build();
-                    decoder = local;
-                }
-            }
-        }
-        return local;
     }
 
     /** @param subject Google's stable user id, which is what we key the identity on */

@@ -89,6 +89,26 @@ simplement pas de controller.
 Ne modifie **jamais** `build/generated/`. Si le contrat ne couvre pas ton
 besoin, **arrête-toi et demande**.
 
+### openapi-generator 7.14 sur Spring Boot 4 — vérifié
+
+Le generator n'a **pas** de mode « Spring Boot 4 » : `useSpringBoot3=true` est
+l'option la plus récente. Vérifié empiriquement plutôt que supposé — le code
+généré compile et tourne contre Spring Boot 4.1.1 / Spring Framework 7.0.9 /
+Spring Security 7.1.1, et les 72 tests passent, dont le démarrage complet du
+contexte et les allers-retours de sérialisation.
+
+**ADR 0001 n'est donc pas remis en cause.** Deux imperfections cosmétiques,
+aucune fonctionnelle :
+
+- 93 avertissements de dépréciation sur `org.springframework.lang.@Nullable`,
+  que Spring 7 déprécie au profit de JSpecify. Uniquement dans
+  `build/generated`, jamais dans le code écrit à la main.
+- Le mangling d'enum (`M3U_URL` → `M3_U_URL`, voir §7). Les valeurs **sur le
+  fil** restent correctes, et `WireFormatSerializationTest` le verrouille.
+
+Si une future version du generator ajoute un mode Boot 4, la bascule se fait
+dans `packages/contracts/config/spring.yaml` et nulle part ailleurs.
+
 ---
 
 ## 4. Migrations
@@ -168,7 +188,26 @@ donnait gratuitement, et sans ce garde-fou une rafale de synchronisations ouvre
 des centaines de connexions vers le panel d'**un utilisateur** et fait bannir
 **son** compte.
 
-Ne mets jamais un thread virtuel dans un pool.
+Ne mets jamais un thread virtuel dans un pool. `IngestionService` utilise
+`Executors.newVirtualThreadPerTaskExecutor()` et le ferme sur `@PreDestroy` —
+sans ça, un arrêt propre laisse des sources bloquées en `SYNCING`.
+
+Aucune preview feature n'est activée. La structured concurrency est encore en
+preview sur le JDK 25 ; le jour où elle sera finale, le fan-out d'ingestion en
+est le cas d'école (ADR 0005, « Revisit if »).
+
+**`ThreadLocal` / `ScopedValue`.** Aucun `ThreadLocal` écrit par nous, nulle
+part, et rien n'est transporté implicitement vers les workers d'ingestion : ils
+reçoivent leurs paramètres explicitement. La seule exception est le
+`SecurityContextHolder` de Spring Security, dont la stratégie par défaut est un
+`ThreadLocal` — le raisonnement complet est dans le javadoc de `CurrentUser`,
+lis-le avant d'y toucher.
+
+**HikariCP.** Dimensionné pour la base, jamais pour le nombre de threads. Le
+timeout d'acquisition est fixé à 10 s et la métrique à surveiller est
+`hikaricp.connections.timeout` : non nulle, elle signifie que le pool est trop
+petit pour la charge, et le symptôme visible sera une synchronisation en échec,
+pas un message parlant du pool.
 
 ### Parsing
 
@@ -205,7 +244,9 @@ Ceux-ci ont coûté du temps ; ils sont documentés pour que ça n'arrive qu'une
 | **`CorsConfigurationSource`** | Ambigu à l'injection par type : `MvcHandlerMappingIntrospector` l'implémente aussi. Utiliser `Customizer.withDefaults()`, qui résout par **nom** de bean. |
 | **Nom de bean** | Un `@Component MailSender` entre en collision avec le `mailSender` autoconfiguré. D'où `AccountMailer`. |
 | **Enums générés** | `M3U_URL` devient la constante Java `M3_U_URL` (le camelizer d'openapi-generator coupe à la frontière chiffre-lettre). Les valeurs **sur le fil** sont correctes. Corrigeable par `x-enum-varnames` dans le contrat, mais ça renomme les constantes des trois clients d'un coup. |
-| **`@Transactional`** | Auto-invocation = annotation ignorée. Appeler une méthode transactionnelle depuis la même classe ne fait rien du tout. |
+| **`@Transactional`** | Auto-invocation = annotation ignorée. Appeler une méthode transactionnelle depuis la même classe ne fait rien du tout. Pire : révoquer puis lever dans la même transaction annule la révocation (voir `TokenChainRevoker`). |
+| **`writeOnly` ignoré** | openapi-generator ne traduit **pas** le `writeOnly` du contrat en `@JsonProperty(access = WRITE_ONLY)`. Les modèles de requête resérialiseraient un mot de passe tel quel. `SecretSerializationConfig` le corrige par mix-ins. |
+| **`@JsonTest`** | Slice : construit son propre `ObjectMapper` et ne prend pas les `@Configuration` applicatives. Un test de sérialisation en `@JsonTest` peut être vert tout en n'testant pas le mapper réel. Utiliser le contexte complet. |
 
 ---
 

@@ -25,8 +25,17 @@ spring:
       # (ADR 0005 §2). Virtual threads do not create database capacity.
       maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:20}
       # Fail fast and visibly rather than queue forever behind an exhausted pool.
+      #
+      # ADR 0005 §2 says to FIX this value and MONITOR it. Ten thousand virtual
+      # threads against a pool of twenty means queueing, and an acquisition
+      # timeout surfaces far from its cause — as a failed sync or a slow
+      # endpoint, not as "the pool is too small". The metric that names it
+      # directly is hikaricp.connections.timeout; Micrometer records it
+      # automatically from the pool below. Alert on it being non-zero.
       connection-timeout: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:10000}
+      # Named so it is identifiable in metrics and thread dumps.
       pool-name: lumo-pool
+      register-mbeans: true
 
   liquibase:
     # ADR 0006: the only non-SQL file in the whole migration set.

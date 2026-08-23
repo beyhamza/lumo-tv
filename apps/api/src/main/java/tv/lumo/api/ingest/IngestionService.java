@@ -53,6 +53,20 @@ public class IngestionService {
     private final XtreamClient xtream;
     private final M3uStreamParser m3uParser;
     private final XmltvStreamParser xmltvParser;
+    /**
+     * One virtual thread per ingestion. Never a fixed-size pool: virtual threads
+     * are cheap and disposable, and pooling them defeats the entire mechanism
+     * (ADR 0005 §4).
+     *
+     * <p>This is a long-lived submit-and-forget executor rather than the
+     * try-with-resources fan-out ADR 0005 describes, because an ingestion is
+     * scheduled by an HTTP request that must return immediately and is not joined
+     * by anyone. It therefore needs an explicit shutdown — see {@link #shutdown()}.
+     *
+     * <p>It imposes NO limit on concurrency. The bound is
+     * {@link HostConcurrencyLimiter}, deliberately, so backpressure is a decision
+     * rather than a side effect of how the executor happens to be sized.
+     */
     private final ExecutorService workers = Executors.newVirtualThreadPerTaskExecutor();
 
     public IngestionService(SourceRepository sources,
@@ -250,6 +264,29 @@ public class IngestionService {
                 .orElseThrow(() -> new IngestionException(IngestionErrorCode.SOURCE_AUTH_FAILED,
                         "The source has no stored credential"));
         return cipher.open(sealed);
+    }
+
+    /**
+     * Stops accepting work and gives running ingestions a moment to finish.
+     *
+     * <p>Without this the executor is never closed. On a graceful shutdown the
+     * JVM would exit with ingestions mid-flight, leaving their sources stuck in
+     * SYNCING until the housekeeping sweep releases them — a user staring at a
+     * spinner for half an hour for no reason.
+     */
+    @jakarta.annotation.PreDestroy
+    void shutdown() {
+        workers.shutdown();
+        try {
+            if (!workers.awaitTermination(20, java.util.concurrent.TimeUnit.SECONDS)) {
+                log.warn("Ingestion workers did not finish within the shutdown grace period; "
+                        + "their sources will be released by the housekeeping sweep");
+                workers.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            workers.shutdownNow();
+        }
     }
 
     /**

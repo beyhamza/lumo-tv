@@ -36,6 +36,9 @@ class ApplicationHealthIntegrationTest extends PostgresIntegrationTest {
     @Autowired
     private JdbcClient jdbc;
 
+    @Autowired
+    private tools.jackson.databind.ObjectMapper objectMapper;
+
     private Response call(String path) {
         return RestClient.create("http://localhost:" + port)
                 .get()
@@ -108,6 +111,21 @@ class ApplicationHealthIntegrationTest extends PostgresIntegrationTest {
         // `code` is the only field clients branch on; an empty 401 from the
         // security filter chain would give them nothing.
         assertThat(response.body()).contains("\"code\":\"UNAUTHENTICATED\"");
+    }
+
+    @Test
+    @DisplayName("the running application auto-registers the secret-masking Jackson module")
+    void secretMaskingModuleIsActiveInTheRealContext() {
+        // WireFormatSerializationTest imports the module explicitly because it is
+        // a slice. This asserts the thing that actually matters: that the real
+        // application picks it up, so a writeOnly secret cannot serialise out of
+        // a live endpoint.
+        var request = new tv.lumo.api.generated.model.CreateSourceRequest(
+                "Test", tv.lumo.api.generated.model.SourceKind.XTREAM);
+        request.setPassword("must-not-appear-on-the-wire");
+
+        assertThat(objectMapper.writeValueAsString(request))
+                .doesNotContain("must-not-appear-on-the-wire");
     }
 
     @Test

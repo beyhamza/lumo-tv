@@ -14,11 +14,30 @@ import tv.lumo.api.shared.error.ApiException;
  * docs/architecture.md §2: no query on a table carrying {@code user_id} runs
  * without filtering on it.
  *
- * <p>Reading the context statically rather than via {@code ScopedValue} because
- * Spring Security already propagates it and duplicating that would create two
- * sources of truth for who is calling. ADR 0005 §3 forbids {@code ThreadLocal}
- * for caching expensive objects across virtual threads; a per-request
- * authentication that is cleared by the filter chain is a different thing.
+ * <h2>Why this is not a {@code ScopedValue}</h2>
+ *
+ * <p>ADR 0005 §3 says request-scoped context uses {@code ScopedValue} and that
+ * {@code ThreadLocal} is a leak by construction with virtual threads. This class
+ * reads Spring Security's {@code SecurityContextHolder}, whose default strategy
+ * IS a {@code ThreadLocal}. That is a deliberate exception, on two grounds.
+ *
+ * <p>First, the hazard the ADR describes is <em>per-thread caching of expensive
+ * objects</em> across millions of short-lived threads. {@code SecurityContextHolder}
+ * caches nothing: the filter chain sets it at the start of a request and clears
+ * it in a {@code finally} at the end, so nothing outlives the request that
+ * created it.
+ *
+ * <p>Second, Spring Security has no {@code ScopedValue} strategy, and a
+ * {@code ScopedValue} maintained in parallel would be a SECOND source of truth
+ * for who is calling — with method security, {@code @AuthenticationPrincipal} and
+ * the filter chain still reading the first. Two answers to "who is this" is a
+ * worse failure mode than a framework-managed {@code ThreadLocal}.
+ *
+ * <p>What this project does honour without exception: <b>no {@code ThreadLocal}
+ * of our own anywhere</b>, and nothing carried implicitly into the ingestion
+ * workers. Background work receives what it needs as explicit parameters, which
+ * is why {@code IngestionService} takes a {@code sourceId} rather than reading
+ * an ambient caller.
  */
 public final class CurrentUser {
 
