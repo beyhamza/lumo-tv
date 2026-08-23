@@ -1,0 +1,73 @@
+# ==============================================================================
+# lumo-api — lint, test, build (S0-08).
+#
+# `./gradlew build` compiles, runs the whole suite and assembles the jar. There
+# is no separate lint step because there is no separate linter: the API has no
+# Checkstyle or Spotless configuration, and inventing one here would mean CI
+# enforcing a style no developer runs locally.
+#
+# The suite starts a real PostgreSQL 16 through Testcontainers — H2 does not
+# reproduce citext, pg_trgm GIN indexes, partial unique indexes or `RETURNING`
+# snapshot semantics, and the device-activation tests exist precisely because
+# the last one bit us. ubuntu-latest ships a running Docker daemon, so this
+# needs no service container and no extra configuration.
+#
+# The build also generates the server interfaces from packages/contracts, which
+# is why the checkout has to include it and why a contract change triggers this
+# workflow.
+# ==============================================================================
+
+name: api
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'apps/api/**'
+      - 'packages/contracts/**'
+      - '.github/workflows/api.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: api-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # Java 25 (ADR 0005 — virtual threads). Same version as the Dockerfile's
+      # build stage, so a green run here means the image builds too.
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+          cache-dependency-path: |
+            apps/api/*.gradle.kts
+            apps/api/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Build, test and assemble
+        working-directory: apps/api
+        run: ./gradlew --no-daemon build
+
+      # The report is what makes a red run diagnosable without re-running it
+      # locally with the same database.
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-report
+          path: apps/api/build/reports/tests/test
+          retention-days: 7

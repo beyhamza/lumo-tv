@@ -1,0 +1,109 @@
+# ==============================================================================
+# apps/web — lint, test, build (S0-08).
+#
+# The pnpm workspace is rooted at apps/web, not at the repository, so every
+# command runs from there.
+#
+# The last step is the one worth explaining. docs/architecture.md §4 says the
+# marketing zone is served statically: no client component, no authenticated
+# call, nothing rendered per request. That is not a preference, it is what makes
+# those pages indexable and cheap, and it is broken by accident — one `useState`
+# in a shared component, one `cookies()` read in a layout, and the route
+# silently becomes dynamic. Nothing in the code says so afterwards; the only
+# place it shows is the build output, where ● means prerendered and ƒ means
+# server-rendered on demand. So the build output is what this asserts on.
+#
+# If Next ever changes those symbols this step fails with a confusing message.
+# That is the trade: a check that reads the build output is coupled to the build
+# output, and the alternative is no check at all for a rule three pages depend
+# on.
+# ==============================================================================
+
+name: web
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'packages/contracts/**'
+      - '.github/workflows/web.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Build-time only, and deliberately not a secret: this value seals no real
+  # session. The application refuses to start without one, so the build needs
+  # something 32 characters long to get past that check.
+  SESSION_SECRET: ci-build-only-secret-not-used-for-anything
+  NEXT_PUBLIC_SITE_URL: https://lumo.tv
+  API_BASE_URL: http://localhost:8080/v1
+  NEXT_PUBLIC_API_BASE_URL: http://localhost:8080/v1
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  build:
+    name: Lint, typecheck, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/web/package.json
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      # Separate from lint on purpose: ESLint does not type-check, and the
+      # mistakes that matter most here — a field renamed in the contract — are
+      # only visible to tsc.
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build | tee build.log
+
+      - name: The marketing zone must still be prerendered
+        run: |
+          missing=""
+          for route in /fr /en /fr/guides /en/guides; do
+            if ! grep -qE "● ${route}$" build.log; then
+              missing="${missing} ${route}"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::These marketing routes are no longer prerendered:${missing}"
+            echo "A page in the marketing zone imports a client component, reads cookies or"
+            echo "headers, or calls an authenticated API (docs/architecture.md §4)."
+            echo "--- routes as built ---"
+            sed -n '/Route (app)/,/^$/p' build.log
+            exit 1
+          fi

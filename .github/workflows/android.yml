@@ -1,0 +1,92 @@
+# ==============================================================================
+# apps/android — lint, test, build (S0-08).
+#
+# Three commands, and each one guards something the repository states as a rule
+# rather than a preference:
+#
+#   assembleDebug        both applications, and with them the Hilt component.
+#                        Full binding graph validation runs on the aggregating
+#                        task, so a module that binds a type twice fails here
+#                        instead of on a device.
+#   lint                 MissingTranslation is fatal (KotlinAndroid.kt), which
+#                        is how "aucune chaîne en dur, FR et EN dès maintenant"
+#                        (AGENTS.md §4) stops being a promise. A string added to
+#                        values/ and not to values-fr/ is a red build.
+#   testDebugUnitTest    the JVM suite. The instrumented tests are not run: they
+#                        need an emulator, and a TV emulator on a CI runner
+#                        tells you nothing a remote control would.
+#
+# `build` is deliberately not used: it adds a release assembly with R8 full mode
+# for two applications, several minutes, to prove something no pull request
+# changes. Release builds belong in a release workflow.
+#
+# The Android SDK is preinstalled on ubuntu-latest and ANDROID_HOME is already
+# set; local.properties is gitignored and must never be created here.
+# ==============================================================================
+
+name: android
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'apps/android/**'
+      - 'packages/contracts/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build, lint and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+          cache-dependency-path: |
+            apps/android/**/*.gradle.kts
+            apps/android/gradle/libs.versions.toml
+            apps/android/gradle/wrapper/gradle-wrapper.properties
+
+      # No .env in CI, on purpose. The build falls back to the documented
+      # defaults in .env.example (build-logic/…/LumoEnv.kt), so this run also
+      # proves a fresh clone builds without one.
+      - name: Assemble both applications
+        working-directory: apps/android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Lint
+        working-directory: apps/android
+        run: ./gradlew --no-daemon lint
+
+      - name: Unit tests
+        working-directory: apps/android
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      # Android Lint's HTML report names the file and the line; the console
+      # output on a runner does not always survive far enough to be useful.
+      - name: Upload lint and test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-reports
+          path: |
+            apps/android/**/build/reports/lint-results-*.html
+            apps/android/**/build/reports/tests
+          retention-days: 7

@@ -158,6 +158,23 @@ Tout cela est **v2**. Si une tâche t'y emmène, signale la sortie de périmètr
 jour de version de dépendance non demandée ; de `git push --force` ; de modification
 d'un ADR accepté.
 
+### Ce que la CI vérifie
+
+Quatre workflows dans `.github/workflows/`. Chacun garde une règle écrite ailleurs
+dans ce fichier — si tu la casses, tu l'apprends sur ta pull request et pas trois
+semaines plus tard :
+
+| Workflow | Ce qu'il empêche |
+|---|---|
+| `contract` | Un client généré qui diverge de `openapi.yaml` (§3). Et, second job, une chaîne, un logo ou une URL de flux réelle committée (§1) |
+| `api` | Un build cassé, un test rouge. La suite démarre un vrai PostgreSQL |
+| `android` | Un build cassé, **et** une chaîne ajoutée en anglais sans sa traduction française : `MissingTranslation` est fatal (§5) |
+| `web` | Lint, types, tests, build — **et** une page marketing qui cesse d'être servie statiquement (`docs/architecture.md` §4) |
+
+La dernière est celle qu'on casse sans le voir : un `useState` dans un composant
+partagé, une lecture de `cookies()` dans un layout, et la route devient dynamique
+en silence. Rien dans le code ne le dit ; seule la sortie du build le montre.
+
 ---
 
 ## 8. Décisions (ADR)
