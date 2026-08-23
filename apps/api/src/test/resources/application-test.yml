@@ -1,0 +1,26 @@
+# Test profile.
+#
+# The two secrets are fixed, non-production values: the application refuses to
+# start without them, and a test must not depend on a developer's environment.
+lumo:
+  jwt:
+    # 48 bytes, well over the 32-byte HS256 minimum.
+    secret: test-only-jwt-secret-not-used-anywhere-else-0123456789
+  encryption:
+    # Exactly 32 bytes once base64-decoded.
+    master-key: dGVzdC1vbmx5LW1hc3Rlci1rZXktMzItYnl0ZXMhISE=
+  web:
+    base-url: http://localhost:3000
+
+spring:
+  mail:
+    # No SMTP server in tests. MailSender swallows delivery failures by design,
+    # so this stays a real (unreachable) host rather than a mock.
+    host: localhost
+    port: 1025
+
+logging:
+  level:
+    liquibase: WARN
+    org.testcontainers: WARN
+    com.github.dockerjava: WARN

@@ -7,7 +7,11 @@
 # It contains an includeAll and nothing else. Every actual change is formatted
 # SQL under changelog/. includeAll sorts alphabetically, so the zero-padded
 # filenames ARE the execution order.
+#
+# relativeToChangelogFile: true resolves changelog/ against THIS file's location
+# (db/), which is what makes the set loadable from inside a jar as well as from
+# an exploded classpath.
 databaseChangeLog:
   - includeAll:
-      path: db/changelog/
-      relativeToChangelogFile: false
+      path: changelog/
+      relativeToChangelogFile: true

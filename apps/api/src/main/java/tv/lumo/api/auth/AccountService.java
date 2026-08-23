@@ -47,7 +47,7 @@ public class AccountService {
     private final UserTokenRepository userTokens;
     private final PasswordHasher passwords;
     private final SessionService sessions;
-    private final MailSender mail;
+    private final AccountMailer mail;
 
     public AccountService(UserRepository users,
                           OAuthIdentityRepository oauthIdentities,
@@ -56,7 +56,7 @@ public class AccountService {
                           UserTokenRepository userTokens,
                           PasswordHasher passwords,
                           SessionService sessions,
-                          MailSender mail) {
+                          AccountMailer mail) {
         this.users = users;
         this.oauthIdentities = oauthIdentities;
         this.devices = devices;

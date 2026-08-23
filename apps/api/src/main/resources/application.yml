@@ -69,6 +69,14 @@ management:
       show-details: ${MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS:when_authorized}
       probes:
         enabled: true
+  health:
+    mail:
+      # Off deliberately. The mail health indicator opens a real SMTP socket, so
+      # a mail outage would drag /actuator/health to DOWN and the orchestrator
+      # would kill and restart an API that is serving every request perfectly.
+      # Mail is not on the critical path here: AccountMailer already swallows
+      # delivery failures rather than failing a registration.
+      enabled: false
 
 logging:
   level:

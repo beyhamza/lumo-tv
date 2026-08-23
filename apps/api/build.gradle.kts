@@ -81,7 +81,13 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
 
     // Schema ownership: Liquibase, formatted-SQL changesets (ADR 0006).
-    implementation("org.liquibase:liquibase-core")
+    //
+    // The STARTER, not liquibase-core on its own. Spring Boot 4 is split into
+    // 70+ modules (AGENTS.md §4) and the Liquibase auto-configuration moved into
+    // spring-boot-liquibase, which the starter brings in. With liquibase-core
+    // alone the application starts perfectly and silently runs no migration at
+    // all — an empty schema and a 503 on /actuator/health.
+    implementation("org.springframework.boot:spring-boot-starter-liquibase")
 
     // Argon2id password hashing (AGENTS.md §5).
     implementation(libs.bouncycastle.provider)
@@ -92,8 +98,11 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.testcontainers:postgresql")
+    // Testcontainers 2.x renamed its modules: testcontainers-postgresql, not
+    // postgresql. Versions come from Spring Boot BOM, which imports
+    // testcontainers-bom 2.0.5.
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter")
+    testImplementation("org.testcontainers:testcontainers-postgresql")
 }
 
 tasks.withType<JavaCompile>().configureEach {

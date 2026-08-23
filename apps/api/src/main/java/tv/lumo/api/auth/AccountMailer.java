@@ -12,6 +12,11 @@ import tv.lumo.api.shared.config.LumoProperties;
 /**
  * Sends the two transactional emails sprint 1 needs.
  *
+ * <p>Named AccountMailer rather than MailSender because @Component derives the
+ * bean name from the class, and Spring Boot autoconfigures a JavaMailSender bean
+ * called {@code mailSender}. The collision is a
+ * BeanDefinitionOverrideException at start-up, not a subtle runtime bug.
+ *
  * <p>Both carry a single-use token in a link. <b>The token is never logged</b>,
  * not even at DEBUG (AGENTS.md §5): a verification link in a log file is a
  * working account takeover for anyone who reads that file.
@@ -22,15 +27,15 @@ import tv.lumo.api.shared.config.LumoProperties;
  * another email; they cannot un-register.
  */
 @Component
-public class MailSender {
+public class AccountMailer {
 
-    private static final Logger log = LoggerFactory.getLogger(MailSender.class);
+    private static final Logger log = LoggerFactory.getLogger(AccountMailer.class);
 
     private final JavaMailSender mailSender;
     private final LumoProperties properties;
     private final String from;
 
-    public MailSender(JavaMailSender mailSender,
+    public AccountMailer(JavaMailSender mailSender,
                       LumoProperties properties,
                       @org.springframework.beans.factory.annotation.Value("${LUMO_MAIL_FROM:no-reply@lumo.tv}")
                       String from) {
