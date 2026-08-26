@@ -51,3 +51,22 @@ services:
       # being tested is the one that ships.
       LUMO_RATE_LIMIT_AUTH_ATTEMPTS_PER_MINUTE: ${LUMO_RATE_LIMIT_AUTH_ATTEMPTS_PER_MINUTE:-1000}
       LUMO_RATE_LIMIT_DEVICE_APPROVE_ATTEMPTS_PER_MINUTE: ${LUMO_RATE_LIMIT_DEVICE_APPROVE_ATTEMPTS_PER_MINUTE:-1000}
+
+# ------------------------------------------------------------------ network ---
+#
+# The fourth difference, and the one that cost an afternoon to find.
+#
+# The development file declares `networks: lumo: name: lumo` — a fixed name, so
+# every project that includes it joins the SAME docker network. Both stacks then
+# publish the alias `postgres` on it, and the end-to-end API resolves whichever
+# container docker's DNS happens to return first. Half the time that is the
+# developer's own database, whose password is not the one generated for this
+# run, and the container dies on `password authentication failed for user
+# "lumo"` — intermittently, and only on machines where the development stack is
+# up, which is to say on a developer's machine and never in CI.
+#
+# Renaming the network is enough: two networks, two DNS namespaces, one
+# `postgres` in each.
+networks:
+  lumo:
+    name: lumo-e2e
