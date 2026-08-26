@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import fr from "../src/messages/fr.json";
 
 /**
@@ -114,6 +114,56 @@ test.describe.serial("sources", () => {
     await expect(page.getByText("5 chaînes · 3 catégories")).toBeVisible();
   });
 
+  test("le catalogue liste les chaînes, avec numéro et qualité", async ({ page }) => {
+    await page.goto("/fr/app/sources");
+    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
+
+    await expect(page.getByText("5 chaînes", { exact: true })).toBeVisible();
+
+    // Number and quality come from the playlist and are rendered as the source
+    // wrote them: tvg-chno="1", and FHD read out of the name without rewriting
+    // the name itself.
+    const first = channels(page).getByRole("listitem").filter({ hasText: "Chaîne 01 FHD" });
+    await expect(first).toContainText("1");
+    await expect(first).toContainText("FHD");
+
+    // A channel the playlist gave no number and no quality shows neither, rather
+    // than a zero or an invented badge.
+    await expect(
+      channels(page).getByRole("listitem").filter({ hasText: "Chaîne 05" }),
+    ).toBeVisible();
+  });
+
+  test("catégorie et recherche passent par l'URL, donc sans JavaScript", async ({
+    page,
+  }) => {
+    await page.goto("/fr/app/sources");
+    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
+
+    // Two channels carry group-title="Sport". Filtering is a link, so the state
+    // is in the URL and the back button works.
+    await page.getByRole("link", { name: "Sport" }).click();
+    await expect(page).toHaveURL(/categoryId=/);
+    await expect(channels(page).getByRole("listitem")).toHaveCount(2);
+
+    // The search is a GET form. Case-insensitive substring, which is exactly
+    // what the hint promises and nothing more.
+    await page.goto("/fr/app/sources");
+    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
+    await page.getByLabel(fr.App.catalogueSearchLabel).fill("chaîne 03");
+    await page.getByRole("button", { name: fr.App.catalogueSearchSubmit }).click();
+
+    await expect(page).toHaveURL(/q=/);
+    await expect(channels(page).getByRole("listitem")).toHaveCount(1);
+
+    await page.getByLabel(fr.App.catalogueSearchLabel).fill("zzzz");
+    await page.getByRole("button", { name: fr.App.catalogueSearchSubmit }).click();
+    await expect(page.getByText(fr.App.catalogueNoResults)).toBeVisible();
+  });
+
   test("le plafond de l'offre remplace le bouton d'ajout", async ({ page }) => {
     await page.goto("/fr/app/sources");
 
@@ -162,3 +212,16 @@ test.describe.serial("sources", () => {
     await expect(page.getByText(fr.Errors.SOURCE_INVALID_FORMAT)).toBeVisible();
   });
 });
+
+
+/**
+ * The channel list, told apart from the category navigation beside it.
+ *
+ * Both are lists of links, so a page-wide `listitem` query matches both — which
+ * is how the first version of these assertions came to expect two rows and count
+ * six. The channel list carries an accessible name for exactly this reason, and
+ * scoping to it is also what the name is for in a screen reader.
+ */
+function channels(page: Page) {
+  return page.getByRole("list", { name: fr.App.catalogueTitle });
+}

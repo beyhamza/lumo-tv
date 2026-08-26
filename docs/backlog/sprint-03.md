@@ -133,15 +133,15 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S3-04 | Les quatre erreurs de source, et quoi faire | sources | 3 | 100 % |
 | ☑ | S3-05 | Gérer une source : renommer, resynchroniser, supprimer | sources | 3 | 100 % |
 | ☑ | S3-06 | Plafonds lus, jamais devinés | sources | 2 | 100 % |
-| ☐ | S3-07 | Catalogue : catégories, chaînes paginées, recherche | catalogue | 8 | 0 % |
+| ☑ | S3-07 | Catalogue : catégories, chaînes paginées, recherche | catalogue | 8 | 100 % |
 | ☐ | S3-08 | Favoris et chaînes récentes | catalogue | 3 | 0 % |
 | ☐ | S3-09 | Route Handler de lecture : l'URL hors du HTML | lecture | 3 | 0 % |
 | ☐ | S3-10 | Lecteur HLS | lecture | 8 | 0 % |
 | ☐ | S3-11 | Échecs de lecture nommés | lecture | 5 | 0 % |
 | ☐ | S3-12 | Parcours e2e : compte → source → chaîne → image | vérif | 5 | 0 % |
 
-**Avancement du sprint : 40 % de 55 points.** Le lot sources est livré et vérifié
-de bout en bout ; le catalogue et la lecture restent entiers.
+**Avancement du sprint : 54 % de 55 points.** Sources et catalogue sont livrés et
+traversés par la recette ; la lecture reste entière.
 
 Ce qui manque à S3-01 pour être clos : un **flux HLS décodable** servi par le banc,
 en HTTPS avec CORS et son pendant en `http://` sans CORS. Les playlists et les
@@ -335,7 +335,12 @@ Même règle pour les appareils, sur `/app/devices`.
 
 ---
 
-### S3-07 — Catalogue : catégories, chaînes paginées, recherche · **8**
+### S3-07 — Catalogue : catégories, chaînes paginées, recherche · **8** · ☑
+
+> **Livré.** `app/sources/[id]/channels`. Catégorie, page et recherche vivent dans
+> l'URL : tout est lien ou formulaire GET, donc partageable, compatible avec le
+> bouton retour, et fonctionnel sans JavaScript. Numéro et qualité rendus tels que
+> la source les écrit ; aucun visuel de repli pour une chaîne sans logo.
 
 Le plus gros écran du sprint, et le seul qui ait un vrai enjeu de volume : une source
 courante fait quinze mille chaînes.
