@@ -6,3 +6,23 @@ management:
   endpoint:
     health:
       show-details: always
+
+lumo:
+  # Nothing here throttles or rations a developer. Both blocks below relax a
+  # control that ships enabled, and neither weakens the control itself — the
+  # numbers are configuration, and production reads the ones in application.yml.
+  rate-limit:
+    # 5 per IP per minute is right for a front door (US-01, US-02). It is wrong
+    # for one person signing in twenty times while wiring a screen, from a single
+    # address, which is what a developer looks like to a rate limiter.
+    auth-attempts-per-minute: 100000
+    device-approve-attempts-per-minute: 100000
+  plans:
+    free:
+      # DEVICE_LIMIT_REACHED is not a rate limit — it is the FREE plan's ceiling,
+      # and it counts installations holding a LIVE session. Every sign-in opens
+      # one, so two browser windows and a phone reach it honestly. Raised rather
+      # than removed: the enforcement path stays exercised in development, which
+      # is where a bug in it should surface.
+      max-sources: 1000
+      max-devices: 1000
