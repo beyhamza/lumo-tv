@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tv.lumo.api.billing.EntitlementService;
 import tv.lumo.api.generated.model.AuthSession;
 import tv.lumo.api.generated.model.DeviceRegistration;
 import tv.lumo.api.generated.model.ErrorCode;
@@ -48,6 +49,7 @@ public class AccountService {
     private final PasswordHasher passwords;
     private final SessionService sessions;
     private final AccountMailer mail;
+    private final EntitlementService entitlements;
 
     public AccountService(UserRepository users,
                           OAuthIdentityRepository oauthIdentities,
@@ -56,7 +58,8 @@ public class AccountService {
                           UserTokenRepository userTokens,
                           PasswordHasher passwords,
                           SessionService sessions,
-                          AccountMailer mail) {
+                          AccountMailer mail,
+                          EntitlementService entitlements) {
         this.users = users;
         this.oauthIdentities = oauthIdentities;
         this.devices = devices;
@@ -65,6 +68,7 @@ public class AccountService {
         this.passwords = passwords;
         this.sessions = sessions;
         this.mail = mail;
+        this.entitlements = entitlements;
     }
 
     @Transactional
@@ -89,7 +93,7 @@ public class AccountService {
                 request.getDisplayName(),
                 request.getLocale() == null ? "en" : request.getLocale().getValue());
 
-        UUID deviceId = devices.insert(user.id(), request.getDevice());
+        UUID deviceId = linkDevice(user.id(), request.getDevice());
         sendVerificationEmail(user);
         return sessions.openSession(user, deviceId);
     }
@@ -108,7 +112,7 @@ public class AccountService {
             throw invalidCredentials();
         }
 
-        UUID deviceId = devices.insert(user.id(), request.getDevice());
+        UUID deviceId = linkDevice(user.id(), request.getDevice());
         return sessions.openSession(user, deviceId);
     }
 
@@ -144,8 +148,25 @@ public class AccountService {
             user = users.findById(user.id()).orElseThrow();
         }
 
-        UUID deviceId = devices.insert(user.id(), registration);
+        UUID deviceId = linkDevice(user.id(), registration);
         return sessions.openSession(user, deviceId);
+    }
+
+    /**
+     * Links the installation that is signing in, if the plan still has room.
+     *
+     * <p>The check counts devices <b>holding a live refresh token</b>, not device
+     * rows: signing out frees the slot, and so does letting a refresh token
+     * expire. Counting rows would refuse a two-device plan its third sign-in
+     * forever, including from the same browser the user signed out of last week.
+     *
+     * <p>{@code DEVICE_LIMIT_REACHED} rather than a bare {@code CONFLICT}, so the
+     * screen can offer the only two things that resolve it: unlink a device, or
+     * upgrade. A generic conflict offers neither.
+     */
+    private UUID linkDevice(UUID userId, DeviceRegistration registration) {
+        entitlements.requireDeviceSlot(userId, devices.countLinked(userId));
+        return devices.insert(userId, registration);
     }
 
     @Transactional

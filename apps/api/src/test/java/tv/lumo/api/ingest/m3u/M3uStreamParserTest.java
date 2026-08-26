@@ -47,6 +47,30 @@ class M3uStreamParserTest {
     }
 
     @Test
+    @DisplayName("reads tvg-chno as the channel number, and the quality out of the name")
+    void readsNumberAndQuality() {
+        List<M3uStreamParser.ParsedChannel> channels = parse("""
+                #EXTM3U
+                #EXTINF:-1 tvg-chno="42" group-title="Demo",Test Channel FHD
+                %s
+                #EXTINF:-1 group-title="Demo",Test Channel Two
+                %s
+                """.formatted(BBB, BBB));
+
+        assertThat(channels).hasSize(2);
+        assertThat(channels.getFirst().number()).isEqualTo(42);
+        assertThat(channels.getFirst().quality()).isEqualTo("FHD");
+        // The name is read, never rewritten: it is the string the user sees in
+        // every other player they own.
+        assertThat(channels.getFirst().name()).isEqualTo("Test Channel FHD");
+
+        // The common case, and the one that must not be invented: no number, no
+        // badge.
+        assertThat(channels.get(1).number()).isNull();
+        assertThat(channels.get(1).quality()).isNull();
+    }
+
+    @Test
     @DisplayName("an entry with no group-title lands in Unclassified rather than being dropped")
     void ungroupedEntriesAreKept() {
         List<M3uStreamParser.ParsedChannel> channels = parse("""

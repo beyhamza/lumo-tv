@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tv.lumo.api.billing.EntitlementService;
 import tv.lumo.api.generated.model.CreateSourceRequest;
 import tv.lumo.api.generated.model.ErrorCode;
 import tv.lumo.api.generated.model.FieldError;
@@ -52,28 +53,30 @@ public class SourceService {
     private final XtreamClient xtream;
     private final CredentialCipher cipher;
     private final SourceMapper mapper;
+    private final EntitlementService entitlements;
 
     public SourceService(SourceRepository sources,
                          IngestionService ingestion,
                          XtreamClient xtream,
                          CredentialCipher cipher,
-                         SourceMapper mapper) {
+                         SourceMapper mapper,
+                         EntitlementService entitlements) {
         this.sources = sources;
         this.ingestion = ingestion;
         this.xtream = xtream;
         this.cipher = cipher;
         this.mapper = mapper;
+        this.entitlements = entitlements;
     }
 
     public List<Source> listOwned(UUID userId) {
         return sources.findAllOwnedBy(userId).stream()
-                .map(row -> mapper.toApi(row, channelCount(row)))
+                .map(this::toApi)
                 .toList();
     }
 
     public Source getOwned(UUID sourceId, UUID userId) {
-        SourceRepository.SourceRow row = requireOwned(sourceId, userId);
-        return mapper.toApi(row, channelCount(row));
+        return toApi(requireOwned(sourceId, userId));
     }
 
     /**
@@ -86,6 +89,12 @@ public class SourceService {
      */
     public Source create(UUID userId, CreateSourceRequest request) {
         requireConsistentShape(request);
+        // Before the third-party call, not after: a user who is over their quota
+        // should not be made to wait several seconds on their own panel to be told
+        // something this server already knew. The ceiling itself is not decided
+        // here — no controller and no service outside billing decides what a plan
+        // allows (ADR 0003).
+        entitlements.requireSourceSlot(userId, sources.countOwnedBy(userId));
 
         UUID sourceId = UUID.randomUUID();
         // Normalised once. US-06 requires accepting a host with or without a
@@ -120,8 +129,8 @@ public class SourceService {
 
         ingestion.schedule(sourceId);
 
-        // channelCount stays null: ingestion has only just been scheduled.
-        return mapper.toApi(requireOwned(sourceId, userId), null);
+        // Both counts stay null: ingestion has only just been scheduled.
+        return toApi(requireOwned(sourceId, userId));
     }
 
     public Source update(UUID sourceId, UUID userId, UpdateSourceRequest request) {
@@ -150,8 +159,7 @@ public class SourceService {
         if (reingest) {
             ingestion.schedule(sourceId);
         }
-        SourceRepository.SourceRow row = requireOwned(sourceId, userId);
-        return mapper.toApi(row, channelCount(row));
+        return toApi(requireOwned(sourceId, userId));
     }
 
     @Transactional
@@ -170,8 +178,7 @@ public class SourceService {
             throw ApiException.conflict(ErrorCode.SOURCE_SYNC_IN_PROGRESS,
                     "A synchronisation is already running for this source");
         }
-        SourceRepository.SourceRow row = requireOwned(sourceId, userId);
-        return mapper.toApi(row, channelCount(row));
+        return toApi(requireOwned(sourceId, userId));
     }
 
     // ---- helpers ------------------------------------------------------------
@@ -201,9 +208,19 @@ public class SourceService {
         }
     }
 
-    /** Null until the first successful ingestion, which is what the contract says. */
-    private Integer channelCount(SourceRepository.SourceRow row) {
-        return row.status() == SourceStatus.READY ? sources.countChannels(row.id()) : null;
+    /**
+     * Maps a row, counting its catalogue only once it has one.
+     *
+     * <p>Both counts are null until the first successful ingestion, which is what
+     * the contract says, and they are counted together: "1 248 chaînes ·
+     * 96 catégories" is one line, and a source that could answer half of it would
+     * be a source that renders half a line.
+     */
+    private Source toApi(SourceRepository.SourceRow row) {
+        boolean ingested = row.status() == SourceStatus.READY;
+        return mapper.toApi(row,
+                ingested ? sources.countChannels(row.id()) : null,
+                ingested ? sources.countCategories(row.id()) : null);
     }
 
     /**

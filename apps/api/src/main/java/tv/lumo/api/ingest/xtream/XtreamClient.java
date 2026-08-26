@@ -16,6 +16,7 @@ import tools.jackson.core.JsonToken;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tv.lumo.api.generated.model.IngestionErrorCode;
+import tv.lumo.api.ingest.ChannelQuality;
 import tv.lumo.api.ingest.IngestionException;
 import tv.lumo.api.ingest.IngestionHttpClient;
 
@@ -125,7 +126,13 @@ public class XtreamClient {
                     readText(node.path("category_id")),
                     // Panels report this as 0/1, "0"/"1" or omit it entirely.
                     "1".equals(readText(node.path("is_adult"))),
-                    buildStreamUrl(host, username, password, streamId)));
+                    buildStreamUrl(host, username, password, streamId),
+                    // The panel's own channel number. Xtream calls it `num`, and
+                    // it is not the order the panel happens to return rows in.
+                    ChannelQuality.parseNumber(readText(node.path("num"))),
+                    // No panel field carries this, so it comes off the name, which
+                    // is where panels put it.
+                    ChannelQuality.detect(null, name)));
         });
     }
 
@@ -228,7 +235,13 @@ public class XtreamClient {
     public record XtreamCategory(String externalId, String name) {
     }
 
+    /**
+     * @param streamUrl sensitive: it carries the user's credentials
+     * @param number    the panel's {@code num}, null when it reports none
+     * @param quality   read off the name, echoed verbatim, null when absent
+     */
     public record XtreamStream(String externalId, String name, String logoUrl, String tvgId,
-                               String categoryExternalId, boolean adult, String streamUrl) {
+                               String categoryExternalId, boolean adult, String streamUrl,
+                               Integer number, String quality) {
     }
 }

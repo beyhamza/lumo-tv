@@ -10,6 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 import tv.lumo.api.generated.model.IngestionErrorCode;
+import tv.lumo.api.ingest.ChannelQuality;
 import tv.lumo.api.ingest.IngestionException;
 
 /**
@@ -92,7 +93,9 @@ public class M3uStreamParser {
                             pending.name(),
                             pending.logo(),
                             firstNonBlank(pending.group(), group, UNCLASSIFIED),
-                            line));
+                            line,
+                            pending.number(),
+                            pending.quality()));
                     emitted++;
                     pending = null;
                     group = null;
@@ -134,6 +137,8 @@ public class M3uStreamParser {
         String tvgName = null;
         String logo = null;
         String group = null;
+        String chno = null;
+        String quality = null;
 
         Matcher matcher = ATTRIBUTE.matcher(attributesPart);
         while (matcher.find()) {
@@ -144,13 +149,23 @@ public class M3uStreamParser {
                 case "tvg-name" -> tvgName = value;
                 case "tvg-logo" -> logo = value;
                 case "group-title" -> group = value;
+                // Three spellings of the same thing, all of them in the wild.
+                // Whichever arrives first wins; a playlist that carries two
+                // disagreeing numbers has a problem this layer cannot settle.
+                case "tvg-chno", "tvg-num", "channel-number" ->
+                        chno = firstNonBlank(chno, value);
+                case "tvg-quality", "quality" -> quality = firstNonBlank(quality, value);
                 default -> { /* playlists carry many other attributes; none are ours */ }
             }
         }
         // The text after the comma is what the user sees in their own player, so
         // it wins over tvg-name when both are present.
-        return new ExtInf(blankToNull(tvgId), firstNonBlank(displayName, tvgName, "Unnamed"),
-                blankToNull(logo), blankToNull(group));
+        String name = firstNonBlank(displayName, tvgName, "Unnamed");
+        return new ExtInf(blankToNull(tvgId), name, blankToNull(logo), blankToNull(group),
+                ChannelQuality.parseNumber(chno),
+                // Falls back to reading the name, which is where nearly every
+                // playlist actually writes it. The name itself is left alone.
+                ChannelQuality.detect(quality, name));
     }
 
     private static String stripBom(String value) {
@@ -170,7 +185,8 @@ public class M3uStreamParser {
         return null;
     }
 
-    private record ExtInf(String tvgId, String name, String logo, String group) {
+    private record ExtInf(String tvgId, String name, String logo, String group,
+                          Integer number, String quality) {
     }
 
     /**
@@ -179,8 +195,13 @@ public class M3uStreamParser {
      * @param categoryName never null; entries with no group land in "Unclassified"
      *                     rather than being dropped (US-07)
      * @param streamUrl    sensitive: never logged, never returned by a listing
+     * @param number       {@code tvg-chno}, and null for the many playlists that
+     *                     carry none. Not a position: see the contract on
+     *                     {@code Channel.number}
+     * @param quality      as advertised, echoed verbatim, null when nothing says
      */
     public record ParsedChannel(String tvgId, String name, String logoUrl,
-                                String categoryName, String streamUrl) {
+                                String categoryName, String streamUrl,
+                                Integer number, String quality) {
     }
 }

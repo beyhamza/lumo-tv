@@ -70,8 +70,9 @@ public class CatalogWriteRepository {
         }
         jdbcTemplate.batchUpdate("""
                 INSERT INTO channel (id, source_id, category_id, external_id, name,
-                                     logo_url, tvg_id, stream_url, position, is_adult)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                     logo_url, tvg_id, stream_url, position, is_adult,
+                                     number, quality)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (source_id, external_id) WHERE external_id IS NOT NULL
                 DO UPDATE SET category_id = EXCLUDED.category_id,
                               name        = EXCLUDED.name,
@@ -79,7 +80,13 @@ public class CatalogWriteRepository {
                               tvg_id      = EXCLUDED.tvg_id,
                               stream_url  = EXCLUDED.stream_url,
                               position    = EXCLUDED.position,
-                              is_adult    = EXCLUDED.is_adult
+                              is_adult    = EXCLUDED.is_adult,
+                              -- Overwritten, not COALESCEd: a provider that drops
+                              -- a channel's number has dropped it, and keeping the
+                              -- old one would leave a remote control dialling a
+                              -- number that no longer exists.
+                              number      = EXCLUDED.number,
+                              quality     = EXCLUDED.quality
                 """, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps, int i) throws SQLException {
@@ -94,6 +101,8 @@ public class CatalogWriteRepository {
                 ps.setString(8, channel.streamUrl());
                 ps.setInt(9, channel.position());
                 ps.setBoolean(10, channel.adult());
+                ps.setObject(11, channel.number());
+                ps.setString(12, channel.quality());
             }
 
             @Override
@@ -195,9 +204,17 @@ public class CatalogWriteRepository {
         }
     }
 
+    /**
+     * @param position display index, reassigned at every ingestion
+     * @param number   the provider's own channel number, and a different thing
+     *                 entirely: it survives across syncs and it is what a remote
+     *                 control dials. Null for the many sources that carry none
+     * @param quality  definition badge as advertised, echoed verbatim, null when
+     *                 nothing advertises one
+     */
     public record ChannelUpsert(UUID id, UUID categoryId, String externalId, String name,
                                 String logoUrl, String tvgId, String streamUrl,
-                                int position, boolean adult) {
+                                int position, boolean adult, Integer number, String quality) {
     }
 
     public record ProgrammeUpsert(UUID id, String tvgId, java.time.OffsetDateTime startsAt,

@@ -128,3 +128,40 @@ lumo:
     # Sprint 1: 5 attempts per IP per minute on the sign-in surface (US-01, US-02).
     auth-attempts-per-minute: 5
     device-approve-attempts-per-minute: 5
+  auto-sync:
+    # What Source.auto_sync actually does. Off, and the property is a switch
+    # wired to nothing.
+    enabled: ${LUMO_AUTO_SYNC_ENABLED:true}
+    sweep-interval: ${LUMO_AUTO_SYNC_SWEEP_INTERVAL:PT1H}
+    every-hours: ${LUMO_AUTO_SYNC_EVERY_HOURS:12}
+    # Per sweep, not per hour. Caps how many of the users' own panels this
+    # server may contact at once when nobody asked it to.
+    batch-size: ${LUMO_AUTO_SYNC_BATCH_SIZE:25}
+  plans:
+    # The ONLY place these numbers exist. Never duplicated into a client:
+    # entitlements are computed server-side (ADR 0003), and a client that
+    # carries its own copy of "FREE = 1 source" is an access right computed
+    # client-side. Omit a value to mean unlimited.
+    free:
+      max-sources: ${LUMO_PLAN_FREE_MAX_SOURCES:1}
+      max-devices: ${LUMO_PLAN_FREE_MAX_DEVICES:2}
+    # No limits: both properties are absent, which the contract types as
+    # "unlimited" rather than "unknown". The empty map is what makes the tier
+    # exist while saying nothing about it.
+    premium: {}
+  billing:
+    # No default, and absence is a supported state: the API boots and every
+    # other endpoint works without a payment provider. The two /billing/*
+    # endpoints answer 503 until both of these are set.
+    secret-key: ${STRIPE_SECRET_KEY:}
+    price-id: ${STRIPE_PRICE_ID:}
+    api-base-url: ${STRIPE_API_BASE_URL:https://api.stripe.com}
+    # 0 = no trial. This is what puts an entitlement in TRIALING, and it is a
+    # server-side number: no client decides how long a trial lasts.
+    trial-days: ${STRIPE_TRIAL_DAYS:0}
+    # Return targets, built server-side from lumo.web.base-url and NEVER taken
+    # from the request. A caller-supplied return URL is an open redirect wearing
+    # a billing costume.
+    success-path: ${LUMO_BILLING_SUCCESS_PATH:/app/subscription?checkout=success}
+    cancel-path: ${LUMO_BILLING_CANCEL_PATH:/app/subscription?checkout=cancelled}
+    return-path: ${LUMO_BILLING_RETURN_PATH:/app/subscription}

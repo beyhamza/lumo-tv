@@ -67,7 +67,7 @@ public class CatalogReadRepository {
                                       String search, int page, int size) {
         return jdbc.sql("""
                 SELECT ch.id, ch.source_id, ch.category_id, ch.external_id, ch.name,
-                       ch.logo_url, ch.tvg_id, ch.position, ch.is_adult
+                       ch.logo_url, ch.tvg_id, ch.number, ch.quality, ch.position, ch.is_adult
                   FROM channel ch
                   JOIN source s ON s.id = ch.source_id
                  WHERE ch.source_id = :sourceId
@@ -127,6 +127,31 @@ public class CatalogReadRepository {
                         rs.getObject("max_connections", Integer.class),
                         rs.getString("status"),
                         rs.getObject("expires_at", OffsetDateTime.class)))
+                .optional();
+    }
+
+    /**
+     * Resolves a channel to its source, for the caller only.
+     *
+     * <p>This is how {@code source_id} gets onto a favourite or a recently watched
+     * entry without either request accepting one. The contract refuses that
+     * property on both bodies for the same reason: derived from the channel, the
+     * two cannot disagree, and a client cannot file another user's channel under a
+     * source of its own.
+     *
+     * @return empty when no such channel exists on a source this user owns —
+     *         indistinguishable, on purpose, from a channel id that does not exist
+     */
+    public Optional<UUID> findOwnedChannelSourceId(UUID channelId, UUID userId) {
+        return jdbc.sql("""
+                SELECT ch.source_id
+                  FROM channel ch
+                  JOIN source s ON s.id = ch.source_id
+                 WHERE ch.id = :channelId AND s.user_id = :userId
+                """)
+                .param("channelId", channelId)
+                .param("userId", userId)
+                .query(UUID.class)
                 .optional();
     }
 
@@ -199,6 +224,8 @@ public class CatalogReadRepository {
         channel.setExternalId(rs.getString("external_id"));
         channel.setLogoUrl(rs.getString("logo_url"));
         channel.setTvgId(rs.getString("tvg_id"));
+        channel.setNumber(rs.getObject("number", Integer.class));
+        channel.setQuality(rs.getString("quality"));
         return channel;
     }
 }

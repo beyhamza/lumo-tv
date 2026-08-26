@@ -17,9 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 import tv.lumo.api.catalog.CatalogWriteRepository;
 import tv.lumo.api.generated.model.IngestionErrorCode;
 import tv.lumo.api.generated.model.SourceKind;
+import tv.lumo.api.generated.model.SyncStep;
 import tv.lumo.api.ingest.m3u.M3uStreamParser;
 import tv.lumo.api.ingest.xmltv.XmltvStreamParser;
 import tv.lumo.api.ingest.xtream.XtreamClient;
+import tv.lumo.api.shared.config.LumoProperties;
 import tv.lumo.api.shared.crypto.CredentialCipher;
 import tv.lumo.api.source.SourceRepository;
 
@@ -61,6 +63,7 @@ public class IngestionService {
     private final XtreamClient xtream;
     private final M3uStreamParser m3uParser;
     private final XmltvStreamParser xmltvParser;
+    private final LumoProperties.AutoSync autoSync;
     /**
      * One virtual thread per ingestion. Never a fixed-size pool: virtual threads
      * are cheap and disposable, and pooling them defeats the entire mechanism
@@ -83,7 +86,8 @@ public class IngestionService {
                             IngestionHttpClient http,
                             XtreamClient xtream,
                             M3uStreamParser m3uParser,
-                            XmltvStreamParser xmltvParser) {
+                            XmltvStreamParser xmltvParser,
+                            LumoProperties properties) {
         this.sources = sources;
         this.catalogWrites = catalogWrites;
         this.cipher = cipher;
@@ -91,6 +95,7 @@ public class IngestionService {
         this.xtream = xtream;
         this.m3uParser = m3uParser;
         this.xmltvParser = xmltvParser;
+        this.autoSync = properties.autoSync();
     }
 
     /**
@@ -155,12 +160,18 @@ public class IngestionService {
         String host = source.host();
 
         XtreamClient.XtreamAccount account = xtream.authenticate(host, source.username(), password);
+        // The credentials were accepted and nothing has been parsed yet. This is
+        // the step the onboarding checklist ticks second, and it is a real phase
+        // rather than a reassuring one: an M3U source never reports it, because
+        // an M3U source never authenticates.
+        sources.markSyncStep(source.id(), SyncStep.AUTHENTICATED);
 
         // Categories first, because channels reference them. Each upsert returns
         // the id actually in the table, so this map is correct on a re-sync where
         // the rows already existed.
         Map<String, UUID> categoryIds = new HashMap<>();
         int[] categoryPosition = {0};
+        sources.markSyncStep(source.id(), SyncStep.PARSING_CHANNELS);
         xtream.streamLiveCategories(host, source.username(), password, category ->
                 categoryIds.put(category.externalId(), catalogWrites.upsertCategoryReturningId(
                         source.id(), category.externalId(), category.name(),
@@ -184,7 +195,9 @@ public class IngestionService {
                     stream.tvgId(),
                     stream.streamUrl(),
                     position[0]++,
-                    stream.adult()));
+                    stream.adult(),
+                    stream.number(),
+                    stream.quality()));
         });
         batcher.flushNow();
 
@@ -217,6 +230,10 @@ public class IngestionService {
         CatalogWriteRepository.Batcher<CatalogWriteRepository.ChannelUpsert> batcher =
                 CatalogWriteRepository.batcher(batch -> catalogWrites.upsertChannels(source.id(), batch));
 
+        // No AUTHENTICATED step: a playlist URL is fetched, not authenticated
+        // against. The contract says these are the server's real phases and that
+        // a step the implementation does not distinguish is a reassuring fiction.
+        sources.markSyncStep(source.id(), SyncStep.PARSING_CHANNELS);
         http.get(host, uri, stream -> m3uParser.parse(stream, channel -> {
             UUID categoryId = categoryIds.computeIfAbsent(channel.categoryName(), name ->
                     catalogWrites.upsertCategoryReturningId(
@@ -232,7 +249,7 @@ public class IngestionService {
             batcher.add(new CatalogWriteRepository.ChannelUpsert(
                     UUID.randomUUID(), categoryId, externalId, channel.name(),
                     channel.logoUrl(), channel.tvgId(), channel.streamUrl(),
-                    position[0]++, false));
+                    position[0]++, false, channel.number(), channel.quality()));
         }));
         batcher.flushNow();
         catalogWrites.deleteChannelsNotIn(source.id(), seenExternalIds);
@@ -264,6 +281,7 @@ public class IngestionService {
     private void ingestEpg(SourceRepository.SourceRow source) {
         URI uri = SourceUrl.parse(source.epgUrl());
         String host = SourceUrl.hostOf(uri);
+        sources.markSyncStep(source.id(), SyncStep.FETCHING_EPG);
 
         CatalogWriteRepository.Batcher<CatalogWriteRepository.ProgrammeUpsert> batcher =
                 CatalogWriteRepository.batcher(batch -> catalogWrites.upsertProgrammes(source.id(), batch));
@@ -333,6 +351,45 @@ public class IngestionService {
         int purged = catalogWrites.purgeExpiredProgrammes();
         if (purged > 0) {
             log.debug("Purged {} expired EPG programme(s)", purged);
+        }
+    }
+
+    /**
+     * Re-synchronises the sources whose owner asked the server to keep them fresh.
+     *
+     * <p>This is what {@code auto_sync} means. Without it the property is a switch
+     * wired to nothing: the contract tells the user the server refreshes the
+     * source by itself, the API accepts the value, and the catalogue goes stale
+     * anyway — the worst of the three possible outcomes, because it is the one
+     * the user cannot see.
+     *
+     * <p>Bounded on both sides. {@link LumoProperties.AutoSync#batchSize} caps how
+     * many start per sweep, so a thousand due sources become a queue rather than a
+     * thousand simultaneous connections to a thousand panels; and
+     * {@link HostConcurrencyLimiter} still bounds what reaches any single host.
+     * The whole point of re-synchronising on the user's behalf is that they do not
+     * watch it happen, which is exactly why it must not be what gets their account
+     * throttled.
+     *
+     * <p>{@link #schedule} is idempotent under concurrency — its claim is an
+     * {@code UPDATE ... WHERE status <> 'SYNCING'} — so two instances running this
+     * sweep at the same time cannot ingest one source twice.
+     */
+    @Scheduled(fixedDelayString = "${lumo.auto-sync.sweep-interval:PT1H}", initialDelay = 120_000L)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void autoSyncDueSources() {
+        if (!autoSync.enabled()) {
+            return;
+        }
+        List<UUID> due = sources.findDueForAutoSync(autoSync.everyHours(), autoSync.batchSize());
+        int started = 0;
+        for (UUID sourceId : due) {
+            if (schedule(sourceId)) {
+                started++;
+            }
+        }
+        if (started > 0) {
+            log.info("Auto-sync: started {} of {} due source(s)", started, due.size());
         }
     }
 }

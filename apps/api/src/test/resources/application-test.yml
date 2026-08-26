@@ -11,6 +11,14 @@ lumo:
     master-key: dGVzdC1vbmx5LW1hc3Rlci1rZXktMzItYnl0ZXMhISE=
   web:
     base-url: http://localhost:3000
+  auto-sync:
+    # Off. The sweep reaches out to the users' own IPTV servers, and a test suite
+    # has no business making outbound requests on a timer. What it does when it
+    # runs is tested by calling it, not by waiting for it.
+    enabled: false
+  # Billing is left unconfigured, which is a supported state: the two /billing/*
+  # endpoints answer 503 and everything else works. A test that needed a payment
+  # provider would point api-base-url at a local double, never at Stripe.
 
 spring:
   mail:

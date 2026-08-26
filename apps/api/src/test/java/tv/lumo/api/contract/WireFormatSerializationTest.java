@@ -200,6 +200,22 @@ class WireFormatSerializationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("a Channel carries the provider's number and quality under those names")
+    void channelCarriesNumberAndQuality() {
+        Channel channel = new Channel(UUID.randomUUID(), UUID.randomUUID(), "Test Channel FHD", 0, false);
+        channel.setNumber(42);
+        channel.setQuality("FHD");
+
+        JsonNode json = objectMapper.valueToTree(channel);
+        // `number` is not `position`: one is the provider's, dialled on a remote
+        // control, the other is a display index reassigned at every ingestion.
+        assertThat(json.get("number").intValue()).isEqualTo(42);
+        assertThat(json.get("position").intValue()).isZero();
+        // Echoed verbatim, never mapped onto an enumeration.
+        assertThat(json.get("quality").stringValue()).isEqualTo("FHD");
+    }
+
+    @Test
     @DisplayName("PlaybackInfo is the one model that does carry stream_url")
     void playbackInfoCarriesStreamUrl() {
         PlaybackInfo playback = new PlaybackInfo(UUID.randomUUID(), "https://test.example/stream.m3u8");

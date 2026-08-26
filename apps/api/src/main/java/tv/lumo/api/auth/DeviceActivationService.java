@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tv.lumo.api.billing.EntitlementService;
 import tv.lumo.api.generated.model.AuthSession;
 import tv.lumo.api.generated.model.DeviceApproval;
 import tv.lumo.api.generated.model.DeviceCodeRequest;
@@ -43,17 +44,20 @@ public class DeviceActivationService {
     private final UserRepository users;
     private final SessionService sessions;
     private final LumoProperties properties;
+    private final EntitlementService entitlements;
 
     public DeviceActivationService(DeviceAuthorizationRepository authorizations,
                                    DeviceRepository devices,
                                    UserRepository users,
                                    SessionService sessions,
-                                   LumoProperties properties) {
+                                   LumoProperties properties,
+                                   EntitlementService entitlements) {
         this.authorizations = authorizations;
         this.devices = devices;
         this.users = users;
         this.sessions = sessions;
         this.properties = properties;
+        this.entitlements = entitlements;
     }
 
     /** Called by the television. Returns the code to display and the secret to poll with. */
@@ -163,6 +167,11 @@ public class DeviceActivationService {
     private AuthSession consume(DeviceAuthorizationRepository.DeviceAuthorizationRow row) {
         UserRow user = users.findById(row.userId())
                 .orElseThrow(() -> pollingState(ErrorCode.ACCESS_DENIED, "Approving account no longer exists"));
+
+        // Checked before the code is burned, not after. A television refused for
+        // quota must be able to try again once the user unlinks something, and a
+        // consumed code can never be polled a second time.
+        entitlements.requireDeviceSlot(user.id(), devices.countLinked(user.id()));
 
         authorizations.updateStatus(row.id(), DeviceAuthorizationRepository.Status.CONSUMED);
         UUID deviceId = devices.insert(user.id(), row.platform(), row.name(), row.model(), row.appVersion());

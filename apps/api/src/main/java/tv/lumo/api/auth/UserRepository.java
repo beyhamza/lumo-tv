@@ -59,6 +59,33 @@ public class UserRepository {
                 .update();
     }
 
+    /**
+     * Updates the two mutable properties of a profile.
+     *
+     * <p>Null means unchanged, for both. The contract says an explicit
+     * {@code null} clears {@code display_name}, and the generated
+     * {@code UpdateUserRequest} cannot express the difference between "sent as
+     * null" and "not sent" — it holds a plain {@code String}. Rather than guess,
+     * this treats absence and null alike; the alternative reading would clear a
+     * user's display name every time a client patched their locale.
+     *
+     * <p>Email is not here and will not be: changing it requires re-verification,
+     * which is not in v1.
+     */
+    public void updateProfile(UUID userId, String displayName, String locale) {
+        jdbc.sql("""
+                UPDATE "user"
+                   SET display_name = COALESCE(:displayName, display_name),
+                       locale       = COALESCE(:locale, locale),
+                       updated_at   = now()
+                 WHERE id = :id
+                """)
+                .param("displayName", displayName)
+                .param("locale", locale)
+                .param("id", userId)
+                .update();
+    }
+
     public void markEmailVerified(UUID userId) {
         jdbc.sql("""
                 UPDATE "user"
