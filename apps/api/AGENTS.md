@@ -47,8 +47,8 @@ tv.lumo.api/
 │  ├─ m3u/ · xtream/ · xmltv/
 ├─ catalog/    # catégories, chaînes, lecture, EPG (lecture + écriture bulk)
 ├─ epg/        # (vide en v1, voir package-info)
-├─ userdata/   # (non implémenté en v1)
-├─ billing/    # (non implémenté en v1)
+├─ userdata/   # favoris, groupes, progression, chaînes récentes
+├─ billing/    # entitlements, quotas, sessions Stripe
 └─ shared/     # error, crypto, ratelimit, config, web
 ```
 
@@ -57,10 +57,21 @@ ne doit pas y en avoir.** Un domaine contient son controller, ses services et
 ses repositories. Si tu cherches où mettre une classe, demande-toi de quel
 domaine elle parle, jamais de quelle couche technique elle relève.
 
-Ce qui est déjà implémenté : **auth, sources, catalogue** — les endpoints du
-sprint 1. `userdata`, `billing` et `AccountApi` (`/me`, `/me/entitlement`,
-`/me/devices`) ne le sont pas, délibérément. Ces chemins renvoient 404 plutôt
-qu'un stub de données inventées. Leurs tables existent déjà.
+**Les six tags du contrat ont un contrôleur** — `auth`, `account`, `sources`,
+`catalog`, `userdata`, `billing`. Aucun chemin du contrat ne renvoie plus 404.
+
+Deux réserves, écrites dans `docs/design/api-gaps.md` plutôt que dans du code
+qui ferait semblant :
+
+- **le webhook de paiement n'existe pas** (absent du contrat, donc non inventé) :
+  ouvrir une session Stripe fonctionne, un paiement réussi ne change encore rien ;
+- **une instance sans clé Stripe est un état supporté** : les deux endpoints
+  `/billing/*` répondent 503 et tout le reste marche. C'est ce que fait le profil
+  de test.
+
+Les quotas d'offre vivent dans `lumo.plans.*`, et nulle part ailleurs : un client
+qui embarque sa propre copie de « FREE = 1 source » calcule un droit d'accès
+côté client, ce que l'AGENTS.md racine interdit.
 
 ---
 

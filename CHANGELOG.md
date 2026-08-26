@@ -10,6 +10,48 @@ avec la maturité du produit.
 
 ---
 
+## [Non publié]
+
+### Ajouté
+
+**lumo-api — les trois tags qui n'avaient pas de contrôleur en ont un.**
+`account` (`/me`, appareils, droits d'accès), `userdata` (favoris, groupes,
+progression, chaînes récentes) et `billing` (session de paiement, portail).
+Aucun chemin du contrat ne répond plus 404.
+
+**Droits d'accès et quotas, côté serveur uniquement.** `GET /me/entitlement`
+renvoie l'offre, son statut, l'essai et ses plafonds. Dépasser un plafond
+répond `SOURCE_LIMIT_REACHED` ou `DEVICE_LIMIT_REACHED` — jamais un `CONFLICT`
+générique, qui ne dirait pas à l'utilisateur quoi faire. Les plafonds vivent
+dans `lumo.plans.*`, un seul endroit dans tout le produit.
+
+**Une place d'appareil est tenue par une session vivante**, pas par une ligne.
+Se déconnecter la libère.
+
+**Diagnostic d'une source.** L'étape de l'ingestion en cours (`sync_step`), la
+date de l'échec qui a posé `error_code` (`last_error_at`), le nombre de
+catégories. Une contrainte en base empêche une étape de survivre à l'ingestion
+qui l'a écrite.
+
+**Numéro et qualité de chaîne**, lus dans la playlist ou dans le panel —
+`tvg-chno`, `num`, et le badge tel que la source l'écrit, jamais réinterprété.
+
+**Resynchronisation automatique** des sources qui l'ont demandée, bornée par
+balayage et par hôte : `auto_sync` n'était jusqu'ici branché sur rien.
+
+### Connu, et volontairement non traité
+
+**Un paiement réussi ne change encore rien.** Ouvrir une session Stripe
+fonctionne, le client de facturation est créé, mais le webhook qui écrirait le
+droit d'accès est absent de `openapi.yaml` — un endpoint que le contrat ne
+couvre pas ne s'invente pas (AGENTS.md §3). Décision à prendre, tracée dans
+`docs/design/api-gaps.md`.
+
+Une instance sans clé Stripe reste un état supporté : les deux endpoints
+`/billing/*` répondent 503, tout le reste fonctionne.
+
+---
+
 ## [0.1.0] — 2026-08-26
 
 Première version numérotée. Elle marque un socle complet et une verticale **non

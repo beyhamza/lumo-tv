@@ -1,27 +1,75 @@
 # Manques d'API impliqués par les maquettes du sprint 1
 
-Deux lots, à des stades différents. Ne pas les confondre : le premier est dans
-le contrat, le second attend une décision.
+Deux lots, portés dans le contrat **et servis par le serveur**.
 
-| Lot | Écrans | Statut |
-|---|---|---|
-| **G1 → G7** | web (W1 → W4) | **porté dans le contrat** |
-| **M1 → M6** | mobile et TV | **porté dans le contrat** |
+| Lot | Écrans | Contrat | `apps/api` |
+|---|---|---|---|
+| **G1 → G7** | web (W1 → W4) | porté | servi, une réserve sur G3 |
+| **M1 → M6** | mobile et TV | porté | servi |
+
+Ce document garde la justification de chaque ajout — le contrat dit *quoi*,
+celui-ci dit *pourquoi*, et c'est cette moitié-là qui manque le jour où
+quelqu'un veut retirer un champ.
+
+---
+
+## État d'implémentation
+
+Une ligne par manque. Le détail de chacun est dans sa section.
+
+| # | Manque | Implémenté | Où |
+|---|---|---|---|
+| G1 | Quotas de l'offre + codes de dépassement | ✅ 100 % | `billing/EntitlementService`, `lumo.plans.*` |
+| G2 | Essai (`TRIALING`, `trial_ends_at`) | ✅ 100 % en lecture | `0012`, `EntitlementService` |
+| G3 | Souscription et portail Stripe | ⚠️ **80 %** | `billing/BillingController`, `StripeClient` |
+| G4 | `POST /auth/device/approve` renvoie l'appareil | ✅ 100 % | `DeviceActivationService` |
+| G5 | `Source.last_error_at` | ✅ 100 % | `0010`, `SourceRepository` |
+| G6 | `Device.is_current` | ✅ 100 % | `auth/AccountController` |
+| G7 | `GET /me/progress` | ✅ 100 % | `userdata/ProgressRepository` |
+| M1 | `Source.sync_step` | ✅ 100 % | `0010`, `IngestionService` |
+| M2 | `Source.category_count` | ✅ 100 % | `SourceRepository.countCategories` |
+| M3 | `Channel.number` | ✅ 100 % | `0011`, `ChannelQuality.parseNumber` |
+| M4 | `Channel.quality` | ✅ 100 % | `0011`, `ChannelQuality.detect` |
+| M5 | Chaînes récentes | ✅ 100 % | `0013`, `userdata/RecentChannelRepository` |
+| M6 | `Source.auto_sync` | ✅ 100 % | `0009`, balayage dans `IngestionService` |
+
+Les trois tags qui n'avaient aucun contrôleur — `account`, `userdata`,
+`billing` — en ont un. Plus aucun chemin du contrat ne répond 404.
+
+### Trois points à trancher, remontés plutôt qu'inventés
+
+**1. Le webhook de paiement n'existe pas.** `POST /billing/checkout-session`
+ouvre bien une session Stripe et crée le client, mais **un paiement réussi ne
+change rien** : l'endpoint qui recevrait le rappel du prestataire est absent de
+`openapi.yaml`, et l'AGENTS.md §3 dit qu'un besoin que le contrat ne couvre pas
+s'escalade au lieu de s'inventer. C'est la réserve des 20 % sur G3. Décision à
+prendre : ajouter `POST /billing/webhook` au contrat, ou l'exclure explicitement
+comme surface non publique.
+
+**2. Le groupe de favoris par défaut n'a pas d'identifiant stable.** Créé au
+premier ajout, il faut bien le nommer, et le serveur le nomme `Favorites` — une
+chaîne visible par l'utilisateur, dans une seule langue. Le même problème s'était
+posé pour les entrées M3U sans `group-title` et avait été résolu par une sentinelle
+(`m3u:__unclassified__`) sur laquelle le client traduit. `FavoriteGroup` ne porte
+que `id`, `name` et `position` : aucune sentinelle possible. Décision à prendre :
+ajouter un champ au schéma, ou accepter que le client renomme.
+
+**3. `display_name: null` ne peut pas effacer.** Le contrat dit qu'un `null`
+explicite efface le nom affiché. Le modèle généré porte un `String` nu, qui ne
+distingue pas « envoyé à null » de « pas envoyé » — il faudrait `openApiNullable`
+dans `packages/contracts/config/spring.yaml`, donc régénérer tous les clients et
+casser tous les mappeurs existants. Implémenté en attendant : absent et `null`
+valent tous deux « inchangé ». La lecture inverse effacerait le nom de
+l'utilisateur à chaque fois qu'un client modifie sa langue.
 
 ---
 
 # Lot 1 — les écrans web
 
-**Statut : traité.** Les sept manques ont été portés dans
-`packages/contracts/openapi.yaml`, les trois clients régénérés. Ce document
-reste la justification de chaque ajout — le contrat dit *quoi*, celui-ci dit
-*pourquoi*, et c'est cette moitié-là qui manque le jour où quelqu'un veut
-retirer un champ.
-
-Le contrat n'ouvre que la surface. Rien de tout cela n'est **implémenté** côté
-serveur, à une exception près : G4, dont la rupture de compilation a été
-refermée dans `apps/api`. Les quotas, l'essai, Stripe et la lecture de
-progression sont des interfaces générées que personne n'implémente encore.
+**Statut : traité, contrat et serveur.** Les sept manques ont été portés dans
+`packages/contracts/openapi.yaml`, les trois clients régénérés, et `apps/api`
+les sert — avec la réserve sur G3 décrite plus haut : le webhook qui accorderait
+l'abonnement n'est pas dans le contrat.
 
 > **G4 a changé de forme à l'implémentation.** La spécification d'origine
 > disait « renvoyer le `Device` approuvé ». Le compilateur a montré qu'il
@@ -306,13 +354,19 @@ Ni l'une ni l'autre n'a entraîné de modification d'`openapi.yaml`.
 **Statut : traité.** Les six manques sont dans `openapi.yaml`, les trois
 clients régénérés.
 
-Comme pour le lot 1, le contrat n'ouvre que la surface : `sync_step`,
-`category_count`, `Channel.number`, `Channel.quality` et les chaînes récentes
-sont des interfaces générées que personne n'implémente. **Une exception, M6**,
-et pour la même raison que G4 : `auto_sync` est requis sur `Source`, donc le
-constructeur généré a changé et `apps/api` a cessé de compiler. Un champ qui se
-lit correctement et ignore silencieusement les écritures étant pire que pas de
-champ du tout, il est allé jusqu'au bout — colonne, lecture, écriture.
+Les six sont maintenant servis par `apps/api`. M6 l'avait été d'emblée, pour la
+même raison que G4 : `auto_sync` est requis sur `Source`, donc le constructeur
+généré a changé et le serveur a cessé de compiler. Un champ qui se lit
+correctement et ignore silencieusement les écritures étant pire que pas de champ
+du tout, il est allé jusqu'au bout — colonne, lecture, écriture.
+
+**M1 a changé de forme à l'implémentation.** Ce document, comme
+`docs/domain-model.md`, disait que `sync_step` ne serait pas une colonne mais un
+état connu du travail de fond. Faux dès qu'il y a plus d'une instance : le client
+interroge `GET /sources/{id}` sans aucune garantie de tomber sur celle qui ingère,
+donc l'étape serait visible d'un appel sur deux — une checklist qui recule, ce qui
+est pire que pas de checklist. C'est une colonne, avec une contrainte `CHECK` qui
+la force à rester nulle hors `SYNCING`.
 
 Périmètre analysé : `Lumo - Mobile Sprint 1.dc.html` (écrans 1 → 8) et
 `Lumo - TV Sprint 1.dc.html` (splash, activation, accueil, grille, lecteur,

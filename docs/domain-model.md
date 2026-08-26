@@ -101,10 +101,20 @@ vouloir rafraîchir une playlist qui bouge et laisser tranquille un abonnement
 stable. Rangée sur l'appareil, elle serait à régler une fois par appareil et ne
 décrirait toujours pas ce que le serveur fait quand tous sont éteints.
 
-**`sync_step` et `category_count` ne sont pas des colonnes.** Le premier est
-l'étape de l'ingestion en cours, connue du travail de fond ; le second se dérive
-comme `channel_count`. Tous deux sont exposés par l'API sans être stockés sur
-l'entité.
+| `sync_step` | text nullable | étape de l'ingestion en cours, `NULL` hors `SYNCING` |
+
+**`sync_step` est une colonne, contrairement à ce que ce document a d'abord
+dit.** L'idée de la garder en mémoire du travail de fond ne survit pas à une
+deuxième instance : le client interroge `GET /sources/{id}` sans garantie de
+tomber sur celle qui ingère, et l'étape serait visible d'un appel sur deux. Une
+contrainte `CHECK` la force à rester nulle hors `SYNCING` — tout écrivain de
+`status` doit donc l'effacer dans la même instruction, et l'oubli échoue en base
+plutôt que de produire « récupération du guide » à côté d'une source en erreur
+depuis une heure.
+
+**`category_count` n'est pas une colonne**, lui. Il se dérive comme
+`channel_count`, exposé par l'API sans être stocké : compté à la lecture, il ne
+peut pas diverger des lignes qu'il compte.
 
 **Chiffrement.** `password_encrypted` utilise AES-256-GCM avec une clé de données
 elle-même chiffrée par une clé maître hors base (variable d'environnement en dev, KMS
@@ -163,10 +173,26 @@ historique.
 ### `entitlement`
 `id`, `user_id`, `plan` (`FREE` | `PREMIUM`), `status` (`ACTIVE` | `TRIALING` |
 `PAST_DUE` | `CANCELED` | `EXPIRED`), `provider` (`STRIPE` | `PLAY` | `MANUAL`),
-`provider_ref`, `current_period_end`, `trial_ends_at`, `updated_at`.
+`provider_ref`, `billing_customer_ref`, `current_period_end`, `trial_ends_at`,
+`updated_at`.
 
-Un seul entitlement actif par utilisateur. Alimenté par les webhooks Stripe (v1),
-puis par les RTDN Play (v2).
+Un seul entitlement actif par utilisateur. **La plupart des comptes n'ont aucune
+ligne** : ne jamais avoir souscrit, c'est être `FREE`, et une ligne par
+inscription ferait une table dont la taille suit les inscriptions au lieu des
+abonnements. L'absence est lue comme la valeur par défaut ; la ligne apparaît
+quand un client de facturation existe.
+
+`provider_ref` nomme l'**abonnement** — c'est la clé sur laquelle arrive un
+webhook. `billing_customer_ref` nomme le **client**, ce dont le portail a besoin,
+et les deux n'existent pas au même moment : qui a abandonné un paiement a un
+client et pas d'abonnement. Les confondre rendrait
+`BILLING_CUSTOMER_NOT_FOUND` insaisissable pour exactement la personne à qui il
+s'adresse.
+
+Alimenté par les webhooks Stripe (v1), puis par les RTDN Play (v2) — **le
+webhook n'existe pas encore**, il est absent du contrat et la décision est
+remontée dans [`design/api-gaps.md`](./design/api-gaps.md). Tant qu'il manque,
+un paiement réussi ne change rien.
 
 `TRIALING` accorde les fonctions premium au même titre qu'`ACTIVE`. C'est un
 statut à part et pas un drapeau sur `ACTIVE` parce que les deux produisent des
@@ -179,7 +205,21 @@ qui n'est pas la même chose.
 par `GET /me/entitlement`, se **dérivent du `plan`** : les stocker par ligne
 inviterait la dérive entre deux utilisateurs de la même offre, et la valeur qui
 compte est celle de l'offre, pas celle du compte. `null` signifie illimité. Un
-client ne calcule jamais ces plafonds lui-même (AGENTS.md §1).
+client ne calcule jamais ces plafonds lui-même (AGENTS.md §1). Ils vivent dans
+`lumo.plans.*` (`apps/api/src/main/resources/application.yml`), un seul endroit
+dans tout le produit.
+
+Ils suivent le **couple `plan` + `status`**, pas le plan seul : un `PREMIUM` en
+`CANCELED` retrouve les plafonds du gratuit, alors que la réponse continue de
+dire `PREMIUM` / `PAST_DUE` — « votre paiement a échoué » a besoin des deux
+moitiés.
+
+**Un appareil occupe une place tant qu'il tient une session vivante**, pas tant
+qu'il a une ligne. Chaque connexion insère un `device` : compter les lignes
+refuserait sa troisième connexion à une offre à deux appareils pour toujours, y
+compris depuis le navigateur dont l'utilisateur s'est déconnecté la semaine
+dernière. Se déconnecter libère la place, laisser expirer le jeton aussi — c'est
+ce que quelqu'un veut dire par « cet appareil n'est plus le mien ».
 
 ---
 

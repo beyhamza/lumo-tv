@@ -17,11 +17,18 @@ et ne sont pas recopiés ici. Chaque tâche dit quelle story elle ferme.
 
 ## Deux constats qui commandent l'ordre des tâches
 
-**Aucune API ne manque.** Les dix stories sont couvertes par les contrôleurs
-existants : `auth` (inscription, connexion, Google, rotation, activation TV),
-`sources` (création, statut, resynchronisation), `catalog` (catégories, chaînes,
-lecture, EPG). Ce sprint ne touche ni `openapi.yaml`, ni `apps/api`. C'est ce qui le
-rend faisable par une seule personne sans coordination.
+**Aucune API ne manque pour les dix stories.** Elles sont couvertes par les
+contrôleurs existants : `auth` (inscription, connexion, Google, rotation,
+activation TV), `sources` (création, statut, resynchronisation), `catalog`
+(catégories, chaînes, lecture, EPG). Aucune des quinze tâches Android ci-dessous
+ne touche `openapi.yaml` ni `apps/api`. C'est ce qui les rend faisables par une
+seule personne sans coordination.
+
+> Un **lot serveur** a néanmoins été livré depuis, hors périmètre de ce sprint :
+> les treize manques que les maquettes avaient exposés. Il n'ajoute aucune story
+> et ne change rien aux quinze tâches ; il ouvre les écrans que les maquettes
+> mobile et TV dessinent au-delà de la verticale (favoris, reprise, récents,
+> abonnement). Voir la section « Lot serveur » en fin de checklist.
 
 **Il manque une couche de données.** `settings.gradle.kts` déclare `core:common`,
 `core:designsystem`, `core:network`, `core:auth`, `core:database`, `core:player` — et
@@ -93,6 +100,33 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
 
 **Avancement du sprint : 0 % de 82 points.** Rien n'est commencé.
+
+### Lot serveur — livré, hors périmètre du sprint
+
+Compté à part, exprès : ce sont les treize manques d'API relevés sur les
+maquettes, pas du travail Android. Les mélanger fausserait l'estimation qui
+compte, celle des quinze tâches ci-dessus.
+
+Le détail et la justification de chaque ligne sont dans
+[`design/api-gaps.md`](../design/api-gaps.md).
+
+| | Id | Tâche | Ferme | Cible | Points | Avancement |
+|---|---|---|---|---|---|---|
+| ☑ | SRV-01 | Contrat : sept manques web (G1 → G7) | maquettes W1→W4 | contrat | 5 | 100 % |
+| ☑ | SRV-02 | Contrat : six manques mobile et TV (M1 → M6) | maquettes | contrat | 5 | 100 % |
+| ☑ | SRV-03 | `account` : `/me`, devices, `is_current`, révocation | G6 | api | 3 | 100 % |
+| ☑ | SRV-04 | `billing` : entitlement, essai, quotas et leurs deux codes | G1, G2 | api | 5 | 100 % |
+| ☑ | SRV-05 | `userdata` : favoris, groupes, progression | G7 | api | 5 | 100 % |
+| ☑ | SRV-06 | Chaînes récentes : table, fenêtre glissante, endpoints | M5 | api | 3 | 100 % |
+| ☑ | SRV-07 | Diagnostic de source : `sync_step`, `last_error_at`, `category_count` | M1, M2, G5 | api | 3 | 100 % |
+| ☑ | SRV-08 | Ingestion : numéro et qualité de chaîne | M3, M4 | api | 2 | 100 % |
+| ☑ | SRV-09 | Resynchronisation automatique honorant `auto_sync` | M6 | api | 2 | 100 % |
+| ◩ | SRV-10 | Stripe : checkout, portail, client de facturation | G3 | api | 5 | **80 %** |
+
+**Lot serveur : 96 % de 38 points.** Les 4 % manquants sont SRV-10 : le webhook
+qui accorderait l'abonnement est absent du contrat, donc non écrit (AGENTS.md
+§3). Ouvrir une session de paiement fonctionne ; **un paiement réussi ne change
+encore rien**. C'est une décision à prendre, pas un oubli.
 
 ---
 
