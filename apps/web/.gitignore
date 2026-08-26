@@ -51,3 +51,6 @@ next-env.d.ts
 
 # Cookie jar written by e2e/auth.setup.ts. A real session: never committed.
 /e2e/.auth/
+
+# Empreinte de l'image et état de la pile e2e, entre deux campagnes.
+/.e2e/

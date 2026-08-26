@@ -234,11 +234,42 @@ rendu client différents et casse l'hydratation.
      job CI `no-content` refuse tout `.env` commité, et une clé de test connue
      finit toujours par devenir une clé de production connue.
 
-  `E2E_KEEP_STACK=1` laisse les conteneurs debout après la campagne, quand la
-  base est la pièce à conviction. En cas d'échec, les logs de l'API sont
-  capturés dans `test-results/lumo-api.log` **avant** le teardown — sans quoi
-  la CI ne remonterait qu'une trace de navigateur montrant une page d'erreur,
-  et rien sur sa cause.
+  **Travailler sur le front sans repayer la pile à chaque fois.** Deux leviers,
+  et ils se combinent :
+
+  ```bash
+  E2E_KEEP_STACK=1 pnpm test:e2e   # la première fois : la pile reste debout
+  ```
+
+  ```bash
+  pnpm test:e2e                    # ensuite : elle est adoptée, aucun démarrage
+  ```
+
+  Une pile adoptée n'est **jamais** arrêtée par la campagne : couper des
+  conteneurs qu'on n'a pas démarrés est une mauvaise surprise. À toi de les
+  retirer quand tu as fini.
+
+  L'image, elle, n'est reconstruite que si les sources de l'API ont bougé. Une
+  empreinte de `apps/api/src`, des fichiers Gradle, du `Dockerfile` et de
+  `openapi.yaml` est gardée dans `.e2e/` ; identique et image présente, on passe
+  `--build`. `E2E_API_BUILD=1` force la reconstruction.
+
+  Ce n'est pas le cache Docker qu'on remplace — il fait déjà son travail, et le
+  `Dockerfile` monte un cache BuildKit sur `/root/.gradle`. C'est l'invocation
+  elle-même qu'on évite : empaqueter le contexte et parcourir les couches pour
+  confirmer que rien n'a changé coûte une demi-minute, soit exactement ce qui
+  dissuade de lancer la suite pendant qu'on travaille.
+
+  **Lancer l'API depuis un IDE.** `E2E_STACK=external` : la suite ne touche pas
+  à Docker et s'attend à trouver une API en écoute — sur 8080 par défaut,
+  puisque c'est le port de `application.yml`, ou sur `E2E_API_PORT`. Si rien ne
+  répond, la campagne s'arrête en le disant, plutôt que de dérouler vingt-trois
+  échecs. `E2E_STACK=docker` force le chemin inverse.
+
+  En cas d'échec, les logs de l'API sont capturés dans
+  `test-results/lumo-api.log` **avant** le teardown — sans quoi la CI ne
+  remonterait qu'une trace de navigateur montrant une page d'erreur, et rien sur
+  sa cause.
 
   Les navigateurs ne sont pas installés par `pnpm install`. Une fois par
   machine : `pnpm exec playwright install chromium`.

@@ -20,6 +20,41 @@ const base64 = (bytes: number) => randomBytes(bytes).toString("base64");
 export const COMPOSE_PROJECT = "lumo-e2e";
 
 /**
+ * The image compose builds, named the way compose names it: project, then
+ * service.
+ *
+ * Addressed directly rather than through `docker compose images`, which lists
+ * the images of *containers* — and reports nothing at all once `down` has
+ * removed them, which is precisely the state every run starts from.
+ */
+export const API_IMAGE = `${COMPOSE_PROJECT}-lumo-api`;
+
+/**
+ * Where lumo-api comes from.
+ *
+ * | `E2E_STACK` | Effet |
+ * |---|---|
+ * | `auto` (défaut) | réutilise une API déjà en écoute ; sinon démarre la pile |
+ * | `docker` | démarre toujours la pile, même si quelque chose écoute |
+ * | `external` | ne touche jamais à Docker : l'API tourne ailleurs |
+ *
+ * `external` is the IDE case: run lumo-api from IntelliJ, with a debugger and
+ * hot reload, and point the suite at it. `auto` covers the same case without
+ * asking, and covers the one that actually saves time day to day — a stack left
+ * up by `E2E_KEEP_STACK=1`, adopted by every run afterwards.
+ *
+ * A stack this run adopted is never torn down: stopping containers a developer
+ * started themselves would be a rude surprise.
+ */
+export type StackMode = "auto" | "docker" | "external";
+
+export const stackMode: StackMode = (() => {
+  const raw = process.env.E2E_STACK ?? "auto";
+  if (raw === "auto" || raw === "docker" || raw === "external") return raw;
+  throw new Error(`E2E_STACK must be auto, docker or external — got "${raw}".`);
+})();
+
+/**
  * Ports.
  *
  * Not the development defaults (5432, 8080, 3000): an end-to-end run must be
@@ -27,8 +62,18 @@ export const COMPOSE_PROJECT = "lumo-e2e";
  * clash — must never reach that stack's database by accident.
  */
 export const POSTGRES_PORT = process.env.E2E_POSTGRES_PORT ?? "55432";
-export const API_PORT = process.env.E2E_API_PORT ?? "18080";
 export const WEB_PORT = process.env.E2E_WEB_PORT ?? "3100";
+
+/**
+ * 18080 for the suite's own stack; 8080 in `external` mode, because an API
+ * started from an IDE listens on the port `application.yml` declares.
+ *
+ * `E2E_API_PORT` overrides either. Note that `auto` probes *this* port and not
+ * "any API anywhere": adopting whatever happens to answer on 8080 would mean a
+ * forgotten development stack silently becoming the thing under test.
+ */
+export const API_PORT =
+  process.env.E2E_API_PORT ?? (stackMode === "external" ? "8080" : "18080");
 
 export const apiBaseUrl = `http://localhost:${API_PORT}/v1`;
 export const apiHealthUrl = `http://localhost:${API_PORT}/actuator/health`;

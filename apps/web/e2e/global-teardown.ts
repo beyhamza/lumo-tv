@@ -2,28 +2,37 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { FullConfig } from "@playwright/test";
-import { compose, repoRootFrom } from "./global-setup";
-import { composeArgs, composeEnv } from "./support/stack";
+import { compose, repoRootFrom, stateDirFor, wasAdopted } from "./global-setup";
+import { composeArgs, composeEnv, stackMode } from "./support/stack";
 
 /**
- * Saves the API's logs, then tears the stack down.
+ * Saves the API's logs, then stops what this run started — and only that.
  *
- * The logs come first and that ordering is the whole point. `down` destroys the
- * containers, and with them the only account of what the server did — so a
- * failure on CI would otherwise leave a browser trace showing an error page and
- * nothing at all about why the API produced it. The file lands in
- * `test-results/`, which the workflow already uploads on failure.
+ * Three ways out:
  *
- * Skipped entirely when `E2E_KEEP_STACK=1`: the containers stay up and the
- * database is there to be inspected. Yours to remove afterwards:
+ *   - the stack was **adopted** (already running, or `E2E_STACK=external`):
+ *     nothing is stopped. Killing containers a developer started themselves, or
+ *     an API they are debugging in an IDE, would be a rude surprise;
+ *   - `E2E_KEEP_STACK=1`: nothing is stopped, on purpose. The next run adopts
+ *     it and starts testing immediately, and the database is there to be
+ *     inspected after a failure;
+ *   - otherwise, `down -v`.
+ *
+ * The logs are written first, and that ordering is the whole point: `down`
+ * destroys the containers, and with them the only account of what the server
+ * did. A CI failure would otherwise leave a browser trace showing an error page
+ * and nothing at all about why the API produced it.
+ *
+ * Whatever is left running is yours to remove:
  *
  *     docker compose -p lumo-e2e -f docker-compose.yml -f docker-compose.e2e.yml down -v
  */
 export default async function globalTeardown(config: FullConfig) {
   const repoRoot = repoRootFrom(config.rootDir);
+  const stateDir = stateDirFor(config, repoRoot);
 
-  if (process.env.E2E_KEEP_STACK === "1") {
-    console.log("[e2e] E2E_KEEP_STACK=1 — the stack is left running.");
+  if (stackMode === "external" || wasAdopted(stateDir)) {
+    console.log("[e2e] pile adoptée, pas démarrée par cette campagne — laissée en place.");
     return;
   }
 
@@ -33,6 +42,12 @@ export default async function globalTeardown(config: FullConfig) {
     config.projects[0]?.outputDir ?? path.join(repoRoot, "apps", "web", "test-results");
 
   captureApiLogs(repoRoot, outputDir);
+
+  if (process.env.E2E_KEEP_STACK === "1") {
+    console.log("[e2e] E2E_KEEP_STACK=1 — la pile reste debout ; la prochaine campagne l'adoptera.");
+    return;
+  }
+
   compose(repoRoot, ["down", "-v"]);
 }
 

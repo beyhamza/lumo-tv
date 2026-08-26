@@ -125,11 +125,16 @@ jobs:
       # healthchecks. No step is needed here for that, deliberately - a stack
       # started by the workflow would be a stack no developer can reproduce.
       #
-      # The cost is real and worth stating: the API image is built from source
-      # on every run, and the Gradle cache mount does not survive between runs.
-      # Expect several minutes before the first test executes. If that becomes
-      # the bottleneck, the fix is a buildx cache keyed on the API sources - not
-      # dropping the stack.
+      # Locally the image is rebuilt only when the API sources move, and a stack
+      # left up is adopted rather than restarted. Neither shortcut applies here,
+      # and both should not: a runner checks out a fresh tree with no
+      # apps/web/.e2e fingerprint, and nothing is listening, so every run builds
+      # from source and starts clean. That is the property CI is for.
+      #
+      # The cost is real and worth stating: the Gradle cache mount does not
+      # survive between runs, so expect several minutes before the first test
+      # executes. If that becomes the bottleneck, the fix is a buildx cache
+      # keyed on the API sources - not dropping the stack.
       - name: End-to-end tests
         run: pnpm test:e2e
 
