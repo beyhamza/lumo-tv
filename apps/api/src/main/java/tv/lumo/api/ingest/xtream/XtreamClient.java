@@ -150,7 +150,7 @@ public class XtreamClient {
     private void streamArray(String host, String username, String password,
                              String action, Consumer<JsonNode> consumer) {
         http.get(host, playerApi(host, username, password, action), stream -> {
-            readArray(stream, consumer);
+            readArray(action, stream, consumer);
             return null;
         });
     }
@@ -161,7 +161,7 @@ public class XtreamClient {
      * <p>This is the difference between a sync that works on a 15 000-channel
      * panel and one that does not.
      */
-    private void readArray(InputStream stream, Consumer<JsonNode> consumer) {
+    private void readArray(String action, InputStream stream, Consumer<JsonNode> consumer) {
         try (JsonParser parser = objectMapper.createParser(stream)) {
             JsonToken token = parser.nextToken();
             if (token != JsonToken.START_ARRAY) {
@@ -170,11 +170,32 @@ public class XtreamClient {
                         "Expected a JSON array from the panel");
             }
             while (parser.nextToken() == JsonToken.START_OBJECT) {
-                consumer.accept(objectMapper.readTree(parser));
+                // `parser.readValueAsTree()`, NOT `objectMapper.readTree(parser)`.
+                //
+                // The two read like synonyms and are not. The mapper form starts
+                // a fresh read from the parser and runs it to end-of-input, so on
+                // the first element it swallowed the entire array and then threw
+                // "no content to map" — every Xtream panel answered
+                // SOURCE_INVALID_FORMAT over a perfectly valid response. The
+                // parser form reads the value the parser is standing on, which is
+                // what walking an array one element at a time means.
+                //
+                // Nothing caught this: every ingestion test was an M3U test, and
+                // Xtream is the format docs/domain-model.md recommends.
+                // XtreamClientTest exists now.
+                JsonNode element = parser.readValueAsTree();
+                if (element != null) {
+                    consumer.accept(element);
+                }
             }
         } catch (IngestionException e) {
             throw e;
         } catch (Exception e) {
+            // The exception TYPE, and only the type. A Jackson message can quote
+            // the source it choked on, and that source is the user catalogue.
+            // The class name is enough to tell a truncated stream from malformed
+            // JSON, which is the distinction worth having.
+            log.info("Reading the {} array failed: {}", action, e.getClass().getSimpleName());
             throw IngestionException.from(e);
         }
     }

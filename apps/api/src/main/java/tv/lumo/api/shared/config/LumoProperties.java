@@ -74,7 +74,16 @@ public record LumoProperties(
             @Positive int maxConcurrentPerHost,
             @Positive int maxConcurrentSyncs,
             @NotNull Duration httpTimeout,
-            @Positive int maxPayloadMb
+            @Positive int maxPayloadMb,
+            /**
+             * Whether a source may point inside this server's own network.
+             *
+             * <p>False everywhere that matters. True only for tests, which serve
+             * their fixtures from a loopback address and would otherwise be
+             * refused by {@code PrivateAddressGuard} — the guard that stops
+             * {@code POST /sources} from being a request-forgery primitive.
+             */
+            @DefaultValue("false") boolean allowPrivateHosts
     ) {
         public long maxPayloadBytes() {
             return (long) maxPayloadMb * 1024L * 1024L;

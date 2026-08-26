@@ -124,6 +124,13 @@ lumo:
     max-concurrent-syncs: ${LUMO_INGEST_MAX_CONCURRENT_SYNCS:50}
     http-timeout: ${LUMO_INGEST_HTTP_TIMEOUT_SECONDS:10}s
     max-payload-mb: ${LUMO_INGEST_MAX_PAYLOAD_MB:200}
+    # Whether a source may point inside this server's own network. FALSE, and it
+    # stays false anywhere real: without it, POST /sources fetches whatever URL a
+    # user supplies from this server's network position — 127.0.0.1, a 10.x
+    # neighbour, a cloud metadata endpoint — and reports back what it found.
+    # Only the end-to-end stack turns it on, because its test bench is a
+    # container on a private network.
+    allow-private-hosts: ${LUMO_INGEST_ALLOW_PRIVATE_HOSTS:false}
   rate-limit:
     # Sprint 1: 5 attempts per IP per minute on the sign-in surface (US-01, US-02).
     auth-attempts-per-minute: 5

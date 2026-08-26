@@ -65,7 +65,27 @@ public class IngestionHttpClient {
      * @param logicalHost host used for concurrency accounting and log lines
      */
     public <T> T get(String logicalHost, URI uri, Function<InputStream, T> reader) {
-        return limiter.onHost(logicalHost, () -> {
+        // Taken from the URI, not from the caller's argument, and that is not a
+        // detail. The M3U path passes a bare hostname here; the Xtream path
+        // passes the source's stored base URL — "http://panel.example.org" —
+        // because that is what a `source` row keeps. So the argument is a
+        // hostname only half the time.
+        //
+        // Two consequences, both fixed by deriving it here. A DNS lookup on
+        // "http://panel.example.org" fails, which is how the guard below refused
+        // every Xtream source the first time it ran. And the per-host semaphore
+        // was keyed on two different strings for one server depending on which
+        // path reached it — the exact accounting failure ADR 0005 §1 exists to
+        // prevent, and the one SourceUrl.hostOf lower-cases to avoid.
+        String host = uri.getHost() == null
+                ? logicalHost.toLowerCase(java.util.Locale.ROOT)
+                : uri.getHost().toLowerCase(java.util.Locale.ROOT);
+
+        // Before the connection, not after: a host that resolves into our own
+        // network is refused rather than fetched (see PrivateAddressGuard).
+        PrivateAddressGuard.requirePublic(host, properties.ingest().allowPrivateHosts());
+
+        return limiter.onHost(host, () -> {
             HttpRequest request = HttpRequest.newBuilder(uri)
                     .timeout(properties.ingest().httpTimeout())
                     .header("User-Agent", USER_AGENT)
@@ -87,13 +107,58 @@ public class IngestionHttpClient {
                             "The server has nothing at that path");
                 }
                 if (status >= 400) {
-                    log.debug("Host {} answered HTTP {}", logicalHost, status);
+                    log.debug("Host {} answered HTTP {}", host, status);
                     throw new IngestionException(IngestionErrorCode.SOURCE_UNREACHABLE,
                             "The server answered HTTP " + status);
                 }
-                return reader.apply(new SizeCappedInputStream(body, properties.ingest().maxPayloadBytes()));
+                try {
+                    return reader.apply(
+                            new SizeCappedInputStream(body, properties.ingest().maxPayloadBytes()));
+                } catch (IngestionException e) {
+                    // What the server actually sent, attached to the failure that
+                    // could not make sense of it. Without this, a panel answering
+                    // an HTML block page and a panel answering a JSON object are
+                    // the same line in a log — SOURCE_INVALID_FORMAT, and nothing
+                    // to act on. The host and the content type only: never the
+                    // URL, never a byte of the body (AGENTS.md §5).
+                    throw e.code() == IngestionErrorCode.SOURCE_INVALID_FORMAT
+                            ? new IngestionException(e.code(), e.getMessage()
+                                    + " [host=" + host
+                                    + ", call=" + callOf(uri)
+                                    + ", http=" + status
+                                    + ", content-type=" + header(response, "Content-Type")
+                                    + ", content-encoding=" + header(response, "Content-Encoding") + "]")
+                            : e;
+                }
             }
         });
+    }
+
+    private static String header(HttpResponse<InputStream> response, String name) {
+        return response.headers().firstValue(name).orElse("absent");
+    }
+
+    /**
+     * Which call failed, in one word, and nothing else from the URL.
+     *
+     * <p>Only the {@code action} parameter, whose values this application writes
+     * itself — {@code get_live_categories} and friends. The rest of an Xtream
+     * query is the user's username and password, and it does not go anywhere near
+     * a log line (AGENTS.md §5). Without this, "the response could not be
+     * understood" does not say which of three calls produced it, which is the
+     * difference between a diagnosis and a guess.
+     */
+    private static String callOf(URI uri) {
+        String query = uri.getQuery();
+        if (query == null) {
+            return "playlist";
+        }
+        for (String parameter : query.split("&")) {
+            if (parameter.startsWith("action=")) {
+                return parameter.substring("action=".length());
+            }
+        }
+        return "authenticate";
     }
 
     /** Transparently un-gzips, whichever way the server signalled it. */

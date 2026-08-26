@@ -51,6 +51,11 @@ services:
       # being tested is the one that ships.
       LUMO_RATE_LIMIT_AUTH_ATTEMPTS_PER_MINUTE: ${LUMO_RATE_LIMIT_AUTH_ATTEMPTS_PER_MINUTE:-1000}
       LUMO_RATE_LIMIT_DEVICE_APPROVE_ATTEMPTS_PER_MINUTE: ${LUMO_RATE_LIMIT_DEVICE_APPROVE_ATTEMPTS_PER_MINUTE:-1000}
+      # The bench lives on the compose network, so it answers on a 172.x
+      # address, which PrivateAddressGuard refuses by default — and must keep
+      # refusing in production, where a source pointing at an internal address
+      # is a way to map our own network. Opened here and nowhere else.
+      LUMO_INGEST_ALLOW_PRIVATE_HOSTS: "true"
 
   # The source test bench. Serves, on fixed paths, the playlists and panel
   # answers a qualification run needs and cannot get from a real provider:

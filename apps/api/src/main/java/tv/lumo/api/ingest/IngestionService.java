@@ -115,7 +115,12 @@ public class IngestionService {
         try {
             ingest(sourceId);
         } catch (IngestionException e) {
-            log.info("Ingestion of source {} failed: {}", sourceId, e.code());
+            // The message as well as the code. Every one of these failures is about
+            // a third party we do not control, and the code alone — SOURCE_INVALID_FORMAT
+            // — says which category it fell into and nothing about why. The
+            // messages carry the host, the status and the content type, never a
+            // URL and never a credential.
+            log.info("Ingestion of source {} failed: {} — {}", sourceId, e.code(), e.getMessage());
             sources.markError(sourceId, e.code());
         } catch (Exception e) {
             // Never let a background thread die with the source stuck in SYNCING:
