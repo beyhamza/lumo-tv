@@ -11,6 +11,7 @@ import tv.lumo.api.generated.model.Platform;
 import tv.lumo.api.generated.model.ProgressItemType;
 import tv.lumo.api.generated.model.SourceKind;
 import tv.lumo.api.generated.model.SourceStatus;
+import tv.lumo.api.generated.model.SyncStep;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -115,6 +116,15 @@ public class EnumConverterConfiguration {
             @Override
             public SourceStatus convert(String source) {
                 return SourceStatus.fromValue(source);
+            }
+        };
+    }
+    @Bean(name = "org.openapitools.configuration.EnumConverterConfiguration.syncStepConverter")
+    Converter<String, SyncStep> syncStepConverter() {
+        return new Converter<String, SyncStep>() {
+            @Override
+            public SyncStep convert(String source) {
+                return SyncStep.fromValue(source);
             }
         };
     }

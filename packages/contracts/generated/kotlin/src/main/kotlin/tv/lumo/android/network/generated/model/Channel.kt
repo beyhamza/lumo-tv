@@ -31,6 +31,8 @@ import com.squareup.moshi.JsonClass
  * @param externalId 
  * @param logoUrl Logo advertised by the user's own playlist (`tvg-logo`). Lumo ships no bundled logo and no fallback artwork of its own. 
  * @param tvgId EPG identifier, used to join with `epg_programme`.
+ * @param number The channel number the provider assigns — `tvg-chno` in an M3U, the panel's own field in Xtream. Null when the source carries none, and many do not.  **Not `position`.** That is a display index, reassigned at every ingestion; this is the number the user knows by heart and types on a remote control, and the two diverge the moment a channel drops out of the playlist. Without this field, direct number entry — the oldest gesture in television — has nothing to work from. 
+ * @param quality Definition as the source advertises it: `HD`, `FHD`, `UHD`, `4K`, `H265`… Echoed verbatim, and rendered as a badge next to the name.  **A free string, deliberately not an enumeration.** Sources write what they like, sometimes inside the channel name itself. An enumeration would force the server to file the unknown under some value, which is to say to lie about it; an unrecognised string is merely a badge the client can show or ignore. 
  */
 
 
@@ -64,7 +66,15 @@ data class Channel (
 
     /* EPG identifier, used to join with `epg_programme`. */
     @Json(name = "tvg_id")
-    val tvgId: kotlin.String? = null
+    val tvgId: kotlin.String? = null,
+
+    /* The channel number the provider assigns — `tvg-chno` in an M3U, the panel's own field in Xtream. Null when the source carries none, and many do not.  **Not `position`.** That is a display index, reassigned at every ingestion; this is the number the user knows by heart and types on a remote control, and the two diverge the moment a channel drops out of the playlist. Without this field, direct number entry — the oldest gesture in television — has nothing to work from.  */
+    @Json(name = "number")
+    val number: kotlin.Int? = null,
+
+    /* Definition as the source advertises it: `HD`, `FHD`, `UHD`, `4K`, `H265`… Echoed verbatim, and rendered as a badge next to the name.  **A free string, deliberately not an enumeration.** Sources write what they like, sometimes inside the channel name itself. An enumeration would force the server to file the unknown under some value, which is to say to lie about it; an unrecognised string is merely a badge the client can show or ignore.  */
+    @Json(name = "quality")
+    val quality: kotlin.String? = null
 
 ) {
 

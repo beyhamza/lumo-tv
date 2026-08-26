@@ -16,6 +16,9 @@ import tv.lumo.android.network.generated.model.PlaybackProgress
 import tv.lumo.android.network.generated.model.PlaybackProgressPage
 import tv.lumo.android.network.generated.model.Problem
 import tv.lumo.android.network.generated.model.ProgressItemType
+import tv.lumo.android.network.generated.model.RecentChannel
+import tv.lumo.android.network.generated.model.RecentChannelList
+import tv.lumo.android.network.generated.model.RecordRecentChannelRequest
 import tv.lumo.android.network.generated.model.SaveProgressRequest
 
 interface UserdataApi {
@@ -96,6 +99,37 @@ interface UserdataApi {
      */
     @GET("me/progress")
     suspend fun listProgress(@Query("itemType") itemType: ProgressItemType? = null, @Query("itemRef") itemRef: kotlin.String? = null, @Query("page") page: kotlin.Int? = 0, @Query("size") size: kotlin.Int? = 50): Response<PlaybackProgressPage>
+
+    /**
+     * GET me/recent-channels
+     * Live channels the user watched recently
+     * The television&#39;s first rail, and the reason it is worth anything: it knows what was watched on the phone.  Deliberately **not** part of &#x60;playback_progress&#x60;. A playback position means nothing on a continuous stream, and folding live channels into that table would make &#x60;position_ms&#x60; a required property with no possible value. Two concepts sharing storage because they render in the same rail is the shortcut that bills six months later.  Ordered most recent first, and bounded: this feeds a rail, not a history. The server keeps a rolling window per account and prunes silently. 
+     * Responses:
+     *  - 200: The most recently watched channels, newest first.
+     *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
+     *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
+     *
+     * @param limit Maximum entries to return. (optional, default to 20)
+     * @return [RecentChannelList]
+     */
+    @GET("me/recent-channels")
+    suspend fun listRecentChannels(@Query("limit") limit: kotlin.Int? = 20): Response<RecentChannelList>
+
+    /**
+     * PUT me/recent-channels
+     * Record that a channel was just watched
+     * Idempotent upsert keyed on the channel for the caller: watching the same channel again moves it to the top rather than adding a row.  Sent when playback actually starts, not when a channel is focused — a rail built from what the D-pad passed over on its way somewhere is noise, and it is the user&#39;s own history being made worse. 
+     * Responses:
+     *  - 200: The recorded entry.
+     *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
+     *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
+     *  - 404: No such channel on this account (`CHANNEL_NOT_FOUND`).
+     *
+     * @param recordRecentChannelRequest 
+     * @return [RecentChannel]
+     */
+    @PUT("me/recent-channels")
+    suspend fun recordRecentChannel(@Body recordRecentChannelRequest: RecordRecentChannelRequest): Response<RecentChannel>
 
     /**
      * DELETE me/favorites/{id}

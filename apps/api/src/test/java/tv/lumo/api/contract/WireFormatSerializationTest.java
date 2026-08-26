@@ -67,7 +67,11 @@ class WireFormatSerializationTest extends PostgresIntegrationTest {
         assertThat(fieldNames(json)).contains(
                 "id", "label", "kind", "host", "username", "m3u_url", "epg_url",
                 "status", "error_code", "last_synced_at", "expires_at",
-                "max_connections", "channel_count");
+                "max_connections", "channel_count",
+                // Required, so always on the wire — unlike sync_step and
+                // category_count, which are absent on a READY source and are
+                // deliberately not asserted here.
+                "auto_sync");
     }
 
     @Test
@@ -243,7 +247,7 @@ class WireFormatSerializationTest extends PostgresIntegrationTest {
     @Test
     @DisplayName("an unset nullable property serialises as null rather than vanishing")
     void nullablePropertiesSerialiseAsNull() {
-        Source source = new Source(UUID.randomUUID(), "Playlist", SourceKind.M3U_URL, SourceStatus.PENDING);
+        Source source = new Source(UUID.randomUUID(), "Playlist", SourceKind.M3U_URL, SourceStatus.PENDING, true);
         JsonNode json = objectMapper.valueToTree(source);
 
         // Pinned rather than assumed: openapi-typescript types these as `string |
@@ -289,7 +293,7 @@ class WireFormatSerializationTest extends PostgresIntegrationTest {
     }
 
     private static Source readySource() {
-        Source source = new Source(UUID.randomUUID(), "My Panel", SourceKind.XTREAM, SourceStatus.READY);
+        Source source = new Source(UUID.randomUUID(), "My Panel", SourceKind.XTREAM, SourceStatus.READY, true);
         source.setHost("http://panel.example.org:8080");
         source.setUsername("someone");
         source.setEpgUrl("https://test.example/guide.xml.gz");
@@ -301,7 +305,7 @@ class WireFormatSerializationTest extends PostgresIntegrationTest {
     }
 
     private static Source m3uSource() {
-        Source source = new Source(UUID.randomUUID(), "Playlist", SourceKind.M3U_URL, SourceStatus.PENDING);
+        Source source = new Source(UUID.randomUUID(), "Playlist", SourceKind.M3U_URL, SourceStatus.PENDING, true);
         source.setM3uUrl("https://test.example/playlist.m3u");
         return source;
     }

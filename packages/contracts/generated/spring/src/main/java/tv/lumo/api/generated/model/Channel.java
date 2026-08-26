@@ -35,6 +35,10 @@ public class Channel {
 
   private @Nullable String tvgId = null;
 
+  private @Nullable Integer number = null;
+
+  private @Nullable String quality = null;
+
   private Integer position;
 
   private Boolean isAdult;
@@ -187,6 +191,44 @@ public class Channel {
     this.tvgId = tvgId;
   }
 
+  public Channel number(@Nullable Integer number) {
+    this.number = number;
+    return this;
+  }
+
+  /**
+   * The channel number the provider assigns — `tvg-chno` in an M3U, the panel's own field in Xtream. Null when the source carries none, and many do not.  **Not `position`.** That is a display index, reassigned at every ingestion; this is the number the user knows by heart and types on a remote control, and the two diverge the moment a channel drops out of the playlist. Without this field, direct number entry — the oldest gesture in television — has nothing to work from. 
+   * @return number
+   */
+  
+  @JsonProperty("number")
+  public @Nullable Integer getNumber() {
+    return number;
+  }
+
+  public void setNumber(@Nullable Integer number) {
+    this.number = number;
+  }
+
+  public Channel quality(@Nullable String quality) {
+    this.quality = quality;
+    return this;
+  }
+
+  /**
+   * Definition as the source advertises it: `HD`, `FHD`, `UHD`, `4K`, `H265`… Echoed verbatim, and rendered as a badge next to the name.  **A free string, deliberately not an enumeration.** Sources write what they like, sometimes inside the channel name itself. An enumeration would force the server to file the unknown under some value, which is to say to lie about it; an unrecognised string is merely a badge the client can show or ignore. 
+   * @return quality
+   */
+  @Size(max = 20) 
+  @JsonProperty("quality")
+  public @Nullable String getQuality() {
+    return quality;
+  }
+
+  public void setQuality(@Nullable String quality) {
+    this.quality = quality;
+  }
+
   public Channel position(Integer position) {
     this.position = position;
     return this;
@@ -241,13 +283,15 @@ public class Channel {
         Objects.equals(this.name, channel.name) &&
         Objects.equals(this.logoUrl, channel.logoUrl) &&
         Objects.equals(this.tvgId, channel.tvgId) &&
+        Objects.equals(this.number, channel.number) &&
+        Objects.equals(this.quality, channel.quality) &&
         Objects.equals(this.position, channel.position) &&
         Objects.equals(this.isAdult, channel.isAdult);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, sourceId, categoryId, externalId, name, logoUrl, tvgId, position, isAdult);
+    return Objects.hash(id, sourceId, categoryId, externalId, name, logoUrl, tvgId, number, quality, position, isAdult);
   }
 
   @Override
@@ -261,6 +305,8 @@ public class Channel {
     sb.append("    name: ").append(toIndentedString(name)).append("\n");
     sb.append("    logoUrl: ").append(toIndentedString(logoUrl)).append("\n");
     sb.append("    tvgId: ").append(toIndentedString(tvgId)).append("\n");
+    sb.append("    number: ").append(toIndentedString(number)).append("\n");
+    sb.append("    quality: ").append(toIndentedString(quality)).append("\n");
     sb.append("    position: ").append(toIndentedString(position)).append("\n");
     sb.append("    isAdult: ").append(toIndentedString(isAdult)).append("\n");
     sb.append("}");

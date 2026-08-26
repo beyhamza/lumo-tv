@@ -12,6 +12,7 @@ import org.springframework.lang.Nullable;
 import tv.lumo.api.generated.model.IngestionErrorCode;
 import tv.lumo.api.generated.model.SourceKind;
 import tv.lumo.api.generated.model.SourceStatus;
+import tv.lumo.api.generated.model.SyncStep;
 import java.time.OffsetDateTime;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -43,6 +44,10 @@ public class Source {
 
   private SourceStatus status;
 
+  private @Nullable SyncStep syncStep = null;
+
+  private Boolean autoSync;
+
   private @Nullable IngestionErrorCode errorCode = null;
 
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
@@ -58,6 +63,8 @@ public class Source {
 
   private @Nullable Integer channelCount = null;
 
+  private @Nullable Integer categoryCount = null;
+
   public Source() {
     super();
   }
@@ -65,11 +72,12 @@ public class Source {
   /**
    * Constructor with only required parameters
    */
-  public Source(UUID id, String label, SourceKind kind, SourceStatus status) {
+  public Source(UUID id, String label, SourceKind kind, SourceStatus status, Boolean autoSync) {
     this.id = id;
     this.label = label;
     this.kind = kind;
     this.status = status;
+    this.autoSync = autoSync;
   }
 
   public Source id(UUID id) {
@@ -224,6 +232,44 @@ public class Source {
     this.status = status;
   }
 
+  public Source syncStep(@Nullable SyncStep syncStep) {
+    this.syncStep = syncStep;
+    return this;
+  }
+
+  /**
+   * How far the running ingestion has got. Non-null only while `status` is `SYNCING`; cleared when it reaches `READY` or `ERROR`.  Rendered as a checklist while the user waits (mobile, écran 5). A client that ignores it falls back to an indeterminate progress bar, which is correct but worse. 
+   * @return syncStep
+   */
+  @Valid 
+  @JsonProperty("sync_step")
+  public @Nullable SyncStep getSyncStep() {
+    return syncStep;
+  }
+
+  public void setSyncStep(@Nullable SyncStep syncStep) {
+    this.syncStep = syncStep;
+  }
+
+  public Source autoSync(Boolean autoSync) {
+    this.autoSync = autoSync;
+    return this;
+  }
+
+  /**
+   * Whether the server re-synchronises this source on its own.  On the source rather than on the account or the device, and that is the whole point: re-synchronising is server work that hits the user's own IPTV server, so the decision belongs to the source it hits. One may want a playlist that moves refreshed nightly and a stable subscription left alone. On a device, the setting would have to be made three times and would still not describe what the server does while every device is asleep. 
+   * @return autoSync
+   */
+  @NotNull 
+  @JsonProperty("auto_sync")
+  public Boolean getAutoSync() {
+    return autoSync;
+  }
+
+  public void setAutoSync(Boolean autoSync) {
+    this.autoSync = autoSync;
+  }
+
   public Source errorCode(@Nullable IngestionErrorCode errorCode) {
     this.errorCode = errorCode;
     return this;
@@ -338,6 +384,25 @@ public class Source {
     this.channelCount = channelCount;
   }
 
+  public Source categoryCount(@Nullable Integer categoryCount) {
+    this.categoryCount = categoryCount;
+    return this;
+  }
+
+  /**
+   * Categories ingested from this source. Derived and nullable on exactly the same terms as `channel_count`, with which it is displayed side by side on the success screen — \"1 248 chaînes · 96 catégories\". Half of that line was available; this is the other half. 
+   * @return categoryCount
+   */
+  
+  @JsonProperty("category_count")
+  public @Nullable Integer getCategoryCount() {
+    return categoryCount;
+  }
+
+  public void setCategoryCount(@Nullable Integer categoryCount) {
+    this.categoryCount = categoryCount;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -355,17 +420,20 @@ public class Source {
         Objects.equals(this.m3uUrl, source.m3uUrl) &&
         Objects.equals(this.epgUrl, source.epgUrl) &&
         Objects.equals(this.status, source.status) &&
+        Objects.equals(this.syncStep, source.syncStep) &&
+        Objects.equals(this.autoSync, source.autoSync) &&
         Objects.equals(this.errorCode, source.errorCode) &&
         Objects.equals(this.lastErrorAt, source.lastErrorAt) &&
         Objects.equals(this.lastSyncedAt, source.lastSyncedAt) &&
         Objects.equals(this.expiresAt, source.expiresAt) &&
         Objects.equals(this.maxConnections, source.maxConnections) &&
-        Objects.equals(this.channelCount, source.channelCount);
+        Objects.equals(this.channelCount, source.channelCount) &&
+        Objects.equals(this.categoryCount, source.categoryCount);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, label, kind, host, username, m3uUrl, epgUrl, status, errorCode, lastErrorAt, lastSyncedAt, expiresAt, maxConnections, channelCount);
+    return Objects.hash(id, label, kind, host, username, m3uUrl, epgUrl, status, syncStep, autoSync, errorCode, lastErrorAt, lastSyncedAt, expiresAt, maxConnections, channelCount, categoryCount);
   }
 
   @Override
@@ -380,12 +448,15 @@ public class Source {
     sb.append("    m3uUrl: ").append(toIndentedString(m3uUrl)).append("\n");
     sb.append("    epgUrl: ").append(toIndentedString(epgUrl)).append("\n");
     sb.append("    status: ").append(toIndentedString(status)).append("\n");
+    sb.append("    syncStep: ").append(toIndentedString(syncStep)).append("\n");
+    sb.append("    autoSync: ").append(toIndentedString(autoSync)).append("\n");
     sb.append("    errorCode: ").append(toIndentedString(errorCode)).append("\n");
     sb.append("    lastErrorAt: ").append(toIndentedString(lastErrorAt)).append("\n");
     sb.append("    lastSyncedAt: ").append(toIndentedString(lastSyncedAt)).append("\n");
     sb.append("    expiresAt: ").append(toIndentedString(expiresAt)).append("\n");
     sb.append("    maxConnections: ").append(toIndentedString(maxConnections)).append("\n");
     sb.append("    channelCount: ").append(toIndentedString(channelCount)).append("\n");
+    sb.append("    categoryCount: ").append(toIndentedString(categoryCount)).append("\n");
     sb.append("}");
     return sb.toString();
   }

@@ -28,6 +28,7 @@ import com.squareup.moshi.JsonClass
  * @param password Write-only. Re-encrypted on write, never returned.
  * @param m3uUrl 
  * @param epgUrl 
+ * @param autoSync Toggling this does **not** re-trigger an ingestion: it only decides whether the server will start one by itself later. It is the one property in this request that leaves the catalogue alone. 
  */
 
 
@@ -50,7 +51,11 @@ data class UpdateSourceRequest (
     val m3uUrl: kotlin.String? = null,
 
     @Json(name = "epg_url")
-    val epgUrl: kotlin.String? = null
+    val epgUrl: kotlin.String? = null,
+
+    /* Toggling this does **not** re-trigger an ingestion: it only decides whether the server will start one by itself later. It is the one property in this request that leaves the catalogue alone.  */
+    @Json(name = "auto_sync")
+    val autoSync: kotlin.Boolean? = null
 
 ) {
 

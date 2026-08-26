@@ -32,6 +32,8 @@ public class UpdateSourceRequest {
 
   private @Nullable String epgUrl = null;
 
+  private @Nullable Boolean autoSync;
+
   public UpdateSourceRequest label(@Nullable String label) {
     this.label = label;
     return this;
@@ -146,6 +148,25 @@ public class UpdateSourceRequest {
     this.epgUrl = epgUrl;
   }
 
+  public UpdateSourceRequest autoSync(@Nullable Boolean autoSync) {
+    this.autoSync = autoSync;
+    return this;
+  }
+
+  /**
+   * Toggling this does **not** re-trigger an ingestion: it only decides whether the server will start one by itself later. It is the one property in this request that leaves the catalogue alone. 
+   * @return autoSync
+   */
+  
+  @JsonProperty("auto_sync")
+  public @Nullable Boolean getAutoSync() {
+    return autoSync;
+  }
+
+  public void setAutoSync(@Nullable Boolean autoSync) {
+    this.autoSync = autoSync;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -160,12 +181,13 @@ public class UpdateSourceRequest {
         Objects.equals(this.username, updateSourceRequest.username) &&
         Objects.equals(this.password, updateSourceRequest.password) &&
         Objects.equals(this.m3uUrl, updateSourceRequest.m3uUrl) &&
-        Objects.equals(this.epgUrl, updateSourceRequest.epgUrl);
+        Objects.equals(this.epgUrl, updateSourceRequest.epgUrl) &&
+        Objects.equals(this.autoSync, updateSourceRequest.autoSync);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(label, host, username, password, m3uUrl, epgUrl);
+    return Objects.hash(label, host, username, password, m3uUrl, epgUrl, autoSync);
   }
 
   @Override
@@ -178,6 +200,7 @@ public class UpdateSourceRequest {
     sb.append("    password: ").append("*").append("\n");
     sb.append("    m3uUrl: ").append(toIndentedString(m3uUrl)).append("\n");
     sb.append("    epgUrl: ").append(toIndentedString(epgUrl)).append("\n");
+    sb.append("    autoSync: ").append(toIndentedString(autoSync)).append("\n");
     sb.append("}");
     return sb.toString();
   }

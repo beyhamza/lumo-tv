@@ -15,6 +15,9 @@ import tv.lumo.api.generated.model.PlaybackProgress;
 import tv.lumo.api.generated.model.PlaybackProgressPage;
 import tv.lumo.api.generated.model.Problem;
 import tv.lumo.api.generated.model.ProgressItemType;
+import tv.lumo.api.generated.model.RecentChannel;
+import tv.lumo.api.generated.model.RecentChannelList;
+import tv.lumo.api.generated.model.RecordRecentChannelRequest;
 import tv.lumo.api.generated.model.SaveProgressRequest;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -139,6 +142,48 @@ public interface UserdataApi {
         @Size(max = 200)  @Valid @RequestParam(value = "itemRef", required = false) @Nullable String itemRef,
         @Min(0)  @Valid @RequestParam(value = "page", required = false, defaultValue = "0") Integer page,
         @Min(1) @Max(200)  @Valid @RequestParam(value = "size", required = false, defaultValue = "50") Integer size
+    );
+
+
+    /**
+     * GET /me/recent-channels : Live channels the user watched recently
+     * The television&#39;s first rail, and the reason it is worth anything: it knows what was watched on the phone.  Deliberately **not** part of &#x60;playback_progress&#x60;. A playback position means nothing on a continuous stream, and folding live channels into that table would make &#x60;position_ms&#x60; a required property with no possible value. Two concepts sharing storage because they render in the same rail is the shortcut that bills six months later.  Ordered most recent first, and bounded: this feeds a rail, not a history. The server keeps a rolling window per account and prunes silently. 
+     *
+     * @param limit Maximum entries to return. (optional, default to 20)
+     * @return The most recently watched channels, newest first. (status code 200)
+     *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
+     *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
+     */
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = "/me/recent-channels",
+        produces = { "application/json", "application/problem+json" }
+    )
+    
+    ResponseEntity<RecentChannelList> listRecentChannels(
+        @Min(1) @Max(50)  @Valid @RequestParam(value = "limit", required = false, defaultValue = "20") Integer limit
+    );
+
+
+    /**
+     * PUT /me/recent-channels : Record that a channel was just watched
+     * Idempotent upsert keyed on the channel for the caller: watching the same channel again moves it to the top rather than adding a row.  Sent when playback actually starts, not when a channel is focused — a rail built from what the D-pad passed over on its way somewhere is noise, and it is the user&#39;s own history being made worse. 
+     *
+     * @param recordRecentChannelRequest  (required)
+     * @return The recorded entry. (status code 200)
+     *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
+     *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
+     *         or No such channel on this account (&#x60;CHANNEL_NOT_FOUND&#x60;). (status code 404)
+     */
+    @RequestMapping(
+        method = RequestMethod.PUT,
+        value = "/me/recent-channels",
+        produces = { "application/json", "application/problem+json" },
+        consumes = { "application/json" }
+    )
+    
+    ResponseEntity<RecentChannel> recordRecentChannel(
+         @Valid @RequestBody RecordRecentChannelRequest recordRecentChannelRequest
     );
 
 

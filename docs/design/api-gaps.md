@@ -6,7 +6,7 @@ le contrat, le second attend une décision.
 | Lot | Écrans | Statut |
 |---|---|---|
 | **G1 → G7** | web (W1 → W4) | **porté dans le contrat** |
-| **M1 → M6** | mobile et TV | **listé, contrat non modifié** |
+| **M1 → M6** | mobile et TV | **porté dans le contrat** |
 
 ---
 
@@ -303,9 +303,16 @@ Ni l'une ni l'autre n'a entraîné de modification d'`openapi.yaml`.
 
 # Lot 2 — les écrans mobile et TV
 
-**Statut : listé, contrat non modifié.** `openapi.yaml` n'a pas été touché pour
-ce lot. Comme pour le premier, c'est une proposition à instruire explicitement
-(AGENTS.md §3 et §9).
+**Statut : traité.** Les six manques sont dans `openapi.yaml`, les trois
+clients régénérés.
+
+Comme pour le lot 1, le contrat n'ouvre que la surface : `sync_step`,
+`category_count`, `Channel.number`, `Channel.quality` et les chaînes récentes
+sont des interfaces générées que personne n'implémente. **Une exception, M6**,
+et pour la même raison que G4 : `auto_sync` est requis sur `Source`, donc le
+constructeur généré a changé et `apps/api` a cessé de compiler. Un champ qui se
+lit correctement et ignore silencieusement les écritures étant pire que pas de
+champ du tout, il est allé jusqu'au bout — colonne, lecture, écriture.
 
 Périmètre analysé : `Lumo - Mobile Sprint 1.dc.html` (écrans 1 → 8) et
 `Lumo - TV Sprint 1.dc.html` (splash, activation, accueil, grille, lecteur,
@@ -317,7 +324,7 @@ que l'AGENTS.md §6 range en v2. Voir [`canvas/README.md`](./canvas/README.md).
 
 ## Récapitulatif
 
-| # | Écran | Manque | Proposition |
+| # | Écran | Manque | Porté dans le contrat |
 |---|---|---|---|
 | M1 | Mobile 5 — validation | L'ingestion n'expose qu'un statut, la maquette montre quatre étapes | `Source.sync_step` |
 | M2 | Mobile 5 — succès | « 96 catégories » | `Source.category_count` |

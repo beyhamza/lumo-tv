@@ -655,6 +655,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/recent-channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Live channels the user watched recently
+         * @description The television's first rail, and the reason it is worth anything: it
+         *     knows what was watched on the phone.
+         *
+         *     Deliberately **not** part of `playback_progress`. A playback position
+         *     means nothing on a continuous stream, and folding live channels into
+         *     that table would make `position_ms` a required property with no possible
+         *     value. Two concepts sharing storage because they render in the same rail
+         *     is the shortcut that bills six months later.
+         *
+         *     Ordered most recent first, and bounded: this feeds a rail, not a
+         *     history. The server keeps a rolling window per account and prunes
+         *     silently.
+         */
+        get: operations["listRecentChannels"];
+        /**
+         * Record that a channel was just watched
+         * @description Idempotent upsert keyed on the channel for the caller: watching the same
+         *     channel again moves it to the top rather than adding a row.
+         *
+         *     Sent when playback actually starts, not when a channel is focused — a
+         *     rail built from what the D-pad passed over on its way somewhere is
+         *     noise, and it is the user's own history being made worse.
+         */
+        put: operations["recordRecentChannel"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/checkout-session": {
         parameters: {
             query?: never;
@@ -864,6 +904,28 @@ export interface components {
          * @enum {string}
          */
         SourceStatus: "PENDING" | "SYNCING" | "READY" | "ERROR";
+        /**
+         * @description Where a running ingestion has got to.
+         *
+         *     `SourceStatus` says whether ingestion is running; this says how far it
+         *     is. Onboarding waits here — a large playlist takes up to a minute — and
+         *     a minute of silence is where a user concludes it is broken and closes
+         *     the application. A named step says two things an indeterminate spinner
+         *     cannot: that it is moving, and how far it got when it fails.
+         *
+         *     | Value | Cause |
+         *     |---|---|
+         *     | `CONNECTING` | Opening the connection to the user's server. |
+         *     | `AUTHENTICATED` | Credentials accepted; nothing parsed yet. |
+         *     | `PARSING_CHANNELS` | Reading the playlist or the panel's catalogue. |
+         *     | `FETCHING_EPG` | Retrieving the XMLTV guide, when the source has one. |
+         *
+         *     These are the server's real phases and must stay so. A step the
+         *     implementation does not actually distinguish is a reassuring fiction,
+         *     and three true steps beat four invented ones.
+         * @enum {string}
+         */
+        SyncStep: "CONNECTING" | "AUTHENTICATED" | "PARSING_CHANNELS" | "FETCHING_EPG";
         /**
          * @description Kind of catalogue a `category` groups. Only `LIVE` is exercised by
          *     sprint 1; `VOD` and `SERIES` are ingested and exposed but have no
@@ -1245,6 +1307,27 @@ export interface components {
             epg_url?: string | null;
             status: components["schemas"]["SourceStatus"];
             /**
+             * @description How far the running ingestion has got. Non-null only while `status`
+             *     is `SYNCING`; cleared when it reaches `READY` or `ERROR`.
+             *
+             *     Rendered as a checklist while the user waits (mobile, écran 5). A
+             *     client that ignores it falls back to an indeterminate progress bar,
+             *     which is correct but worse.
+             */
+            sync_step?: (string & components["schemas"]["SyncStep"]) | null;
+            /**
+             * @description Whether the server re-synchronises this source on its own.
+             *
+             *     On the source rather than on the account or the device, and that is
+             *     the whole point: re-synchronising is server work that hits the
+             *     user's own IPTV server, so the decision belongs to the source it
+             *     hits. One may want a playlist that moves refreshed nightly and a
+             *     stable subscription left alone. On a device, the setting would have
+             *     to be made three times and would still not describe what the server
+             *     does while every device is asleep.
+             */
+            auto_sync: boolean;
+            /**
              * @description Why the last ingestion failed. Non-null only when `status` is
              *     `ERROR`. A stable code, never a free-form message — the client owns
              *     the wording, in FR and EN.
@@ -1290,6 +1373,15 @@ export interface components {
              *     found N channels" is rendered from (US-06, US-07).
              */
             channel_count?: number | null;
+            /**
+             * Format: int32
+             * @description Categories ingested from this source. Derived and nullable on
+             *     exactly the same terms as `channel_count`, with which it is
+             *     displayed side by side on the success screen — "1 248 chaînes ·
+             *     96 catégories". Half of that line was available; this is the other
+             *     half.
+             */
+            category_count?: number | null;
         };
         SourceList: {
             items: components["schemas"]["Source"][];
@@ -1327,6 +1419,13 @@ export interface components {
             m3u_url?: string | null;
             /** @description Optional XMLTV URL, a separate field from the playlist URL. */
             epg_url?: string | null;
+            /**
+             * @description Whether the server re-synchronises this source on its own. Defaults
+             *     to true: a catalogue that silently goes stale is the failure the
+             *     user cannot diagnose.
+             * @default true
+             */
+            auto_sync: boolean;
         };
         /**
          * @description Omitted properties are left unchanged. Changing `host`, `username`,
@@ -1343,6 +1442,12 @@ export interface components {
             password?: string | null;
             m3u_url?: string | null;
             epg_url?: string | null;
+            /**
+             * @description Toggling this does **not** re-trigger an ingestion: it only decides
+             *     whether the server will start one by itself later. It is the one
+             *     property in this request that leaves the catalogue alone.
+             */
+            auto_sync?: boolean;
         };
         /**
          * @description A grouping of channels within a source. Channels carrying no
@@ -1405,6 +1510,30 @@ export interface components {
             logo_url?: string | null;
             /** @description EPG identifier, used to join with `epg_programme`. */
             tvg_id?: string | null;
+            /**
+             * Format: int32
+             * @description The channel number the provider assigns — `tvg-chno` in an M3U, the
+             *     panel's own field in Xtream. Null when the source carries none, and
+             *     many do not.
+             *
+             *     **Not `position`.** That is a display index, reassigned at every
+             *     ingestion; this is the number the user knows by heart and types on a
+             *     remote control, and the two diverge the moment a channel drops out
+             *     of the playlist. Without this field, direct number entry — the
+             *     oldest gesture in television — has nothing to work from.
+             */
+            number?: number | null;
+            /**
+             * @description Definition as the source advertises it: `HD`, `FHD`, `UHD`, `4K`,
+             *     `H265`… Echoed verbatim, and rendered as a badge next to the name.
+             *
+             *     **A free string, deliberately not an enumeration.** Sources write
+             *     what they like, sometimes inside the channel name itself. An
+             *     enumeration would force the server to file the unknown under some
+             *     value, which is to say to lie about it; an unrecognised string is
+             *     merely a badge the client can show or ignore.
+             */
+            quality?: string | null;
             /** Format: int32 */
             position: number;
             /** @description Flagged by the source as adult content. */
@@ -1594,6 +1723,39 @@ export interface components {
             total_elements: number;
             /** Format: int32 */
             total_pages: number;
+        };
+        /**
+         * @description One live channel the user watched, and when.
+         *
+         *     Carries identifiers and nothing else: the name, the logo and the current
+         *     programme are already reachable from the catalogue and the guide, and
+         *     denormalising them here would mean a rail showing a channel name that
+         *     the last ingestion has since changed.
+         */
+        RecentChannel: {
+            /** Format: uuid */
+            channel_id: string;
+            /**
+             * Format: uuid
+             * @description Derived from the channel, so the two cannot disagree.
+             */
+            source_id: string;
+            /**
+             * Format: date-time
+             * @description Last time playback started on this channel.
+             */
+            watched_at: string;
+        };
+        RecentChannelList: {
+            items: components["schemas"]["RecentChannel"][];
+        };
+        /**
+         * @description `source_id` is not accepted: it is derived from the channel, exactly as
+         *     on `AddFavoriteRequest`.
+         */
+        RecordRecentChannelRequest: {
+            /** Format: uuid */
+            channel_id: string;
         };
         /** @description Upsert keyed on `(item_type, item_ref)` for the caller. */
         SaveProgressRequest: {
@@ -2898,6 +3060,66 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    listRecentChannels: {
+        parameters: {
+            query?: {
+                /** @description Maximum entries to return. */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The most recently watched channels, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentChannelList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    recordRecentChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordRecentChannelRequest"];
+            };
+        };
+        responses: {
+            /** @description The recorded entry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentChannel"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description No such channel on this account (`CHANNEL_NOT_FOUND`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     createCheckoutSession: {

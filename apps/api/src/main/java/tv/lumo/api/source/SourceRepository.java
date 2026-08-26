@@ -28,7 +28,7 @@ public class SourceRepository {
 
     private static final String COLUMNS = """
             id, user_id, label, kind, host, username, m3u_url, epg_url, status,
-            error_code, last_synced_at, expires_at, max_connections
+            error_code, last_synced_at, expires_at, max_connections, auto_sync
             """;
 
     private final JdbcClient jdbc;
@@ -106,7 +106,8 @@ public class SourceRepository {
     }
 
     public void update(UUID sourceId, UUID userId, String label, String host, String username,
-                       byte[] sealedPassword, String m3uUrl, String epgUrl, boolean resetToPending) {
+                       byte[] sealedPassword, String m3uUrl, String epgUrl, Boolean autoSync,
+                       boolean resetToPending) {
         jdbc.sql("""
                 UPDATE source
                    SET label      = COALESCE(:label, label),
@@ -115,6 +116,10 @@ public class SourceRepository {
                        password_encrypted = COALESCE(:password, password_encrypted),
                        m3u_url    = COALESCE(:m3uUrl, m3u_url),
                        epg_url    = COALESCE(:epgUrl, epg_url),
+                       -- Omitted means unchanged, like every other property here.
+                       -- Unlike them, changing it leaves the catalogue alone: it
+                       -- only decides whether the server starts an ingestion later.
+                       auto_sync  = COALESCE(:autoSync, auto_sync),
                        status     = CASE WHEN :reset THEN 'PENDING' ELSE status END,
                        error_code = CASE WHEN :reset THEN NULL ELSE error_code END,
                        updated_at = now()
@@ -126,6 +131,7 @@ public class SourceRepository {
                 .param("password", sealedPassword)
                 .param("m3uUrl", m3uUrl)
                 .param("epgUrl", epgUrl)
+                .param("autoSync", autoSync)
                 .param("reset", resetToPending)
                 .param("id", sourceId)
                 .param("userId", userId)
@@ -213,7 +219,8 @@ public class SourceRepository {
     public record SourceRow(
             UUID id, UUID userId, String label, SourceKind kind, String host, String username,
             String m3uUrl, String epgUrl, SourceStatus status, IngestionErrorCode errorCode,
-            OffsetDateTime lastSyncedAt, OffsetDateTime expiresAt, Integer maxConnections
+            OffsetDateTime lastSyncedAt, OffsetDateTime expiresAt, Integer maxConnections,
+            boolean autoSync
     ) {
     }
 
@@ -232,6 +239,7 @@ public class SourceRepository {
                 errorCode == null ? null : IngestionErrorCode.fromValue(errorCode),
                 rs.getObject("last_synced_at", OffsetDateTime.class),
                 rs.getObject("expires_at", OffsetDateTime.class),
-                rs.getObject("max_connections", Integer.class));
+                rs.getObject("max_connections", Integer.class),
+                rs.getBoolean("auto_sync"));
     }
 }

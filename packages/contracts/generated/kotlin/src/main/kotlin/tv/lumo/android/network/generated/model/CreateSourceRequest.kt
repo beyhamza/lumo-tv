@@ -30,6 +30,7 @@ import com.squareup.moshi.JsonClass
  * @param password Xtream password. **Write-only, by contract.** Encrypted with AES-256-GCM before persistence, never returned by any operation, never written to a log at any level including `DEBUG`. 
  * @param m3uUrl 
  * @param epgUrl Optional XMLTV URL, a separate field from the playlist URL.
+ * @param autoSync Whether the server re-synchronises this source on its own. Defaults to true: a catalogue that silently goes stale is the failure the user cannot diagnose. 
  */
 
 
@@ -57,7 +58,11 @@ data class CreateSourceRequest (
 
     /* Optional XMLTV URL, a separate field from the playlist URL. */
     @Json(name = "epg_url")
-    val epgUrl: kotlin.String? = null
+    val epgUrl: kotlin.String? = null,
+
+    /* Whether the server re-synchronises this source on its own. Defaults to true: a catalogue that silently goes stale is the failure the user cannot diagnose.  */
+    @Json(name = "auto_sync")
+    val autoSync: kotlin.Boolean? = true
 
 ) {
 

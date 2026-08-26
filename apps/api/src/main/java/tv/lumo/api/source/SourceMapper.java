@@ -18,7 +18,7 @@ public class SourceMapper {
 
     /** @param channelCount null until the first successful ingestion */
     public Source toApi(SourceRepository.SourceRow row, Integer channelCount) {
-        Source source = new Source(row.id(), row.label(), row.kind(), row.status());
+        Source source = new Source(row.id(), row.label(), row.kind(), row.status(), row.autoSync());
         source.setHost(row.host());
         // Returned so an edit form can keep the host and username while the user
         // corrects only what was wrong (US-06).

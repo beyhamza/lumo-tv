@@ -1119,6 +1119,76 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  /me/recent-channels:
+    get:
+      tags: [userdata]
+      operationId: listRecentChannels
+      summary: Live channels the user watched recently
+      description: |
+        The television's first rail, and the reason it is worth anything: it
+        knows what was watched on the phone.
+
+        Deliberately **not** part of `playback_progress`. A playback position
+        means nothing on a continuous stream, and folding live channels into
+        that table would make `position_ms` a required property with no possible
+        value. Two concepts sharing storage because they render in the same rail
+        is the shortcut that bills six months later.
+
+        Ordered most recent first, and bounded: this feeds a rail, not a
+        history. The server keeps a rolling window per account and prunes
+        silently.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum entries to return.
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: The most recently watched channels, newest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecentChannelList'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    put:
+      tags: [userdata]
+      operationId: recordRecentChannel
+      summary: Record that a channel was just watched
+      description: |
+        Idempotent upsert keyed on the channel for the caller: watching the same
+        channel again moves it to the top rather than adding a row.
+
+        Sent when playback actually starts, not when a channel is focused — a
+        rail built from what the D-pad passed over on its way somewhere is
+        noise, and it is the user's own history being made worse.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordRecentChannelRequest'
+      responses:
+        '200':
+          description: The recorded entry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecentChannel'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such channel on this account (`CHANNEL_NOT_FOUND`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
   # ------------------------------------------------------------- billing ------
 
   /billing/checkout-session:
@@ -1544,6 +1614,29 @@ components:
 
         Clients poll until `READY` or `ERROR`; those are the only terminal states.
       enum: [PENDING, SYNCING, READY, ERROR]
+
+    SyncStep:
+      type: string
+      description: |
+        Where a running ingestion has got to.
+
+        `SourceStatus` says whether ingestion is running; this says how far it
+        is. Onboarding waits here — a large playlist takes up to a minute — and
+        a minute of silence is where a user concludes it is broken and closes
+        the application. A named step says two things an indeterminate spinner
+        cannot: that it is moving, and how far it got when it fails.
+
+        | Value | Cause |
+        |---|---|
+        | `CONNECTING` | Opening the connection to the user's server. |
+        | `AUTHENTICATED` | Credentials accepted; nothing parsed yet. |
+        | `PARSING_CHANNELS` | Reading the playlist or the panel's catalogue. |
+        | `FETCHING_EPG` | Retrieving the XMLTV guide, when the source has one. |
+
+        These are the server's real phases and must stay so. A step the
+        implementation does not actually distinguish is a reassuring fiction,
+        and three true steps beat four invented ones.
+      enum: [CONNECTING, AUTHENTICATED, PARSING_CHANNELS, FETCHING_EPG]
 
     ContentType:
       type: string
@@ -2054,7 +2147,7 @@ components:
         password is encrypted at rest (AES-256-GCM, data key wrapped by an
         out-of-database master key) and never leaves the `source` layer — not
         even for its owner (`docs/domain-model.md` §2).
-      required: [id, label, kind, status]
+      required: [id, label, kind, status, auto_sync]
       properties:
         id:
           type: string
@@ -2085,6 +2178,30 @@ components:
           description: Optional XMLTV guide URL, independent of the playlist.
         status:
           $ref: '#/components/schemas/SourceStatus'
+        sync_step:
+          type: string
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/SyncStep'
+          description: |
+            How far the running ingestion has got. Non-null only while `status`
+            is `SYNCING`; cleared when it reaches `READY` or `ERROR`.
+
+            Rendered as a checklist while the user waits (mobile, écran 5). A
+            client that ignores it falls back to an indeterminate progress bar,
+            which is correct but worse.
+        auto_sync:
+          type: boolean
+          description: |
+            Whether the server re-synchronises this source on its own.
+
+            On the source rather than on the account or the device, and that is
+            the whole point: re-synchronising is server work that hits the
+            user's own IPTV server, so the decision belongs to the source it
+            hits. One may want a playlist that moves refreshed nightly and a
+            stable subscription left alone. On a device, the setting would have
+            to be made three times and would still not describe what the server
+            does while every device is asleep.
         error_code:
           type: string
           nullable: true
@@ -2139,6 +2256,16 @@ components:
             Channels ingested from this source. Derived, not stored on the
             entity. Null until the first successful ingestion; it is what "we
             found N channels" is rendered from (US-06, US-07).
+        category_count:
+          type: integer
+          format: int32
+          nullable: true
+          description: |
+            Categories ingested from this source. Derived and nullable on
+            exactly the same terms as `channel_count`, with which it is
+            displayed side by side on the success screen — "1 248 chaînes ·
+            96 catégories". Half of that line was available; this is the other
+            half.
 
     SourceList:
       type: object
@@ -2202,6 +2329,13 @@ components:
           nullable: true
           maxLength: 2000
           description: Optional XMLTV URL, a separate field from the playlist URL.
+        auto_sync:
+          type: boolean
+          default: true
+          description: |
+            Whether the server re-synchronises this source on its own. Defaults
+            to true: a catalogue that silently goes stale is the failure the
+            user cannot diagnose.
 
     UpdateSourceRequest:
       type: object
@@ -2236,6 +2370,12 @@ components:
           type: string
           nullable: true
           maxLength: 2000
+        auto_sync:
+          type: boolean
+          description: |
+            Toggling this does **not** re-trigger an ingestion: it only decides
+            whether the server will start one by itself later. It is the one
+            property in this request that leaves the catalogue alone.
 
     # ---- catalog -----------------------------------------------------------
 
@@ -2325,6 +2465,33 @@ components:
           type: string
           nullable: true
           description: EPG identifier, used to join with `epg_programme`.
+        number:
+          type: integer
+          format: int32
+          nullable: true
+          description: |
+            The channel number the provider assigns — `tvg-chno` in an M3U, the
+            panel's own field in Xtream. Null when the source carries none, and
+            many do not.
+
+            **Not `position`.** That is a display index, reassigned at every
+            ingestion; this is the number the user knows by heart and types on a
+            remote control, and the two diverge the moment a channel drops out
+            of the playlist. Without this field, direct number entry — the
+            oldest gesture in television — has nothing to work from.
+        quality:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: |
+            Definition as the source advertises it: `HD`, `FHD`, `UHD`, `4K`,
+            `H265`… Echoed verbatim, and rendered as a badge next to the name.
+
+            **A free string, deliberately not an enumeration.** Sources write
+            what they like, sometimes inside the channel name itself. An
+            enumeration would force the server to file the unknown under some
+            value, which is to say to lie about it; an unrecognised string is
+            merely a badge the client can show or ignore.
         position:
           type: integer
           format: int32
@@ -2592,6 +2759,49 @@ components:
           type: integer
           format: int32
 
+
+    RecentChannel:
+      type: object
+      description: |
+        One live channel the user watched, and when.
+
+        Carries identifiers and nothing else: the name, the logo and the current
+        programme are already reachable from the catalogue and the guide, and
+        denormalising them here would mean a rail showing a channel name that
+        the last ingestion has since changed.
+      required: [channel_id, source_id, watched_at]
+      properties:
+        channel_id:
+          type: string
+          format: uuid
+        source_id:
+          type: string
+          format: uuid
+          description: Derived from the channel, so the two cannot disagree.
+        watched_at:
+          type: string
+          format: date-time
+          description: Last time playback started on this channel.
+
+    RecentChannelList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecentChannel'
+
+    RecordRecentChannelRequest:
+      type: object
+      description: |
+        `source_id` is not accepted: it is derived from the channel, exactly as
+        on `AddFavoriteRequest`.
+      required: [channel_id]
+      properties:
+        channel_id:
+          type: string
+          format: uuid
     SaveProgressRequest:
       type: object
       description: Upsert keyed on `(item_type, item_ref)` for the caller.

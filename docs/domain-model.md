@@ -92,6 +92,19 @@ TV n'a pas interrogé une seule fois — le premier poll n'est jamais trop rapid
 | `last_synced_at` | timestamptz nullable | dernière ingestion **réussie**, inchangée par un échec |
 | `expires_at` | timestamptz nullable | Xtream : expiration du compte |
 | `max_connections` | int nullable | Xtream |
+| `auto_sync` | boolean NOT NULL DEFAULT true | le serveur resynchronise-t-il seul |
+
+**`auto_sync` est sur la source**, pas sur le compte ni sur l'appareil. La
+resynchronisation est un travail serveur qui frappe le serveur IPTV de
+l'utilisateur : la décision appartient donc à la source qu'elle frappe — on peut
+vouloir rafraîchir une playlist qui bouge et laisser tranquille un abonnement
+stable. Rangée sur l'appareil, elle serait à régler une fois par appareil et ne
+décrirait toujours pas ce que le serveur fait quand tous sont éteints.
+
+**`sync_step` et `category_count` ne sont pas des colonnes.** Le premier est
+l'étape de l'ingestion en cours, connue du travail de fond ; le second se dérive
+comme `channel_count`. Tous deux sont exposés par l'API sans être stockés sur
+l'entité.
 
 **Chiffrement.** `password_encrypted` utilise AES-256-GCM avec une clé de données
 elle-même chiffrée par une clé maître hors base (variable d'environnement en dev, KMS
@@ -105,7 +118,17 @@ propriétaire — et n'apparaît dans aucun log.
 
 ### `channel`
 `id`, `source_id`, `category_id` nullable, `external_id`, `name`, `logo_url`,
-`tvg_id`, `stream_url`, `position`, `is_adult`.
+`tvg_id`, `stream_url`, `number` nullable, `quality` nullable, `position`,
+`is_adult`.
+
+`number` est le numéro attribué par le fournisseur (`tvg-chno` en M3U, champ
+propre aux panels Xtream) — **pas** `position`, qui est un index d'affichage
+réattribué à chaque ingestion. Les deux divergent dès qu'une chaîne disparaît de
+la playlist, et c'est `number` que l'utilisateur tape à la télécommande.
+
+`quality` est une **chaîne libre**, jamais une énumération : les sources
+écrivent `HD`, `FHD`, `UHD`, `4K`, `H265`, parfois dans le nom de la chaîne. Une
+énumération obligerait à ranger l'inconnu dans une case, c'est-à-dire à mentir.
 
 Index : `(source_id, category_id, position)` et un index trigram sur `name` pour la recherche.
 
@@ -124,6 +147,18 @@ Un groupe par défaut (« Favoris ») est créé au premier ajout.
 ### `playback_progress`
 `id`, `user_id`, `item_type` (`VOD` | `EPISODE`), `item_ref`, `position_ms`,
 `duration_ms`, `updated_at`. Le live n'a pas de progression.
+
+### `recent_channel`
+`id`, `user_id`, `source_id`, `channel_id`, `watched_at`. Unique sur
+`(user_id, channel_id)` : revoir une chaîne la remonte, elle ne l'ajoute pas.
+
+Table distincte de `playback_progress`, et non une valeur `LIVE` de plus sur
+`item_type`. Une position de lecture ne veut rien dire sur un flux continu, et
+`position_ms` deviendrait obligatoire sans valeur possible. Les deux alimentent
+le même rail sur la TV ; ce n'est pas une raison pour partager une table.
+
+Fenêtre glissante par compte, purgée en silence : ça alimente un rail, pas un
+historique.
 
 ### `entitlement`
 `id`, `user_id`, `plan` (`FREE` | `PREMIUM`), `status` (`ACTIVE` | `TRIALING` |

@@ -18,6 +18,7 @@ package tv.lumo.android.network.generated.model
 import tv.lumo.android.network.generated.model.IngestionErrorCode
 import tv.lumo.android.network.generated.model.SourceKind
 import tv.lumo.android.network.generated.model.SourceStatus
+import tv.lumo.android.network.generated.model.SyncStep
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
@@ -29,16 +30,19 @@ import com.squareup.moshi.JsonClass
  * @param label Name the user gave this source.
  * @param kind 
  * @param status 
+ * @param autoSync Whether the server re-synchronises this source on its own.  On the source rather than on the account or the device, and that is the whole point: re-synchronising is server work that hits the user's own IPTV server, so the decision belongs to the source it hits. One may want a playlist that moves refreshed nightly and a stable subscription left alone. On a device, the setting would have to be made three times and would still not describe what the server does while every device is asleep. 
  * @param host Xtream base URL, normalised server-side. Returned so an edit form can keep it while the user corrects only what was wrong (US-06). 
  * @param username Xtream username. The matching password is never returned.
  * @param m3uUrl Playlist URL, for `M3U_URL` sources.
  * @param epgUrl Optional XMLTV guide URL, independent of the playlist.
+ * @param syncStep How far the running ingestion has got. Non-null only while `status` is `SYNCING`; cleared when it reaches `READY` or `ERROR`.  Rendered as a checklist while the user waits (mobile, écran 5). A client that ignores it falls back to an indeterminate progress bar, which is correct but worse. 
  * @param errorCode Why the last ingestion failed. Non-null only when `status` is `ERROR`. A stable code, never a free-form message — the client owns the wording, in FR and EN. 
  * @param lastErrorAt When the ingestion that set `error_code` failed. Non-null only when `status` is `ERROR`, and cleared by the next success.  Separate from `last_synced_at` because the two answer different questions and a single timestamp cannot answer both: one row of the account screen reads \"1 248 channels · checked 2 h ago\", the row below it reads \"credentials refused **since yesterday**\".  The age is what makes the message actionable. \"Credentials refused\" alone does not say whether the user missed two hours of television or two weeks. 
  * @param lastSyncedAt Last ingestion that **succeeded**. Unchanged by a failed attempt — see `last_error_at`. 
  * @param expiresAt Expiry of the user's Xtream account, as reported by the panel. Shown after a successful registration (US-06). Null for M3U sources. 
  * @param maxConnections Simultaneous streams the user's subscription allows, as reported by the panel. Null when unknown or not applicable. 
  * @param channelCount Channels ingested from this source. Derived, not stored on the entity. Null until the first successful ingestion; it is what \"we found N channels\" is rendered from (US-06, US-07). 
+ * @param categoryCount Categories ingested from this source. Derived and nullable on exactly the same terms as `channel_count`, with which it is displayed side by side on the success screen — \"1 248 chaînes · 96 catégories\". Half of that line was available; this is the other half. 
  */
 
 
@@ -57,6 +61,10 @@ data class Source (
     @Json(name = "status")
     val status: SourceStatus,
 
+    /* Whether the server re-synchronises this source on its own.  On the source rather than on the account or the device, and that is the whole point: re-synchronising is server work that hits the user's own IPTV server, so the decision belongs to the source it hits. One may want a playlist that moves refreshed nightly and a stable subscription left alone. On a device, the setting would have to be made three times and would still not describe what the server does while every device is asleep.  */
+    @Json(name = "auto_sync")
+    val autoSync: kotlin.Boolean,
+
     /* Xtream base URL, normalised server-side. Returned so an edit form can keep it while the user corrects only what was wrong (US-06).  */
     @Json(name = "host")
     val host: kotlin.String? = null,
@@ -72,6 +80,10 @@ data class Source (
     /* Optional XMLTV guide URL, independent of the playlist. */
     @Json(name = "epg_url")
     val epgUrl: kotlin.String? = null,
+
+    /* How far the running ingestion has got. Non-null only while `status` is `SYNCING`; cleared when it reaches `READY` or `ERROR`.  Rendered as a checklist while the user waits (mobile, écran 5). A client that ignores it falls back to an indeterminate progress bar, which is correct but worse.  */
+    @Json(name = "sync_step")
+    val syncStep: SyncStep? = null,
 
     /* Why the last ingestion failed. Non-null only when `status` is `ERROR`. A stable code, never a free-form message — the client owns the wording, in FR and EN.  */
     @Json(name = "error_code")
@@ -95,7 +107,11 @@ data class Source (
 
     /* Channels ingested from this source. Derived, not stored on the entity. Null until the first successful ingestion; it is what \"we found N channels\" is rendered from (US-06, US-07).  */
     @Json(name = "channel_count")
-    val channelCount: kotlin.Int? = null
+    val channelCount: kotlin.Int? = null,
+
+    /* Categories ingested from this source. Derived and nullable on exactly the same terms as `channel_count`, with which it is displayed side by side on the success screen — \"1 248 chaînes · 96 catégories\". Half of that line was available; this is the other half.  */
+    @Json(name = "category_count")
+    val categoryCount: kotlin.Int? = null
 
 ) {
 

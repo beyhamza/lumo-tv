@@ -49,6 +49,9 @@ src/main/java/tv/lumo/api/generated/model/PlaybackProgress.java
 src/main/java/tv/lumo/api/generated/model/PlaybackProgressPage.java
 src/main/java/tv/lumo/api/generated/model/Problem.java
 src/main/java/tv/lumo/api/generated/model/ProgressItemType.java
+src/main/java/tv/lumo/api/generated/model/RecentChannel.java
+src/main/java/tv/lumo/api/generated/model/RecentChannelList.java
+src/main/java/tv/lumo/api/generated/model/RecordRecentChannelRequest.java
 src/main/java/tv/lumo/api/generated/model/RefreshRequest.java
 src/main/java/tv/lumo/api/generated/model/RegisterRequest.java
 src/main/java/tv/lumo/api/generated/model/ResetPasswordRequest.java
@@ -57,6 +60,7 @@ src/main/java/tv/lumo/api/generated/model/Source.java
 src/main/java/tv/lumo/api/generated/model/SourceKind.java
 src/main/java/tv/lumo/api/generated/model/SourceList.java
 src/main/java/tv/lumo/api/generated/model/SourceStatus.java
+src/main/java/tv/lumo/api/generated/model/SyncStep.java
 src/main/java/tv/lumo/api/generated/model/TokenPair.java
 src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java
 src/main/java/tv/lumo/api/generated/model/UpdateUserRequest.java

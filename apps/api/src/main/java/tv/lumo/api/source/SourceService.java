@@ -144,7 +144,8 @@ public class SourceService {
                 || request.getEpgUrl() != null;
 
         sources.update(sourceId, userId, request.getLabel(), host, request.getUsername(),
-                sealedPassword, request.getM3uUrl(), request.getEpgUrl(), reingest);
+                sealedPassword, request.getM3uUrl(), request.getEpgUrl(), request.getAutoSync(),
+                reingest);
 
         if (reingest) {
             ingestion.schedule(sourceId);

@@ -60,6 +60,9 @@ src/main/kotlin/tv/lumo/android/network/generated/model/PlaybackProgress.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/PlaybackProgressPage.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Problem.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/ProgressItemType.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/RecentChannel.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/RecentChannelList.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/RecordRecentChannelRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/RefreshRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/RegisterRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/ResetPasswordRequest.kt
@@ -68,6 +71,7 @@ src/main/kotlin/tv/lumo/android/network/generated/model/Source.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/SourceKind.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/SourceList.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/SourceStatus.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/SyncStep.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/TokenPair.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/UpdateSourceRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/UpdateUserRequest.kt
