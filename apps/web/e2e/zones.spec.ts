@@ -119,13 +119,8 @@ test.describe("activation", () => {
     await expect(signIn).toHaveAttribute("href", /next=.*ABCD2345/);
   });
 
-  // Needs a signed-in session, which needs a running lumo-api. Enable it with a
-  // storage-state fixture once the API is part of the e2e environment.
-  test.fixme("the code field takes focus and is prefilled", async ({ page }) => {
-    await page.goto("/fr/activate?code=ABCD2345");
-
-    const field = page.getByLabel(/code/i);
-    await expect(field).toBeFocused();
-    await expect(field).toHaveValue("ABCD2345");
-  });
+  // The signed-in half of this page — the field focused and prefilled, and a
+  // code the API refuses — moved to journey.spec.ts when lumo-api joined the
+  // environment. It was a `fixme` here for exactly as long as there was no
+  // server to sign in against.
 });

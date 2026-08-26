@@ -1,0 +1,53 @@
+# ==============================================================================
+# Overlay bringing the development stack into the Playwright environment.
+#
+# Never used on its own — it overrides docker-compose.yml and is applied by
+# apps/web/e2e/global-setup.ts:
+#
+#   docker compose -p lumo-e2e -f docker-compose.yml -f docker-compose.e2e.yml \
+#     up -d --wait --build postgres lumo-api
+#
+# Three differences from the development stack, and each one exists so that an
+# end-to-end run cannot disturb — or be disturbed by — a stack a developer
+# already has running:
+#
+#   1. Its own project name and container names.
+#   2. Its own published ports, passed in as POSTGRES_PORT and LUMO_API_PORT.
+#   3. A cluster in RAM instead of ./docker-data/postgres.
+#
+# Secrets are not in this file and never will be. They are generated per run in
+# apps/web/e2e/support/stack.ts and passed through the environment: a committed
+# .env would be refused by the `no-content` CI job (AGENTS.md §5), and rightly.
+# ==============================================================================
+
+services:
+
+  postgres:
+    container_name: lumo-e2e-postgres
+    # A test stack that comes back after a reboot is a test stack nobody
+    # remembers starting.
+    restart: "no"
+    # The development file bind-mounts ./docker-data/postgres. Reusing it here
+    # would run the tests against a developer's own cluster - and, on the first
+    # run, against a password that directory was initialised with months ago.
+    # `!reset` drops the mount rather than merging with it, which is what a
+    # plain list would do.
+    volumes: !reset []
+    # The cluster lives in RAM, so it is created and thrown away with the run.
+    # PGDATA points one level below this mount, as in the development file.
+    tmpfs:
+      - /var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lumo_e2e}
+
+  lumo-api:
+    container_name: lumo-e2e-api
+    restart: "no"
+    environment:
+      # The production limits are 5 per IP per minute (US-01, US-02) and they
+      # are right for a front door. An end-to-end run is not one: every request
+      # arrives from a single host address, so the whole suite shares one
+      # bucket. Raised here rather than in the application, because the limit
+      # being tested is the one that ships.
+      LUMO_RATE_LIMIT_AUTH_ATTEMPTS_PER_MINUTE: ${LUMO_RATE_LIMIT_AUTH_ATTEMPTS_PER_MINUTE:-1000}
+      LUMO_RATE_LIMIT_DEVICE_APPROVE_ATTEMPTS_PER_MINUTE: ${LUMO_RATE_LIMIT_DEVICE_APPROVE_ATTEMPTS_PER_MINUTE:-1000}

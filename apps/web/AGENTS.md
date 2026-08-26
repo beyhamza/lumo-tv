@@ -203,9 +203,45 @@ rendu client différents et casse l'hydratation.
 - `pnpm test` — Vitest, sur la logique qui mérite des tests : le scellement du
   cookie de session, la garde anti-redirection ouverte, la construction des URL
   localisées. Pas de test de rendu de placeholder.
-- `pnpm test:e2e` — Playwright. La configuration est en place ; les navigateurs
-  se téléchargent avec `pnpm exec playwright install chromium`, ce qui n'a pas
-  encore été fait ici.
+- `pnpm test:e2e` — Playwright, contre un **build de production** et non le
+  serveur de dev : ce qui est testé, ce sont des propriétés de la sortie de
+  production (une page marketing servie statiquement, la redirection du proxy,
+  `/activate` sans JavaScript). La CI l'exécute sur toute PR touchant `apps/web`.
+
+  **La commande démarre la pile complète.** `e2e/global-setup.ts` lance
+  PostgreSQL et lumo-api via `docker-compose.e2e.yml`, attend leurs deux
+  healthchecks, et `global-teardown.ts` les arrête. Il faut donc Docker.
+
+  Quatre projets :
+
+  | Projet | Ce qu'il couvre |
+  |---|---|
+  | `setup` | crée un compte via le formulaire et enregistre sa session |
+  | `chromium`, `mobile` | `zones.spec.ts` — le web seul, sans session |
+  | `journey` | `journey.spec.ts` — tout ce qui traverse jusqu'à l'API |
+
+  Ports, secrets et invocation de compose sont décrits dans
+  `e2e/support/stack.ts`. Trois choses à ne pas défaire :
+
+  1. **La pile a ses propres ports** (55432, 18080, 3100) et son propre nom de
+     projet compose. Une exécution ne doit pas pouvoir toucher — ni même
+     atteindre — la pile de développement.
+  2. **La base vit en RAM** (`tmpfs`), pas dans `docker-data/`. Elle naît et
+     meurt avec la campagne, donc rien ne dépend de l'état laissé par la
+     précédente.
+  3. **Les secrets sont générés à chaque exécution** et ne sont écrits nulle
+     part. Il n'y a pas de `.env` pour l'e2e et il ne doit pas y en avoir : le
+     job CI `no-content` refuse tout `.env` commité, et une clé de test connue
+     finit toujours par devenir une clé de production connue.
+
+  `E2E_KEEP_STACK=1` laisse les conteneurs debout après la campagne, quand la
+  base est la pièce à conviction. En cas d'échec, les logs de l'API sont
+  capturés dans `test-results/lumo-api.log` **avant** le teardown — sans quoi
+  la CI ne remonterait qu'une trace de navigateur montrant une page d'erreur,
+  et rien sur sa cause.
+
+  Les navigateurs ne sont pas installés par `pnpm install`. Une fois par
+  machine : `pnpm exec playwright install chromium`.
 
 ---
 
@@ -239,4 +275,7 @@ contorsions.
 - Le rafraîchissement dédoublonne dans **un** processus. Derrière plusieurs
   instances, deux requêtes simultanées peuvent encore rafraîchir en parallèle :
   il faudra un verrou partagé (voir le commentaire dans `lib/session/refresh.ts`).
-- Aucun test Playwright n'a été exécuté.
+- Les parcours e2e s'arrêtent à la création de compte et à l'activation. Ils
+  traversent bien l'API depuis que la pile est branchée, mais aucun ne va
+  jusqu'à la lecture — et ce qui manque n'est plus l'environnement, ce sont les
+  écrans : le web n'a ni formulaire d'ajout de source ni écran de catalogue.

@@ -53,7 +53,8 @@ lumo-tv/
 │  └─ prompts/                # prompts d'initialisation
 ├─ .github/workflows/         # contrat, api, android, web (§7)
 ├─ docker-data/               # état des conteneurs, sur disque, gitignoré
-└─ docker-compose.yml         # postgres + api en local
+├─ docker-compose.yml         # postgres + api en local
+└─ docker-compose.e2e.yml     # surcouche de la même pile pour Playwright
 ```
 
 Chaque `apps/*` possède son propre `AGENTS.md` local qui **complète** celui-ci

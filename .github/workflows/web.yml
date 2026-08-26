@@ -119,6 +119,17 @@ jobs:
       # itself. That repeats the build above; the alternative is a bespoke CI
       # path that no developer runs locally, and this way `pnpm test:e2e` means
       # the same thing on both sides.
+      #
+      # It also brings up PostgreSQL and lumo-api: e2e/global-setup.ts runs
+      # `docker compose --build` from docker-compose.e2e.yml and waits on both
+      # healthchecks. No step is needed here for that, deliberately - a stack
+      # started by the workflow would be a stack no developer can reproduce.
+      #
+      # The cost is real and worth stating: the API image is built from source
+      # on every run, and the Gradle cache mount does not survive between runs.
+      # Expect several minutes before the first test executes. If that becomes
+      # the bottleneck, the fix is a buildx cache keyed on the API sources - not
+      # dropping the stack.
       - name: End-to-end tests
         run: pnpm test:e2e
 
