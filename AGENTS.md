@@ -49,6 +49,7 @@ lumo-tv/
 │  ├─ domain-model.md
 │  ├─ adr/                    # décisions techniques, immuables une fois acceptées
 │  ├─ backlog/
+│  ├─ design/                 # spécifications d'écran, dérivées des maquettes
 │  └─ prompts/                # prompts d'initialisation
 ├─ .github/workflows/         # contrat, api, android, web (§7)
 ├─ docker-data/               # état des conteneurs, sur disque, gitignoré
