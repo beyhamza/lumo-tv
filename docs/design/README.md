@@ -31,7 +31,8 @@ en v2.
 |---|---|
 | [`design-system.md`](./design-system.md) | Direction « Spectre » : palette, typographie, espacement, élévation, dérivations mobile / TV / web |
 | [`web-sprint-1.md`](./web-sprint-1.md) | Écrans W1 → W4 (landing, gabarit de guide, espace compte, `/activate`), états compris |
-| [`api-gaps.md`](./api-gaps.md) | Ce que ces écrans impliquent côté API et que `openapi.yaml` ne couvre pas |
+| [`api-gaps.md`](./api-gaps.md) | Ce que les maquettes impliquent côté API et que `openapi.yaml` ne couvre pas. Deux lots : **G1 → G7** (web, portés dans le contrat) et **M1 → M6** (mobile et TV, listés, contrat non modifié) |
+| [`canvas/`](./canvas/) | Les maquettes elles-mêmes, exportées du projet Claude Design |
 
 ## Règles qui s'appliquent à toute maquette
 

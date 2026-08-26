@@ -44,21 +44,17 @@ et ne doivent pas être construits : AGENTS.md §6 les range en v2.
 | Timeshift sur le direct (`−30`/`+30`, « −12 min du direct ») | lecteur mobile et TV | **v2** |
 | « Diffuser » (Chromecast) | lecteur mobile | **v2** |
 
-Deux autres éléments ne sont pas hors périmètre mais ne sont **pas couverts par
-le contrat** — les construire demanderait de le modifier d'abord :
+## Ce que ces maquettes demandent à l'API
 
-- **une chaîne « Hors ligne »** dans la liste et la grille : `Channel` n'a aucun
-  champ de disponibilité ;
-- **les pistes de sous-titres et le sélecteur `1080p`** de l'overlay :
-  `PlaybackInfo` ne renvoie ni pistes ni qualités.
+Le reste de l'écart entre ces maquettes et le contrat est analysé dans
+[`../api-gaps.md`](../api-gaps.md), **lot 2** — six manques `M1` → `M6`, chacun
+avec sa justification, plus dix besoins apparents écartés avec le raisonnement.
+Le contrat n'a pas été modifié pour ce lot.
 
-Et deux libellés impliquent des données que le contrat n'expose pas :
-**« 96 catégories »** sur l'écran de succès de source (`Source` porte
-`channel_count`, pas `category_count`) et le réglage **« Actualisation
-automatique »** (aucune préférence de ce type n'est persistée).
-
-Aucun de ces points n'a été porté dans `api-gaps.md`, dont le périmètre déclaré
-est celui des écrans **web**. À traiter comme un lot distinct.
+Les deux plus visibles depuis ces fichiers : l'ingestion n'expose qu'un statut
+là où l'écran 5 du mobile montre quatre étapes nommées, et le rail
+« Reprendre » de la TV mélange une progression de VOD — couverte — avec des
+chaînes en direct, qui n'ont aucun équivalent côté serveur.
 
 ## Un défaut connu
 

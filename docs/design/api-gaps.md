@@ -1,4 +1,16 @@
-# Manques d'API impliqués par les écrans web du sprint 1
+# Manques d'API impliqués par les maquettes du sprint 1
+
+Deux lots, à des stades différents. Ne pas les confondre : le premier est dans
+le contrat, le second attend une décision.
+
+| Lot | Écrans | Statut |
+|---|---|---|
+| **G1 → G7** | web (W1 → W4) | **porté dans le contrat** |
+| **M1 → M6** | mobile et TV | **listé, contrat non modifié** |
+
+---
+
+# Lot 1 — les écrans web
 
 **Statut : traité.** Les sept manques ont été portés dans
 `packages/contracts/openapi.yaml`, les trois clients régénérés. Ce document
@@ -16,8 +28,7 @@ progression sont des interfaces générées que personne n'implémente encore.
 > n'existe pas encore à cet instant. Voir la section G4.
 
 Périmètre analysé : `Lumo - Web Sprint 1.dc.html` (écrans W1 → W4), confronté à
-`openapi.yaml` v1.0.0. Les écrans mobile et TV n'ont pas été passés au crible ;
-G7 les concerne néanmoins de plein fouet.
+`openapi.yaml` v1.0.0. Le lot mobile et TV est plus bas.
 
 ## Récapitulatif
 
@@ -287,3 +298,204 @@ contrat » :
   ailleurs → **10 minutes**.
 
 Ni l'une ni l'autre n'a entraîné de modification d'`openapi.yaml`.
+
+---
+
+# Lot 2 — les écrans mobile et TV
+
+**Statut : listé, contrat non modifié.** `openapi.yaml` n'a pas été touché pour
+ce lot. Comme pour le premier, c'est une proposition à instruire explicitement
+(AGENTS.md §3 et §9).
+
+Périmètre analysé : `Lumo - Mobile Sprint 1.dc.html` (écrans 1 → 8) et
+`Lumo - TV Sprint 1.dc.html` (splash, activation, accueil, grille, lecteur,
+réglages, états), confrontés au contrat après le lot 1.
+
+Deux éléments dessinés dans ces maquettes sont **hors périmètre v1** et ne
+figurent donc pas ici : le timeshift sur le direct et la diffusion Chromecast,
+que l'AGENTS.md §6 range en v2. Voir [`canvas/README.md`](./canvas/README.md).
+
+## Récapitulatif
+
+| # | Écran | Manque | Proposition |
+|---|---|---|---|
+| M1 | Mobile 5 — validation | L'ingestion n'expose qu'un statut, la maquette montre quatre étapes | `Source.sync_step` |
+| M2 | Mobile 5 — succès | « 96 catégories » | `Source.category_count` |
+| M3 | Mobile 6, TV grille | Le numéro de chaîne (`001`…) | `Channel.number` |
+| M4 | Mobile 6, TV grille et aperçu | Le badge de qualité (`HD`, `SD`, `4K`) | `Channel.quality` |
+| M5 | TV accueil — rail « Reprendre » | Les chaînes regardées récemment | `GET`/`PUT /me/recent-channels` |
+| M6 | Mobile 8, TV réglages | « Actualisation automatique » | `Source.auto_sync` |
+
+---
+
+## M1 — L'ingestion n'a qu'un statut, l'écran montre quatre étapes
+
+**Écran.** Mobile 5, « Vérification en cours… » : *Connexion au serveur* →
+*Identifiants acceptés* → *Lecture de la liste des chaînes* → *Récupération du
+programme TV*, cochées au fur et à mesure, avec la mention « une grande liste
+peut prendre jusqu'à une minute ».
+
+**Donnée nécessaire.** Où en est l'ingestion, au-delà de « elle tourne ».
+
+**Ce qui manque.** `SourceStatus` vaut `PENDING | SYNCING | READY | ERROR`.
+Pendant `SYNCING`, un client ne peut afficher qu'un indéterminé.
+
+Ajouter `Source.sync_step` (nullable, non nul pendant `SYNCING`), énumération
+calquée sur les étapes réelles du serveur :
+`CONNECTING`, `AUTHENTICATED`, `PARSING_CHANNELS`, `FETCHING_EPG`.
+
+**Pourquoi ça vaut plus qu'un spinner.** C'est le même raisonnement que les sept
+`IngestionErrorCode` : une minute d'attente muette est l'endroit exact où
+l'utilisateur conclut que c'est cassé et ferme l'application. Une étape nommée
+dit deux choses qu'un indéterminé ne dit pas — que ça avance, et jusqu'où c'est
+allé quand ça échoue.
+
+**Réserve.** Les étapes doivent rester celles du serveur, pas une fiction
+rassurante. Si l'implémentation ne distingue pas réellement ces quatre phases,
+il vaut mieux trois étapes vraies que quatre inventées.
+
+---
+
+## M2 — Le nombre de catégories
+
+**Écran.** Mobile 5, écran de succès : « **1 248** chaînes trouvées ·
+**96** catégories · compte valide jusqu'au 12 mars 2027 ».
+
+**Ce qui manque.** `Source.channel_count` existe, dérivé et documenté comme tel.
+Son pendant non.
+
+Ajouter `Source.category_count` (`integer`, nullable, dérivé), avec exactement
+la même sémantique : nul tant que la première ingestion n'a pas abouti.
+
+Le moins cher du lot, et le seul dont la justification tient en une ligne : les
+deux chiffres sont affichés côte à côte, un seul est disponible.
+
+---
+
+## M3 — Le numéro de chaîne
+
+**Écrans.** TV, grille : chaque carte porte `001`, `002`, `004`… Mobile 6, même
+information dans la liste.
+
+**Donnée nécessaire.** Le numéro que le fournisseur attribue à la chaîne.
+
+**Ce qui manque.** `Channel` a `position`, qui est un **ordre d'affichage**
+interne — l'index dans la source, réattribué à chaque ingestion. Ce n'est pas la
+même chose que le numéro que l'utilisateur connaît par cœur et tape sur sa
+télécommande, et les deux divergent dès qu'une chaîne disparaît de la playlist.
+
+Ajouter `Channel.number` (`integer`, nullable) : les playlists M3U le portent
+dans `tvg-chno`, les panels Xtream dans leur propre champ, et beaucoup de
+sources n'en ont pas — d'où nullable.
+
+**Conséquence produit à ne pas manquer.** Sans ce champ, la saisie directe d'un
+numéro à la télécommande — le geste le plus ancien de la télévision — n'a rien
+sur quoi s'appuyer.
+
+---
+
+## M4 — Le badge de qualité
+
+**Écrans.** Mobile 6 : « Chaîne 01 · Généralistes · **HD** », « Chaîne 05 ·
+Sport · **4K** ». TV, aperçu : « 21:00 – 22:00 · Généralistes · **HD** ».
+
+**Ce qui manque.** Rien dans `Channel` ne porte cette information.
+
+Ajouter `Channel.quality` (`string`, nullable) — **et pas une énumération.**
+C'est la décision qui compte ici : les sources écrivent ce qu'elles veulent,
+`HD`, `FHD`, `UHD`, `4K`, `H265`, parfois dans le nom de la chaîne lui-même. Une
+énumération obligerait le serveur à ranger l'inconnu dans une case, donc à
+mentir. Une chaîne libre, échouée telle quelle, laisse le client afficher ce que
+la source dit et rien de plus.
+
+**Alternative écartée.** Extraire la qualité du nom de la chaîne côté client.
+C'est ce que font les lecteurs existants, ça marche une fois sur deux, et ça
+produit une chaîne nommée « Cinéma HD Premium » affichée comme « Cinéma
+Premium » avec un badge `HD` faux.
+
+---
+
+## M5 — Les chaînes regardées récemment
+
+**Écran.** TV, accueil : le rail **« Reprendre »** mélange un épisode en cours
+(« Documentaire — Épisode 3 · 42 min restantes ») et deux chaînes en direct
+(« Chaîne 12 — Magazine », « Chaîne 04 — Sport »). La direction artistique
+montre le même rail sous le nom « Chaînes récentes ».
+
+**Ce qui manque.** `GET /me/progress` (ajouté au lot 1) couvre la première
+carte. Les deux autres, non : `ProgressItemType` vaut `VOD | EPISODE`, et le
+contrat écrit noir sur blanc que le direct n'a pas de progression.
+
+**Il ne faut pas ajouter `LIVE` à `ProgressItemType`.** Ce serait une position
+de lecture qui ne veut rien dire sur un flux continu, et `position_ms` deviendrait
+un champ obligatoire sans valeur possible. Deux concepts distincts partageant une
+table parce qu'ils s'affichent dans le même rail est le genre de raccourci qui se
+paie six mois plus tard.
+
+Ajouter plutôt un concept à part :
+
+| Opération | Rôle |
+|---|---|
+| `PUT /me/recent-channels` | Le lecteur signale qu'une chaîne vient d'être regardée |
+| `GET /me/recent-channels` | Le rail, trié par date décroissante, borné |
+
+**Pourquoi côté serveur.** Le rail est le premier écran de la télévision, et sa
+valeur vient précisément de ce qu'il connaît ce qu'on a regardé sur le
+téléphone. Un historique local ne se synchronise pas, donc n'est pas ce rail-là.
+
+---
+
+## M6 — L'actualisation automatique
+
+**Écrans.** Mobile 8, section Sources : bascule « Actualisation automatique ».
+TV, réglages : la même, sous « Actualiser les listes maintenant ».
+
+**Ce qui manque.** Aucune préférence de ce type n'existe dans le contrat.
+
+Ajouter `Source.auto_sync` (`boolean`), lisible et modifiable par
+`UpdateSourceRequest`.
+
+**Sur la source, pas sur le compte, et surtout pas sur l'appareil.** La
+resynchronisation est un travail serveur qui frappe le serveur IPTV de
+l'utilisateur ; la décision de le faire ou non appartient à la source concernée
+— on peut vouloir rafraîchir une playlist qui bouge et laisser tranquille un
+abonnement stable. Rangée sur l'appareil, elle serait à régler trois fois et
+ne décrirait de toute façon pas ce que le serveur fait quand aucun appareil
+n'est allumé.
+
+---
+
+## Ce qui n'est **pas** un manque — lot mobile et TV
+
+Passé au crible et volontairement écarté, avec le raisonnement, pour que la
+question ne se repose pas.
+
+| Besoin apparent | Verdict |
+|---|---|
+| **« Annuler » pendant la validation** (mobile 5) | `DELETE /sources/{id}` fait exactement ça : la source existe déjà, en `PENDING`. Rien à ajouter — seulement une exigence côté serveur, arrêter le travail de fond au lieu de le laisser courir |
+| **Chaîne « Hors ligne »** (mobile 6, TV grille) | **Ne pas ajouter.** Le serveur ne peut le savoir qu'en sondant chaque flux, c'est-à-dire en martelant le serveur du fournisseur — précisément ce que le contrat protège ailleurs (`SOURCE_SYNC_RATE_LIMITED` est décrit comme une sauvegarde produit, pas de capacité). C'est une observation **du client** : il a essayé, ça a échoué, il s'en souvient localement |
+| **Sous-titres et sélecteur `1080p`** (lecteur mobile et TV) | Ce sont les pistes du manifeste HLS, que le lecteur lit lui-même — Media3 les expose nativement. Les faire transiter par l'API demanderait de parser le flux côté serveur, donc de le télécharger : exactement ce que « le média ne transite jamais par cette infrastructure » interdit |
+| **Force du mot de passe** (mobile 2) | Mesurée côté client avant soumission (US-01), par entropie. Le serveur la revérifie et répond `PASSWORD_TOO_WEAK` ; rien à exposer de plus |
+| **« Ressemble à une playlist valide »** (mobile 4) | Indice de forme, purement local. La vraie validation est le `422` de `POST /sources` |
+| **Débit et numéro de tentative** (« 2,1 Mb/s · tentative 1/3 ») | Le lecteur les connaît, l'API non |
+| **« dernière mise à jour : il y a 18 min »** en hors ligne | Horodatage du cache local, pas de la source |
+| **« Lecture sur données mobiles »** (mobile 8) | Préférence de l'appareil, et seulement de lui |
+| **« En ce moment » et « Ensuite : »** (TV) | `GET /channels/{id}/epg` avec une fenêtre couvre les deux |
+| **Recherche dans les chaînes** (mobile 6) | `GET /sources/{id}/channels` a déjà son paramètre `q` |
+
+---
+
+## Coût du lot 2
+
+Cinq champs et une paire d'opérations. Aucune rupture : tout est nullable ou
+nouveau, rien ne change de forme.
+
+| Type | Détail |
+|---|---|
+| Champs | `Source.sync_step`, `Source.category_count`, `Source.auto_sync`, `Channel.number`, `Channel.quality` |
+| Énumération | `SyncStep` — quatre valeurs |
+| Opérations | `GET` et `PUT /me/recent-channels` |
+
+M2 et M6 sont les moins chers et se justifient seuls. M5 est le plus structurant
+et mérite d'être tranché à part : c'est un concept de domaine nouveau, pas un
+champ.
