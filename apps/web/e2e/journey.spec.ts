@@ -31,15 +31,20 @@ test.describe("espace compte", () => {
     await expect(page.getByText(fr.App.unavailableTitle)).toHaveCount(0);
   });
 
-  test("un écran dont l'endpoint n'a pas de contrôleur le dit", async ({ page }) => {
+  test("la liste des appareils montre la session qui la consulte", async ({ page }) => {
     await page.goto("/fr/app/devices");
 
-    // `GET /me/devices` is in the contract and has no controller, so the router
-    // answers 404 with the generic NOT_FOUND code. That distinction is a
-    // cross-application contract — NotImplementedEndpointsTest pins the server
-    // half of it — and this is the client half: "not built yet", never "we are
-    // down".
-    await expect(page.getByText(fr.App.notImplementedBadge)).toBeVisible();
+    // This screen used to assert "not built yet": `GET /me/devices` was in the
+    // contract with no controller behind it. It has one now, so the assertion
+    // is the opposite one — and it is worth more, because it crosses the whole
+    // stack. Signing up opened exactly one session, so exactly one device is
+    // linked, and it is a WEB one: this browser.
+    await expect(page.getByText("WEB")).toBeVisible();
+    // Neither of the two fallbacks. "Not built yet" would mean the controller
+    // vanished; "unavailable" would mean the API is down. Both are calm grey
+    // boxes to anyone reading a screenshot, which is exactly why they are
+    // asserted away rather than eyeballed.
+    await expect(page.getByText(fr.App.notImplementedBadge)).toHaveCount(0);
     await expect(page.getByText(fr.App.unavailableTitle)).toHaveCount(0);
   });
 });
