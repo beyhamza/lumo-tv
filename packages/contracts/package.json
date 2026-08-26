@@ -1,6 +1,6 @@
 {
   "name": "@lumo/contracts",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Lumo TV API contract (source of truth) and the three client generators.",
   "license": "UNLICENSED",

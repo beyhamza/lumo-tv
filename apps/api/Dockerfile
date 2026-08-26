@@ -37,8 +37,8 @@ RUN --mount=type=cache,target=/root/.gradle \
 #
 # The jar is renamed BEFORE extracting, and that is not cosmetic. `extract`
 # names the file it writes into the application layer after the jar it was
-# given, so extracting lumo-api-1.0.0.jar produces /extracted/application/
-# lumo-api-1.0.0.jar - a name carrying a version the runtime stage would have
+# given, so extracting lumo-api-0.1.0.jar produces /extracted/application/
+# lumo-api-0.1.0.jar - a name carrying a version the runtime stage would have
 # to know. And it cannot glob for it: ENTRYPOINT in exec form runs no shell, so
 # `java -jar lumo-api-*.jar` looks for a file whose name contains an asterisk.
 # Renaming here is what makes the runtime stage independent of the version.

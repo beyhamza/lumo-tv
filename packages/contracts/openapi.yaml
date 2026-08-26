@@ -20,7 +20,7 @@ openapi: 3.0.3
 
 info:
   title: Lumo TV API
-  version: 1.0.0
+  version: 0.1.0
   description: |
     Backend for the Lumo TV IPTV player (`lumo-api`).
 
