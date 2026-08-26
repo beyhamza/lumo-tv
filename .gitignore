@@ -95,3 +95,6 @@ tmp/
 # docker-compose.yml bind-mounts ./docker-data/postgres as the database
 # cluster. Deleting this directory is how you reset the local database.
 docker-data/
+
+# Vignette vide que l'export Claude Design dépose à côté des canevas.
+docs/design/canvas/.thumbnail

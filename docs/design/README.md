@@ -10,13 +10,20 @@ ce qui se passe quand la donnée manque.
 | Quoi | Où | Autorité |
 |---|---|---|
 | Maquettes | Projet Claude Design `176c9cb0-5745-4a29-8e3e-5e95b98e346d` | Source visuelle |
-| Tokens | `lumo-tokens.json` dans ce projet | Source des valeurs de design |
+| Export des maquettes | [`canvas/`](./canvas/) | Copie versionnée, à l'octet près |
+| Tokens | [`canvas/lumo-tokens.json`](./canvas/lumo-tokens.json) | Source des valeurs de design |
 | Contrat d'API | `packages/contracts/openapi.yaml` | Source de vérité de l'API (AGENTS.md §3) |
 | Cette documentation | `docs/design/` | Source de la **traduction** maquette → implémentation |
 
-Les artboards du projet Design sont découpés en quatre fichiers :
-`Lumo - Directions`, `Lumo - Mobile Sprint 1`, `Lumo - TV Sprint 1`,
-`Lumo - Web Sprint 1`. Seul le dernier est documenté ici pour l'instant.
+Les maquettes sont **dans le dépôt** ([`canvas/`](./canvas/)), pour qu'on puisse
+les ouvrir sans compte et relire ce qu'un écran disait à une date donnée. Elles
+restent une copie : on corrige dans Claude Design, puis on réexporte.
+
+Quatre canevas — `Directions`, `Mobile Sprint 1`, `TV Sprint 1`,
+`Web Sprint 1`. Seul le dernier est spécifié par écrit ici pour l'instant ; le
+[README du dossier](./canvas/README.md) liste ce que les deux autres montrent et
+qui est **hors périmètre v1** — timeshift et Chromecast sont dessinés, et sont
+en v2.
 
 ## Index
 

@@ -1,0 +1,80 @@
+{
+  "$name": "Lumo — Spectre",
+  "$version": "1.0.0",
+  "$description": "Source unique. Les plateformes dérivent via les blocs 'platforms' ; aucune valeur ne doit être redéfinie ailleurs.",
+  "color": {
+    "bg": { "value": "#0D0C12", "description": "Fond application, thème sombre par défaut" },
+    "surface-1": { "value": "rgba(255,255,255,0.05)", "description": "Niveau 1 — translucide sur bg" },
+    "surface-2": { "value": "rgba(255,255,255,0.09)", "description": "Niveau 2" },
+    "surface-3": { "value": "rgba(255,255,255,0.13)", "description": "Niveau 3 / pressed" },
+    "border": { "value": "#26232F" },
+    "text-primary": { "value": "#F2F0F7", "description": "17,1:1 sur bg — AAA" },
+    "text-secondary": { "value": "#A29FB3", "description": "7,2:1 sur bg — AAA" },
+    "text-muted": { "value": "#6D6980", "description": "Décoratif uniquement, jamais porteur d'information seul" },
+    "accent-cyan": { "value": "#6EE7F0" },
+    "accent-violet": { "value": "#A78BFA" },
+    "gradient-brand": { "value": "linear-gradient(90deg, #6EE7F0, #A78BFA)", "description": "Réservé : marque, focus, progression. Jamais en fond." },
+    "on-accent": { "value": "#0D0C12" },
+    "danger": { "value": "#FF7A8A" },
+    "light-theme": {
+      "$scope": "web marketing uniquement",
+      "bg": { "value": "#F7F6FA" },
+      "surface-1": { "value": "#FFFFFF" },
+      "text-primary": { "value": "#17141F" },
+      "text-secondary": { "value": "#55516A" }
+    }
+  },
+  "space": {
+    "$base": 4,
+    "1": { "value": 4 }, "2": { "value": 8 }, "3": { "value": 12 }, "4": { "value": 16 },
+    "5": { "value": 24 }, "6": { "value": 32 }, "7": { "value": 48 }, "8": { "value": 64 }
+  },
+  "radius": {
+    "sm": { "value": 8 }, "md": { "value": 14 }, "lg": { "value": 20 }, "pill": { "value": 999 },
+    "$note": "TV : radius × 1.5 (distance de visionnage aplatit la perception des courbes)"
+  },
+  "typography": {
+    "family": { "value": "Sora", "fallback": "system-ui, sans-serif" },
+    "mono": { "value": "Space Mono", "$scope": "métadonnées techniques (débit, codec, horodatage)" },
+    "scale": {
+      "display": { "size": 32, "weight": 600, "lineHeight": 1.1, "tracking": "-0.02em" },
+      "title":   { "size": 20, "weight": 600, "lineHeight": 1.2 },
+      "body":    { "size": 15, "weight": 300, "lineHeight": 1.5 },
+      "detail":  { "size": 12, "weight": 500, "lineHeight": 1.4, "tracking": "0.1em", "transform": "uppercase" }
+    }
+  },
+  "motion": {
+    "duration-fast": { "value": "120ms", "$scope": "focus, hover" },
+    "duration-base": { "value": "260ms", "$scope": "transitions de vue, rails" },
+    "duration-slow": { "value": "420ms", "$scope": "entrée de lecteur, overlays" },
+    "easing-standard": { "value": "cubic-bezier(0.3, 0.7, 0, 1)" },
+    "easing-exit": { "value": "cubic-bezier(0.4, 0, 1, 1)" }
+  },
+  "elevation": {
+    "$principle": "Transparence superposée, jamais d'ombre portée. Focus = outline 2px accent-cyan, offset 2-3px.",
+    "0": { "surface": "{color.bg}" },
+    "1": { "surface": "{color.surface-1}" },
+    "2": { "surface": "{color.surface-2}" },
+    "focus": { "surface": "{color.surface-2}", "outline": "2px {color.accent-cyan}", "outlineOffset": 3 }
+  },
+  "platforms": {
+    "mobile": {
+      "typeScale": 1.0, "spaceScale": 1.0, "radiusScale": 1.0,
+      "hitTarget": { "min": 44 },
+      "$note": "Valeurs de la source telles quelles"
+    },
+    "tv": {
+      "typeScale": 1.75, "spaceScale": 1.5, "radiusScale": 1.5,
+      "focusRequired": true,
+      "contrast": "AAA sur toutes les surfaces",
+      "safeArea": "5% overscan",
+      "$derived": { "display": 56, "title": 35, "body": 26, "detail": 21 },
+      "$note": "body ≥ 24px non négociable à 3 m"
+    },
+    "web": {
+      "typeScale": 1.1, "spaceScale": 1.0, "radiusScale": 1.0,
+      "themes": ["dark", "light-marketing"],
+      "$derived": { "display": 35, "title": 22, "body": 16, "detail": 13 }
+    }
+  }
+}
