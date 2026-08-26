@@ -26,6 +26,42 @@ doc mise à jour si un comportement observable change · démo faite sur device 
 
 ---
 
+## État au 26 août 2026 — **sprint 1 non clos**
+
+Audit du dépôt, story par story. « ⚠️ » signale une mécanique écrite et testée mais
+qu'aucun écran n'expose.
+
+| US | API | Web | Android | Verdict |
+|---|---|---|---|---|
+| US-01 Compte email | ✅ | ✅ | ❌ placeholder | incomplet |
+| US-02 Connexion email | ✅ | ✅ | ❌ | incomplet |
+| US-03 Google | ✅ | ❌ aucun bouton | ❌ | incomplet |
+| US-04 Session et rotation | ✅ | ✅ `proxy.ts` | ⚠️ `SessionManager` complet | quasi |
+| US-05 Activer une TV | ✅ | ✅ `/activate` | ❌ ni code, ni QR, ni polling | incomplet |
+| US-06 Source Xtream | ✅ | ❌ lecture seule | ❌ | incomplet |
+| US-07 Playlist M3U | ✅ | ❌ | ❌ | incomplet |
+| US-08 Chaînes par catégorie | ✅ | — | ⚠️ Room + Paging, écran placeholder | incomplet |
+| US-09 Lecture mobile | ✅ | — | ⚠️ Media3 présent, non câblé | incomplet |
+| US-10 Lecture TV | ✅ | — | ❌ | incomplet |
+
+**Zéro story sur dix** satisfait la Definition of Done : aucune n'a été démontrée sur
+device réel, et pour cause — **les deux applications Android sont des placeholders de
+bout en bout**. Chaque `*MobileScreen` et `*TvScreen` appelle `LumoMobilePlaceholder`
+ou `LumoTvPlaceholder`. Les couches basses, elles, sont réelles et testées : session
+chiffrée, rotation de token, Room, Media3, design system, navigation.
+
+Côté serveur, trois contrôleurs sur six : `auth`, `sources`, `catalog`. `/me`,
+`/me/entitlement`, `/me/devices`, les favoris et la progression n'ont **aucun
+contrôleur** — état figé par `NotImplementedEndpointsTest`, que le web lit comme
+« écran en cours de construction ». Aucune de ces surfaces n'est nécessaire aux dix
+stories ci-dessus.
+
+Ce qui reste à faire est décrit dans **[`sprint-02.md`](./sprint-02.md)**, qui ne
+réécrit aucune story : les critères d'acceptation Gherkin de ce document restent la
+référence. Sprint 1 se ferme quand sprint 2 est vert.
+
+---
+
 # Sprint 0 — Fondations
 
 > Aucune valeur utilisateur. Objectif : qu'un agent puisse démarrer une story
