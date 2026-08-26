@@ -38,8 +38,10 @@ export async function approveDeviceCode(formData: FormData): Promise<void> {
     return;
   }
 
-  // Only the failure half of the response is read: approval answers 204, so
-  // there is no body to look at.
+  // Only the failure half of the response is read for now. Approval answers 200
+  // with a DeviceApproval naming the television it just linked; rendering that
+  // name on the success screen is a separate change, and carrying it through a
+  // redirect query parameter is not the way to do it.
   let result: { error?: unknown };
 
   try {

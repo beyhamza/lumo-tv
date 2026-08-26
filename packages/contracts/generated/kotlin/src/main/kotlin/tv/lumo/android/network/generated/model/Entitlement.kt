@@ -30,6 +30,9 @@ import com.squareup.moshi.JsonClass
  * @param provider 
  * @param updatedAt 
  * @param currentPeriodEnd End of the paid period. Null on `FREE`.
+ * @param trialEndsAt End of the free trial. Non-null only while `status` is `TRIALING`. Distinct from `current_period_end`, which dates the end of a period that was *paid for*. 
+ * @param maxSources Sources this plan allows. **Null means unlimited**, not unknown.  Present so that a client can disable \"add a source\" before the user fills a form that is going to be refused, and so that the free plan's ceiling lives in exactly one place. A client never carries its own copy of this number: that would be an access right computed client-side, which this project forbids outright (AGENTS.md §1). The day the free plan allows two, one row changes here and three applications follow without a release. 
+ * @param maxDevices Devices this plan allows. **Null means unlimited**, not unknown. Same rule as `max_sources`: read, never assumed. 
  */
 
 
@@ -49,7 +52,19 @@ data class Entitlement (
 
     /* End of the paid period. Null on `FREE`. */
     @Json(name = "current_period_end")
-    val currentPeriodEnd: java.time.OffsetDateTime? = null
+    val currentPeriodEnd: java.time.OffsetDateTime? = null,
+
+    /* End of the free trial. Non-null only while `status` is `TRIALING`. Distinct from `current_period_end`, which dates the end of a period that was *paid for*.  */
+    @Json(name = "trial_ends_at")
+    val trialEndsAt: java.time.OffsetDateTime? = null,
+
+    /* Sources this plan allows. **Null means unlimited**, not unknown.  Present so that a client can disable \"add a source\" before the user fills a form that is going to be refused, and so that the free plan's ceiling lives in exactly one place. A client never carries its own copy of this number: that would be an access right computed client-side, which this project forbids outright (AGENTS.md §1). The day the free plan allows two, one row changes here and three applications follow without a release.  */
+    @Json(name = "max_sources")
+    val maxSources: kotlin.Int? = null,
+
+    /* Devices this plan allows. **Null means unlimited**, not unknown. Same rule as `max_sources`: read, never assumed.  */
+    @Json(name = "max_devices")
+    val maxDevices: kotlin.Int? = null
 
 ) {
 

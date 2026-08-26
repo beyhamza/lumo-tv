@@ -1,5 +1,6 @@
 src/main/kotlin/tv/lumo/android/network/generated/api/AccountApi.kt
 src/main/kotlin/tv/lumo/android/network/generated/api/AuthApi.kt
+src/main/kotlin/tv/lumo/android/network/generated/api/BillingApi.kt
 src/main/kotlin/tv/lumo/android/network/generated/api/CatalogApi.kt
 src/main/kotlin/tv/lumo/android/network/generated/api/SourcesApi.kt
 src/main/kotlin/tv/lumo/android/network/generated/api/UserdataApi.kt
@@ -19,14 +20,18 @@ src/main/kotlin/tv/lumo/android/network/generated/infrastructure/UUIDAdapter.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/AddFavoriteRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/ApproveDeviceRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/AuthSession.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/BillingSession.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Category.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/CategoryList.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Channel.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/ChannelPage.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/ContentType.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/CreateCheckoutSessionRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/CreateFavoriteGroupRequest.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/CreatePortalSessionRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/CreateSourceRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Device.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/DeviceApproval.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/DeviceCodeRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/DeviceCodeResponse.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/DeviceList.kt
@@ -52,6 +57,7 @@ src/main/kotlin/tv/lumo/android/network/generated/model/Plan.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Platform.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/PlaybackInfo.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/PlaybackProgress.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/PlaybackProgressPage.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Problem.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/ProgressItemType.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/RefreshRequest.kt

@@ -21,15 +21,16 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * One installation linked to the account.
+ * One installation linked to the account.  `is_current` is computed against the access token presented on the request, which is why it is a property of the response and not something the caller works out for itself. 
  *
  * @param id 
  * @param platform 
+ * @param isCurrent True on the one device whose token made this call.  This is the row the user must not revoke by accident. `DELETE /me/devices/{id}` on your own device is allowed and signs you out — a device list that cannot say which one is *this* one asks the user to find out by trying.  False everywhere else, including on the television just linked by `POST /auth/device/approve`, which is by definition not the caller. 
  * @param createdAt 
  * @param name 
  * @param model 
  * @param appVersion 
- * @param lastSeenAt 
+ * @param lastSeenAt Last request seen from this installation. Nothing announces a disconnection, so this is a \"last seen\", never a presence: a client that renders \"online\" does so from a threshold of its own choosing over this value, and says \"active\" rather than claiming certainty. 
  */
 
 
@@ -40,6 +41,10 @@ data class Device (
 
     @Json(name = "platform")
     val platform: Platform,
+
+    /* True on the one device whose token made this call.  This is the row the user must not revoke by accident. `DELETE /me/devices/{id}` on your own device is allowed and signs you out — a device list that cannot say which one is *this* one asks the user to find out by trying.  False everywhere else, including on the television just linked by `POST /auth/device/approve`, which is by definition not the caller.  */
+    @Json(name = "is_current")
+    val isCurrent: kotlin.Boolean,
 
     @Json(name = "created_at")
     val createdAt: java.time.OffsetDateTime,
@@ -53,6 +58,7 @@ data class Device (
     @Json(name = "app_version")
     val appVersion: kotlin.String? = null,
 
+    /* Last request seen from this installation. Nothing announces a disconnection, so this is a \"last seen\", never a presence: a client that renders \"online\" does so from a threshold of its own choosing over this value, and says \"active\" rather than claiming certainty.  */
     @Json(name = "last_seen_at")
     val lastSeenAt: java.time.OffsetDateTime? = null
 

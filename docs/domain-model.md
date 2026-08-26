@@ -88,7 +88,8 @@ TV n'a pas interrogé une seule fois — le premier poll n'est jamais trop rapid
 | `epg_url` | text nullable | XMLTV |
 | `status` | enum | `PENDING` \| `SYNCING` \| `READY` \| `ERROR` |
 | `error_code` | text nullable | code stable, pas un message libre |
-| `last_synced_at` | timestamptz nullable | |
+| `last_error_at` | timestamptz nullable | date de l'échec qui a posé `error_code` |
+| `last_synced_at` | timestamptz nullable | dernière ingestion **réussie**, inchangée par un échec |
 | `expires_at` | timestamptz nullable | Xtream : expiration du compte |
 | `max_connections` | int nullable | Xtream |
 
@@ -125,12 +126,25 @@ Un groupe par défaut (« Favoris ») est créé au premier ajout.
 `duration_ms`, `updated_at`. Le live n'a pas de progression.
 
 ### `entitlement`
-`id`, `user_id`, `plan` (`FREE` | `PREMIUM`), `status` (`ACTIVE` | `PAST_DUE` |
-`CANCELED` | `EXPIRED`), `provider` (`STRIPE` | `PLAY` | `MANUAL`),
-`provider_ref`, `current_period_end`, `updated_at`.
+`id`, `user_id`, `plan` (`FREE` | `PREMIUM`), `status` (`ACTIVE` | `TRIALING` |
+`PAST_DUE` | `CANCELED` | `EXPIRED`), `provider` (`STRIPE` | `PLAY` | `MANUAL`),
+`provider_ref`, `current_period_end`, `trial_ends_at`, `updated_at`.
 
 Un seul entitlement actif par utilisateur. Alimenté par les webhooks Stripe (v1),
 puis par les RTDN Play (v2).
+
+`TRIALING` accorde les fonctions premium au même titre qu'`ACTIVE`. C'est un
+statut à part et pas un drapeau sur `ACTIVE` parce que les deux produisent des
+écrans différents : « votre essai se termine dans 3 jours » invite à saisir une
+carte, « renouvellement le 14 » rassure. `trial_ends_at` n'est renseigné que
+pendant l'essai ; `current_period_end` date la fin d'une période **payée**, ce
+qui n'est pas la même chose.
+
+**Les quotas ne sont pas des colonnes.** `max_sources` et `max_devices`, exposés
+par `GET /me/entitlement`, se **dérivent du `plan`** : les stocker par ligne
+inviterait la dérive entre deux utilisateurs de la même offre, et la valeur qui
+compte est celle de l'offre, pas celle du compte. `null` signifie illimité. Un
+client ne calcule jamais ces plafonds lui-même (AGENTS.md §1).
 
 ---
 

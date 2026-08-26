@@ -46,6 +46,9 @@ public class Source {
   private @Nullable IngestionErrorCode errorCode = null;
 
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+  private @Nullable OffsetDateTime lastErrorAt = null;
+
+  @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
   private @Nullable OffsetDateTime lastSyncedAt = null;
 
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
@@ -240,13 +243,32 @@ public class Source {
     this.errorCode = errorCode;
   }
 
+  public Source lastErrorAt(@Nullable OffsetDateTime lastErrorAt) {
+    this.lastErrorAt = lastErrorAt;
+    return this;
+  }
+
+  /**
+   * When the ingestion that set `error_code` failed. Non-null only when `status` is `ERROR`, and cleared by the next success.  Separate from `last_synced_at` because the two answer different questions and a single timestamp cannot answer both: one row of the account screen reads \"1 248 channels · checked 2 h ago\", the row below it reads \"credentials refused **since yesterday**\".  The age is what makes the message actionable. \"Credentials refused\" alone does not say whether the user missed two hours of television or two weeks. 
+   * @return lastErrorAt
+   */
+  @Valid 
+  @JsonProperty("last_error_at")
+  public @Nullable OffsetDateTime getLastErrorAt() {
+    return lastErrorAt;
+  }
+
+  public void setLastErrorAt(@Nullable OffsetDateTime lastErrorAt) {
+    this.lastErrorAt = lastErrorAt;
+  }
+
   public Source lastSyncedAt(@Nullable OffsetDateTime lastSyncedAt) {
     this.lastSyncedAt = lastSyncedAt;
     return this;
   }
 
   /**
-   * Get lastSyncedAt
+   * Last ingestion that **succeeded**. Unchanged by a failed attempt — see `last_error_at`. 
    * @return lastSyncedAt
    */
   @Valid 
@@ -334,6 +356,7 @@ public class Source {
         Objects.equals(this.epgUrl, source.epgUrl) &&
         Objects.equals(this.status, source.status) &&
         Objects.equals(this.errorCode, source.errorCode) &&
+        Objects.equals(this.lastErrorAt, source.lastErrorAt) &&
         Objects.equals(this.lastSyncedAt, source.lastSyncedAt) &&
         Objects.equals(this.expiresAt, source.expiresAt) &&
         Objects.equals(this.maxConnections, source.maxConnections) &&
@@ -342,7 +365,7 @@ public class Source {
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, label, kind, host, username, m3uUrl, epgUrl, status, errorCode, lastSyncedAt, expiresAt, maxConnections, channelCount);
+    return Objects.hash(id, label, kind, host, username, m3uUrl, epgUrl, status, errorCode, lastErrorAt, lastSyncedAt, expiresAt, maxConnections, channelCount);
   }
 
   @Override
@@ -358,6 +381,7 @@ public class Source {
     sb.append("    epgUrl: ").append(toIndentedString(epgUrl)).append("\n");
     sb.append("    status: ").append(toIndentedString(status)).append("\n");
     sb.append("    errorCode: ").append(toIndentedString(errorCode)).append("\n");
+    sb.append("    lastErrorAt: ").append(toIndentedString(lastErrorAt)).append("\n");
     sb.append("    lastSyncedAt: ").append(toIndentedString(lastSyncedAt)).append("\n");
     sb.append("    expiresAt: ").append(toIndentedString(expiresAt)).append("\n");
     sb.append("    maxConnections: ").append(toIndentedString(maxConnections)).append("\n");

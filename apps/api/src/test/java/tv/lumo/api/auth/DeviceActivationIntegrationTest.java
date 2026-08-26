@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tv.lumo.api.generated.model.AuthSession;
+import tv.lumo.api.generated.model.DeviceApproval;
 import tv.lumo.api.generated.model.DeviceCodeRequest;
 import tv.lumo.api.generated.model.DeviceCodeResponse;
 import tv.lumo.api.generated.model.ErrorCode;
@@ -71,7 +72,18 @@ class DeviceActivationIntegrationTest extends PostgresIntegrationTest {
 
         // Typed off the screen on a phone: separators and case are the user's
         // problem, not theirs.
-        activation.approve(issued.getUserCode().toLowerCase(), user.id());
+        DeviceApproval approved = activation.approve(issued.getUserCode().toLowerCase(), user.id());
+
+        // What the confirmation screen renders. Without it the phone can only
+        // say "done", and the user standing in front of two televisions has no
+        // way to tell which one they just linked.
+        assertThat(approved.getName()).isEqualTo("Test TV");
+        assertThat(approved.getPlatform()).isEqualTo(Platform.ANDROID_TV);
+
+        // No device row yet, on purpose: it is provisioned by the poll below. An
+        // approval whose television is never switched on must not leave an
+        // installation behind, counted against the account's quota.
+        assertThat(deviceCount()).isZero();
 
         allowTheNextPoll(issued);
         AuthSession session = activation.poll(issued.getDeviceCode());
@@ -79,6 +91,9 @@ class DeviceActivationIntegrationTest extends PostgresIntegrationTest {
         assertThat(session.getAccessToken()).isNotBlank();
         assertThat(session.getRefreshToken()).isNotBlank();
         assertThat(session.getUser().getId()).isEqualTo(user.id());
+
+        // Provisioned here and nowhere earlier.
+        assertThat(deviceCount()).isOne();
     }
 
     @Test
@@ -134,6 +149,14 @@ class DeviceActivationIntegrationTest extends PostgresIntegrationTest {
     void unknownCodesAreRejected() {
         assertThat(codeOf(() -> activation.poll("not-a-device-code")))
                 .isEqualTo(ErrorCode.DEVICE_CODE_NOT_FOUND);
+    }
+
+    /** Devices provisioned for the account under test. */
+    private long deviceCount() {
+        return jdbc.sql("SELECT count(*) FROM device WHERE user_id = :userId")
+                .param("userId", user.id())
+                .query(Long.class)
+                .single();
     }
 
     private DeviceCodeResponse requestCode() {

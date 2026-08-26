@@ -12,7 +12,9 @@ import tv.lumo.api.generated.model.FavoriteGroup;
 import tv.lumo.api.generated.model.FavoriteGroupList;
 import tv.lumo.api.generated.model.FavoriteList;
 import tv.lumo.api.generated.model.PlaybackProgress;
+import tv.lumo.api.generated.model.PlaybackProgressPage;
 import tv.lumo.api.generated.model.Problem;
+import tv.lumo.api.generated.model.ProgressItemType;
 import tv.lumo.api.generated.model.SaveProgressRequest;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -111,6 +113,32 @@ public interface UserdataApi {
     
     ResponseEntity<FavoriteList> listFavorites(
          @Valid @RequestParam(value = "groupId", required = false) @Nullable UUID groupId
+    );
+
+
+    /**
+     * GET /me/progress : Playback positions saved by this account
+     * Ordered by &#x60;updated_at&#x60;, most recent first — which is also the order a \&quot;Continue watching\&quot; rail wants.  Without this operation &#x60;PUT /me/progress&#x60; writes into a void: progress could be saved on the phone and never read back on the television, and \&quot;resume across screens\&quot; would be a promise no client could keep.  Passing both &#x60;itemType&#x60; and &#x60;itemRef&#x60; narrows the page to the single matching row, which is how a player looks up one item before opening it. There is deliberately no &#x60;/me/progress/{itemType}/{itemRef}&#x60; variant: &#x60;item_ref&#x60; is an opaque identifier minted by the user&#39;s own panel, and nothing stops it containing a slash or a percent sign. Filtering keeps it in a query parameter, where encoding is unambiguous, instead of a path segment, where it is not. 
+     *
+     * @param itemType Restrict to one kind of item. (optional)
+     * @param itemRef Restrict to one item. Combined with &#x60;itemType&#x60; this yields at most one element.  (optional)
+     * @param page Zero-based page index. (optional, default to 0)
+     * @param size Page size. Capped server-side so a large catalogue cannot be pulled in one call. (optional, default to 50)
+     * @return One page of saved positions, most recently updated first. (status code 200)
+     *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
+     *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
+     */
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = "/me/progress",
+        produces = { "application/json", "application/problem+json" }
+    )
+    
+    ResponseEntity<PlaybackProgressPage> listProgress(
+         @Valid @RequestParam(value = "itemType", required = false) @Nullable ProgressItemType itemType,
+        @Size(max = 200)  @Valid @RequestParam(value = "itemRef", required = false) @Nullable String itemRef,
+        @Min(0)  @Valid @RequestParam(value = "page", required = false, defaultValue = "0") Integer page,
+        @Min(1) @Max(200)  @Valid @RequestParam(value = "size", required = false, defaultValue = "50") Integer size
     );
 
 

@@ -10,9 +10,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tv.lumo.api.generated.model.AuthSession;
+import tv.lumo.api.generated.model.DeviceApproval;
 import tv.lumo.api.generated.model.DeviceCodeRequest;
 import tv.lumo.api.generated.model.DeviceCodeResponse;
 import tv.lumo.api.generated.model.ErrorCode;
+import tv.lumo.api.generated.model.Platform;
 import tv.lumo.api.shared.config.LumoProperties;
 import tv.lumo.api.shared.error.ApiException;
 
@@ -81,9 +83,20 @@ public class DeviceActivationService {
      *
      * <p>Rate limiting happens in the controller: {@code user_code} is short and
      * guessable by design, so this is the endpoint an attacker brute-forces.
+     *
+     * <p>Returns what the television said it was, so the phone can name it back
+     * — "Living room TV is now connected". Note what this is <b>not</b>: no
+     * {@code device} row exists yet. It is created when the set's next poll
+     * succeeds, in {@link #consume}. Provisioning here instead would leave an
+     * installation behind for every approval whose television is then switched
+     * off, counted against the account's quota and listed as an appliance that
+     * never once connected.
+     *
+     * <p>The fields are self-declared by the television and never verified. They
+     * label a confirmation screen; nothing is keyed on them.
      */
     @Transactional
-    public void approve(String typedUserCode, UUID approvingUserId) {
+    public DeviceApproval approve(String typedUserCode, UUID approvingUserId) {
         String userCode = SecretTokens.normaliseUserCode(typedUserCode);
 
         DeviceAuthorizationRepository.DeviceAuthorizationRow row =
@@ -100,6 +113,11 @@ public class DeviceActivationService {
 
         authorizations.approve(row.id(), approvingUserId);
         log.info("Device authorization {} approved", row.id());
+
+        return new DeviceApproval(Platform.fromValue(row.platform()))
+                .name(row.name())
+                .model(row.model())
+                .appVersion(row.appVersion());
     }
 
     /**

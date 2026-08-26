@@ -36,6 +36,13 @@ public class Entitlement {
   private @Nullable OffsetDateTime currentPeriodEnd = null;
 
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+  private @Nullable OffsetDateTime trialEndsAt = null;
+
+  private @Nullable Integer maxSources = null;
+
+  private @Nullable Integer maxDevices = null;
+
+  @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
   private OffsetDateTime updatedAt;
 
   public Entitlement() {
@@ -128,6 +135,65 @@ public class Entitlement {
     this.currentPeriodEnd = currentPeriodEnd;
   }
 
+  public Entitlement trialEndsAt(@Nullable OffsetDateTime trialEndsAt) {
+    this.trialEndsAt = trialEndsAt;
+    return this;
+  }
+
+  /**
+   * End of the free trial. Non-null only while `status` is `TRIALING`. Distinct from `current_period_end`, which dates the end of a period that was *paid for*. 
+   * @return trialEndsAt
+   */
+  @Valid 
+  @JsonProperty("trial_ends_at")
+  public @Nullable OffsetDateTime getTrialEndsAt() {
+    return trialEndsAt;
+  }
+
+  public void setTrialEndsAt(@Nullable OffsetDateTime trialEndsAt) {
+    this.trialEndsAt = trialEndsAt;
+  }
+
+  public Entitlement maxSources(@Nullable Integer maxSources) {
+    this.maxSources = maxSources;
+    return this;
+  }
+
+  /**
+   * Sources this plan allows. **Null means unlimited**, not unknown.  Present so that a client can disable \"add a source\" before the user fills a form that is going to be refused, and so that the free plan's ceiling lives in exactly one place. A client never carries its own copy of this number: that would be an access right computed client-side, which this project forbids outright (AGENTS.md §1). The day the free plan allows two, one row changes here and three applications follow without a release. 
+   * minimum: 1
+   * @return maxSources
+   */
+  @Min(1) 
+  @JsonProperty("max_sources")
+  public @Nullable Integer getMaxSources() {
+    return maxSources;
+  }
+
+  public void setMaxSources(@Nullable Integer maxSources) {
+    this.maxSources = maxSources;
+  }
+
+  public Entitlement maxDevices(@Nullable Integer maxDevices) {
+    this.maxDevices = maxDevices;
+    return this;
+  }
+
+  /**
+   * Devices this plan allows. **Null means unlimited**, not unknown. Same rule as `max_sources`: read, never assumed. 
+   * minimum: 1
+   * @return maxDevices
+   */
+  @Min(1) 
+  @JsonProperty("max_devices")
+  public @Nullable Integer getMaxDevices() {
+    return maxDevices;
+  }
+
+  public void setMaxDevices(@Nullable Integer maxDevices) {
+    this.maxDevices = maxDevices;
+  }
+
   public Entitlement updatedAt(OffsetDateTime updatedAt) {
     this.updatedAt = updatedAt;
     return this;
@@ -160,12 +226,15 @@ public class Entitlement {
         Objects.equals(this.status, entitlement.status) &&
         Objects.equals(this.provider, entitlement.provider) &&
         Objects.equals(this.currentPeriodEnd, entitlement.currentPeriodEnd) &&
+        Objects.equals(this.trialEndsAt, entitlement.trialEndsAt) &&
+        Objects.equals(this.maxSources, entitlement.maxSources) &&
+        Objects.equals(this.maxDevices, entitlement.maxDevices) &&
         Objects.equals(this.updatedAt, entitlement.updatedAt);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(plan, status, provider, currentPeriodEnd, updatedAt);
+    return Objects.hash(plan, status, provider, currentPeriodEnd, trialEndsAt, maxSources, maxDevices, updatedAt);
   }
 
   @Override
@@ -176,6 +245,9 @@ public class Entitlement {
     sb.append("    status: ").append(toIndentedString(status)).append("\n");
     sb.append("    provider: ").append(toIndentedString(provider)).append("\n");
     sb.append("    currentPeriodEnd: ").append(toIndentedString(currentPeriodEnd)).append("\n");
+    sb.append("    trialEndsAt: ").append(toIndentedString(trialEndsAt)).append("\n");
+    sb.append("    maxSources: ").append(toIndentedString(maxSources)).append("\n");
+    sb.append("    maxDevices: ").append(toIndentedString(maxDevices)).append("\n");
     sb.append("    updatedAt: ").append(toIndentedString(updatedAt)).append("\n");
     sb.append("}");
     return sb.toString();

@@ -13,7 +13,9 @@ import tv.lumo.android.network.generated.model.FavoriteGroup
 import tv.lumo.android.network.generated.model.FavoriteGroupList
 import tv.lumo.android.network.generated.model.FavoriteList
 import tv.lumo.android.network.generated.model.PlaybackProgress
+import tv.lumo.android.network.generated.model.PlaybackProgressPage
 import tv.lumo.android.network.generated.model.Problem
+import tv.lumo.android.network.generated.model.ProgressItemType
 import tv.lumo.android.network.generated.model.SaveProgressRequest
 
 interface UserdataApi {
@@ -76,6 +78,24 @@ interface UserdataApi {
      */
     @GET("me/favorites")
     suspend fun listFavorites(@Query("groupId") groupId: java.util.UUID? = null): Response<FavoriteList>
+
+    /**
+     * GET me/progress
+     * Playback positions saved by this account
+     * Ordered by &#x60;updated_at&#x60;, most recent first — which is also the order a \&quot;Continue watching\&quot; rail wants.  Without this operation &#x60;PUT /me/progress&#x60; writes into a void: progress could be saved on the phone and never read back on the television, and \&quot;resume across screens\&quot; would be a promise no client could keep.  Passing both &#x60;itemType&#x60; and &#x60;itemRef&#x60; narrows the page to the single matching row, which is how a player looks up one item before opening it. There is deliberately no &#x60;/me/progress/{itemType}/{itemRef}&#x60; variant: &#x60;item_ref&#x60; is an opaque identifier minted by the user&#39;s own panel, and nothing stops it containing a slash or a percent sign. Filtering keeps it in a query parameter, where encoding is unambiguous, instead of a path segment, where it is not. 
+     * Responses:
+     *  - 200: One page of saved positions, most recently updated first.
+     *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
+     *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
+     *
+     * @param itemType Restrict to one kind of item. (optional)
+     * @param itemRef Restrict to one item. Combined with &#x60;itemType&#x60; this yields at most one element.  (optional)
+     * @param page Zero-based page index. (optional, default to 0)
+     * @param size Page size. Capped server-side so a large catalogue cannot be pulled in one call. (optional, default to 50)
+     * @return [PlaybackProgressPage]
+     */
+    @GET("me/progress")
+    suspend fun listProgress(@Query("itemType") itemType: ProgressItemType? = null, @Query("itemRef") itemRef: kotlin.String? = null, @Query("page") page: kotlin.Int? = 0, @Query("size") size: kotlin.Int? = 50): Response<PlaybackProgressPage>
 
     /**
      * DELETE me/favorites/{id}

@@ -15,13 +15,15 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * State of the entitlement. Only `ACTIVE` grants premium features.
+ * State of the entitlement. `ACTIVE` and `TRIALING` grant premium features; the other three do not.  `TRIALING` is a separate state rather than a flag on `ACTIVE` because the two produce different screens. \"Your trial ends in 3 days\" is an invitation to enter a card; \"renews on the 14th\" is a reassurance. Told apart only by `plan` and `status`, they would be indistinguishable, and every client would have to guess from `current_period_end`. 
  */
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.14.0")
 public enum EntitlementStatus {
   
   ACTIVE("ACTIVE"),
+  
+  TRIALING("TRIALING"),
   
   PAST_DUE("PAST_DUE"),
   

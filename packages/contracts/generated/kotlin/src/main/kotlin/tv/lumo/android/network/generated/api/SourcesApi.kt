@@ -21,6 +21,7 @@ interface SourcesApi {
      *  - 202: Validated and accepted. Ingestion runs in the background; the source is returned in `PENDING`. Poll `GET /sources/{id}` until `READY` or `ERROR`. 
      *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
      *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
+     *  - 409: The plan's source quota is already used up (`SOURCE_LIMIT_REACHED`). No source was created and nothing was validated: the check happens before the user's own server is contacted.  The client reads the quota from `Entitlement.max_sources` and should not have offered the form — this response is the backstop, not the nominal path. 
      *  - 422: Synchronous validation of the source failed. `code` is one of the `IngestionErrorCode` values and is what the client translates into an actionable message.  This is the number-one friction point of onboarding. \"Something went wrong\" loses users here; \"your credentials were refused by the server\" recovers them. 
      *  - 429: Rate limit exceeded (`RATE_LIMITED`).
      *

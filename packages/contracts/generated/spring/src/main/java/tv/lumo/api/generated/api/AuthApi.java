@@ -7,6 +7,7 @@ package tv.lumo.api.generated.api;
 
 import tv.lumo.api.generated.model.ApproveDeviceRequest;
 import tv.lumo.api.generated.model.AuthSession;
+import tv.lumo.api.generated.model.DeviceApproval;
 import tv.lumo.api.generated.model.DeviceCodeRequest;
 import tv.lumo.api.generated.model.DeviceCodeResponse;
 import tv.lumo.api.generated.model.DeviceTokenRequest;
@@ -40,25 +41,25 @@ public interface AuthApi {
 
     /**
      * POST /auth/device/approve : TV activation: approve a user code from an authenticated session
-     * Called from &#x60;lumo.tv/activate&#x60; by an already signed-in user. Binds the pending authorization to the caller&#39;s account.  Strictly rate-limited: &#x60;user_code&#x60; is short and guessable by design, so this endpoint is the one an attacker would brute-force. After five attempts the caller is throttled (US-05). 
+     * Called from &#x60;lumo.tv/activate&#x60; by an already signed-in user. Binds the pending authorization to the caller&#39;s account.  Strictly rate-limited: &#x60;user_code&#x60; is short and guessable by design, so this endpoint is the one an attacker would brute-force. After five attempts the caller is throttled (US-05).  The response describes the television that was just linked, so the confirmation screen can name it — \&quot;*Living room TV* is now connected to your account\&quot;. This is the only moment in the flow where the user can check they activated the *right* set; a generic acknowledgement after typing a code read across a room is how a doubt becomes a support ticket.  It is a &#x60;DeviceApproval&#x60; and **not** a &#x60;Device&#x60;, because no device exists yet: the &#x60;device&#x60; row is provisioned when the television&#39;s next poll of &#x60;/auth/device/token&#x60; succeeds. Approving a set that is then switched off must not leave a phantom installation in the account — counted against the quota, listed as an appliance that never once connected.  This is also where the device quota is checked, rather than on the television&#39;s poll. The user is *here*, holding a phone, able to read \&quot;you have reached the device limit of your plan\&quot; and act on it; the television can only display an opaque failure. The quota is enforced again when the device is actually provisioned — approval and poll are minutes apart and the account can change in between — and a refusal there reaches the television as the RFC&#39;s own &#x60;ACCESS_DENIED&#x60;, leaving the polling contract untouched. 
      *
      * @param approveDeviceRequest  (required)
-     * @return Approved. The television&#39;s next poll receives a session. (status code 204)
+     * @return Approved. The television&#39;s next poll receives a session, and the set it identified itself as is returned for the confirmation screen.  (status code 200)
      *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
      *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
      *         or No pending authorization carries this code (&#x60;DEVICE_CODE_NOT_FOUND&#x60;). (status code 404)
-     *         or The code was already approved, denied or consumed (&#x60;DEVICE_CODE_ALREADY_USED&#x60;). (status code 409)
+     *         or Either the code was already approved, denied or consumed (&#x60;DEVICE_CODE_ALREADY_USED&#x60;), or linking this television would exceed the plan&#39;s device quota (&#x60;DEVICE_LIMIT_REACHED&#x60;). The two are different conversations: the first says \&quot;read the new code off the screen\&quot;, the second says \&quot;remove a device or upgrade\&quot;.  (status code 409)
      *         or The code has expired (&#x60;DEVICE_CODE_EXPIRED&#x60;). The TV displays a new one on its own. (status code 410)
      *         or Rate limit exceeded (&#x60;RATE_LIMITED&#x60;). (status code 429)
      */
     @RequestMapping(
         method = RequestMethod.POST,
         value = "/auth/device/approve",
-        produces = { "application/problem+json" },
+        produces = { "application/json", "application/problem+json" },
         consumes = { "application/json" }
     )
     
-    ResponseEntity<Void> approveDeviceCode(
+    ResponseEntity<DeviceApproval> approveDeviceCode(
          @Valid @RequestBody ApproveDeviceRequest approveDeviceRequest
     );
 
@@ -71,6 +72,7 @@ public interface AuthApi {
      * @return Signed in. (status code 200)
      *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
      *         or Invalid credentials (&#x60;INVALID_CREDENTIALS&#x60;). (status code 401)
+     *         or Signing in here would link one device too many for the plan (&#x60;DEVICE_LIMIT_REACHED&#x60;). No session is issued.  The client&#39;s way out is to name the limit and offer both exits: unlink a device from another screen, or upgrade. It reads the ceiling from &#x60;Entitlement.max_devices&#x60; — never from a constant of its own (AGENTS.md §1).  (status code 409)
      *         or Rate limit exceeded (&#x60;RATE_LIMITED&#x60;). (status code 429)
      */
     @RequestMapping(
@@ -241,6 +243,7 @@ public interface AuthApi {
      * @return Signed in. The account was created or linked as needed. (status code 200)
      *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
      *         or The Google ID token failed verification (&#x60;OAUTH_TOKEN_INVALID&#x60;). (status code 401)
+     *         or Signing in here would link one device too many for the plan (&#x60;DEVICE_LIMIT_REACHED&#x60;). No session is issued.  The client&#39;s way out is to name the limit and offer both exits: unlink a device from another screen, or upgrade. It reads the ceiling from &#x60;Entitlement.max_devices&#x60; — never from a constant of its own (AGENTS.md §1).  (status code 409)
      *         or Rate limit exceeded (&#x60;RATE_LIMITED&#x60;). (status code 429)
      */
     @RequestMapping(

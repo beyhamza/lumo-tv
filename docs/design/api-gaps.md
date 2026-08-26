@@ -1,8 +1,19 @@
 # Manques d'API impliqués par les écrans web du sprint 1
 
-**Statut : liste, pas modification.** `packages/contracts/openapi.yaml` n'a pas
-été touché. Ce document est le lot de modifications proposé, à instruire
-explicitement (AGENTS.md §3 et §9).
+**Statut : traité.** Les sept manques ont été portés dans
+`packages/contracts/openapi.yaml`, les trois clients régénérés. Ce document
+reste la justification de chaque ajout — le contrat dit *quoi*, celui-ci dit
+*pourquoi*, et c'est cette moitié-là qui manque le jour où quelqu'un veut
+retirer un champ.
+
+Le contrat n'ouvre que la surface. Rien de tout cela n'est **implémenté** côté
+serveur, à une exception près : G4, dont la rupture de compilation a été
+refermée dans `apps/api`. Les quotas, l'essai, Stripe et la lecture de
+progression sont des interfaces générées que personne n'implémente encore.
+
+> **G4 a changé de forme à l'implémentation.** La spécification d'origine
+> disait « renvoyer le `Device` approuvé ». Le compilateur a montré qu'il
+> n'existe pas encore à cet instant. Voir la section G4.
 
 Périmètre analysé : `Lumo - Web Sprint 1.dc.html` (écrans W1 → W4), confronté à
 `openapi.yaml` v1.0.0. Les écrans mobile et TV n'ont pas été passés au crible ;
@@ -10,15 +21,15 @@ G7 les concerne néanmoins de plein fouet.
 
 ## Récapitulatif
 
-| # | Écran | Manque | Nature | Priorité |
-|---|---|---|---|---|
-| G1 | W1 tarifs, W3 sources et appareils | Quotas de l'offre + codes de dépassement | Champs + `ErrorCode` | Haute |
-| G2 | W1 « Essayer 14 jours », W3 abonnement | État d'essai | Enum + champ | Haute |
-| G3 | W1 tarifs, W3 abonnement, FAQ | Souscription et gestion de l'abonnement | Deux endpoints | Haute |
-| G4 | W4 succès | L'appareil approuvé n'est pas renvoyé | Réponse d'opération | Haute |
-| G5 | W3 source en erreur | Depuis quand la source échoue | Champ | Moyenne |
-| G6 | W3 aperçu appareils | Quel appareil est celui qui consulte | Champ | Moyenne |
-| G7 | W1 argument « reprise multi-écrans » | Aucune lecture de la progression | Endpoint | Haute |
+| # | Écran | Manque | Porté dans le contrat |
+|---|---|---|---|
+| G1 | W1 tarifs, W3 sources et appareils | Quotas de l'offre + codes de dépassement | `Entitlement.max_sources`, `max_devices` ; `SOURCE_LIMIT_REACHED`, `DEVICE_LIMIT_REACHED` |
+| G2 | W1 « Essayer 14 jours », W3 abonnement | État d'essai | `EntitlementStatus.TRIALING`, `Entitlement.trial_ends_at` |
+| G3 | W1 tarifs, W3 abonnement, FAQ | Souscription et gestion de l'abonnement | `POST /billing/checkout-session`, `POST /billing/portal-session` |
+| G4 | W4 succès | L'appareil approuvé n'est pas renvoyé | `POST /auth/device/approve` → `200 DeviceApproval` |
+| G5 | W3 source en erreur | Depuis quand la source échoue | `Source.last_error_at` |
+| G6 | W3 aperçu appareils | Quel appareil est celui qui consulte | `Device.is_current` |
+| G7 | W1 argument « reprise multi-écrans » | Aucune lecture de la progression | `GET /me/progress` |
 
 ---
 
@@ -101,8 +112,21 @@ Ajouter, sous un tag `billing` :
 
 | Opération | Réponse |
 |---|---|
-| `POST /billing/checkout-session` | `{ url }` — Stripe Checkout, corps portant le plan visé et les URL de retour |
-| `POST /billing/portal-session` | `{ url }` — Stripe Customer Portal : changement de moyen de paiement, factures, annulation |
+| `POST /billing/checkout-session` | `BillingSession { url }` — Stripe Checkout, corps portant le plan visé |
+| `POST /billing/portal-session` | `BillingSession { url }` — Stripe Customer Portal : moyen de paiement, factures, annulation |
+
+**Les URL de retour ne sont pas acceptées du client.** La première rédaction de
+ce document les mettait dans le corps de la requête ; c'est une redirection
+ouverte déguisée en facturation, et ce projet garde déjà exactement ce trou sur
+le paramètre `next` de la connexion. Elles sont construites côté serveur depuis
+la configuration. Le seul champ que l'appelant influence est `locale`, et il ne
+choisit que la langue de rendu de Stripe.
+
+`BillingSession.url` est typée `format: password`, comme
+`PlaybackInfo.stream_url` et pour la même raison : c'est une capacité au
+porteur — sur le portail, elle donne les factures, le moyen de paiement et le
+bouton d'annulation — et le typage force les générateurs à la masquer dans
+`toString()`.
 
 Le portail Stripe couvre l'annulation, la reprise et l'historique de factures
 sans qu'aucun de ces trois écrans n'ait à exister chez nous. C'est le meilleur
@@ -122,24 +146,39 @@ compte. »
 **Donnée nécessaire.** Le nom de l'appareil qui vient d'être associé — et,
 tant qu'à faire, sa plateforme et son modèle.
 
-**Ce qui manque.** L'opération répond `204 No Content`. La page n'a aucun moyen
-de citer l'appareil. C'est précisément ce que l'implémentation livrée
-contourne, avec un message générique : « C'est fait. Votre téléviseur se
-connecte dans quelques secondes. »
+**Ce qui manquait.** L'opération répondait `204 No Content`. La page n'avait
+aucun moyen de citer l'appareil, d'où le message générique de l'implémentation
+livrée : « C'est fait. Votre téléviseur se connecte dans quelques secondes. »
 
-Faire passer la réponse nominale de `204` à `200` avec le `Device` approuvé
-(directement, ou enveloppé dans un `DeviceApproval { device }` si l'on veut se
-laisser la place d'y ajouter autre chose).
+**Retenu :** `200` avec un **`DeviceApproval`**, et non avec un `Device`.
 
-**Sécurité.** `Device` ne contient aucun secret : ni `device_code`, ni token,
-ni identifiant de source. Le renvoyer ici n'expose rien de plus que
-`GET /me/devices`, que l'appelant — authentifié, et propriétaire du compte —
-peut appeler dans la seconde qui suit.
+**Pourquoi pas un `Device`.** La spécification d'origine, écrite en lisant le
+seul contrat, demandait le `Device` approuvé. La compilation d'`apps/api` l'a
+réfutée en une ligne : à l'instant de l'approbation, **aucune ligne `device`
+n'existe**. Elle est créée quand le prochain sondage de la télé réussit, dans
+`DeviceActivationService.consume()`. La créer plus tôt aurait un coût réel :
+toute approbation dont le téléviseur est ensuite éteint laisserait une
+installation fantôme, comptée dans le quota de G1 et listée comme un appareil
+qui ne s'est jamais connecté.
+
+`DeviceApproval` porte donc ce que la télé a **déclaré** d'elle-même en
+demandant le code — `platform`, `name`, `model`, `app_version`, exactement le
+contenu de `DeviceCodeRequest`. C'est assez pour nommer un poste sur un écran de
+confirmation, et jamais assez pour servir d'identité : ces champs viennent du
+client et ne sont pas vérifiés.
+
+**Sécurité.** Aucun secret : ni `device_code`, ni token, ni identifiant de
+source. Rien de plus que ce que l'appelant — authentifié, propriétaire du
+compte — obtient de `GET /me/devices` la seconde d'après.
 
 **Pourquoi ça vaut le coup.** C'est le seul moment du parcours où l'utilisateur
 peut vérifier qu'il a associé **la bonne télé**. Un message générique après
 avoir tapé un code lu de travers, c'est un doute qui se termine en ticket de
 support.
+
+**Implémenté.** `apps/api` renvoie le `DeviceApproval`, et
+`DeviceActivationIntegrationTest` vérifie les deux moitiés : le nom revient, et
+aucune ligne `device` n'existe avant le sondage.
 
 ---
 
@@ -199,13 +238,17 @@ Aucune opération de lecture. En l'état, la progression s'écrit et ne se relit
 jamais : la fonctionnalité mise en avant sur la landing est invendable, et
 `PlaybackProgress` n'est renvoyé que comme écho de sa propre écriture.
 
-Ajouter :
+**Retenu :** `GET /me/progress` — page triée par `updated_at` décroissant
+(l'ordre qu'un rail « Reprendre » veut de toute façon), filtrable par `itemType`
+et `itemRef`. Renvoie un `PlaybackProgressPage`, même enveloppe de pagination
+que `ChannelPage` : une seule à apprendre.
 
-- `GET /me/progress` — liste paginée, filtrable par `item_type`, triée par
-  `updated_at` décroissant (c'est aussi ce qui alimenterait un rail
-  « Reprendre ») ;
-- et/ou `GET /me/progress/{item_type}/{item_ref}` — lecture unitaire, pour
-  qu'un lecteur qui ouvre un item n'ait pas à rapatrier toute la liste.
+**Pas de `GET /me/progress/{item_type}/{item_ref}`**, contrairement à ce que
+cette liste proposait d'abord. `item_ref` est un identifiant opaque frappé par
+le panel de l'utilisateur ; rien ne lui interdit de contenir une barre oblique
+ou un pourcent. Passer les deux filtres en paramètres de requête donne la même
+lecture unitaire — au plus un élément — là où l'encodage est sans ambiguïté,
+plutôt que dans un segment de chemin où il ne l'est pas.
 
 **Réserve de périmètre.** La progression ne concerne que `VOD` et `EPISODE` — le
 direct n'en a pas — et le sprint 1 est explicitement « pas de VOD, pas de

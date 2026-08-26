@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import tv.lumo.api.generated.api.AuthApi;
 import tv.lumo.api.generated.model.ApproveDeviceRequest;
 import tv.lumo.api.generated.model.AuthSession;
+import tv.lumo.api.generated.model.DeviceApproval;
 import tv.lumo.api.generated.model.DeviceCodeRequest;
 import tv.lumo.api.generated.model.DeviceCodeResponse;
 import tv.lumo.api.generated.model.DeviceTokenRequest;
@@ -136,14 +137,14 @@ public class AuthController implements AuthApi {
     }
 
     @Override
-    public ResponseEntity<Void> approveDeviceCode(ApproveDeviceRequest approveDeviceRequest) {
+    public ResponseEntity<DeviceApproval> approveDeviceCode(ApproveDeviceRequest approveDeviceRequest) {
         // The tightest limit in the application. user_code is 8 characters from a
         // 31-character alphabet and lives for ten minutes; without this, guessing
         // one is a matter of volume.
         limit("device-approve:" + ClientIp.of(request),
                 properties.rateLimit().deviceApproveAttemptsPerMinute());
-        activation.approve(approveDeviceRequest.getUserCode(), CurrentUser.requireUserId());
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(
+                activation.approve(approveDeviceRequest.getUserCode(), CurrentUser.requireUserId()));
     }
 
     @Override

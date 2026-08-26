@@ -20,9 +20,9 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * State of the entitlement. Only `ACTIVE` grants premium features.
+ * State of the entitlement. `ACTIVE` and `TRIALING` grant premium features; the other three do not.  `TRIALING` is a separate state rather than a flag on `ACTIVE` because the two produce different screens. \"Your trial ends in 3 days\" is an invitation to enter a card; \"renews on the 14th\" is a reassurance. Told apart only by `plan` and `status`, they would be indistinguishable, and every client would have to guess from `current_period_end`. 
  *
- * Values: ACTIVE,PAST_DUE,CANCELED,EXPIRED
+ * Values: ACTIVE,TRIALING,PAST_DUE,CANCELED,EXPIRED
  */
 
 @JsonClass(generateAdapter = false)
@@ -30,6 +30,9 @@ enum class EntitlementStatus(val value: kotlin.String) {
 
     @Json(name = "ACTIVE")
     ACTIVE("ACTIVE"),
+
+    @Json(name = "TRIALING")
+    TRIALING("TRIALING"),
 
     @Json(name = "PAST_DUE")
     PAST_DUE("PAST_DUE"),

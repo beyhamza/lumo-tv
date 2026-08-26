@@ -19,7 +19,7 @@ import java.util.*;
 import jakarta.annotation.Generated;
 
 /**
- * One installation linked to the account.
+ * One installation linked to the account.  &#x60;is_current&#x60; is computed against the access token presented on the request, which is why it is a property of the response and not something the caller works out for itself. 
  */
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.14.0")
@@ -38,6 +38,8 @@ public class Device {
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
   private @Nullable OffsetDateTime lastSeenAt = null;
 
+  private Boolean isCurrent;
+
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
   private OffsetDateTime createdAt;
 
@@ -48,9 +50,10 @@ public class Device {
   /**
    * Constructor with only required parameters
    */
-  public Device(UUID id, Platform platform, OffsetDateTime createdAt) {
+  public Device(UUID id, Platform platform, Boolean isCurrent, OffsetDateTime createdAt) {
     this.id = id;
     this.platform = platform;
+    this.isCurrent = isCurrent;
     this.createdAt = createdAt;
   }
 
@@ -155,7 +158,7 @@ public class Device {
   }
 
   /**
-   * Get lastSeenAt
+   * Last request seen from this installation. Nothing announces a disconnection, so this is a \"last seen\", never a presence: a client that renders \"online\" does so from a threshold of its own choosing over this value, and says \"active\" rather than claiming certainty. 
    * @return lastSeenAt
    */
   @Valid 
@@ -166,6 +169,25 @@ public class Device {
 
   public void setLastSeenAt(@Nullable OffsetDateTime lastSeenAt) {
     this.lastSeenAt = lastSeenAt;
+  }
+
+  public Device isCurrent(Boolean isCurrent) {
+    this.isCurrent = isCurrent;
+    return this;
+  }
+
+  /**
+   * True on the one device whose token made this call.  This is the row the user must not revoke by accident. `DELETE /me/devices/{id}` on your own device is allowed and signs you out — a device list that cannot say which one is *this* one asks the user to find out by trying.  False everywhere else, including on the television just linked by `POST /auth/device/approve`, which is by definition not the caller. 
+   * @return isCurrent
+   */
+  @NotNull 
+  @JsonProperty("is_current")
+  public Boolean getIsCurrent() {
+    return isCurrent;
+  }
+
+  public void setIsCurrent(Boolean isCurrent) {
+    this.isCurrent = isCurrent;
   }
 
   public Device createdAt(OffsetDateTime createdAt) {
@@ -202,12 +224,13 @@ public class Device {
         Objects.equals(this.model, device.model) &&
         Objects.equals(this.appVersion, device.appVersion) &&
         Objects.equals(this.lastSeenAt, device.lastSeenAt) &&
+        Objects.equals(this.isCurrent, device.isCurrent) &&
         Objects.equals(this.createdAt, device.createdAt);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, platform, name, model, appVersion, lastSeenAt, createdAt);
+    return Objects.hash(id, platform, name, model, appVersion, lastSeenAt, isCurrent, createdAt);
   }
 
   @Override
@@ -220,6 +243,7 @@ public class Device {
     sb.append("    model: ").append(toIndentedString(model)).append("\n");
     sb.append("    appVersion: ").append(toIndentedString(appVersion)).append("\n");
     sb.append("    lastSeenAt: ").append(toIndentedString(lastSeenAt)).append("\n");
+    sb.append("    isCurrent: ").append(toIndentedString(isCurrent)).append("\n");
     sb.append("    createdAt: ").append(toIndentedString(createdAt)).append("\n");
     sb.append("}");
     return sb.toString();

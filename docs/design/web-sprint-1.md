@@ -161,14 +161,14 @@ qui lit l'API avec un token.
 | `vérifiée il y a 2 h` | `Source.last_synced_at` |
 | Pastille d'état | `Source.status` |
 | Cause de l'erreur | `Source.error_code` (`IngestionErrorCode`) |
-| `depuis hier` | **manquant** — `api-gaps.md` G5 |
+| `depuis hier` | `Source.last_error_at` (ajouté, G5) |
 | `Corriger` | `PATCH /sources/{id}` |
 | `Ajouter une source` | `POST /sources` (202 `PENDING`) puis polling |
 | Menu `⋯` | `POST /sources/{id}/sync`, `DELETE /sources/{id}` |
 | Lignes d'appareils | `GET /me/devices` → `name`, `platform`, `last_seen_at` |
-| `ce poste` | **manquant** — `api-gaps.md` G6 |
+| `ce poste` | `Device.is_current` (ajouté, G6) |
 | Onglet `Abonnement` | `GET /me/entitlement` |
-| Quotas de l'offre | **manquant** — `api-gaps.md` G1 |
+| Quotas de l'offre | `Entitlement.max_sources` / `max_devices` (ajoutés, G1) |
 
 ### Décisions de rendu à ne pas transformer en champs d'API
 
@@ -216,8 +216,14 @@ maintenant reliée à votre compte. Vos chaînes s'y chargent — regardez l'éc
 Bouton secondaire `Gérer mes appareils`.
 
 Deux intentions à préserver : **le nom de l'appareil est cité**, et le regard
-est explicitement renvoyé vers la télévision. Le nom exige une donnée que
-`POST /auth/device/approve` ne renvoie pas — `api-gaps.md` G4.
+est explicitement renvoyé vers la télévision.
+
+Le nom vient du `DeviceApproval` que `POST /auth/device/approve` renvoie
+désormais (G4) — le nom que la télé a déclaré d'elle-même, non vérifié, bon pour
+un libellé et rien d'autre. Le contrat et l'API le fournissent ; **la page ne
+l'affiche pas encore** et s'en tient au message générique. C'est une story web à
+part entière : la faire transiter par un paramètre de redirection serait le
+mauvais chemin.
 
 ### État 3 — erreur (code expiré)
 

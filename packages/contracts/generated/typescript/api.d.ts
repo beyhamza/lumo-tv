@@ -224,6 +224,29 @@ export interface paths {
          *     Strictly rate-limited: `user_code` is short and guessable by design, so
          *     this endpoint is the one an attacker would brute-force. After five
          *     attempts the caller is throttled (US-05).
+         *
+         *     The response describes the television that was just linked, so the
+         *     confirmation screen can name it — "*Living room TV* is now connected to
+         *     your account". This is the only moment in the flow where the user can
+         *     check they activated the *right* set; a generic acknowledgement after
+         *     typing a code read across a room is how a doubt becomes a support
+         *     ticket.
+         *
+         *     It is a `DeviceApproval` and **not** a `Device`, because no device
+         *     exists yet: the `device` row is provisioned when the television's next
+         *     poll of `/auth/device/token` succeeds. Approving a set that is then
+         *     switched off must not leave a phantom installation in the account —
+         *     counted against the quota, listed as an appliance that never once
+         *     connected.
+         *
+         *     This is also where the device quota is checked, rather than on the
+         *     television's poll. The user is *here*, holding a phone, able to read
+         *     "you have reached the device limit of your plan" and act on it; the
+         *     television can only display an opaque failure. The quota is enforced
+         *     again when the device is actually provisioned — approval and poll are
+         *     minutes apart and the account can change in between — and a refusal
+         *     there reaches the television as the RFC's own `ACCESS_DENIED`, leaving
+         *     the polling contract untouched.
          */
         post: operations["approveDeviceCode"];
         delete?: never;
@@ -599,7 +622,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Playback positions saved by this account
+         * @description Ordered by `updated_at`, most recent first — which is also the order a
+         *     "Continue watching" rail wants.
+         *
+         *     Without this operation `PUT /me/progress` writes into a void: progress
+         *     could be saved on the phone and never read back on the television, and
+         *     "resume across screens" would be a promise no client could keep.
+         *
+         *     Passing both `itemType` and `itemRef` narrows the page to the single
+         *     matching row, which is how a player looks up one item before opening it.
+         *     There is deliberately no `/me/progress/{itemType}/{itemRef}` variant:
+         *     `item_ref` is an opaque identifier minted by the user's own panel, and
+         *     nothing stops it containing a slash or a percent sign. Filtering keeps
+         *     it in a query parameter, where encoding is unambiguous, instead of a
+         *     path segment, where it is not.
+         */
+        get: operations["listProgress"];
         /**
          * Save playback progress for a VOD item or an episode
          * @description Idempotent upsert keyed on `(item_type, item_ref)` for the caller.
@@ -609,6 +649,63 @@ export interface paths {
          */
         put: operations["saveProgress"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/checkout-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open a Stripe Checkout session for the paid plan
+         * @description Returns a URL to redirect to. **Nothing is granted here.** The
+         *     entitlement changes only when Stripe's webhook writes it, and clients
+         *     keep reading `GET /me/entitlement` afterwards (ADR 0003) — a client that
+         *     assumes premium because the redirect succeeded will be wrong for every
+         *     abandoned checkout.
+         *
+         *     **The success and cancel URLs are not accepted from the client.** They
+         *     are built server-side from configuration. A caller-supplied return URL
+         *     is an open redirect wearing a billing costume, and this project already
+         *     guards the same hole on the sign-in `next` parameter. The optional
+         *     `locale` is the only thing the caller gets to influence, and it only
+         *     picks the language Stripe renders in.
+         */
+        post: operations["createCheckoutSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/portal-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open the Stripe customer portal
+         * @description Changing a payment method, downloading an invoice, cancelling — the
+         *     portal covers all three. That is the whole reason it is here: none of
+         *     those screens has to exist in Lumo, in three applications, in two
+         *     languages.
+         *
+         *     Return URL built server-side, for the reason given on
+         *     `POST /billing/checkout-session`.
+         */
+        post: operations["createPortalSession"];
         delete?: never;
         options?: never;
         head?: never;
@@ -725,9 +822,17 @@ export interface components {
          *     - **Catalogue and user data** — `CHANNEL_NOT_FOUND`,
          *       `FAVORITE_NOT_FOUND`, `FAVORITE_ALREADY_EXISTS`,
          *       `FAVORITE_GROUP_NOT_FOUND`, `FAVORITE_GROUP_ALREADY_EXISTS`.
+         *     - **Plan limits and billing** — `SOURCE_LIMIT_REACHED`,
+         *       `DEVICE_LIMIT_REACHED`, `ALREADY_SUBSCRIBED`,
+         *       `BILLING_CUSTOMER_NOT_FOUND`.
+         *
+         *       The first two exist so that hitting a quota is never reported as a
+         *       bare `CONFLICT`. A client that cannot tell "you already have this" from
+         *       "your plan stops here" cannot offer the one thing that resolves the
+         *       second: removing something, or upgrading.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS";
+        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS" | "SOURCE_LIMIT_REACHED" | "DEVICE_LIMIT_REACHED" | "ALREADY_SUBSCRIBED" | "BILLING_CUSTOMER_NOT_FOUND";
         /**
          * @description UI language. FR and EN are supported from the first screen.
          * @enum {string}
@@ -772,10 +877,17 @@ export interface components {
          */
         Plan: "FREE" | "PREMIUM";
         /**
-         * @description State of the entitlement. Only `ACTIVE` grants premium features.
+         * @description State of the entitlement. `ACTIVE` and `TRIALING` grant premium
+         *     features; the other three do not.
+         *
+         *     `TRIALING` is a separate state rather than a flag on `ACTIVE` because
+         *     the two produce different screens. "Your trial ends in 3 days" is an
+         *     invitation to enter a card; "renews on the 14th" is a reassurance. Told
+         *     apart only by `plan` and `status`, they would be indistinguishable, and
+         *     every client would have to guess from `current_period_end`.
          * @enum {string}
          */
-        EntitlementStatus: "ACTIVE" | "PAST_DUE" | "CANCELED" | "EXPIRED";
+        EntitlementStatus: "ACTIVE" | "TRIALING" | "PAST_DUE" | "CANCELED" | "EXPIRED";
         /**
          * @description What fed the entitlement. `STRIPE` in v1, `PLAY` reserved for v2 RTDN,
          *     `MANUAL` for support-granted access.
@@ -966,6 +1078,29 @@ export interface components {
              */
             user_code: string;
         };
+        /**
+         * @description The television an approval just bound to the account, as **it declared
+         *     itself** when it requested the code.
+         *
+         *     Deliberately not a `Device`: no `device` row exists at this point, and
+         *     inventing one for a set that may never poll would put a phantom
+         *     installation in the user's list and against their quota. The fields are
+         *     the ones `DeviceCodeRequest` carried, echoed back.
+         *
+         *     They are client-supplied and unverified, so they are good enough to name
+         *     a set on a confirmation screen and never good enough to be treated as
+         *     identity. Render `name` as a label; do not key anything on it.
+         */
+        DeviceApproval: {
+            platform: components["schemas"]["Platform"];
+            /**
+             * @description User-facing device name, as the television reported it.
+             * @example Living room TV
+             */
+            name?: string | null;
+            model?: string | null;
+            app_version?: string | null;
+        };
         DeviceTokenRequest: {
             /**
              * Format: password
@@ -1000,7 +1135,13 @@ export interface components {
             display_name?: string | null;
             locale?: components["schemas"]["Locale"];
         };
-        /** @description One installation linked to the account. */
+        /**
+         * @description One installation linked to the account.
+         *
+         *     `is_current` is computed against the access token presented on the
+         *     request, which is why it is a property of the response and not something
+         *     the caller works out for itself.
+         */
         Device: {
             /** Format: uuid */
             id: string;
@@ -1008,8 +1149,26 @@ export interface components {
             name?: string | null;
             model?: string | null;
             app_version?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Last request seen from this installation. Nothing announces a
+             *     disconnection, so this is a "last seen", never a presence: a client
+             *     that renders "online" does so from a threshold of its own choosing
+             *     over this value, and says "active" rather than claiming certainty.
+             */
             last_seen_at?: string | null;
+            /**
+             * @description True on the one device whose token made this call.
+             *
+             *     This is the row the user must not revoke by accident.
+             *     `DELETE /me/devices/{id}` on your own device is allowed and signs
+             *     you out — a device list that cannot say which one is *this* one asks
+             *     the user to find out by trying.
+             *
+             *     False everywhere else, including on the television just linked by
+             *     `POST /auth/device/approve`, which is by definition not the caller.
+             */
+            is_current: boolean;
             /** Format: date-time */
             created_at: string;
         };
@@ -1029,6 +1188,32 @@ export interface components {
              * @description End of the paid period. Null on `FREE`.
              */
             current_period_end?: string | null;
+            /**
+             * Format: date-time
+             * @description End of the free trial. Non-null only while `status` is `TRIALING`.
+             *     Distinct from `current_period_end`, which dates the end of a period
+             *     that was *paid for*.
+             */
+            trial_ends_at?: string | null;
+            /**
+             * Format: int32
+             * @description Sources this plan allows. **Null means unlimited**, not unknown.
+             *
+             *     Present so that a client can disable "add a source" before the user
+             *     fills a form that is going to be refused, and so that the free
+             *     plan's ceiling lives in exactly one place. A client never carries
+             *     its own copy of this number: that would be an access right computed
+             *     client-side, which this project forbids outright (AGENTS.md §1).
+             *     The day the free plan allows two, one row changes here and three
+             *     applications follow without a release.
+             */
+            max_sources?: number | null;
+            /**
+             * Format: int32
+             * @description Devices this plan allows. **Null means unlimited**, not unknown.
+             *     Same rule as `max_sources`: read, never assumed.
+             */
+            max_devices?: number | null;
             /** Format: date-time */
             updated_at: string;
         };
@@ -1065,7 +1250,26 @@ export interface components {
              *     the wording, in FR and EN.
              */
             error_code?: (string & components["schemas"]["IngestionErrorCode"]) | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description When the ingestion that set `error_code` failed. Non-null only when
+             *     `status` is `ERROR`, and cleared by the next success.
+             *
+             *     Separate from `last_synced_at` because the two answer different
+             *     questions and a single timestamp cannot answer both: one row of the
+             *     account screen reads "1 248 channels · checked 2 h ago", the row
+             *     below it reads "credentials refused **since yesterday**".
+             *
+             *     The age is what makes the message actionable. "Credentials refused"
+             *     alone does not say whether the user missed two hours of television
+             *     or two weeks.
+             */
+            last_error_at?: string | null;
+            /**
+             * Format: date-time
+             * @description Last ingestion that **succeeded**. Unchanged by a failed attempt —
+             *     see `last_error_at`.
+             */
             last_synced_at?: string | null;
             /**
              * Format: date-time
@@ -1367,6 +1571,30 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        /**
+         * @description One page of saved positions. Same shape as `ChannelPage`, on purpose:
+         *     one pagination envelope to learn, not two.
+         */
+        PlaybackProgressPage: {
+            items: components["schemas"]["PlaybackProgress"][];
+            /**
+             * Format: int32
+             * @description Zero-based index of this page.
+             */
+            page: number;
+            /**
+             * Format: int32
+             * @description Requested page size, after the server-side cap.
+             */
+            size: number;
+            /**
+             * Format: int64
+             * @description Total rows matching the filters.
+             */
+            total_elements: number;
+            /** Format: int32 */
+            total_pages: number;
+        };
         /** @description Upsert keyed on `(item_type, item_ref)` for the caller. */
         SaveProgressRequest: {
             item_type: components["schemas"]["ProgressItemType"];
@@ -1375,6 +1603,62 @@ export interface components {
             position_ms: number;
             /** Format: int64 */
             duration_ms?: number | null;
+        };
+        /**
+         * @description What the caller is allowed to influence when opening a checkout. Which
+         *     is: almost nothing, deliberately.
+         */
+        CreateCheckoutSessionRequest: {
+            /**
+             * @description The tier being bought. `PREMIUM` is the only purchasable value; a
+             *     request for `FREE` is `400` `VALIDATION_FAILED`.
+             *
+             *     The property exists rather than being implied so that a second paid
+             *     tier does not change the shape of this operation.
+             */
+            plan: components["schemas"]["Plan"];
+            /**
+             * @description Language Stripe renders the checkout in. Defaults to the user's
+             *     `locale`.
+             */
+            locale?: components["schemas"]["Locale"];
+        };
+        /**
+         * @description Optional body. The portal needs nothing but the authenticated caller;
+         *     `locale` is here for the same reason as on checkout.
+         */
+        CreatePortalSessionRequest: {
+            /** @description Language the portal renders in. Defaults to the user's `locale`. */
+            locale?: components["schemas"]["Locale"];
+        };
+        /**
+         * @description A redirect target on Stripe's side. Not a grant of anything: the
+         *     entitlement moves when the webhook writes it, and only then.
+         */
+        BillingSession: {
+            /**
+             * Format: password
+             * @description **Sensitive.** Typed `format: password` rather than `format: uri`
+             *     for the same reason as `PlaybackInfo.stream_url`: both are plain
+             *     strings, but `password` makes every generator mask the property in
+             *     `toString()`.
+             *
+             *     This URL is a bearer capability. Whoever holds it reaches a session
+             *     opened for this account — on the portal, that means invoices, the
+             *     payment method and the cancel button. It must not reach a log line
+             *     at any level, `DEBUG` included (AGENTS.md §5).
+             *
+             *     Single-use and short-lived. Redirect to it immediately; never store
+             *     it, never put it in a query parameter of your own, never email it.
+             */
+            url: string;
+            /**
+             * Format: date-time
+             * @description When the session stops being redeemable, when Stripe reports it.
+             *     Null means unknown; the client redirects immediately either way
+             *     rather than holding the URL.
+             */
+            expires_at?: string | null;
         };
     };
     responses: {
@@ -1404,6 +1688,23 @@ export interface components {
         TooManyRequests: {
             headers: {
                 "Retry-After": components["headers"]["RetryAfter"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /**
+         * @description Signing in here would link one device too many for the plan
+         *     (`DEVICE_LIMIT_REACHED`). No session is issued.
+         *
+         *     The client's way out is to name the limit and offer both exits: unlink a
+         *     device from another screen, or upgrade. It reads the ceiling from
+         *     `Entitlement.max_devices` — never from a constant of its own
+         *     (AGENTS.md §1).
+         */
+        DeviceLimitReached: {
+            headers: {
                 [name: string]: unknown;
             };
             content: {
@@ -1545,6 +1846,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            409: components["responses"]["DeviceLimitReached"];
             429: components["responses"]["TooManyRequests"];
         };
     };
@@ -1642,6 +1944,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            409: components["responses"]["DeviceLimitReached"];
             429: components["responses"]["TooManyRequests"];
         };
     };
@@ -1796,12 +2099,17 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Approved. The television's next poll receives a session. */
-            204: {
+            /**
+             * @description Approved. The television's next poll receives a session, and the set
+             *     it identified itself as is returned for the confirmation screen.
+             */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DeviceApproval"];
+                };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
@@ -1814,7 +2122,13 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description The code was already approved, denied or consumed (`DEVICE_CODE_ALREADY_USED`). */
+            /**
+             * @description Either the code was already approved, denied or consumed
+             *     (`DEVICE_CODE_ALREADY_USED`), or linking this television would
+             *     exceed the plan's device quota (`DEVICE_LIMIT_REACHED`). The two are
+             *     different conversations: the first says "read the new code off the
+             *     screen", the second says "remove a device or upgrade".
+             */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2049,6 +2363,23 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            /**
+             * @description The plan's source quota is already used up (`SOURCE_LIMIT_REACHED`).
+             *     No source was created and nothing was validated: the check happens
+             *     before the user's own server is contacted.
+             *
+             *     The client reads the quota from `Entitlement.max_sources` and should
+             *     not have offered the form — this response is the backstop, not the
+             *     nominal path.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             422: components["responses"]["IngestionFailed"];
             429: components["responses"]["TooManyRequests"];
         };
@@ -2509,6 +2840,40 @@ export interface operations {
             };
         };
     };
+    listProgress: {
+        parameters: {
+            query?: {
+                /** @description Restrict to one kind of item. */
+                itemType?: components["schemas"]["ProgressItemType"];
+                /**
+                 * @description Restrict to one item. Combined with `itemType` this yields at most
+                 *     one element.
+                 */
+                itemRef?: string;
+                /** @description Zero-based page index. */
+                page?: components["parameters"]["Page"];
+                /** @description Page size. Capped server-side so a large catalogue cannot be pulled in one call. */
+                size?: components["parameters"]["Size"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of saved positions, most recently updated first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaybackProgressPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
     saveProgress: {
         parameters: {
             query?: never;
@@ -2533,6 +2898,87 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    createCheckoutSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCheckoutSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description A Checkout session was created. Redirect the user to `url`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingSession"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /**
+             * @description The account already holds an active paid entitlement
+             *     (`ALREADY_SUBSCRIBED`). The client sends the user to the portal
+             *     instead of opening a second subscription.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    createPortalSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreatePortalSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description A portal session was created. Redirect the user to `url`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingSession"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /**
+             * @description This account has never been billed, so it has no customer record to
+             *     open a portal on (`BILLING_CUSTOMER_NOT_FOUND`). A `FREE` user who
+             *     never subscribed is the ordinary case; the client offers checkout,
+             *     not the portal.
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            429: components["responses"]["TooManyRequests"];
         };
     };
 }

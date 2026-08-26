@@ -34,7 +34,8 @@ import com.squareup.moshi.JsonClass
  * @param m3uUrl Playlist URL, for `M3U_URL` sources.
  * @param epgUrl Optional XMLTV guide URL, independent of the playlist.
  * @param errorCode Why the last ingestion failed. Non-null only when `status` is `ERROR`. A stable code, never a free-form message — the client owns the wording, in FR and EN. 
- * @param lastSyncedAt 
+ * @param lastErrorAt When the ingestion that set `error_code` failed. Non-null only when `status` is `ERROR`, and cleared by the next success.  Separate from `last_synced_at` because the two answer different questions and a single timestamp cannot answer both: one row of the account screen reads \"1 248 channels · checked 2 h ago\", the row below it reads \"credentials refused **since yesterday**\".  The age is what makes the message actionable. \"Credentials refused\" alone does not say whether the user missed two hours of television or two weeks. 
+ * @param lastSyncedAt Last ingestion that **succeeded**. Unchanged by a failed attempt — see `last_error_at`. 
  * @param expiresAt Expiry of the user's Xtream account, as reported by the panel. Shown after a successful registration (US-06). Null for M3U sources. 
  * @param maxConnections Simultaneous streams the user's subscription allows, as reported by the panel. Null when unknown or not applicable. 
  * @param channelCount Channels ingested from this source. Derived, not stored on the entity. Null until the first successful ingestion; it is what \"we found N channels\" is rendered from (US-06, US-07). 
@@ -76,6 +77,11 @@ data class Source (
     @Json(name = "error_code")
     val errorCode: IngestionErrorCode? = null,
 
+    /* When the ingestion that set `error_code` failed. Non-null only when `status` is `ERROR`, and cleared by the next success.  Separate from `last_synced_at` because the two answer different questions and a single timestamp cannot answer both: one row of the account screen reads \"1 248 channels · checked 2 h ago\", the row below it reads \"credentials refused **since yesterday**\".  The age is what makes the message actionable. \"Credentials refused\" alone does not say whether the user missed two hours of television or two weeks.  */
+    @Json(name = "last_error_at")
+    val lastErrorAt: java.time.OffsetDateTime? = null,
+
+    /* Last ingestion that **succeeded**. Unchanged by a failed attempt — see `last_error_at`.  */
     @Json(name = "last_synced_at")
     val lastSyncedAt: java.time.OffsetDateTime? = null,
 
