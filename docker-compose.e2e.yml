@@ -52,6 +52,23 @@ services:
       LUMO_RATE_LIMIT_AUTH_ATTEMPTS_PER_MINUTE: ${LUMO_RATE_LIMIT_AUTH_ATTEMPTS_PER_MINUTE:-1000}
       LUMO_RATE_LIMIT_DEVICE_APPROVE_ATTEMPTS_PER_MINUTE: ${LUMO_RATE_LIMIT_DEVICE_APPROVE_ATTEMPTS_PER_MINUTE:-1000}
 
+  # The source test bench. Serves, on fixed paths, the playlists and panel
+  # answers a qualification run needs and cannot get from a real provider:
+  # a valid playlist, an empty one, an HTML page pretending to be one, and a
+  # panel that refuses credentials. See apps/web/e2e/bench/nginx.conf.
+  #
+  # Reachable as http://bench from the API container, and only from it: no port
+  # is published, because nothing outside this stack has any business here.
+  bench:
+    image: nginx:1.27-alpine
+    container_name: lumo-e2e-bench
+    restart: "no"
+    volumes:
+      - ./apps/web/e2e/bench/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./apps/web/e2e/bench/www:/usr/share/nginx/html:ro
+    networks:
+      - lumo
+
 # ------------------------------------------------------------------ network ---
 #
 # The fourth difference, and the one that cost an afternoon to find.

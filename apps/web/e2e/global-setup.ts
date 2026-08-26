@@ -62,7 +62,9 @@ export default async function globalSetup(config: FullConfig) {
  * half a minute confirming nothing changed.
  */
 function buildArgs(repoRoot: string, stateDir: string): string[] {
-  const services = ["postgres", "lumo-api"];
+  // `bench` is pulled, never built, and `--build` on a list containing it is
+  // harmless — compose builds what has a build section and starts the rest.
+  const services = ["postgres", "lumo-api", "bench"];
 
   if (process.env.E2E_API_BUILD === "1") {
     console.log("[e2e] E2E_API_BUILD=1 — image reconstruite sur demande.");

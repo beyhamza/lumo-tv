@@ -299,8 +299,9 @@ contorsions.
   bouton ne le lit.
 - Stripe (ADR 0003) : la page abonnement lit `GET /me/entitlement` et n'ouvre
   aucune session de paiement.
-- `/app` ne fait que lire — aucune création ni suppression de source ou
-  d'appareil.
+- `/app` gère les sources (ajout, suivi, actualisation, suppression) et révoque
+  un appareil. Il n'a pas encore d'écran de catalogue ni de lecteur : c'est le
+  reste du sprint 3.
 - Les guides sont trois entrées statiques ; un CMS devra remplacer
   `src/content/guides.ts`.
 - Le rafraîchissement dédoublonne dans **un** processus. Derrière plusieurs
@@ -309,4 +310,5 @@ contorsions.
 - Les parcours e2e s'arrêtent à la création de compte et à l'activation. Ils
   traversent bien l'API depuis que la pile est branchée, mais aucun ne va
   jusqu'à la lecture — et ce qui manque n'est plus l'environnement, ce sont les
-  écrans : le web n'a ni formulaire d'ajout de source ni écran de catalogue.
+  écrans : le formulaire d'ajout de source existe et est traversé de bout en bout,
+  l'écran de catalogue et le lecteur non.

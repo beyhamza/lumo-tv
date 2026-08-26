@@ -23,6 +23,25 @@ export const TRANSLATED_ERROR_CODES = [
   "DEVICE_CODE_NOT_FOUND",
   "DEVICE_CODE_EXPIRED",
   "DEVICE_CODE_ALREADY_USED",
+  // Sources and ingestion. Every IngestionErrorCode is here, and that is the
+  // point of the enumeration: the contract says no client may fall back to a
+  // generic message on this surface, because the user's next action differs
+  // completely between "the server is down" and "your password is wrong".
+  "SOURCE_NOT_FOUND",
+  "SOURCE_NOT_READY",
+  "SOURCE_SYNC_IN_PROGRESS",
+  "SOURCE_SYNC_RATE_LIMITED",
+  "SOURCE_UNREACHABLE",
+  "SOURCE_AUTH_FAILED",
+  "SOURCE_EXPIRED",
+  "SOURCE_MAX_CONNECTIONS",
+  "SOURCE_INVALID_FORMAT",
+  "SOURCE_EMPTY",
+  "SOURCE_TOO_LARGE",
+  // Plan limits. Distinct from CONFLICT so the screen can offer the way out.
+  "SOURCE_LIMIT_REACHED",
+  "DEVICE_LIMIT_REACHED",
+  "CHANNEL_NOT_FOUND",
 ] as const;
 
 export type TranslatedErrorCode = (typeof TRANSLATED_ERROR_CODES)[number];

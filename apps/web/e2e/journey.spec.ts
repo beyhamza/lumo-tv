@@ -79,3 +79,86 @@ test.describe("activation", () => {
     await expect(page).toHaveURL(/code=ZZZZ9999/);
   });
 });
+
+/**
+ * Registering a source, from the form to a usable catalogue (US-06, US-07).
+ *
+ * Serial, because it is one flow rather than four independent checks: the
+ * account created by `auth.setup.ts` is on the free plan, which allows exactly
+ * one source, and that ceiling is itself part of what is being verified. Each
+ * test leaves the account in the state the next one needs.
+ *
+ * Everything points at the bench container (`docker-compose.e2e.yml`), never at
+ * a real provider: a qualification run that depends on somebody's IPTV
+ * subscription is a qualification run that fails on a Sunday for reasons nobody
+ * can reproduce.
+ */
+test.describe.serial("sources", () => {
+  test("une playlist enregistrée devient une source prête", async ({ page }) => {
+    await page.goto("/fr/app/sources/new");
+
+    await page.getByLabel(fr.App.sourceLabelLabel).fill("Banc d'essai");
+    await page.getByLabel(fr.App.sourceM3uUrlLabel).fill("http://bench/playlist.m3u");
+    await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+
+    // The POST answers 202 and the catalogue is not there yet, so the landing
+    // page is the wait. Ingestion of five channels is quick, so what is asserted
+    // is the end state — reaching it at all proves the whole chain: server
+    // action, API, ingestion worker, PostgreSQL, and the polling screen.
+    await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({
+      timeout: 30_000,
+    });
+
+    // Five channels in three groups: two named ones plus the bucket the server
+    // invents for the entry with no group-title.
+    await expect(page.getByText("5 chaînes · 3 catégories")).toBeVisible();
+  });
+
+  test("le plafond de l'offre remplace le bouton d'ajout", async ({ page }) => {
+    await page.goto("/fr/app/sources");
+
+    // FREE allows one source and one is registered. The ceiling is read from
+    // GET /me/entitlement, never written into the web: the day the free plan
+    // allows two, this screen follows without a release.
+    await expect(page.getByText(fr.App.sourcesLimitBody)).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: fr.App.sourcesAddCta }),
+    ).toHaveCount(0);
+  });
+
+  test("supprimer la source rend la place", async ({ page }) => {
+    await page.goto("/fr/app/sources");
+    await page.getByRole("link", { name: "Banc d'essai" }).click();
+
+    await page.getByRole("link", { name: fr.App.sourceDelete }).click();
+    // The confirmation is a query parameter, not a dialog: it works without
+    // JavaScript and it names what goes with the source.
+    await expect(page.getByText(fr.App.sourceDeleteConfirmBody)).toBeVisible();
+    await page.getByRole("button", { name: fr.App.sourceDeleteConfirm }).click();
+
+    await expect(page.getByText(fr.App.sourcesEmpty)).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: fr.App.sourcesAddCta }),
+    ).toBeVisible();
+  });
+
+  test("une adresse qui ne renvoie pas une playlist est nommée comme telle", async ({
+    page,
+  }) => {
+    await page.goto("/fr/app/sources/new");
+
+    await page.getByLabel(fr.App.sourceLabelLabel).fill("Page HTML");
+    // HTTP 200 with an HTML body: what a mistyped address usually returns.
+    await page
+      .getByLabel(fr.App.sourceM3uUrlLabel)
+      .fill("http://bench/not-a-playlist.html");
+    await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+
+    await expect(page.getByText(fr.App.sourceErrorTitle)).toBeVisible({
+      timeout: 30_000,
+    });
+    // The specific code, not a generic failure. "Your playlist is empty" would
+    // send the user looking in the wrong place.
+    await expect(page.getByText(fr.Errors.SOURCE_INVALID_FORMAT)).toBeVisible();
+  });
+});

@@ -127,12 +127,12 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | | Id | Tâche | Lot | Points | Avancement |
 |---|---|---|---|---|---|
 | ☑ | S3-00 | ADR 0007 — la lecture dans un navigateur | décision | 2 | 100 % |
-| ☐ | S3-01 | Banc d'essai : sources en erreur **et** flux jouable | outillage | 3 | 0 % |
-| ☐ | S3-02 | Ajouter une source : M3U et Xtream | sources | 5 | 0 % |
-| ☐ | S3-03 | Suivi de l'ingestion : étapes, attente, succès chiffré | sources | 5 | 0 % |
-| ☐ | S3-04 | Les quatre erreurs de source, et quoi faire | sources | 3 | 0 % |
-| ☐ | S3-05 | Gérer une source : renommer, resynchroniser, supprimer | sources | 3 | 0 % |
-| ☐ | S3-06 | Plafonds lus, jamais devinés | sources | 2 | 0 % |
+| ◩ | S3-01 | Banc d'essai : sources en erreur **et** flux jouable | outillage | 3 | 60 % |
+| ☑ | S3-02 | Ajouter une source : M3U et Xtream | sources | 5 | 100 % |
+| ☑ | S3-03 | Suivi de l'ingestion : étapes, attente, succès chiffré | sources | 5 | 100 % |
+| ☑ | S3-04 | Les quatre erreurs de source, et quoi faire | sources | 3 | 100 % |
+| ☑ | S3-05 | Gérer une source : renommer, resynchroniser, supprimer | sources | 3 | 100 % |
+| ☑ | S3-06 | Plafonds lus, jamais devinés | sources | 2 | 100 % |
 | ☐ | S3-07 | Catalogue : catégories, chaînes paginées, recherche | catalogue | 8 | 0 % |
 | ☐ | S3-08 | Favoris et chaînes récentes | catalogue | 3 | 0 % |
 | ☐ | S3-09 | Route Handler de lecture : l'URL hors du HTML | lecture | 3 | 0 % |
@@ -140,7 +140,14 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S3-11 | Échecs de lecture nommés | lecture | 5 | 0 % |
 | ☐ | S3-12 | Parcours e2e : compte → source → chaîne → image | vérif | 5 | 0 % |
 
-**Avancement du sprint : 4 % de 55 points.** Option A retenue, la lecture est débloquée.
+**Avancement du sprint : 40 % de 55 points.** Le lot sources est livré et vérifié
+de bout en bout ; le catalogue et la lecture restent entiers.
+
+Ce qui manque à S3-01 pour être clos : un **flux HLS décodable** servi par le banc,
+en HTTPS avec CORS et son pendant en `http://` sans CORS. Les playlists et les
+réponses de panel sont là et servent déjà la recette des erreurs ; produire un segment
+média sans committer de vidéo demande de le générer, et cela se fait avec S3-10 qui en
+est le seul consommateur.
 
 Sans US-11 : S3-00, S3-09, S3-10 et S3-11 tombent — **39 points**.
 
@@ -181,7 +188,15 @@ manque le jour où quelqu'un ajoute « juste un petit proxy ».
 
 ---
 
-### S3-01 — Banc d'essai : sources en erreur et flux jouable · **3**
+### S3-01 — Banc d'essai : sources en erreur et flux jouable · **3** · ◩ 60 %
+
+> **Livré** : le conteneur `bench` de `docker-compose.e2e.yml` (nginx, aucun port
+> publié), servant `/playlist.m3u` (cinq chaînes, trois groupes, `tvg-chno` et
+> qualité sur certaines), `/empty.m3u`, `/not-a-playlist.html` et deux chemins de
+> panel Xtream. L'hôte injoignable ne demande aucun conteneur : `192.0.2.1`
+> (TEST-NET-1, RFC 5737) le reproduit mieux.
+>
+> **Reste** : le flux HLS décodable, et sa variante sans CORS. Voir S3-10.
 
 Reprend **S2-03** et l'étend. Si le sprint 2 l'a déjà fait, cette tâche se limite à
 l'extension et vaut 1 point.
@@ -203,7 +218,11 @@ bouquet (AGENTS.md §1). Le job `no-content` refuse le dépôt sinon.
 
 ---
 
-### S3-02 — Ajouter une source : M3U et Xtream · **5**
+### S3-02 — Ajouter une source : M3U et Xtream · **5** · ☑
+
+> **Livré.** `app/sources/new`, Server Action `createSource`, bascule M3U / Xtream
+> en CSS pure (`:has()`), donc fonctionnelle sans JavaScript. Erreurs rendues au champ
+> concerné à partir de `Problem.errors[]`.
 
 Le formulaire qui manque depuis le début. Server Action, pas de `fetch` navigateur :
 le token reste hors du JavaScript client, et le formulaire marche sans JavaScript.
@@ -225,7 +244,13 @@ Trois points qui distinguent cet écran d'un formulaire ordinaire :
 
 ---
 
-### S3-03 — Suivi de l'ingestion : étapes, attente, succès chiffré · **5**
+### S3-03 — Suivi de l'ingestion : étapes, attente, succès chiffré · **5** · ☑
+
+> **Livré.** `app/sources/[id]`, checklist des étapes réelles — `AUTHENTICATED` est
+> absent pour une playlist, qui n'authentifie rien — et rafraîchissement par
+> `<meta http-equiv="refresh">` tant que l'ingestion tourne, donc sans une ligne de
+> JavaScript. L'écran d'attente n'est pas couvert par un test : cinq chaînes
+> s'importent trop vite pour qu'un navigateur l'observe.
 
 Une grosse playlist prend jusqu'à une minute, et une minute de silence est l'endroit
 où l'utilisateur conclut que c'est cassé.
@@ -248,7 +273,11 @@ les rapporte.
 
 ---
 
-### S3-04 — Les quatre erreurs de source, et quoi faire · **3**
+### S3-04 — Les quatre erreurs de source, et quoi faire · **3** · ☑
+
+> **Livré.** Les onze codes ont un message FR et EN, rendus avec `last_error_at`
+> pour l'âge, et un bouton par situation. Le cas « page HTML servie en 200 » est
+> vérifié de bout en bout.
 
 `SOURCE_UNREACHABLE`, `SOURCE_AUTH_FAILED`, `SOURCE_EXPIRED`, `SOURCE_INVALID_FORMAT`
 — plus `SOURCE_EMPTY`, `SOURCE_TOO_LARGE` et `SOURCE_MAX_CONNECTIONS`.
@@ -267,7 +296,11 @@ Testable grâce à S3-01, et seulement grâce à lui.
 
 ---
 
-### S3-05 — Gérer une source : renommer, resynchroniser, supprimer · **3**
+### S3-05 — Gérer une source : renommer, resynchroniser, supprimer · **3** · ☑
+
+> **Livré.** Renommer, basculer `auto_sync`, actualiser, supprimer — la confirmation
+> de suppression passe par un paramètre d'URL, donc elle survit à un rechargement et
+> marche sans JavaScript.
 
 `PATCH /sources/{id}`, `POST /sources/{id}/sync`, `DELETE /sources/{id}`.
 
@@ -284,7 +317,10 @@ Quatre détails qui se voient à l'usage :
 
 ---
 
-### S3-06 — Plafonds lus, jamais devinés · **2**
+### S3-06 — Plafonds lus, jamais devinés · **2** · ☑
+
+> **Livré.** `max_sources` lu sur `GET /me/entitlement`, le bouton d'ajout cède la
+> place au plafond, et le `409` reste géré pour le cas des deux onglets.
 
 `GET /me/entitlement` renvoie `max_sources` et `max_devices`. `null` veut dire
 illimité, pas inconnu.
