@@ -64,9 +64,21 @@ the product is broken when it is the panel refusing. That is a dedicated sprint 
 (S3-11), sized accordingly, and it is the part of the feature that decides whether it
 is usable or mysterious.
 
-A stream that plays in Safari and fails in Chrome is expected — native HLS needs no
-CORS, `hls.js` always does. The diagnostic has to say so rather than report a generic
-failure, or the next bug report is "it works on my Mac".
+A stream that plays through a browser's own HLS support and fails through `hls.js` is
+expected — native playback needs no CORS, MSE always does. The diagnostic has to
+account for that rather than report a generic failure, or the next bug report is "it
+works on my phone".
+
+**Amended after implementation.** The table above says Safari plays HLS natively, and
+it does — but the player does not take that path on desktop Safari, and the reason is
+worth recording. Choosing native from `canPlayType("application/vnd.apple.mpegurl")`
+is wrong: Chromium answers `"maybe"` to it and then plays nothing, fetching every
+segment, decoding none, and raising no error — a black rectangle that ends only when
+the player's own give-up clock does. So the player uses MSE wherever MSE exists and
+falls back to native only where it does not. The CORS-free path therefore survives on
+browsers without MSE — iOS Safari among them — and desktop Safari needs CORS like
+Chrome. That narrows who this option works for, which is the sort of thing this ADR
+exists to say out loud.
 
 The applications remain the real players. That matches what the product is: a website
 that manages an account and two applications that watch television.

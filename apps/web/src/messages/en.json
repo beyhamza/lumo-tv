@@ -256,7 +256,14 @@
     "catalogueNext": "Next page",
     "cataloguePageOf": "Page {page} of {total}",
     "catalogueNotReady": "This source has not finished importing.",
-    "catalogueNotReadyLink": "See how far it got"
+    "catalogueNotReadyLink": "See how far it got",
+    "playerFailedTitle": "Playback could not start",
+    "playerMixedContent": "Your provider serves this stream unencrypted (http), and a browser refuses to load it from a secure page. Nothing on this site can work around it.",
+    "playerBlocked": "Your provider does not allow playback from a browser: it refuses the request, or does not answer.",
+    "playerUnplayable": "The stream was reached but this browser could not decode it.",
+    "playerUnsupported": "This browser cannot play this kind of stream.",
+    "playerUseApps": "The Android and Android TV applications have no such limit: they open the stream directly.",
+    "playerMaxConnections": "Your subscription allows {count} simultaneous stream(s)."
   },
   "Errors": {
     "generic": "Something went wrong. Try again.",

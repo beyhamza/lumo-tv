@@ -34,5 +34,8 @@
     "**/*.mts",
     "../../packages/contracts/generated/typescript/api.d.ts"
   ],
-  "exclude": ["node_modules"]
+  // e2e/bench/www holds the source test bench fixtures. Its HLS segments are
+  // MPEG-TS and carry the .ts extension, which TypeScript would otherwise try
+  // to compile — "File appears to be binary", once per segment.
+  "exclude": ["node_modules", "e2e/bench/www"]
 }

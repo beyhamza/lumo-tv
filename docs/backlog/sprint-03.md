@@ -127,27 +127,25 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | | Id | Tâche | Lot | Points | Avancement |
 |---|---|---|---|---|---|
 | ☑ | S3-00 | ADR 0007 — la lecture dans un navigateur | décision | 2 | 100 % |
-| ◩ | S3-01 | Banc d'essai : sources en erreur **et** flux jouable | outillage | 3 | 60 % |
+| ☑ | S3-01 | Banc d'essai : sources en erreur **et** flux jouable | outillage | 3 | 100 % |
 | ☑ | S3-02 | Ajouter une source : M3U et Xtream | sources | 5 | 100 % |
 | ☑ | S3-03 | Suivi de l'ingestion : étapes, attente, succès chiffré | sources | 5 | 100 % |
 | ☑ | S3-04 | Les quatre erreurs de source, et quoi faire | sources | 3 | 100 % |
 | ☑ | S3-05 | Gérer une source : renommer, resynchroniser, supprimer | sources | 3 | 100 % |
 | ☑ | S3-06 | Plafonds lus, jamais devinés | sources | 2 | 100 % |
 | ☑ | S3-07 | Catalogue : catégories, chaînes paginées, recherche | catalogue | 8 | 100 % |
-| ☐ | S3-08 | Favoris et chaînes récentes | catalogue | 3 | 0 % |
-| ☐ | S3-09 | Route Handler de lecture : l'URL hors du HTML | lecture | 3 | 0 % |
-| ☐ | S3-10 | Lecteur HLS | lecture | 8 | 0 % |
-| ☐ | S3-11 | Échecs de lecture nommés | lecture | 5 | 0 % |
-| ☐ | S3-12 | Parcours e2e : compte → source → chaîne → image | vérif | 5 | 0 % |
+| ◩ | S3-08 | Favoris et chaînes récentes | catalogue | 3 | 30 % |
+| ☑ | S3-09 | Route Handler de lecture : l'URL hors du HTML | lecture | 3 | 100 % |
+| ☑ | S3-10 | Lecteur HLS | lecture | 8 | 100 % |
+| ☑ | S3-11 | Échecs de lecture nommés | lecture | 5 | 100 % |
+| ☑ | S3-12 | Parcours e2e : compte → source → chaîne → image | vérif | 5 | 100 % |
 
-**Avancement du sprint : 54 % de 55 points.** Sources et catalogue sont livrés et
-traversés par la recette ; la lecture reste entière.
+**Avancement du sprint : 96 % de 55 points.** Une chaîne se lance et s'affiche dans
+le navigateur, vérifié sur une image décodée et non sur la présence d'une balise.
 
-Ce qui manque à S3-01 pour être clos : un **flux HLS décodable** servi par le banc,
-en HTTPS avec CORS et son pendant en `http://` sans CORS. Les playlists et les
-réponses de panel sont là et servent déjà la recette des erreurs ; produire un segment
-média sans committer de vidéo demande de le générer, et cela se fait avec S3-10 qui en
-est le seul consommateur.
+Reste **S3-08 à 30 %** : les chaînes récentes sont enregistrées au démarrage de la
+lecture — jamais au survol, comme le contrat l'exige — mais ni les favoris ni les
+deux rails ne sont écrits.
 
 Sans US-11 : S3-00, S3-09, S3-10 et S3-11 tombent — **39 points**.
 
@@ -188,15 +186,16 @@ manque le jour où quelqu'un ajoute « juste un petit proxy ».
 
 ---
 
-### S3-01 — Banc d'essai : sources en erreur et flux jouable · **3** · ◩ 60 %
+### S3-01 — Banc d'essai : sources en erreur et flux jouable · **3** · ☑
 
-> **Livré** : le conteneur `bench` de `docker-compose.e2e.yml` (nginx, aucun port
-> publié), servant `/playlist.m3u` (cinq chaînes, trois groupes, `tvg-chno` et
-> qualité sur certaines), `/empty.m3u`, `/not-a-playlist.html` et deux chemins de
-> panel Xtream. L'hôte injoignable ne demande aucun conteneur : `192.0.2.1`
-> (TEST-NET-1, RFC 5737) le reproduit mieux.
+> **Livré.** Le conteneur `bench` sert désormais aussi un **flux HLS décodable** —
+> six secondes de mire et un sinus générés par ffmpeg, 190 Ko, rien que personne ne
+> possède — en deux variantes : `/stream/` avec en-tête CORS, `/stream-nocors/` sans.
+> C'est la seconde qui compte : elle reproduit le cas majoritaire, et c'est elle qui a
+> prouvé que le lecteur restait muet douze secondes.
 >
-> **Reste** : le flux HLS décodable, et sa variante sans CORS. Voir S3-10.
+> Les segments portent l'extension `.ts`, que TypeScript et ESLint prenaient pour du
+> code. Exclus dans les deux configurations, avec la raison écrite.
 
 Reprend **S2-03** et l'étend. Si le sprint 2 l'a déjà fait, cette tâche se limite à
 l'extension et vaut 1 point.
@@ -393,7 +392,10 @@ Dépend de S3-10 pour le second point ; le premier est autonome.
 
 ---
 
-### S3-09 — Route Handler de lecture : l'URL hors du HTML · **3** · dépend de S3-00
+### S3-09 — Route Handler de lecture : l'URL hors du HTML · **3** · dépend de S3-00 · ☑
+
+> **Livré.** `/api/playback/[channelId]`, `Cache-Control: no-store`, l'URL n'entre
+> jamais dans le HTML — vérifié par un test qui relit le document rendu.
 
 `GET /channels/{id}/playback` renvoie `stream_url`, et pour une source Xtream cette
 URL **contient l'identifiant et le mot de passe du panel**. C'est la réponse la plus
@@ -416,7 +418,17 @@ Le handler traite aussi les deux refus du contrat : `409 SOURCE_NOT_READY` et
 
 ---
 
-### S3-10 — Lecteur HLS · **8** · dépend de S3-00, S3-09
+### S3-10 — Lecteur HLS · **8** · dépend de S3-00, S3-09 · ☑
+
+> **Livré.** `ChannelPlayer`, hls.js chargé à la demande, lecture prouvée sur une
+> frame décodée (`readyState >= 2` et `currentTime > 0`).
+>
+> **Le choix du chemin de lecture a été inversé en cours de route.** Prendre le
+> lecteur natif quand `canPlayType` répond quelque chose est faux : Chromium répond
+> `"maybe"` pour HLS et ne le lit pas — il télécharge tous les segments, n'en décode
+> aucun, et ne lève aucune erreur. Le lecteur utilise donc MSE partout où MSE existe,
+> et le natif seulement là où il n'existe pas. `adr/0007` est amendé en
+> conséquence : desktop Safari passe par hls.js et réclame CORS comme Chrome.
 
 Un composant client, aussi bas que possible dans l'arbre, et le premier de la zone.
 
@@ -436,7 +448,15 @@ Picture-in-Picture est **hors périmètre v1** (AGENTS.md §6).
 
 ---
 
-### S3-11 — Échecs de lecture nommés · **5** · dépend de S3-00
+### S3-11 — Échecs de lecture nommés · **5** · dépend de S3-00 · ☑
+
+> **Livré.** Cinq causes nommées. Le point qui décidait de tout : hls.js signale un
+> manifeste refusé d'abord en **non fatal**, et n'appelle l'échec fatal qu'après ses
+> tentatives — douze secondes de rectangle noir pendant lesquelles le garde-fou
+> couvrait le silence. En comptant les tentatives, le message tombe en 448 ms.
+>
+> Les options `manifestLoadingMaxRetry` et consorts n'y étaient pour rien : hls.js 1.x
+> les a dépréciées et les ignore sans rien dire. C'est `manifestLoadPolicy` qui règle.
 
 La tâche qui décide si le lecteur est utilisable ou mystérieux, et la seule dont le
 travail est presque entièrement de la formulation.
@@ -459,7 +479,11 @@ télévision.
 
 ---
 
-### S3-12 — Parcours e2e : compte → source → chaîne → image · **5**
+### S3-12 — Parcours e2e : compte → source → chaîne → image · **5** · ☑
+
+> **Livré.** Le parcours va de la création de compte à une image qui bouge, et son
+> pendant vérifie qu'un flux sans CORS produit un message nommé plutôt qu'un carré
+> noir. 32 tests e2e au total.
 
 Le parcours s'arrête aujourd'hui à la création de compte et à l'activation. Ce qui
 manquait n'était plus l'environnement — la pile Docker est branchée depuis le

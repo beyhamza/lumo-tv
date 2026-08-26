@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The source test bench fixtures. Its HLS segments are MPEG-TS and carry
+    // the .ts extension, which ESLint would otherwise try to parse — one
+    // "Unexpected keyword or identifier" per segment. Same exclusion as in
+    // tsconfig.json, for the same reason.
+    "e2e/bench/www/**",
   ]),
 ]);
 

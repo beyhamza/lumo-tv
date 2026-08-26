@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
+import { ChannelPlayer } from "@/components/app/ChannelPlayer";
 import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
@@ -65,6 +67,7 @@ export default async function ChannelsPage({
   const categoryId = single(query.categoryId);
   const search = single(query.q);
   const page = Math.max(0, Number.parseInt(single(query.page) ?? "0", 10) || 0);
+  const playing = single(query.play);
 
   // Not through `fetched()`: this screen has to tell three failures apart, and
   // that helper deliberately collapses everything that is not an unrouted 404
@@ -112,6 +115,14 @@ export default async function ChannelsPage({
   }
 
   const totalPages = channels.data.total_pages;
+  const messages = await getMessages();
+  // Named from the row that was clicked rather than from a lookup: the contract
+  // has no endpoint returning one channel by id, and inventing one to fill a
+  // heading would be inventing an endpoint (AGENTS.md §3). The channel is on the
+  // page the link was built from, so its name is already in hand.
+  const nowPlaying = playing
+    ? channels.data.items.find((channel) => channel.id === playing)
+    : undefined;
 
   return (
     <div>
@@ -175,6 +186,18 @@ export default async function ChannelsPage({
         />
 
         <div>
+          {nowPlaying ? (
+            <NextIntlClientProvider
+              messages={{ App: messages.App, Errors: messages.Errors }}
+            >
+              <ChannelPlayer
+                channelId={nowPlaying.id}
+                name={nowPlaying.name}
+                quality={nowPlaying.quality}
+              />
+            </NextIntlClientProvider>
+          ) : null}
+
           {channels.data.items.length === 0 ? (
             <div className="border-border rounded-xl border border-dashed px-5 py-6">
               <p className="font-medium">
@@ -187,7 +210,20 @@ export default async function ChannelsPage({
           ) : (
             <ul aria-label={t("catalogueTitle")} className="space-y-2">
               {channels.data.items.map((channel) => (
-                <ChannelRow key={channel.id} channel={channel} />
+                <ChannelRow
+                  key={channel.id}
+                  channel={channel}
+                  playing={channel.id === playing}
+                  href={hrefFor(
+                    locale as Locale,
+                    `/app/sources/${id}/channels${queryString({
+                      categoryId,
+                      q: search,
+                      page: page > 0 ? String(page) : undefined,
+                      play: channel.id,
+                    })}`,
+                  )}
+                />
               ))}
             </ul>
           )}
@@ -309,16 +345,33 @@ function CategoryList({
  * lower case is a source that wrote `fhd`, and normalising it here would be this
  * layer deciding what the provider meant.
  */
-function ChannelRow({ channel }: { channel: Channel }) {
+function ChannelRow({
+  channel,
+  href,
+  playing,
+}: {
+  channel: Channel;
+  href: string;
+  playing: boolean;
+}) {
   return (
-    <li className="border-border flex items-center gap-3 rounded-xl border px-4 py-3">
+    <li
+      className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
+        playing ? "border-primary bg-primary/5" : "border-border"
+      }`}
+    >
       <span className="text-muted-foreground w-10 shrink-0 text-right text-sm tabular-nums">
         {channel.number ?? ""}
       </span>
 
       <Logo channel={channel} />
 
-      <span className="min-w-0 flex-1 truncate font-medium">{channel.name}</span>
+      {/* A link, so playing a channel is a URL like every other state on this
+          page: it survives a reload, it can be shared, and the back button
+          closes the player. */}
+      <a href={href} className="min-w-0 flex-1 truncate font-medium underline-offset-4 hover:underline">
+        {channel.name}
+      </a>
 
       {channel.quality ? (
         <span className="border-border text-muted-foreground shrink-0 rounded border px-1.5 py-0.5 text-xs">

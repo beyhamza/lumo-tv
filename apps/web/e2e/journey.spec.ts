@@ -164,6 +164,84 @@ test.describe.serial("sources", () => {
     await expect(page.getByText(fr.App.catalogueNoResults)).toBeVisible();
   });
 
+  test("lancer une chaîne demande l'URL au serveur, sans jamais la mettre dans la page", async ({
+    page,
+  }) => {
+    await page.goto("/fr/app/sources");
+    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
+
+    const playbackCalls: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/api/playback/")) playbackCalls.push(request.url());
+    });
+
+    await page.getByRole("link", { name: "Chaîne 01 FHD" }).click();
+
+    // L'état de lecture est dans l'URL, comme le reste de cet écran.
+    await expect(page).toHaveURL(/play=/);
+    await expect(page.locator("video")).toBeVisible();
+
+    // L'URL du flux est demandée à la volée par le lecteur, pas rendue par le
+    // serveur : elle porte les identifiants du panel de l'utilisateur.
+    await expect.poll(() => playbackCalls.length).toBeGreaterThan(0);
+    const html = await page.content();
+    expect(html).not.toContain("/stream/index.m3u8");
+  });
+
+  test("un flux que le navigateur ne peut pas ouvrir le dit, et propose la sortie", async ({
+    page,
+  }) => {
+    // La playlist du banc pointe des flux qui n'existent pas et dont l'hôte
+    // n'est même pas résolvable depuis le navigateur — exactement ce que fait un
+    // panel qui refuse une requête venue d'une page web. Ce que ce test refuse,
+    // c'est le carré noir silencieux : c'est lui qui fait conclure que le
+    // produit est cassé alors que c'est le fournisseur qui dit non.
+    await page.goto("/fr/app/sources");
+    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
+    // Chaîne 02 pointe le flux servi SANS en-tête CORS, qui est le cas
+    // majoritaire chez les vrais panels.
+    await page.getByRole("link", { name: "Chaîne 02" }).click();
+
+    await expect(page.getByText(fr.App.playerFailedTitle)).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByText(fr.App.playerBlocked)).toBeVisible();
+    // Réessayer ne servirait à rien : la sortie proposée est celle qui existe.
+    await expect(page.getByText(fr.App.playerUseApps)).toBeVisible();
+  });
+
+  test("un flux que le navigateur peut ouvrir affiche une image", async ({ page }) => {
+    await page.goto("/fr/app/sources");
+    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
+
+    // Chaîne 01 pointe le flux servi AVEC son en-tête CORS : le fournisseur qui
+    // autorise la lecture dans un navigateur.
+    await page.getByRole("link", { name: "Chaîne 01 FHD" }).click();
+
+    const video = page.locator("video");
+    await expect(video).toBeVisible();
+
+    // Pas la présence d'une balise `video` — une image décodée. readyState >= 2
+    // veut dire HAVE_CURRENT_DATA : le navigateur tient la frame courante.
+    await expect
+      .poll(() => video.evaluate((element: HTMLVideoElement) => element.readyState), {
+        timeout: 30_000,
+      })
+      .toBeGreaterThanOrEqual(2);
+
+    // Et le temps avance, donc ça joue vraiment.
+    await expect
+      .poll(() => video.evaluate((element: HTMLVideoElement) => element.currentTime), {
+        timeout: 15_000,
+      })
+      .toBeGreaterThan(0);
+
+    await expect(page.getByText(fr.App.playerFailedTitle)).toHaveCount(0);
+  });
+
   test("le plafond de l'offre remplace le bouton d'ajout", async ({ page }) => {
     await page.goto("/fr/app/sources");
 
