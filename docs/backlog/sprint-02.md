@@ -71,22 +71,49 @@ qualification dans [`sprint-02-recette.md`](./sprint-02-recette.md).
 
 ## Tâches
 
-| Id | Tâche | Ferme | Cible | Points |
-|---|---|---|---|---|
-| S2-01 | `core:data` : repositories et erreurs typées | socle | android | 8 |
-| S2-02 | Navigation pilotée par la session, périmètre réduit | socle | android | 3 |
-| S2-03 | Banc d'essai des sources | outillage | recette | 3 |
-| S2-04 | Inscription | US-01 | mobile | 5 |
-| S2-05 | Connexion par email | US-02 | mobile | 3 |
-| S2-06 | Connexion Google (Credential Manager) | US-03 | mobile | 5 |
-| S2-07 | Session persistante, de bout en bout | US-04 | mobile + tv | 3 |
-| S2-08 | Ajout de source : choix, formulaires, aide | US-06, US-07 | mobile | 8 |
-| S2-09 | États de la source : validation, succès, quatre erreurs | US-06, US-07 | mobile | 5 |
-| S2-10 | Liste des chaînes : catégories, pagination, hors ligne | US-08 | mobile | 8 |
-| S2-11 | Lecteur mobile | US-09 | mobile | 8 |
-| S2-12 | Activation TV : code, QR, polling | US-05 | tv | 8 |
-| S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 |
-| S2-14 | Lecteur TV | US-10 | tv | 5 |
+Une case par tâche, un pourcentage dès que l'avancement est partiel. La
+checklist se met à jour **dans le commit qui livre le travail**, pas après.
+
+| | Id | Tâche | Ferme | Cible | Points | Avancement |
+|---|---|---|---|---|---|---|
+| ☐ | S2-00 | Aligner les tokens Android sur la charte Spectre | S0-07 | android | 2 | 0 % |
+| ☐ | S2-01 | `core:data` : repositories et erreurs typées | socle | android | 8 | 0 % |
+| ☐ | S2-02 | Navigation pilotée par la session, périmètre réduit | socle | android | 3 | 0 % |
+| ☐ | S2-03 | Banc d'essai des sources | outillage | recette | 3 | 0 % |
+| ☐ | S2-04 | Inscription | US-01 | mobile | 5 | 0 % |
+| ☐ | S2-05 | Connexion par email | US-02 | mobile | 3 | 0 % |
+| ☐ | S2-06 | Connexion Google (Credential Manager) | US-03 | mobile | 5 | 0 % |
+| ☐ | S2-07 | Session persistante, de bout en bout | US-04 | mobile + tv | 3 | 0 % |
+| ☐ | S2-08 | Ajout de source : choix, formulaires, aide | US-06, US-07 | mobile | 8 | 0 % |
+| ☐ | S2-09 | États de la source : validation, succès, quatre erreurs | US-06, US-07 | mobile | 5 | 0 % |
+| ☐ | S2-10 | Liste des chaînes : catégories, pagination, hors ligne | US-08 | mobile | 8 | 0 % |
+| ☐ | S2-11 | Lecteur mobile | US-09 | mobile | 8 | 0 % |
+| ☐ | S2-12 | Activation TV : code, QR, polling | US-05 | tv | 8 | 0 % |
+| ☐ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 0 % |
+| ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
+
+**Avancement du sprint : 0 % de 82 points.** Rien n'est commencé.
+
+---
+
+### S2-00 — Aligner les tokens Android sur la charte · **2** · ferme S0-07
+
+`LumoTokens.kt` porte une palette qui n'est pas Spectre : un bleu froid
+`#4CB8FF`, une encre `#07090F`, des rayons 8/12/20. La direction arrêtée en
+passe 1 dit `#0D0C12`, cyan `#6EE7F0`, violet `#A78BFA`, rayons 8/14/20, focus
+en outline cyan. Le web a été aligné le 26 août ; Android non.
+
+À faire **avant le premier écran**, sinon dix écrans sont construits sur la
+mauvaise palette et la reprise coûte dix fois plus.
+
+Ce sont des changements de valeurs, pas de structure : `LumoColors`,
+`LumoSpacing`, `LumoShapes`, `LumoFocus` gardent leurs noms et leurs types.
+
+**Un point à trancher, pas à décider seul.** La charte impose Sora ;
+`LumoTypography.kt` utilise délibérément la police système, avec un argument
+écrit noir sur blanc — embarquer une famille coûte un téléchargement d'APK sur
+une box TV pour une différence que personne ne voit à trois mètres. Les deux
+positions se défendent. Trancher avant d'ouvrir la tâche.
 
 ---
 
@@ -276,18 +303,18 @@ liste, **positionné sur la chaîne qu'on regardait**.
 
 | Bloc | Tâches | Points |
 |---|---|---|
-| Socle et outillage | S2-01 → S2-03 | 14 |
+| Socle et outillage | S2-00 → S2-03 | 16 |
 | Authentification | S2-04 → S2-07 | 16 |
 | Sources | S2-08, S2-09 | 13 |
 | Catalogue et lecture mobile | S2-10, S2-11 | 16 |
 | Télévision | S2-12 → S2-14 | 21 |
-| **Total** | **14 tâches** | **80** |
+| **Total** | **15 tâches** | **82** |
 
-**80 points contre 63 au sprint 1, sur une seule plateforme.** C'est trop pour un
+**82 points contre 63 au sprint 1, sur une seule plateforme.** C'est trop pour un
 sprint si l'équipe n'a pas doublé. La coupure naturelle est nette et elle est
 proposée telle quelle :
 
-- **Sprint 2a — le téléphone** : S2-01 → S2-11, **59 points**. Se démontre seul, et
+- **Sprint 2a — le téléphone** : S2-00 → S2-11, **61 points**. Se démontre seul, et
   ferme sept stories.
 - **Sprint 2b — la télévision** : S2-12 → S2-14, **21 points**. Dépend du socle de
   2a et de rien d'autre.
@@ -295,7 +322,7 @@ proposée telle quelle :
 **Ordre de réalisation** — les dépendances comptent plus que les priorités :
 
 ```
-S2-01 → S2-02 → S2-05 → S2-04 → S2-07 → S2-03 → S2-08 → S2-09 → S2-10 → S2-11
+S2-00 → S2-01 → S2-02 → S2-05 → S2-04 → S2-07 → S2-03 → S2-08 → S2-09 → S2-10 → S2-11
                                                  → S2-06
                                      S2-12 → S2-13 → S2-14
 ```

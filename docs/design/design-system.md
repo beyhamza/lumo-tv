@@ -92,8 +92,38 @@ Valeurs web dérivées : `display` 35, `title` 22, `body` 16, `detail` 13.
 
 ## État de l'implémentation
 
-`apps/web/src/app/globals.css` porte aujourd'hui **la palette shadcn par
-défaut** (`oklch(1 0 0)`, `oklch(0.145 0 0)`, …), pas la direction Spectre.
-S0-07 est coché au backlog au sens « des tokens existent », pas au sens
-« ce sont ceux-là ». Reprendre `globals.css` depuis ce document est un travail
-en soi, à scoper comme tel — pas à glisser dans une story d'écran.
+| Surface | État |
+|---|---|
+| `apps/web` | ✅ aligné le 26 août 2026 |
+| `apps/android` | ❌ palette différente — tâche `S2-00` |
+
+**Web.** `apps/web/src/app/globals.css` porte la charte : palette complète dans
+les deux thèmes, Sora et Space Mono via `next/font`, rayons, durées et courbes,
+et la signature de focus en outline cyan décollé de 3 px.
+
+Deux décisions de mise en œuvre valent d'être connues avant d'y toucher.
+
+**Le thème clair est sur `:root`, le sombre sur `.dark`** — l'inverse de la
+lecture littérale de la charte. Sur le web, et seulement là, le marketing est
+clair et l'applicatif est sombre ; garder la convention shadcn évite de
+réécrire le variant `dark:` que les composants utilisent déjà. La classe `dark`
+est posée par les layouts des zones compte, authentification et activation, sur
+un conteneur qui remplit la hauteur : `<body>` prend le fond de `:root`, donc un
+conteneur sombre qui ne couvre pas tout laisse une bande claire.
+
+**`--radius` vaut 14 px et l'échelle shadcn se dérive de là.** Les trois valeurs
+de la charte retombent sur `rounded-sm` (8), `rounded-lg` (14) et `rounded-xl`
+(20). Écrire 8/14/20 directement dans `--radius-sm/md/lg` paraît plus direct et
+donne un résultat faux : `sm`, `md`, `lg` sont des noms de tokens, pas des noms
+d'utilitaires Tailwind, et cette lecture a doublé le rayon de tous les champs de
+saisie d'un coup.
+
+**Une dérivation assumée.** La charte ne définit `danger` que pour le sombre.
+`#FF7A8A` sur `#F7F6FA` tombe à 2,5:1, illisible ; le thème clair utilise
+`#C2334A`, même teinte, assombrie jusqu'à passer AA en texte courant.
+
+**Android.** `LumoTokens.kt` porte une palette qui n'est pas Spectre — un bleu
+froid `#4CB8FF`, une encre `#07090F`. À aligner **avant le premier écran** du
+sprint 2, sinon la reprise coûte dix fois plus. La typographie est un point
+ouvert : la charte impose Sora, `LumoTypography.kt` argumente pour la police
+système sur une box TV. À trancher, pas à décider seul.

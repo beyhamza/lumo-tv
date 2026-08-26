@@ -28,7 +28,7 @@ export default async function AuthLayout({
   const brand = await getTranslations("Brand");
 
   return (
-    <div className="flex min-h-full flex-1 flex-col">
+    <div className="dark bg-background text-foreground flex min-h-full flex-1 flex-col">
       <header className="border-border/60 border-b">
         <div className="mx-auto w-full max-w-5xl px-4 py-4">
           <a href={hrefFor(locale as Locale, "/")} className="text-base font-semibold tracking-tight">

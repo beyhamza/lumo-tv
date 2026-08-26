@@ -56,7 +56,7 @@ export default async function AppLayout({
   ] as const;
 
   return (
-    <div className="flex min-h-full flex-1 flex-col">
+    <div className="dark bg-background text-foreground flex min-h-full flex-1 flex-col">
       <header className="border-border/60 border-b">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4">
           <a href={hrefFor(locale as Locale, "/")} className="text-base font-semibold tracking-tight">

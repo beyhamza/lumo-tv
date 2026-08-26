@@ -62,7 +62,7 @@ export default async function ActivatePage({
   const session = await getSession();
 
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-md flex-1 flex-col px-5 py-10">
+    <div className="dark bg-background text-foreground mx-auto flex min-h-full w-full max-w-md flex-1 flex-col px-5 py-10">
       <a href={hrefFor(locale as Locale, "/")} className="text-muted-foreground text-sm">
         {brand("name")}
       </a>

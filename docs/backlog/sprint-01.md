@@ -26,28 +26,34 @@ doc mise à jour si un comportement observable change · démo faite sur device 
 
 ---
 
-## État au 26 août 2026 — **sprint 1 non clos**
+## État au 26 août 2026 — **sprint 1 non clos, ~50 %**
 
-Audit du dépôt, story par story. « ⚠️ » signale une mécanique écrite et testée mais
-qu'aucun écran n'expose.
+**Convention de suivi, valable pour tous les sprints.** Une case par tâche, et un
+pourcentage dès que l'avancement est partiel. Le pourcentage mesure
+l'**implémentation** sur les surfaces que la story nomme, à parts égales. La
+colonne **DoD** est séparée et vaut ce qu'elle dit : la Definition of Done exige
+une démo sur device réel, télécommande en main pour la TV. Du code écrit et une
+story finie sont deux états différents.
 
-| US | API | Web | Android | Verdict |
+| | US | Avancement | Ce qui manque | DoD |
 |---|---|---|---|---|
-| US-01 Compte email | ✅ | ✅ | ❌ placeholder | incomplet |
-| US-02 Connexion email | ✅ | ✅ | ❌ | incomplet |
-| US-03 Google | ✅ | ❌ aucun bouton | ❌ | incomplet |
-| US-04 Session et rotation | ✅ | ✅ `proxy.ts` | ⚠️ `SessionManager` complet | quasi |
-| US-05 Activer une TV | ✅ | ✅ `/activate` | ❌ ni code, ni QR, ni polling | incomplet |
-| US-06 Source Xtream | ✅ | ❌ lecture seule | ❌ | incomplet |
-| US-07 Playlist M3U | ✅ | ❌ | ❌ | incomplet |
-| US-08 Chaînes par catégorie | ✅ | — | ⚠️ Room + Paging, écran placeholder | incomplet |
-| US-09 Lecture mobile | ✅ | — | ⚠️ Media3 présent, non câblé | incomplet |
-| US-10 Lecture TV | ✅ | — | ❌ | incomplet |
+| ☐ | US-01 Compte email | **66 %** | l'écran mobile | ☐ |
+| ☐ | US-02 Connexion email | **66 %** | l'écran mobile | ☐ |
+| ☐ | US-03 Google | **33 %** | le bouton web, l'écran mobile | ☐ |
+| ☐ | US-04 Session et rotation | **85 %** | rien de neuf : `SessionManager` est écrit et testé, il lui manque un écran pour ouvrir une session | ☐ |
+| ☐ | US-05 Activer une TV | **66 %** | l'écran TV — code, QR, polling | ☐ |
+| ☐ | US-06 Source Xtream | **33 %** | le formulaire mobile et ses états d'erreur | ☐ |
+| ☐ | US-07 Playlist M3U | **33 %** | idem, plus le banc d'essai qui rend ses erreurs testables | ☐ |
+| ☐ | US-08 Chaînes par catégorie | **50 %** | l'écran : Room et `CataloguePager` existent, rien ne les affiche | ☐ |
+| ☐ | US-09 Lecture mobile | **50 %** | le câblage : `Media3LumoPlayer` existe, aucun écran ne l'ouvre | ☐ |
+| ☐ | US-10 Lecture TV | **33 %** | tout le client TV | ☐ |
 
-**Zéro story sur dix** satisfait la Definition of Done : aucune n'a été démontrée sur
-device réel, et pour cause — **les deux applications Android sont des placeholders de
-bout en bout**. Chaque `*MobileScreen` et `*TvScreen` appelle `LumoMobilePlaceholder`
-ou `LumoTvPlaceholder`. Les couches basses, elles, sont réelles et testées : session
+**~50 % des 63 points**, et **0 story sur 10** au sens de la Definition of Done.
+
+Le serveur tient la verticale entière. Le web couvre l'inscription, la connexion
+et l'activation. **Les deux applications Android sont des placeholders de bout en
+bout** — chaque `*MobileScreen` et `*TvScreen` appelle `LumoMobilePlaceholder` ou
+`LumoTvPlaceholder`. Les couches basses, elles, sont réelles et testées : session
 chiffrée, rotation de token, Room, Media3, design system, navigation.
 
 Côté serveur, trois contrôleurs sur six : `auth`, `sources`, `catalog`. `/me`,
@@ -67,17 +73,27 @@ référence. Sprint 1 se ferme quand sprint 2 est vert.
 > Aucune valeur utilisateur. Objectif : qu'un agent puisse démarrer une story
 > le lendemain sans poser de question d'outillage.
 
-| ID | Tâche | App |
-|---|---|---|
-| S0-01 | Monorepo, `.gitignore`, `.editorconfig`, licence, `AGENTS.md` locaux | racine |
-| S0-02 | `openapi.yaml` v0 couvrant les endpoints du sprint 1 | contracts |
-| S0-03 | Pipeline de génération des trois clients + vérification CI de non-dérive | contracts |
-| S0-04 | Scaffolding Spring Boot 4.1 / Java 25, virtual threads, Liquibase, `docker-compose` (Postgres + api), healthcheck | api |
-| S0-05 | Scaffolding Gradle Android : `app-mobile`, `app-tv`, `core/*`, `build-logic`, version catalog | android |
-| S0-06 | Scaffolding Next.js : App Router, Tailwind, shadcn/ui, `next-intl` FR/EN | web |
-| S0-07 | Design system : tokens partagés, déclinaison mobile / TV / web | android + web |
-| S0-08 | CI GitHub Actions : lint + test + build des trois apps | racine |
-| S0-09 | `.env.example` documenté sur les trois apps | racine |
+| | ID | Tâche | App | Avancement |
+|---|---|---|---|---|
+| ☑ | S0-01 | Monorepo, `.gitignore`, `.editorconfig`, licence, `AGENTS.md` locaux | racine | 100 % |
+| ☑ | S0-02 | `openapi.yaml` v0 couvrant les endpoints du sprint 1 | contracts | 100 % |
+| ☑ | S0-03 | Pipeline de génération des trois clients + vérification CI de non-dérive | contracts | 100 % |
+| ☑ | S0-04 | Scaffolding Spring Boot 4.1 / Java 25, virtual threads, Liquibase, `docker-compose` (Postgres + api), healthcheck | api | 100 % |
+| ☑ | S0-05 | Scaffolding Gradle Android : `app-mobile`, `app-tv`, `core/*`, `build-logic`, version catalog | android | 100 % |
+| ☑ | S0-06 | Scaffolding Next.js : App Router, Tailwind, shadcn/ui, `next-intl` FR/EN | web | 100 % |
+| ☐ | S0-07 | Design system : tokens partagés, déclinaison mobile / TV / web | android + web | **50 %** |
+| ☑ | S0-08 | CI GitHub Actions : lint + test + build des trois apps | racine | 100 % |
+| ☑ | S0-09 | `.env.example` documenté sur les trois apps | racine | 100 % |
+
+**S0-07 mérite son explication**, parce qu'il était coché à tort. « Des tokens
+existent » n'est pas « ce sont ceux de la charte ». Le web portait la palette
+shadcn par défaut, et Android une palette inventée — un bleu froid `#4CB8FF`,
+sans rapport avec la direction Spectre arrêtée en passe 1.
+
+Le web est aligné depuis le 26 août : palette, Sora et Space Mono, rayons,
+signature de focus cyan, thème clair réservé au marketing. **Android ne l'est
+pas** : c'est la tâche `S2-00` du sprint suivant, à faire avant le premier écran,
+pour ne pas construire dix écrans sur la mauvaise palette.
 
 ---
 

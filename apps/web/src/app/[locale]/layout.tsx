@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Sora, Space_Mono } from "next/font/google";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -7,8 +7,17 @@ import { routing } from "@/i18n/routing";
 import { siteUrl } from "@/lib/env.public";
 import "../globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// Sora pour tout, Space Mono pour les métadonnées techniques (docs/design/design-system.md).
+// Les deux passent par next/font : les fichiers sont servis depuis notre origine,
+// donc aucune requête vers Google au chargement — et aucun décalage de mise en
+// page quand la police arrive.
+const sora = Sora({ variable: "--font-sora", subsets: ["latin"], display: "swap" });
+const spaceMono = Space_Mono({
+  variable: "--font-space-mono",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+});
 
 /**
  * The root layout, under the `[locale]` segment.
@@ -61,7 +70,7 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   return (
-    <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} h-full`}>
+    <html lang={locale} className={`${sora.variable} ${spaceMono.variable} h-full`}>
       <body className="bg-background text-foreground flex min-h-full flex-col antialiased">
         {/* NextIntlClientProvider is NOT here on purpose. It is a client
             component, and mounting it at the root would put a client boundary —
