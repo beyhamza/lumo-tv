@@ -103,17 +103,16 @@ Celle du sprint 1, sans allègement, plus :
 
 ---
 
-## Une story à écrire, ou à refuser
+## Une story ajoutée — **US-11, acceptée**
 
-Aucune story du sprint 1 ne couvre la lecture dans un navigateur : US-09 dit
-« (mobile) », US-10 dit « (Android TV) ». Et le tableau d'AGENTS.md §1 assigne au site
-« SEO, compte, abonnement, activation des TV » — pas la lecture.
+Aucune story du sprint 1 ne couvrait la lecture dans un navigateur : US-09 dit
+« (mobile) », US-10 dit « (Android TV) ». Et le tableau d'AGENTS.md §1 assignait au
+site « SEO, compte, abonnement, activation des TV » — pas la lecture.
 
-Ce sprint propose donc **US-11 — Regarder une chaîne (navigateur)**, et assume que
-c'est une extension de périmètre. L'accepter demande de mettre à jour deux documents
-(`AGENTS.md` §1, `docs/architecture.md` §4). La refuser est un choix défendable : les
-tâches S3-09 à S3-11 tombent, le sprint pèse 39 points au lieu de 55, et `lumo.tv`
-reste ce qu'il dit être.
+**US-11 — Regarder une chaîne (navigateur)** est retenue, donc c'est une extension de
+périmètre assumée. Les deux documents ont été mis à jour : `AGENTS.md` §1 et
+`docs/architecture.md` §4 nomment maintenant la lecture parmi les rôles du site, et
+§1 renvoie vers `adr/0007` pour la limite qui l'encadre.
 
 US-06, US-07 et US-08 ne changent pas : ces tâches leur ajoutent un second client,
 elles ne modifient aucun critère d'acceptation et ne ferment rien.
@@ -127,7 +126,7 @@ met à jour **dans le commit qui livre le travail**, pas après.
 
 | | Id | Tâche | Lot | Points | Avancement |
 |---|---|---|---|---|---|
-| ☐ | S3-00 | ADR 0007 — la lecture dans un navigateur | décision | 2 | 0 % |
+| ☑ | S3-00 | ADR 0007 — la lecture dans un navigateur | décision | 2 | 100 % |
 | ☐ | S3-01 | Banc d'essai : sources en erreur **et** flux jouable | outillage | 3 | 0 % |
 | ☐ | S3-02 | Ajouter une source : M3U et Xtream | sources | 5 | 0 % |
 | ☐ | S3-03 | Suivi de l'ingestion : étapes, attente, succès chiffré | sources | 5 | 0 % |
@@ -141,13 +140,17 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S3-11 | Échecs de lecture nommés | lecture | 5 | 0 % |
 | ☐ | S3-12 | Parcours e2e : compte → source → chaîne → image | vérif | 5 | 0 % |
 
-**Avancement du sprint : 0 % de 55 points.** Rien n'est commencé.
+**Avancement du sprint : 4 % de 55 points.** Option A retenue, la lecture est débloquée.
 
 Sans US-11 : S3-00, S3-09, S3-10 et S3-11 tombent — **39 points**.
 
 ---
 
-### S3-00 — ADR 0007, la lecture dans un navigateur · **2** · bloque S3-09 → S3-11
+### S3-00 — ADR 0007, la lecture dans un navigateur · **2** · ☑ tranché
+
+> **Décision : option A.** Écrite dans [`adr/0007`](../adr/0007-web-playback-direct-only.md),
+> avec le refus du relais comme substance principale. `architecture.md` §1 et §4 et
+> `AGENTS.md` §1 renvoient dessus.
 
 Trancher, écrire, et s'y tenir. Trois options, et le coût de chacune :
 

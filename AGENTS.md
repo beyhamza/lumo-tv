@@ -14,7 +14,7 @@ revend **aucun contenu**.
 
 | Surface | Nom technique | Rôle |
 |---|---|---|
-| Site web | `lumo.tv` | SEO, compte, abonnement, activation des TV |
+| Site web | `lumo.tv` | SEO, compte, sources, catalogue, lecture directe, abonnement, activation des TV |
 | Android mobile | `iptv-lumo` (`tv.lumo.android`) | Lecteur téléphone / tablette |
 | Android TV | `iptv-lumo-tv` (`tv.lumo.androidtv`) | Lecteur salon, navigation D-pad |
 | Backend | `lumo-api` | Comptes, sources, sync, EPG, favoris, droits d'accès |

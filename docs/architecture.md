@@ -35,6 +35,11 @@ manipule des métadonnées (listes de chaînes, EPG, favoris, progression). Le l
 ouvre le flux en direct vers le serveur de l'utilisateur. Cela détermine notre coût
 d'infrastructure (faible) et notre posture (nous ne sommes pas un diffuseur).
 
+Un navigateur ne peut pas toujours tenir cette règle : une page en `https` ne charge
+pas un panel en `http`, et `hls.js` réclame du CORS que les panels n'envoient pas. La
+lecture web est donc **directe ou refusée**, jamais relayée — `adr/0007` dit ce qu'on
+refuse de devenir et pourquoi le petit proxy tentant n'en est pas un.
+
 ## 2. Backend — `lumo-api`
 
 Architecture hexagonale légère, découpée par domaine plutôt que par couche technique :
@@ -139,7 +144,7 @@ Trois zones aux contraintes opposées, à ne pas mélanger :
 | Zone | Rendu | Objectif |
 |---|---|---|
 | `/`, `/guides/*`, `/blog/*` | SSG / ISR | SEO, aucun JS bloquant, LCP < 2 s |
-| `/app/*` | SSR authentifié | compte, sources, abonnement, appareils |
+| `/app/*` | SSR authentifié | compte, sources, catalogue, lecture, abonnement, appareils |
 | `/activate` | SSR minimal | saisie du code d'activation TV |
 
 Le contenu SEO est la porte d'entrée : guides « configurer une playlist M3U »,
