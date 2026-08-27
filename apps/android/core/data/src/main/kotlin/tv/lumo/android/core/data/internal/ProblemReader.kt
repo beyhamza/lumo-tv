@@ -44,8 +44,11 @@ internal class ProblemReader @Inject constructor(moshi: Moshi) {
      * subscription and a stream limit reached, which are three different things
      * to tell a user.
      * @param body the error body, or null when there was none to read.
+     * @param retryAfterSeconds the `Retry-After` header, already parsed. It rides
+     * on [LumoError.Api] rather than being read by a screen, because a screen
+     * that reaches for a header is a screen holding an HTTP response.
      */
-    fun read(status: Int, body: String?): LumoError {
+    fun read(status: Int, body: String?, retryAfterSeconds: Int? = null): LumoError {
         if (body.isNullOrBlank()) return LumoError.Unreadable(status, null)
 
         val root = try {
@@ -63,6 +66,7 @@ internal class ProblemReader @Inject constructor(moshi: Moshi) {
             code = code,
             detail = root["detail"] as? String,
             fields = fieldProblems(root["errors"]),
+            retryAfterSeconds = retryAfterSeconds,
         )
     }
 

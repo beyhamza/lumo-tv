@@ -6,10 +6,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.data.AppStart
+import tv.lumo.android.feature.auth.AuthDestination
 import tv.lumo.android.feature.auth.navigation.authMobileScreen
 import tv.lumo.android.feature.live.LiveDestination
 import tv.lumo.android.feature.live.navigation.liveMobileScreen
-import tv.lumo.android.feature.onboarding.OnboardingDestination
 import tv.lumo.android.feature.onboarding.navigation.onboardingMobileScreen
 import tv.lumo.android.feature.search.navigation.searchMobileScreen
 import tv.lumo.android.feature.series.navigation.seriesMobileScreen
@@ -68,7 +68,12 @@ fun LumoMobileNavHost(
  */
 fun mobileStartRoute(start: AppStart): String? = when (start) {
     AppStart.Loading -> null
-    AppStart.SignedOut -> OnboardingDestination.route
+    // Sign-in, not onboarding, and it is a temporary answer with a date on it.
+    // Onboarding is where the choice between signing in and creating an account
+    // belongs, and it is still a placeholder with nothing to press — so the way
+    // in is the screen that works. `S2-04` builds the other half and this line
+    // goes back to [OnboardingDestination].
+    AppStart.SignedOut -> AuthDestination.route
     // Nothing to watch yet, so the first screen is the one that fixes that
     // (US-06, US-07) rather than an empty catalogue.
     AppStart.NeedsSource -> SourceDestination.route

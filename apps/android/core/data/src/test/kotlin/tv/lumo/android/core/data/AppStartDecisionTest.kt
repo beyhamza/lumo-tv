@@ -3,8 +3,6 @@ package tv.lumo.android.core.data
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import java.util.UUID
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -12,8 +10,6 @@ import org.junit.Test
 import retrofit2.Response
 import tv.lumo.android.core.auth.SessionManager
 import tv.lumo.android.core.auth.SessionTokens
-import tv.lumo.android.core.auth.TokenRefreshResult
-import tv.lumo.android.core.auth.TokenRefresher
 import tv.lumo.android.core.auth.store.SessionStore
 import tv.lumo.android.core.data.internal.ApiCaller
 import tv.lumo.android.core.data.internal.ProblemReader
@@ -165,28 +161,7 @@ class AppStartDecisionTest {
     )
 }
 
-/** The store `SessionManager` is built on, in memory. */
-private class FakeSessionStore(initial: SessionTokens?) : SessionStore {
-    private val state = MutableStateFlow(initial)
 
-    override val sessions: Flow<SessionTokens?> = state
-
-    override suspend fun current(): SessionTokens? = state.value
-
-    override suspend fun save(tokens: SessionTokens) {
-        state.value = tokens
-    }
-
-    override suspend fun clear() {
-        state.value = null
-    }
-}
-
-/** Never called here: nothing in these tests provokes a refresh. */
-private object RejectingRefresher : TokenRefresher {
-    override suspend fun refresh(refreshToken: String): TokenRefreshResult =
-        TokenRefreshResult.Rejected
-}
 
 /**
  * `GET /sources`, answering from a list — and counting, which is the whole point

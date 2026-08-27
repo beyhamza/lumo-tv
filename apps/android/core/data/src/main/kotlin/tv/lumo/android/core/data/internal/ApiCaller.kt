@@ -109,7 +109,21 @@ internal class ApiCaller @Inject constructor(
         } catch (io: IOException) {
             null
         }
-        return LumoResult.Failure(problems.read(response.code(), body))
+        return LumoResult.Failure(
+            problems.read(response.code(), body, retryAfterSeconds(response)),
+        )
     }
+
+    /**
+     * `Retry-After`, in seconds, or null.
+     *
+     * The contract types it as an integer number of seconds, so that is what is
+     * read. RFC 9110 also allows an HTTP date and this deliberately does not
+     * accept one: a value we cannot parse becomes null, the screen falls back to
+     * "try again later" without a number, and nothing pretends to know a delay it
+     * did not understand.
+     */
+    private fun retryAfterSeconds(response: Response<*>): Int? =
+        response.headers()["Retry-After"]?.trim()?.toIntOrNull()?.takeIf { it > 0 }
 
 }

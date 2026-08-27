@@ -88,7 +88,7 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S2-02 | Navigation pilotée par la session, périmètre réduit | socle | android | 3 | 100 % |
 | ◩ | S2-03 | Banc d'essai des sources | outillage | recette | 3 | **83 %** |
 | ☐ | S2-04 | Inscription | US-01 | mobile | 5 | 0 % |
-| ☐ | S2-05 | Connexion par email | US-02 | mobile | 3 | 0 % |
+| ☑ | S2-05 | Connexion par email | US-02 | mobile | 3 | 100 % |
 | ☐ | S2-06 | Connexion Google (Credential Manager) | US-03 | mobile | 5 | 0 % |
 | ☐ | S2-07 | Session persistante, de bout en bout | US-04 | mobile + tv | 3 | 0 % |
 | ☐ | S2-08 | Ajout de source : choix, formulaires, aide | US-06, US-07 | mobile | 8 | 0 % |
@@ -99,11 +99,14 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 0 % |
 | ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
 
-**Avancement du sprint : 19 % de 82 points.** Le socle est fini : S2-00 pose la
-charte avant le premier écran, S2-01 la couche de données, S2-02 la navigation.
-Les trois tâches « socle » sont levées, et rien n'attend plus avant d'écrire des
-écrans. Ceux-ci restent des placeholders : aucune story du sprint 1 n'a bougé, et
-c'est normal, aucune des trois n'en ferme.
+**Avancement du sprint : 23 % de 82 points.** Le socle est fini — S2-00 la charte,
+S2-01 la couche de données, S2-02 la navigation — et le premier écran réel est
+posé dessus : **S2-05 ferme US-02**, la première des dix stories du sprint 1 dont
+l'implémentation est complète. Sa Definition of Done ne l'est pas : elle demande
+une démo sur device réel, et personne n'a encore vu cet écran ailleurs que dans un
+build.
+
+Les sept autres écrans restent des placeholders.
 
 S2-03 est à 83 % sans que le sprint 2 y ait touché : le banc d'essai est la seule
 tâche partagée avec le sprint 3, et c'est le web qui en a eu besoin le premier.
@@ -330,7 +333,40 @@ réinitialiser, sans jamais confirmer que l'adresse existe.
 
 ---
 
-### S2-05 — Connexion par email · **3** · ferme US-02
+### S2-05 — Connexion par email · **3** · ferme US-02 · ☑
+
+> **Livré.** Le premier écran réel des deux applications, et il en a coûté trois
+> choses au socle : `AuthRepository`, `Retry-After` porté jusqu'à l'écran, et
+> l'entrée « déconnecté » du mobile qui pointe enfin sur quelque chose.
+>
+> **Le repository est le seul endroit qui ouvre une session.** Un écran qui
+> recevrait des tokens et les enregistrerait lui-même serait un deuxième endroit
+> qui sait comment une session se persiste — et il y en aurait trois avant la fin
+> du sprint, puisque l'inscription (S2-04), Google (S2-06) et le code de la TV
+> (S2-12) finissent exactement pareil. Conséquence directe : **rien ne navigue
+> après une connexion réussie.** `AppStartDecision` surveille la session, la
+> coquille reconstruit son graphe, et l'utilisateur arrive sur le catalogue — ou
+> sur le formulaire de source — sans que l'écran de connexion sache que l'un ou
+> l'autre existe.
+>
+> **`Retry-After` est un en-tête, donc il n'existait nulle part.** `LumoError.Api`
+> le porte maintenant, lu une fois dans `ApiCaller` : un écran qui irait chercher
+> un en-tête serait un écran qui tient une `Response`, ce que `core:data` existe
+> pour empêcher. Une valeur illisible — la RFC autorise aussi une date, que le
+> contrat n'utilise pas — devient « dans un instant », jamais un chiffre inventé.
+>
+> **Quatre refus, quatre phrases.** Identifiants faux, sans jamais dire lequel des
+> deux ni si le compte existe ; trop de tentatives, avec le délai du serveur ;
+> plafond d'appareils, en nommant les deux sorties — sans le chiffre, parce que le
+> lire demande `GET /me/entitlement` et qu'il n'y a justement pas de session ; et
+> pas de réseau, le seul cas où réessayer à l'identique vaut la peine.
+>
+> **Deux effets de bord.** L'entrée « déconnecté » du mobile pointe sur la
+> connexion et non plus sur l'onboarding — placeholder sans rien à presser ; S2-04
+> lui rendra sa place. Et la barre de navigation disparaît quand personne n'est
+> connecté : elle proposait le catalogue et les réglages d'un compte inexistant.
+>
+> 10 tests JVM de plus dans `core:data`.
 
 Message générique sur identifiants invalides. Après cinq échecs le serveur renvoie
 `429` avec `Retry-After` : l'écran l'affiche comme une attente, pas comme une panne.

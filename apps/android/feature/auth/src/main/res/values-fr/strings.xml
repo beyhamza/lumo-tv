@@ -2,4 +2,17 @@
 <resources>
     <string name="feature_auth_title">Connexion</string>
     <string name="feature_auth_placeholder">Connectez-vous pour retrouver vos sources et vos favoris sur tous vos appareils.</string>
+
+    <string name="feature_auth_sign_in_title">Bon retour</string>
+    <string name="feature_auth_sign_in_subtitle">Vos sources et votre historique vous attendent.</string>
+    <string name="feature_auth_email_label">Adresse e-mail</string>
+    <string name="feature_auth_password_label">Mot de passe</string>
+    <string name="feature_auth_sign_in_submit">Se connecter</string>
+
+    <string name="feature_auth_error_invalid_credentials">Cette adresse e-mail et ce mot de passe ne vont pas ensemble.</string>
+    <string name="feature_auth_error_rate_limited">Trop de tentatives. Réessayez dans un instant.</string>
+    <string name="feature_auth_error_rate_limited_seconds">Trop de tentatives. Réessayez dans %1$d secondes.</string>
+    <string name="feature_auth_error_device_limit">Votre offre n\'autorise pas un appareil de plus. Déliez-en un depuis votre compte, ou passez à une offre supérieure.</string>
+    <string name="feature_auth_error_offline">Pas de connexion. Vos identifiants n\'ont pas été envoyés.</string>
+    <string name="feature_auth_error_unexpected">Une erreur est survenue. Réessayez.</string>
 </resources>

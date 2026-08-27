@@ -6,4 +6,23 @@
 <resources>
     <string name="feature_auth_title">Sign in</string>
     <string name="feature_auth_placeholder">Sign in to find your sources and favourites on every device.</string>
+
+    <string name="feature_auth_sign_in_title">Welcome back</string>
+    <string name="feature_auth_sign_in_subtitle">Your sources and your history are waiting.</string>
+    <string name="feature_auth_email_label">Email address</string>
+    <string name="feature_auth_password_label">Password</string>
+    <string name="feature_auth_sign_in_submit">Sign in</string>
+
+    <!--
+      Deliberately says neither which of the two was wrong nor whether the
+      account exists. The server's own answer is generic for the same reason: an
+      error that tells them apart turns this form into a way of finding out who
+      has an account here.
+    -->
+    <string name="feature_auth_error_invalid_credentials">That email address and password do not go together.</string>
+    <string name="feature_auth_error_rate_limited">Too many attempts. Try again in a moment.</string>
+    <string name="feature_auth_error_rate_limited_seconds">Too many attempts. Try again in %1$d seconds.</string>
+    <string name="feature_auth_error_device_limit">Your plan does not allow another device. Unlink one from your account, or move to a larger plan.</string>
+    <string name="feature_auth_error_offline">No connection. Your details were not sent.</string>
+    <string name="feature_auth_error_unexpected">Something went wrong. Please try again.</string>
 </resources>

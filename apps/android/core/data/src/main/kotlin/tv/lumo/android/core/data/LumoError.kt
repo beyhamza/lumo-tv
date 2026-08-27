@@ -59,6 +59,21 @@ sealed interface LumoError {
         val detail: String?,
         /** Populated on `VALIDATION_FAILED`, empty otherwise. */
         val fields: List<FieldProblem> = emptyList(),
+        /**
+         * The `Retry-After` header, in seconds, when the server sent one.
+         *
+         * The contract puts it on `RATE_LIMITED` — five failed sign-in attempts
+         * earn a progressive delay (US-02) — and it is the difference between a
+         * screen that says "try again in a minute" and one that says something
+         * went wrong. The first is a wait; the second reads as a fault, and the
+         * user's next move is to try again immediately and be refused again.
+         *
+         * Carried here rather than read at the call site because this is the one
+         * place an HTTP response is looked at: a screen that had to reach for a
+         * header would be a screen holding a `Response`, which is what this type
+         * exists to prevent.
+         */
+        val retryAfterSeconds: Int? = null,
     ) : LumoError
 
     /**

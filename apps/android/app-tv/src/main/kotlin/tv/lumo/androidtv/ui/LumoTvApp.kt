@@ -62,11 +62,18 @@ fun LumoTvApp(
             .fillMaxSize()
             .background(LumoColors.Ink),
     ) {
-        LumoTvNavRail(
-            destinations = TvDestinations,
-            selectedRoute = currentRoute,
-            onSelect = { navController.switchTopLevelTo(it) },
-        )
+        // No rail for a signed-out set, for the same reason as the phone's bar —
+        // and one more that is particular to a television: the rail is the first
+        // thing the D-pad lands on, so an activation screen behind a rail of
+        // destinations that all refuse is a screen whose one useful control is
+        // the hardest to reach (US-10).
+        if (startState != AppStart.SignedOut) {
+            LumoTvNavRail(
+                destinations = TvDestinations,
+                selectedRoute = currentRoute,
+                onSelect = { navController.switchTopLevelTo(it) },
+            )
+        }
 
         key(startRoute) {
             LumoTvNavHost(

@@ -83,11 +83,16 @@ fun LumoMobileApp(
                 )
             }
 
-            LumoMobileNavBar(
-                destinations = MobileDestinations,
-                selectedRoute = currentRoute,
-                onSelect = { navController.switchTopLevelTo(it) },
-            )
+            // No bar for a signed-out user. It would offer the catalogue and the
+            // settings of an account that does not exist yet, and the only screen
+            // reachable while signed out is the one already on display.
+            if (startState != AppStart.SignedOut) {
+                LumoMobileNavBar(
+                    destinations = MobileDestinations,
+                    selectedRoute = currentRoute,
+                    onSelect = { navController.switchTopLevelTo(it) },
+                )
+            }
         }
     }
 }
