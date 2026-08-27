@@ -56,6 +56,23 @@ data class ChannelEntity(
     @ColumnInfo(name = "tvg_id")
     val tvgId: String?,
 
+    /**
+     * The channel number the provider assigns — `tvg-chno` in an M3U, the panel's
+     * own field in Xtream. Null for the many playlists that carry none.
+     *
+     * **Not [position].** That one is a display index reassigned at every
+     * ingestion; this is the number the user knows by heart and types on a remote
+     * control, and the two diverge the moment a channel drops out of the
+     * playlist. Cached because an offline grid that hides the numbers an online
+     * grid shows reads as a bug, not as a cache.
+     */
+    @ColumnInfo(name = "number")
+    val number: Int?,
+
+    /** Definition as the source advertises it — `HD`, `FHD`, `4K` — verbatim. */
+    @ColumnInfo(name = "quality")
+    val quality: String?,
+
     @ColumnInfo(name = "position")
     val position: Int,
 

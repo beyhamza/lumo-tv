@@ -59,6 +59,7 @@ core/
   network/       client généré + intercepteur d'auth + refresh
   auth/          stockage chiffré des tokens, un seul refresh en vol
   database/      Room, DAO, Paging 3
+  data/          repositories, erreurs typées, réseau ou cache
   player/        abstraction au-dessus de Media3
 feature/
   onboarding/ auth/ source/ live/ vod/ series/ search/ settings/
@@ -232,6 +233,7 @@ couverture exhaustive. Ici, ce qui compte :
 | `core:auth` | rotation, un seul refresh en vol, rejet vs panne réseau | déconnecte tous les utilisateurs si c'est faux |
 | `core:network` | 401 → refresh → rejeu, endpoints publics sans bearer | le câblage, avec un vrai serveur HTTP (MockWebServer) |
 | `core:common` | redaction des URL et des secrets | c'est une règle de sécurité, pas du confort |
+| `core:data` | chaque code d'ingestion, un code inconnu, un corps illisible, réseau coupé | huit écrans en dépendent, et un code inconnu doit se dégrader — pas planter |
 
 Les tests sont des tests unitaires JVM. Aucun émulateur n'est nécessaire pour
 `./gradlew build`, et c'est délibéré : une campagne qui exige un émulateur est

@@ -36,7 +36,7 @@ Une ligne par manque. Le détail de chacun est dans sa section.
 Les trois tags qui n'avaient aucun contrôleur — `account`, `userdata`,
 `billing` — en ont un. Plus aucun chemin du contrat ne répond 404.
 
-### Quatre points à trancher, remontés plutôt qu'inventés
+### Cinq points à trancher, remontés plutôt qu'inventés
 
 **1. Le webhook de paiement n'existe pas.** `POST /billing/checkout-session`
 ouvre bien une session Stripe et crée le client, mais **un paiement réussi ne
@@ -105,6 +105,28 @@ la forme paginée reste la façon de lire un catalogue.
 
 Servi par `catalog/CatalogReadRepository`, couvert par
 `catalog/ChannelLookupIntegrationTest`. S3-08 est fermé.
+
+**5. `format: password` ne masque rien côté Kotlin.** Relevé en écrivant S2-01. Le
+contrat dit noir sur blanc, dans la description de `PlaybackInfo.stream_url`, que
+`format: password` « fait masquer cette propriété dans `toString()` par tous les
+générateurs ». C'est vrai du générateur Java — `PlaybackInfo.java` écrit
+`streamUrl: *`. **C'est faux du générateur Kotlin** : `PlaybackInfo.kt` sort en
+`data class` nue, et une `data class` imprime tout ce qu'elle porte.
+
+Ça compte : une URL de flux porte les identifiants du panel dans son chemin chez la
+plupart des fournisseurs Xtream, AGENTS.md §5 lui interdit tout log à tout niveau, et
+une `data class` finit dans un rapport de crash. La garantie que le contrat affirme
+n'est donc pas rendue là où elle est le plus exposée.
+
+Contourné pour l'instant : le modèle généré ne sort pas de `core:data`, et ce qu'un
+lecteur reçoit est `PlaybackTarget`, dont le `toString()` passe par `Redact.url`.
+C'est une protection par convention — elle tient tant que personne ne remonte le
+modèle généré d'un cran.
+
+Décision à prendre : corriger à la source (modèle `toString` personnalisé dans
+`config/kotlin.yaml`, ou remontée en amont du générateur), ou acter que la phrase du
+contrat ne vaut que pour Java et la réécrire pour ne plus promettre ce qui n'est pas
+tenu. En attendant, **ne pas se fier à cette phrase côté Android**.
 
 ---
 

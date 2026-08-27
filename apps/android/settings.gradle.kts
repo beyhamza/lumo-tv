@@ -62,6 +62,10 @@ include(":core:designsystem")
 include(":core:network")
 include(":core:auth")
 include(":core:database")
+// The only module a feature talks to when it wants data. It owns the one
+// translation of an API error and decides, per read, whether the answer comes
+// from the network or from the cache.
+include(":core:data")
 include(":core:player")
 
 // ---- Features ---------------------------------------------------------------

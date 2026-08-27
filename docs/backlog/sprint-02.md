@@ -84,9 +84,9 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | | Id | Tâche | Ferme | Cible | Points | Avancement |
 |---|---|---|---|---|---|---|
 | ☐ | S2-00 | Aligner les tokens Android sur la charte Spectre | S0-07 | android | 2 | 0 % |
-| ☐ | S2-01 | `core:data` : repositories et erreurs typées | socle | android | 8 | 0 % |
+| ☑ | S2-01 | `core:data` : repositories et erreurs typées | socle | android | 8 | 100 % |
 | ☐ | S2-02 | Navigation pilotée par la session, périmètre réduit | socle | android | 3 | 0 % |
-| ☐ | S2-03 | Banc d'essai des sources | outillage | recette | 3 | 0 % |
+| ◩ | S2-03 | Banc d'essai des sources | outillage | recette | 3 | **83 %** |
 | ☐ | S2-04 | Inscription | US-01 | mobile | 5 | 0 % |
 | ☐ | S2-05 | Connexion par email | US-02 | mobile | 3 | 0 % |
 | ☐ | S2-06 | Connexion Google (Credential Manager) | US-03 | mobile | 5 | 0 % |
@@ -99,7 +99,12 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 0 % |
 | ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
 
-**Avancement du sprint : 0 % de 82 points.** Rien n'est commencé.
+**Avancement du sprint : 13 % de 82 points.** Le socle de données est là — S2-01,
+le préalable dur, est livré et testé. Les écrans restent des placeholders : aucune
+story du sprint 1 n'a bougé, et c'est normal, S2-01 n'en ferme aucune.
+
+S2-03 est à 83 % sans que le sprint 2 y ait touché : le banc d'essai est la seule
+tâche partagée avec le sprint 3, et c'est le web qui en a eu besoin le premier.
 
 ### Lot serveur — livré, hors périmètre du sprint
 
@@ -151,7 +156,31 @@ positions se défendent. Trancher avant d'ouvrir la tâche.
 
 ---
 
-### S2-01 — `core:data` : repositories et erreurs typées · **8**
+### S2-01 — `core:data` : repositories et erreurs typées · **8** · ☑
+
+> **Livré.** `SourceRepository`, `CatalogueRepository`, `PlaybackRepository`,
+> `AccountRepository`, et une seule traduction d'erreur — `LumoError` / `LumoResult`,
+> derrière `ApiCaller`. Un écran ne voit plus jamais une `Response`, une
+> `IOException` ni un corps JSON.
+>
+> **Le corps d'erreur est lu génériquement, et c'est le point du module.**
+> `Problem.code` est typé comme l'énumération `ErrorCode`, non nullable : Moshi
+> **lève** sur un code ajouté au contrat après le build, et la raison du refus est
+> perdue — exactement l'inverse de ce que le contrat exige. Le code est donc décodé
+> après coup par `ErrorCode.decode`, qui rend null sur l'inconnu, ce qui devient
+> `LumoError.UnknownCode`. Aucune forme de requête ou de réponse n'est écrite à la
+> main pour autant (ADR 0001) : trois champs lus dans une map, et le décodage vient
+> de l'énumération générée.
+>
+> **Deux effets de bord assumés**, tous deux sous le module :
+> `ChannelEntity` gagne `number` et `quality` — la base passe en version 2 avec sa
+> migration et son schéma exporté, sans quoi une grille hors ligne cacherait ce
+> qu'une grille en ligne montre ; et `PlaybackTarget` existe parce que le générateur
+> Kotlin **ne masque pas** `stream_url` dans `toString()` alors que le contrat
+> l'affirme (voir [`design/api-gaps.md`](../design/api-gaps.md), point 5).
+>
+> 13 tests JVM : chaque `IngestionErrorCode`, un code inconnu, un corps illisible,
+> un 204, un réseau coupé. `./gradlew build` vert, lint compris.
 
 Le module qui manque. Il expose aux features des repositories (`SourceRepository`,
 `CatalogueRepository`, `PlaybackRepository`, `AccountRepository`) et **une seule
@@ -190,7 +219,25 @@ tout seul, et mal.
 
 ---
 
-### S2-03 — Banc d'essai des sources · **3**
+### S2-03 — Banc d'essai des sources · **3** · ◩ **83 %**
+
+> **Construit par le sprint 3**, qui en a eu besoin le premier — c'est la seule
+> tâche que les deux sprints partagent, et [`S3-01`](./sprint-03.md) l'a reprise
+> et étendue. Le conteneur `bench` (`apps/web/e2e/bench/`) est démarré par
+> `docker-compose.e2e.yml` et sert **cinq des six chemins** ci-dessous, plus deux
+> flux HLS décodables que le sprint 2 n'avait pas demandés.
+>
+> Le sixième — **la réponse au-delà du plafond de taille** (`SOURCE_TOO_LARGE`) —
+> n'est servi par rien. C'est ce qui reste, et ça vaut environ un demi-point.
+>
+> L'hôte muet, lui, est traité et mieux que prévu : `192.0.2.1`, TEST-NET-1
+> réservé par la RFC 5737 et routé nulle part. Meilleure reproduction que tout ce
+> qu'un conteneur pourrait simuler, et sans conteneur.
+>
+> Reste à vérifier à l'ouverture de la recette : le banc est démarré par la pile
+> Playwright, pas par `docker-compose.yml`. Une recette Android le veut joignable
+> depuis un téléphone sur le réseau local — ce n'est pas la même adresse que
+> `http://bench` vu depuis le conteneur de l'API.
 
 Sans lui, la recette de US-06 et US-07 n'est pas exécutable : on ne peut pas
 provoquer un refus d'identifiants ou une playlist vide en tapant une vraie URL.

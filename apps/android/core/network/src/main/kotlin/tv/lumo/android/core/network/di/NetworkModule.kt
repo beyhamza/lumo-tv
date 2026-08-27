@@ -19,9 +19,11 @@ import tv.lumo.android.core.network.BuildConfig
 import tv.lumo.android.core.network.auth.AuthInterceptor
 import tv.lumo.android.core.network.auth.RetrofitTokenRefresher
 import tv.lumo.android.core.network.auth.TokenAuthenticator
+import tv.lumo.android.network.generated.api.AccountApi
 import tv.lumo.android.network.generated.api.AuthApi
 import tv.lumo.android.network.generated.api.CatalogApi
 import tv.lumo.android.network.generated.api.SourcesApi
+import tv.lumo.android.network.generated.api.UserdataApi
 import tv.lumo.android.network.generated.infrastructure.Serializer
 
 /**
@@ -100,6 +102,14 @@ object NetworkModule {
     @Provides
     @Singleton
     fun catalogApi(retrofit: Retrofit): CatalogApi = retrofit.create(CatalogApi::class.java)
+
+    @Provides
+    @Singleton
+    fun accountApi(retrofit: Retrofit): AccountApi = retrofit.create(AccountApi::class.java)
+
+    @Provides
+    @Singleton
+    fun userdataApi(retrofit: Retrofit): UserdataApi = retrofit.create(UserdataApi::class.java)
 
     private fun retrofit(client: OkHttpClient, moshi: Moshi): Retrofit = Retrofit.Builder()
         // Retrofit requires a trailing slash, and drops the last path segment

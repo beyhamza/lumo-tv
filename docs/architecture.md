@@ -110,6 +110,7 @@ apps/android/
 │  ├─ designsystem/       # tokens partagés, composants déclinés mobile/TV
 │  ├─ network/            # client généré depuis openapi.yaml
 │  ├─ database/           # Room : cache chaînes, EPG, favoris, offline-first
+│  ├─ data/               # repositories, erreurs typées, décision réseau/cache
 │  ├─ player/             # abstraction au-dessus de Media3
 │  ├─ auth/               # stockage sécurisé des tokens, refresh
 │  └─ common/
@@ -120,6 +121,13 @@ apps/android/
 
 Domaine, réseau, cache et lecture sont partagés. **Seule la couche UI diverge, et elle
 doit diverger.** Le TV n'est pas du mobile agrandi :
+
+`core/data` est le seul module auquel une `feature` s'adresse pour obtenir des
+données. Il tient trois choses qu'on ne veut écrire qu'une fois : la traduction
+d'une erreur d'API en un type sur lequel un écran peut brancher, le choix entre le
+réseau et le cache, et le fait de **dire** lequel des deux a répondu — un catalogue
+qui affiche en silence des chaînes d'il y a une semaine est la panne qu'un
+utilisateur ne peut pas diagnostiquer.
 
 | | Mobile | TV |
 |---|---|---|

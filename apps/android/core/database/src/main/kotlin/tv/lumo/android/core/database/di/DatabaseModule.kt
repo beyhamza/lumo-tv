@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import tv.lumo.android.core.database.LumoDatabase
+import tv.lumo.android.core.database.MIGRATION_1_2
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.ChannelDao
 import tv.lumo.android.core.database.paging.CataloguePager
@@ -25,6 +26,7 @@ object DatabaseModule {
             // migration into a silent wipe of the user's synchronised
             // catalogue — recoverable, but it means a re-sync of fifteen
             // thousand channels over someone's mobile data. Write the migration.
+            .addMigrations(MIGRATION_1_2)
             .build()
 
     @Provides
