@@ -26,7 +26,7 @@ doc mise à jour si un comportement observable change · démo faite sur device 
 
 ---
 
-## État au 27 août 2026 — **sprint 1 non clos, ~62 %**
+## État au 27 août 2026 — **sprint 1 non clos, ~71 %**
 
 **Convention de suivi, valable pour tous les sprints.** Une case par tâche, et un
 pourcentage dès que l'avancement est partiel. Le pourcentage mesure
@@ -42,13 +42,13 @@ story finie sont deux états différents.
 | ☐ | US-03 Google | **33 %** | le bouton web, l'écran mobile | ☐ |
 | ☐ | US-04 Session et rotation | **90 %** | le mobile ouvre et ferme une session, et la chaîne « refresh refusé → reconnexion » est prouvée en test (S2-07) ; la TV ne sait toujours pas en ouvrir une (S2-12), et la survie au redémarrage se vérifie sur un appareil | ☐ |
 | ☐ | US-05 Activer une TV | **66 %** | l'écran TV — code, QR, polling | ☐ |
-| ☐ | US-06 Source Xtream | **66 %** | le formulaire est là (S2-08) ; il manque l'écran qui suit l'import et affiche le nombre de chaînes et la date d'expiration (S2-09) | ☐ |
-| ☐ | US-07 Playlist M3U | **66 %** | idem : le formulaire est là, l'écran de suivi et le compte de chaînes non (S2-09) | ☐ |
+| ☐ | US-06 Source Xtream | 100 % | rien : formulaire, suivi de l'import, chaînes comptées, date d'expiration, et une sortie par erreur. Reste la démo sur device réel (DoD) | ☐ |
+| ☐ | US-07 Playlist M3U | 100 % | idem. Le banc d'essai couvre cinq de ses six chemins (S2-03) | ☐ |
 | ☐ | US-08 Chaînes par catégorie | **50 %** | l'écran : Room et `CataloguePager` existent, rien ne les affiche | ☐ |
 | ☐ | US-09 Lecture mobile | **50 %** | le câblage : `Media3LumoPlayer` existe, aucun écran ne l'ouvre | ☐ |
 | ☐ | US-10 Lecture TV | **33 %** | tout le client TV | ☐ |
 
-**~62 % des 63 points**, et **0 story sur 10** au sens de la Definition of Done.
+**~71 % des 63 points**, et **0 story sur 10** au sens de la Definition of Done.
 
 Le serveur tient la verticale entière. Le web couvre l'inscription, la connexion
 et l'activation. **Les deux applications Android sont des placeholders de bout en

@@ -29,6 +29,22 @@
     <string name="feature_source_submitting">Vérification…</string>
 
     <string name="feature_source_syncing_title">Import en cours</string>
+    <string name="feature_source_step_pending">Démarrage…</string>
+    <string name="feature_source_step_connecting">Connexion à votre serveur…</string>
+    <string name="feature_source_step_authenticated">Connecté. Lecture du catalogue…</string>
+    <string name="feature_source_step_parsing">Lecture des chaînes…</string>
+    <string name="feature_source_step_epg">Récupération du guide des programmes…</string>
+
+    <string name="feature_source_ready_title">Source prête</string>
+    <string name="feature_source_counts">%1$d chaînes · %2$d catégories</string>
+    <string name="feature_source_expires_on">Abonnement valable jusqu\'au %1$s</string>
+    <string name="feature_source_max_connections">%1$d lecture(s) simultanée(s) autorisée(s)</string>
+
+    <string name="feature_source_error_title">L\'import a échoué</string>
+    <string name="feature_source_error_invalid_format_help">Une adresse M3U se termine en général par .m3u ou .m3u8, ou contient get.php. Une page qui s\'ouvre dans un navigateur n\'en est généralement pas une.</string>
+    <string name="feature_source_fix_credentials">Corriger mes identifiants</string>
+    <string name="feature_source_fix_address">Corriger l\'adresse</string>
+    <string name="feature_source_retry">Réessayer</string>
     <string name="feature_source_syncing_body">Une grosse playlist peut prendre jusqu\'à une minute.</string>
 
     <string name="feature_source_limit_title">Votre offre autorise %1$d source(s)</string>

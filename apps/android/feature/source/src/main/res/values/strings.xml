@@ -43,6 +43,27 @@
     <string name="feature_source_submitting">Checking…</string>
 
     <string name="feature_source_syncing_title">Importing</string>
+    <!--
+      The four phases the server actually distinguishes. A named step says two
+      things a spinner cannot: that it is moving, and how far it got if it stops.
+    -->
+    <string name="feature_source_step_pending">Starting…</string>
+    <string name="feature_source_step_connecting">Connecting to your server…</string>
+    <string name="feature_source_step_authenticated">Signed in. Reading the catalogue…</string>
+    <string name="feature_source_step_parsing">Reading the channels…</string>
+    <string name="feature_source_step_epg">Retrieving the programme guide…</string>
+
+    <string name="feature_source_ready_title">Source ready</string>
+    <string name="feature_source_counts">%1$d channels · %2$d categories</string>
+    <string name="feature_source_expires_on">Subscription valid until %1$s</string>
+    <string name="feature_source_max_connections">%1$d simultaneous stream(s) allowed</string>
+
+    <string name="feature_source_error_title">The import failed</string>
+    <!-- Only the format failure needs this: it is the one the user cannot correct without knowing what a right answer looks like. -->
+    <string name="feature_source_error_invalid_format_help">An M3U address usually ends in .m3u or .m3u8, or contains get.php. A page you can open in a browser is usually not one.</string>
+    <string name="feature_source_fix_credentials">Correct my credentials</string>
+    <string name="feature_source_fix_address">Correct the address</string>
+    <string name="feature_source_retry">Try again</string>
     <string name="feature_source_syncing_body">A large playlist can take up to a minute.</string>
 
     <string name="feature_source_limit_title">Your plan allows %1$d source(s)</string>

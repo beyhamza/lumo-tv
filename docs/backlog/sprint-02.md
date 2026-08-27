@@ -92,25 +92,24 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S2-06 | Connexion Google (Credential Manager) | US-03 | mobile | 5 | 0 % |
 | ◩ | S2-07 | Session persistante, de bout en bout | US-04 | mobile + tv | 3 | **70 %** |
 | ☑ | S2-08 | Ajout de source : choix, formulaires, aide | US-06, US-07 | mobile | 8 | 100 % |
-| ☐ | S2-09 | États de la source : validation, succès, quatre erreurs | US-06, US-07 | mobile | 5 | 0 % |
+| ☑ | S2-09 | États de la source : validation, succès, quatre erreurs | US-06, US-07 | mobile | 5 | 100 % |
 | ☐ | S2-10 | Liste des chaînes : catégories, pagination, hors ligne | US-08 | mobile | 8 | 0 % |
 | ☐ | S2-11 | Lecteur mobile | US-09 | mobile | 8 | 0 % |
 | ☐ | S2-12 | Activation TV : code, QR, polling | US-05 | tv | 8 | 0 % |
 | ☐ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 0 % |
 | ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
 
-**Avancement du sprint : 41 % de 82 points.** Le socle est fini — S2-00 la charte,
-S2-01 la couche de données, S2-02 la navigation — et le parcours va maintenant du
-compte à la source : S2-04 ferme US-01, S2-05 ferme US-02, S2-08 pose l'écran
-d'ajout de source. Deux stories du sprint 1 sur dix ont une implémentation
-complète, et deux autres sont à mi-chemin.
+**Avancement du sprint : 47 % de 82 points.** Le téléphone va maintenant du compte
+à une source prête : S2-04 ferme US-01, S2-05 ferme US-02, S2-08 et S2-09 ferment
+US-06 et US-07 ensemble. **Quatre des dix stories du sprint 1 ont une
+implémentation complète.**
 
 Aucune Definition of Done n'est atteinte, et aucune ne le sera avant une démo sur
 device réel : personne n'a encore vu ces écrans ailleurs que dans un build.
 
-Ce qui manque pour finir le fil : ce que la source **devient** (S2-09), les
-chaînes (S2-10) et la lecture (S2-11). Puis la télévision, qui est entièrement
-devant nous.
+Il reste, pour finir le fil du téléphone : les chaînes (S2-10) et la lecture
+(S2-11). Puis la télévision, qui est entièrement devant nous — trois tâches et
+21 points.
 
 S2-03 est à 83 % sans que le sprint 2 y ait touché : le banc d'essai est la seule
 tâche partagée avec le sprint 3, et c'est le web qui en a eu besoin le premier.
@@ -503,7 +502,45 @@ en édition : le formulaire garde l'hôte et l'utilisateur, et vide le mot de pa
 
 ---
 
-### S2-09 — États de la source · **5** · ferme US-06, US-07
+### S2-09 — États de la source · **5** · ferme US-06, US-07 · ☑
+
+> **Livré.** L'onglet Source montre maintenant la source du compte quand il y en a
+> une, et le formulaire quand il n'y en a pas. Le polling s'arrête sur `READY` ou
+> `ERROR` — les deux seuls états terminaux du contrat — et abandonne après trois
+> réponses manquées : un écran qui interrogerait un serveur mort indéfiniment
+> tiendrait une radio éveillée dans une poche pour n'apprendre rien.
+>
+> **L'étape nommée n'est pas de la décoration.** L'onboarding attend ici, une
+> grosse playlist prend jusqu'à une minute, et une minute de spinner indéterminé
+> est l'endroit où quelqu'un conclut que l'application est cassée et la ferme. Une
+> phase dit deux choses qu'un spinner ne dit pas : que ça avance, et jusqu'où c'est
+> allé quand ça s'arrête.
+>
+> **Quatre messages, quatre sorties — et c'est la seconde moitié qui pourrit en
+> silence.** Un message avec le mauvais bouton ne peut pas être suivi : proposer
+> « réessayer » à quelqu'un dont le mot de passe est refusé le fait appuyer jusqu'à
+> l'abandon, et ne rien proposer à quelqu'un dont le serveur était juste éteint le
+> fait retaper une adresse correcte. `SOURCE_AUTH_FAILED` renvoie au formulaire
+> avec l'hôte et l'identifiant, mot de passe vide — il est *write-only* au contrat
+> et n'est renvoyé à personne. `SOURCE_INVALID_FORMAT` renvoie corriger l'adresse,
+> avec la phrase qui dit à quoi ressemble une adresse M3U. `SOURCE_UNREACHABLE`
+> propose un vrai réessai. `SOURCE_EMPTY`, `SOURCE_TOO_LARGE` et `SOURCE_EXPIRED`
+> ne proposent **rien** : un bouton qui ne peut pas aider coûte un essai et une
+> attente pour réapprendre ce que la phrase disait déjà.
+>
+> **Le succès est chiffré**, parce que `SOURCE_EMPTY` existe : un écran qui dit
+> seulement « prête » est indiscernable d'un écran qui n'a rien importé. Date
+> d'expiration et lectures simultanées apparaissent quand le panel les donne —
+> absent n'est pas zéro, et une ligne non dessinée vaut mieux qu'un « 0 » qui se
+> lirait comme un abonnement n'autorisant aucune lecture.
+>
+> **Un aller au contrat, pas une dérive.** `SourceRepository.update` n'exposait que
+> `label` et `auto_sync` ; corriger un mot de passe demande `host`, `username`,
+> `password`, et le `PATCH` remet alors la source en `PENDING` avec une nouvelle
+> ingestion — c'est écrit au contrat, et c'est ce qui fait que la correction
+> fonctionne sans écran de plus.
+>
+> 9 tests JVM, dont l'énumération de chaque `IngestionErrorCode` sur sa sortie.
 
 L'ingestion est asynchrone : `POST /sources` répond `202` en `PENDING`, l'écran poll
 `GET /sources/{id}` jusqu'à `READY` ou `ERROR`.

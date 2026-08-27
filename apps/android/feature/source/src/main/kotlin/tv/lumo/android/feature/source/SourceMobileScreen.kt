@@ -1,5 +1,6 @@
 package tv.lumo.android.feature.source
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,7 +38,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
+import tv.lumo.android.network.generated.model.IngestionErrorCode
 import tv.lumo.android.network.generated.model.SourceKind
+import tv.lumo.android.network.generated.model.SyncStep
 
 /**
  * Registering a source (US-06, US-07) — the screen the whole product turns on.
@@ -71,7 +74,7 @@ import tv.lumo.android.network.generated.model.SourceKind
 @Composable
 fun SourceMobileScreen(
     modifier: Modifier = Modifier,
-    viewModel: AddSourceViewModel = hiltViewModel(),
+    viewModel: SourceViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -106,9 +109,17 @@ fun SourceMobileScreen(
                 kind = step.kind,
                 state = state,
                 viewModel = viewModel,
+                correcting = false,
             )
 
-            is AddSourceStep.Registered -> Registered()
+            is AddSourceStep.Fixing -> Form(
+                kind = step.kind,
+                state = state,
+                viewModel = viewModel,
+                correcting = true,
+            )
+
+            is AddSourceStep.Watching -> Watching(state = state, viewModel = viewModel)
         }
     }
 }
@@ -187,21 +198,30 @@ private fun KindCard(title: String, body: String, onClick: () -> Unit) {
     }
 }
 
+/**
+ * @param correcting true when this is the second attempt at a source that failed
+ * to import. The name is not asked for again — it is already set and was not the
+ * problem — and the password field is empty, because the API returns it to
+ * nobody, including its owner (US-06).
+ */
 @Composable
 private fun Form(
     kind: SourceKind,
     state: AddSourceState,
-    viewModel: AddSourceViewModel,
+    viewModel: SourceViewModel,
+    correcting: Boolean,
 ) {
     val submit = { viewModel.submit() }
 
-    Field(
-        value = state.label,
-        onChange = viewModel::onLabelChange,
-        label = stringResource(R.string.feature_source_label_label),
-        hint = stringResource(R.string.feature_source_label_hint),
-        enabled = !state.submitting,
-    )
+    if (!correcting) {
+        Field(
+            value = state.label,
+            onChange = viewModel::onLabelChange,
+            label = stringResource(R.string.feature_source_label_label),
+            hint = stringResource(R.string.feature_source_label_hint),
+            enabled = !state.submitting,
+        )
+    }
 
     if (kind == SourceKind.XTREAM) {
         Field(
@@ -275,21 +295,56 @@ private fun Form(
         }
     }
 
-    TextButton(onClick = viewModel::onBack, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.feature_source_change_kind))
+    if (!correcting) {
+        TextButton(onClick = viewModel::onBack, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.feature_source_change_kind))
+        }
     }
 }
 
 /**
- * Accepted, and being read.
+ * What the source is doing, and what to do about it (S2-09).
  *
- * The server has already reached the provider and been let in — that is what the
- * `202` means. What the catalogue turns out to contain is the next screen's
- * business (`S2-09`), which is why this says what is happening and does not
- * pretend to know how it ends.
+ * Three shapes, and the third has four exits. The rule the whole screen turns on:
+ * **a message with the wrong button cannot be acted on.** Offering "retry" to
+ * somebody whose password was refused makes them press it until they give up, and
+ * offering nothing to somebody whose server was merely down makes them re-type a
+ * correct address.
  */
 @Composable
-private fun Registered() {
+private fun Watching(state: AddSourceState, viewModel: SourceViewModel) {
+    when (val view = state.view) {
+        null -> CircularProgressIndicator()
+
+        is SourceView.Importing -> Importing(view)
+
+        is SourceView.Ready -> Ready(view)
+
+        is SourceView.Failed -> Failed(view, viewModel)
+    }
+
+    // A poll that stopped answering. The last known state stays above it, because
+    // it is the only true thing this screen knows.
+    state.failure?.let { failure ->
+        Text(
+            text = failure.message(),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+    }
+}
+
+/**
+ * Importing, and how far.
+ *
+ * The named step is the point. Onboarding waits here — a large playlist takes up
+ * to a minute — and a minute of an indeterminate spinner is where somebody
+ * concludes the application is broken and closes it. A phase says two things a
+ * spinner cannot: that it is moving, and how far it got if it stops.
+ */
+@Composable
+private fun Importing(view: SourceView.Importing) {
     Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
         Text(
             text = stringResource(R.string.feature_source_syncing_title),
@@ -297,11 +352,111 @@ private fun Registered() {
             color = MaterialTheme.colorScheme.onBackground,
         )
         Text(
+            text = stringResource(view.step.labelRes()),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+        Text(
             text = stringResource(R.string.feature_source_syncing_body),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         CircularProgressIndicator(modifier = Modifier.size(LumoSpacing.lg))
+    }
+}
+
+/**
+ * Ready, and counted.
+ *
+ * US-06 and US-07 both ask for the number of channels found, and the reason is
+ * `SOURCE_EMPTY`: a success screen that says only "ready" is indistinguishable
+ * from one that imported nothing.
+ */
+@Composable
+private fun Ready(view: SourceView.Ready) {
+    Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
+        Text(
+            text = stringResource(R.string.feature_source_ready_title),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = stringResource(
+                R.string.feature_source_counts,
+                view.channels ?: 0,
+                view.categories ?: 0,
+            ),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        // Xtream only, and only when the panel gives them. Absent is not zero,
+        // so an absent value is a line that is not drawn rather than a "0".
+        view.expiresAt?.let {
+            Text(
+                text = stringResource(R.string.feature_source_expires_on, it),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        view.maxConnections?.let {
+            Text(
+                text = stringResource(R.string.feature_source_max_connections, it),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun Failed(view: SourceView.Failed, viewModel: SourceViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
+        Text(
+            text = stringResource(R.string.feature_source_error_title),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = stringResource(view.reason.messageRes()),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+        )
+
+        // The explanation only the format failure needs: somebody who typed the
+        // wrong kind of address cannot correct it without knowing what the right
+        // kind looks like.
+        if (view.reason == IngestionErrorCode.SOURCE_INVALID_FORMAT) {
+            Text(
+                text = stringResource(R.string.feature_source_error_invalid_format_help),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        when (view.exit) {
+            SourceExit.FixCredentials -> Button(
+                onClick = viewModel::fixInput,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(stringResource(R.string.feature_source_fix_credentials)) }
+
+            SourceExit.FixAddress -> Button(
+                onClick = viewModel::fixInput,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(stringResource(R.string.feature_source_fix_address)) }
+
+            SourceExit.Retry -> Button(
+                onClick = viewModel::retry,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(stringResource(R.string.feature_source_retry)) }
+
+            // Nothing on this screen can fix an expired subscription, a playlist
+            // past the size cap, or a playlist with no channel in it. A button
+            // that cannot help is worse than no button: it costs a try and a wait
+            // to learn what the sentence above already said.
+            SourceExit.None -> Unit
+        }
     }
 }
 
@@ -359,3 +514,38 @@ private fun AddSourceFailure.message(): String = when (this) {
     AddSourceFailure.Unexpected -> stringResource(R.string.feature_source_error_unexpected)
 }
 
+
+/**
+ * The four phases, as the server actually distinguishes them.
+ *
+ * Null is a source the server has accepted but not started, which is a real state
+ * and gets its own line rather than an empty one.
+ */
+@StringRes
+private fun SyncStep?.labelRes(): Int = when (this) {
+    SyncStep.CONNECTING -> R.string.feature_source_step_connecting
+    SyncStep.AUTHENTICATED -> R.string.feature_source_step_authenticated
+    SyncStep.PARSING_CHANNELS -> R.string.feature_source_step_parsing
+    SyncStep.FETCHING_EPG -> R.string.feature_source_step_epg
+    // Includes a phase newer than this build: the honest answer is that it
+    // started, which is true of every phase there could be.
+    else -> R.string.feature_source_step_pending
+}
+
+/**
+ * One sentence per ingestion code, and never a shared one.
+ *
+ * The contract forbids a generic message on this surface, and the reason is
+ * visible in the four sentences: they send the reader to four different places.
+ */
+@StringRes
+private fun IngestionErrorCode?.messageRes(): Int = when (this) {
+    IngestionErrorCode.SOURCE_AUTH_FAILED -> R.string.feature_source_error_auth_failed
+    IngestionErrorCode.SOURCE_UNREACHABLE -> R.string.feature_source_error_unreachable
+    IngestionErrorCode.SOURCE_INVALID_FORMAT -> R.string.feature_source_error_invalid_format
+    IngestionErrorCode.SOURCE_EMPTY -> R.string.feature_source_error_empty
+    IngestionErrorCode.SOURCE_TOO_LARGE -> R.string.feature_source_error_too_large
+    IngestionErrorCode.SOURCE_MAX_CONNECTIONS -> R.string.feature_source_error_max_connections
+    IngestionErrorCode.SOURCE_EXPIRED -> R.string.feature_source_error_expired
+    else -> R.string.feature_source_error_unexpected
+}

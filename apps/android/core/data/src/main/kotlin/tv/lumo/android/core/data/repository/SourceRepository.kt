@@ -84,21 +84,45 @@ class SourceRepository @Inject internal constructor(
     }
 
     /**
-     * Renames a source, or turns automatic re-synchronisation on and off.
+     * Changes a source. Omitted properties are left alone.
      *
-     * Neither touches host, credentials or URLs — changing one of those
-     * re-triggers an ingestion, which is a different screen and a different
-     * conversation with the user. `auto_sync` is the one property in this request
-     * that leaves the catalogue alone.
+     * <h2>Two very different things behind one call</h2>
+     *
+     * `label` and `autoSync` are cosmetic: the catalogue is untouched, and
+     * `auto_sync` is explicitly the one property in this request that leaves it
+     * alone. Everything else — host, credentials, either URL — **moves the source
+     * back to `PENDING` and starts a fresh ingestion**, by contract.
+     *
+     * That is what makes correcting a refused password work at all (US-06): the
+     * user fixes the one wrong field, and the import restarts by itself. It is
+     * also why a screen must not send those fields casually — a stray host in an
+     * update is a re-ingestion nobody asked for.
+     *
+     * The password is write-only. It is re-encrypted on write and never echoed
+     * back, so a correction form has an empty password field and no way to
+     * prefill one.
      */
     suspend fun update(
         id: String,
         label: String? = null,
         autoSync: Boolean? = null,
+        host: String? = null,
+        username: String? = null,
+        password: String? = null,
+        m3uUrl: String? = null,
+        epgUrl: String? = null,
     ): LumoResult<Source> = calls.call {
         api.updateSource(
             UUID.fromString(id),
-            UpdateSourceRequest(label = label, autoSync = autoSync),
+            UpdateSourceRequest(
+                label = label,
+                autoSync = autoSync,
+                host = host,
+                username = username,
+                password = password,
+                m3uUrl = m3uUrl,
+                epgUrl = epgUrl,
+            ),
         )
     }
 
