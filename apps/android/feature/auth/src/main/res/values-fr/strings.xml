@@ -8,8 +8,20 @@
     <string name="feature_auth_email_label">Adresse e-mail</string>
     <string name="feature_auth_password_label">Mot de passe</string>
     <string name="feature_auth_sign_in_submit">Se connecter</string>
+    <string name="feature_auth_no_account">Nouveau sur Lumo ? Créer un compte</string>
+
+    <string name="feature_auth_sign_up_title">Créer un compte</string>
+    <string name="feature_auth_sign_up_subtitle">Vos sources et vos favoris, sur tous vos appareils.</string>
+    <string name="feature_auth_password_rule">Au moins 10 caractères.</string>
+    <string name="feature_auth_display_name_label">Nom affiché</string>
+    <string name="feature_auth_display_name_hint">Facultatif. Le nom du compte sur vos appareils.</string>
+    <string name="feature_auth_sign_up_submit">Créer mon compte</string>
+    <string name="feature_auth_have_account">Vous avez déjà un compte ? Se connecter</string>
 
     <string name="feature_auth_error_invalid_credentials">Cette adresse e-mail et ce mot de passe ne vont pas ensemble.</string>
+    <string name="feature_auth_error_email_may_exist">Si cette adresse a déjà un compte, connectez-vous — ou réinitialisez votre mot de passe sur lumo.tv.</string>
+    <string name="feature_auth_error_password_too_weak">Ce mot de passe est trop faible. Utilisez au moins dix caractères.</string>
+    <string name="feature_auth_error_invalid">Quelque chose dans ce formulaire a été refusé. Vérifiez l\'adresse et réessayez.</string>
     <string name="feature_auth_error_rate_limited">Trop de tentatives. Réessayez dans un instant.</string>
     <string name="feature_auth_error_rate_limited_seconds">Trop de tentatives. Réessayez dans %1$d secondes.</string>
     <string name="feature_auth_error_device_limit">Votre offre n\'autorise pas un appareil de plus. Déliez-en un depuis votre compte, ou passez à une offre supérieure.</string>

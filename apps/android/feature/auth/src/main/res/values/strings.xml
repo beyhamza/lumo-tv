@@ -7,11 +7,26 @@
     <string name="feature_auth_title">Sign in</string>
     <string name="feature_auth_placeholder">Sign in to find your sources and favourites on every device.</string>
 
+    <!-- Signing in (US-02). -->
     <string name="feature_auth_sign_in_title">Welcome back</string>
     <string name="feature_auth_sign_in_subtitle">Your sources and your history are waiting.</string>
     <string name="feature_auth_email_label">Email address</string>
     <string name="feature_auth_password_label">Password</string>
     <string name="feature_auth_sign_in_submit">Sign in</string>
+    <string name="feature_auth_no_account">New to Lumo? Create an account</string>
+
+    <!-- Creating an account (US-01). -->
+    <string name="feature_auth_sign_up_title">Create an account</string>
+    <string name="feature_auth_sign_up_subtitle">Your sources and your favourites, on every device.</string>
+    <!--
+      Shown from the first keystroke rather than after a failed submission:
+      US-01 asks for the unmet rule to be visible before the form is sent.
+    -->
+    <string name="feature_auth_password_rule">At least 10 characters.</string>
+    <string name="feature_auth_display_name_label">Display name</string>
+    <string name="feature_auth_display_name_hint">Optional. What the account is called on your devices.</string>
+    <string name="feature_auth_sign_up_submit">Create my account</string>
+    <string name="feature_auth_have_account">Already have an account? Sign in</string>
 
     <!--
       Deliberately says neither which of the two was wrong nor whether the
@@ -20,6 +35,15 @@
       has an account here.
     -->
     <string name="feature_auth_error_invalid_credentials">That email address and password do not go together.</string>
+    <!--
+      Same restraint from the other side. The contract answers a registration for
+      a known address in the same time as one for an unknown address, precisely so
+      the two cannot be told apart; a message that announced "this address is
+      taken" would hand back what that timing was hiding.
+    -->
+    <string name="feature_auth_error_email_may_exist">If this address already has an account, sign in instead — or reset your password on lumo.tv.</string>
+    <string name="feature_auth_error_password_too_weak">That password is too weak. Use at least ten characters.</string>
+    <string name="feature_auth_error_invalid">Something in this form was refused. Check the address and try again.</string>
     <string name="feature_auth_error_rate_limited">Too many attempts. Try again in a moment.</string>
     <string name="feature_auth_error_rate_limited_seconds">Too many attempts. Try again in %1$d seconds.</string>
     <string name="feature_auth_error_device_limit">Your plan does not allow another device. Unlink one from your account, or move to a larger plan.</string>

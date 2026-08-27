@@ -20,6 +20,7 @@ import tv.lumo.android.network.generated.api.AuthApi
 import tv.lumo.android.network.generated.infrastructure.Serializer
 import tv.lumo.android.network.generated.model.DeviceRegistration
 import tv.lumo.android.network.generated.model.ErrorCode
+import tv.lumo.android.network.generated.model.Locale
 import tv.lumo.android.network.generated.model.Platform
 
 /**
@@ -131,6 +132,64 @@ class AuthRepositoryTest {
 
         assertThat(((result as LumoResult.Failure).error as LumoError.Api).retryAfterSeconds)
             .isNull()
+    }
+
+    @Test
+    fun `registering signs the user in immediately`() = runBlocking {
+        // The contract is explicit that registration issues a session, which is
+        // why there is no "check your email to continue" wall: the verification
+        // message is sent and blocks nothing.
+        server.enqueue(MockResponse().setResponseCode(201).setBody(authSession()))
+
+        val result = repository().register(
+            email = "someone@example.test",
+            password = "a long enough password",
+            displayName = "Someone",
+            locale = Locale.FR,
+        )
+
+        assertThat(result).isEqualTo(LumoResult.Success(Unit))
+        assertThat(store.saved?.accessToken).isEqualTo("access-token")
+    }
+
+    @Test
+    fun `the interface language is sent, because no Accept-Language header is`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(201).setBody(authSession()))
+
+        repository().register("someone@example.test", "a long password", "Someone", Locale.FR)
+
+        // The contract falls back to Accept-Language and then to English, and
+        // this client sends no such header — so leaving it out would record a
+        // French user as English and send them English email.
+        assertThat(server.takeRequest().body.readUtf8()).contains("\"locale\":\"fr\"")
+    }
+
+    @Test
+    fun `a blank display name is left out rather than sent empty`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(201).setBody(authSession()))
+
+        repository().register("someone@example.test", "a long password", "   ", Locale.EN)
+
+        // The field is optional in the contract. An empty string is a value, and
+        // the account would be named "" on every device list.
+        assertThat(server.takeRequest().body.readUtf8()).doesNotContain("display_name")
+    }
+
+    @Test
+    fun `an address that already has an account leaves no session behind`() = runBlocking {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(409)
+                .setBody(
+                    """{"type":"x","title":"x","status":409,"code":"EMAIL_ALREADY_REGISTERED"}""",
+                ),
+        )
+
+        val result = repository().register("someone@example.test", "a long password", null, Locale.EN)
+
+        val error = (result as LumoResult.Failure).error as LumoError.Api
+        assertThat(error.code).isEqualTo(ErrorCode.EMAIL_ALREADY_REGISTERED)
+        assertThat(store.saved).isNull()
     }
 
     // ---- helpers -----------------------------------------------------------

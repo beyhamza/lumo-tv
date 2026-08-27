@@ -10,7 +10,9 @@ import tv.lumo.android.core.data.internal.DeviceDescriber
 import tv.lumo.android.core.data.map
 import tv.lumo.android.network.generated.api.AuthApi
 import tv.lumo.android.network.generated.model.AuthSession
+import tv.lumo.android.network.generated.model.Locale
 import tv.lumo.android.network.generated.model.LoginRequest
+import tv.lumo.android.network.generated.model.RegisterRequest
 
 /**
  * Getting a session, and being the only thing that opens one.
@@ -64,6 +66,46 @@ class AuthRepository @Inject internal constructor(
                     // INVALID_CREDENTIALS forever.
                     password = password,
                     device = device.registration(),
+                ),
+            )
+        }
+
+        return result.map { session.open(it.asTokens()) }
+    }
+
+    /**
+     * Creates an account and opens its session (US-01).
+     *
+     * Registration signs the user in immediately — the contract says so, and it
+     * is why this ends exactly like [signIn] rather than returning to a sign-in
+     * form. A verification email goes out at the same time and blocks nothing:
+     * an account that cannot be used until a link is clicked is an account that
+     * is abandoned on a train.
+     *
+     * **The password is not validated here.** The minimum is the server's, it is
+     * re-checked there, and a copy in this layer would be a second rule to keep
+     * in step. The screen shows it before submission because US-01 asks for
+     * that — as a courtesy, never as the validation.
+     *
+     * @param locale what the interface is currently displaying in. Sent rather
+     * than left out: the contract falls back to `Accept-Language` and then to
+     * English, and this client sends no such header, so a French user would be
+     * written down as English and get English email.
+     */
+    suspend fun register(
+        email: String,
+        password: String,
+        displayName: String?,
+        locale: Locale,
+    ): LumoResult<Unit> {
+        val result = calls.call {
+            api.register(
+                RegisterRequest(
+                    email = email.trim(),
+                    password = password,
+                    device = device.registration(),
+                    displayName = displayName?.trim()?.takeIf { it.isNotEmpty() },
+                    locale = locale,
                 ),
             )
         }

@@ -87,7 +87,7 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S2-01 | `core:data` : repositories et erreurs typées | socle | android | 8 | 100 % |
 | ☑ | S2-02 | Navigation pilotée par la session, périmètre réduit | socle | android | 3 | 100 % |
 | ◩ | S2-03 | Banc d'essai des sources | outillage | recette | 3 | **83 %** |
-| ☐ | S2-04 | Inscription | US-01 | mobile | 5 | 0 % |
+| ☑ | S2-04 | Inscription | US-01 | mobile | 5 | 100 % |
 | ☑ | S2-05 | Connexion par email | US-02 | mobile | 3 | 100 % |
 | ☐ | S2-06 | Connexion Google (Credential Manager) | US-03 | mobile | 5 | 0 % |
 | ☐ | S2-07 | Session persistante, de bout en bout | US-04 | mobile + tv | 3 | 0 % |
@@ -99,14 +99,15 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 0 % |
 | ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
 
-**Avancement du sprint : 23 % de 82 points.** Le socle est fini — S2-00 la charte,
-S2-01 la couche de données, S2-02 la navigation — et le premier écran réel est
-posé dessus : **S2-05 ferme US-02**, la première des dix stories du sprint 1 dont
-l'implémentation est complète. Sa Definition of Done ne l'est pas : elle demande
-une démo sur device réel, et personne n'a encore vu cet écran ailleurs que dans un
-build.
+**Avancement du sprint : 29 % de 82 points.** Le socle est fini — S2-00 la charte,
+S2-01 la couche de données, S2-02 la navigation — et **toute la porte d'entrée par
+email est posée dessus** : S2-05 ferme US-02, S2-04 ferme US-01. Deux stories du
+sprint 1 sur dix dont l'implémentation est complète.
 
-Les sept autres écrans restent des placeholders.
+Leur Definition of Done ne l'est pas, et ne le sera pas avant une démo sur device
+réel : personne n'a encore vu ces écrans ailleurs que dans un build.
+
+Les six autres écrans restent des placeholders.
 
 S2-03 est à 83 % sans que le sprint 2 y ait touché : le banc d'essai est la seule
 tâche partagée avec le sprint 3, et c'est le web qui en a eu besoin le premier.
@@ -322,7 +323,41 @@ refuse le dépôt sinon.
 
 ---
 
-### S2-04 — Inscription · **5** · ferme US-01
+### S2-04 — Inscription · **5** · ferme US-01 · ☑
+
+> **Livré.** Une route à part (`sign-up`) plutôt qu'un mode sur `auth` : les deux
+> écrans demandent des choses différentes, refusent pour des raisons différentes,
+> et se replier sur un paramètre voudrait dire que chaque lien, chaque entrée de
+> pile et chaque futur lien profond doit le porter correctement.
+>
+> **La règle avant la faute, pas après.** La longueur minimale est sous le champ
+> dès la première frappe et rougit quand elle n'est pas tenue ; le bouton reste
+> désactivé. C'est ce qui distingue cet écran d'un formulaire ordinaire, où l'on
+> tape, on soumet, et on apprend. Ça reste une courtoisie : le serveur applique la
+> même règle et répond `PASSWORD_TOO_WEAK`, que l'écran affiche aussi.
+>
+> **« Email déjà enregistré » n'affirme rien.** Le message invite à se connecter ou
+> à réinitialiser sans dire que l'adresse a un compte. Le contrat protège le même
+> secret par l'autre bout — il répond en temps constant — et l'annoncer dans le
+> message rendrait exactement ce que cette latence cachait.
+>
+> **La langue de l'interface part avec l'inscription.** Le contrat retombe sur
+> `Accept-Language` puis sur l'anglais, et ce client n'envoie pas cet en-tête : sans
+> ça, un utilisateur français serait enregistré comme anglophone et recevrait des
+> e-mails en anglais.
+>
+> **Ce que S2-04 n'a pas fait, et pourquoi.** « Force mesurée par entropie, pas par
+> composition » n'est implémenté **nulle part** dans le produit — ni par le serveur,
+> dont la règle est cette même longueur, ni par le site. Le faire ici seulement
+> ferait refuser au mobile des mots de passe que le serveur accepte, et une entropie
+> naïve donne un bon score à `aaaaaaaaaa`. Remonté :
+> [`design/api-gaps.md`](../design/api-gaps.md), point 6 — c'est une décision
+> serveur d'abord.
+>
+> L'onboarding reste un placeholder : les deux écrans se renvoient l'un à l'autre
+> en attendant, comme la maquette mobile le dessine.
+>
+> 9 tests JVM de plus.
 
 Email et mot de passe. La règle non respectée s'affiche **avant** la soumission et le
 bouton reste désactivé — c'est écrit dans le Gherkin et c'est ce qui distingue cet

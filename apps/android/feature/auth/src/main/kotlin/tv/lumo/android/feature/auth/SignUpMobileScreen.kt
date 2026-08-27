@@ -20,8 +20,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -33,60 +33,56 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
+import tv.lumo.android.network.generated.model.Locale
 
 /**
- * Signing in with an email and a password (US-02).
+ * Creating an account (US-01).
  *
- * <h2>The screen does not know what comes next</h2>
+ * <h2>The rule is shown before it is broken</h2>
  *
- * There is no success branch and no navigation. Signing in opens a session,
- * `AppStartDecision` is watching it, and the shell rebuilds its graph onto the
- * catalogue — or onto the source form for an account that has none. Registration,
- * Google and the television's device code will all end the same way, which is why
- * none of them will need a callback either.
+ * US-01 does not merely ask for a minimum length — it asks for the unmet rule to
+ * be visible **before** submission and for the button to stay disabled until it
+ * is met. That is what makes this different from an ordinary form: the usual
+ * shape is to let someone type, submit, and be told. So the rule sits under the
+ * field from the first keystroke, and turns red rather than appearing.
  *
- * <h2>Every refusal is a different sentence</h2>
+ * It is also only a courtesy. The server enforces the same minimum and answers
+ * `PASSWORD_TOO_WEAK`, which this screen renders too — a disabled button is not
+ * a validation, and nothing stops a different client from posting anyway.
  *
- * Four, and they are not interchangeable:
+ * <h2>What the already-registered case says, and what it does not</h2>
  *
- * - wrong credentials get a message that does **not** say whether the email
- *   exists. That is the contract's rule and the reason the server's own answer is
- *   generic: an error that distinguishes the two turns a sign-in form into a way
- *   to test whether somebody has an account here;
- * - too many attempts is a **wait**, with the server's own delay when it sent
- *   one. Saying "something went wrong" here would invite the user to try again
- *   immediately and be refused again — which also extends the delay;
- * - the plan's device ceiling names both ways out, because the user cannot guess
- *   that unlinking another device is a thing they may do;
- * - no network says so, because it is the only case where trying again unchanged
- *   is worth offering.
+ * It invites signing in or resetting a password without asserting that the
+ * address has an account. The contract protects the same secret from the other
+ * side, by answering in constant time; saying it plainly in the message would
+ * give back what the timing was hidden to protect.
  */
 @Composable
-fun AuthMobileScreen(
-    onCreateAccount: () -> Unit,
+fun SignUpMobileScreen(
+    onSignIn: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: SignInViewModel = hiltViewModel(),
+    viewModel: SignUpViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val locale = currentLocale()
+    val submit = { viewModel.submit(locale) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            // The keyboard covers the button on a short screen otherwise, and a
-            // submit button nobody can reach is the oldest bug in mobile forms.
             .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(LumoSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
     ) {
         Text(
-            text = stringResource(R.string.feature_auth_sign_in_title),
+            text = stringResource(R.string.feature_auth_sign_up_title),
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onBackground,
         )
         Text(
-            text = stringResource(R.string.feature_auth_sign_in_subtitle),
+            text = stringResource(R.string.feature_auth_sign_up_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -104,7 +100,7 @@ fun AuthMobileScreen(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        val submit = remember(viewModel) { { viewModel.submit() } }
+        val tooShort = state.passwordTooShort == true
 
         OutlinedTextField(
             value = state.password,
@@ -112,13 +108,30 @@ fun AuthMobileScreen(
             label = { Text(stringResource(R.string.feature_auth_password_label)) },
             singleLine = true,
             enabled = !state.submitting,
+            isError = tooShort,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done,
+                imeAction = ImeAction.Next,
             ),
-            // The keyboard's own action submits, which is how this form is
-            // actually used: two fields and a thumb already on the return key.
+            // Under the field from the start, red once it is not met. Appearing
+            // only on failure would be the ordinary form this story rejects.
+            supportingText = {
+                Text(stringResource(R.string.feature_auth_password_rule))
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        OutlinedTextField(
+            value = state.displayName,
+            onValueChange = viewModel::onDisplayNameChange,
+            label = { Text(stringResource(R.string.feature_auth_display_name_label)) },
+            singleLine = true,
+            enabled = !state.submitting,
+            supportingText = {
+                Text(stringResource(R.string.feature_auth_display_name_hint))
+            },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { submit() }),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -128,8 +141,6 @@ fun AuthMobileScreen(
                 text = failure.message(),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.error,
-                // Announced when it appears: a message a screen reader has to be
-                // hunted for is a message a blind user does not get.
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
             )
         }
@@ -146,37 +157,50 @@ fun AuthMobileScreen(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
-                Text(stringResource(R.string.feature_auth_sign_in_submit))
+                Text(stringResource(R.string.feature_auth_sign_up_submit))
             }
         }
 
-        // The way to the other half. Onboarding is where this choice will
-        // eventually be made, but it is still a placeholder, and a screen that
-        // cannot be left is worse than a link in the wrong place.
-        TextButton(onClick = onCreateAccount, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.feature_auth_no_account))
+        TextButton(onClick = onSignIn, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.feature_auth_have_account))
         }
     }
 }
 
-/** The wording for each refusal, resolved here because this is where the locale is. */
+/**
+ * The language the interface is being read in, as the contract spells it.
+ *
+ * Sent with the registration so the account is written down in the language the
+ * person is actually using: the contract falls back to `Accept-Language` and then
+ * to English, and this client sends no such header — so a French user would be
+ * recorded as English and receive English email.
+ *
+ * Anything that is not French is English, because those are the two the product
+ * ships (AGENTS.md §4). A German phone gets the English it is already seeing.
+ */
 @Composable
-private fun SignInFailure.message(): String = when (this) {
-    SignInFailure.InvalidCredentials ->
-        stringResource(R.string.feature_auth_error_invalid_credentials)
+private fun currentLocale(): Locale {
+    val tag = LocalConfiguration.current.locales[0]?.language
+    return if (tag == "fr") Locale.FR else Locale.EN
+}
 
-    is SignInFailure.TooManyAttempts -> if (seconds == null) {
-        // No `Retry-After`, or one this build could not read. Saying "later"
-        // without a number is honest; inventing one is not.
+@Composable
+private fun SignUpFailure.message(): String = when (this) {
+    SignUpFailure.EmailMayExist ->
+        stringResource(R.string.feature_auth_error_email_may_exist)
+
+    SignUpFailure.PasswordTooWeak ->
+        stringResource(R.string.feature_auth_error_password_too_weak)
+
+    SignUpFailure.Invalid -> stringResource(R.string.feature_auth_error_invalid)
+
+    is SignUpFailure.TooManyAttempts -> if (seconds == null) {
         stringResource(R.string.feature_auth_error_rate_limited)
     } else {
         stringResource(R.string.feature_auth_error_rate_limited_seconds, seconds)
     }
 
-    SignInFailure.DeviceLimitReached ->
-        stringResource(R.string.feature_auth_error_device_limit)
+    SignUpFailure.Offline -> stringResource(R.string.feature_auth_error_offline)
 
-    SignInFailure.Offline -> stringResource(R.string.feature_auth_error_offline)
-
-    SignInFailure.Unexpected -> stringResource(R.string.feature_auth_error_unexpected)
+    SignUpFailure.Unexpected -> stringResource(R.string.feature_auth_error_unexpected)
 }

@@ -7,7 +7,9 @@ import androidx.navigation.compose.NavHost
 import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.feature.auth.AuthDestination
+import tv.lumo.android.feature.auth.SignUpDestination
 import tv.lumo.android.feature.auth.navigation.authMobileScreen
+import tv.lumo.android.feature.auth.navigation.signUpMobileScreen
 import tv.lumo.android.feature.live.LiveDestination
 import tv.lumo.android.feature.live.navigation.liveMobileScreen
 import tv.lumo.android.feature.onboarding.navigation.onboardingMobileScreen
@@ -43,7 +45,20 @@ fun LumoMobileNavHost(
         modifier = modifier,
     ) {
         onboardingMobileScreen()
-        authMobileScreen()
+        // The two halves of the way in point at each other, and the application
+        // is what holds the wire. A feature never navigates to another feature's
+        // route on its own (docs/architecture.md §3) — and these two happen to
+        // share a module today, which is exactly the kind of coincidence that
+        // stops being true later.
+        authMobileScreen(
+            onCreateAccount = { navController.navigate(SignUpDestination.route) },
+        )
+        signUpMobileScreen(
+            // `popBackStack` rather than `navigate`: coming back from sign-up to
+            // sign-in is a return, not a new destination, and pushing one would
+            // build sign-in / sign-up / sign-in for anyone who hesitates twice.
+            onSignIn = { navController.popBackStack(AuthDestination.route, false) },
+        )
         sourceMobileScreen()
         liveMobileScreen()
         vodMobileScreen()
@@ -68,11 +83,11 @@ fun LumoMobileNavHost(
  */
 fun mobileStartRoute(start: AppStart): String? = when (start) {
     AppStart.Loading -> null
-    // Sign-in, not onboarding, and it is a temporary answer with a date on it.
-    // Onboarding is where the choice between signing in and creating an account
-    // belongs, and it is still a placeholder with nothing to press — so the way
-    // in is the screen that works. `S2-04` builds the other half and this line
-    // goes back to [OnboardingDestination].
+    // Sign-in, not onboarding. Onboarding is where the choice between signing in
+    // and creating an account is *meant* to be made, and it is still a
+    // placeholder with nothing to press — so the way in is the screen that works,
+    // and the two halves link to each other directly. When onboarding becomes a
+    // real screen, this line moves back to it and those links come out.
     AppStart.SignedOut -> AuthDestination.route
     // Nothing to watch yet, so the first screen is the one that fixes that
     // (US-06, US-07) rather than an empty catalogue.

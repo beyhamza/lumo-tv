@@ -36,7 +36,7 @@ Une ligne par manque. Le détail de chacun est dans sa section.
 Les trois tags qui n'avaient aucun contrôleur — `account`, `userdata`,
 `billing` — en ont un. Plus aucun chemin du contrat ne répond 404.
 
-### Cinq points à trancher, remontés plutôt qu'inventés
+### Six points à trancher, remontés plutôt qu'inventés
 
 **1. Le webhook de paiement n'existe pas.** `POST /billing/checkout-session`
 ouvre bien une session Stripe et crée le client, mais **un paiement réussi ne
@@ -127,6 +127,38 @@ Décision à prendre : corriger à la source (modèle `toString` personnalisé d
 `config/kotlin.yaml`, ou remontée en amont du générateur), ou acter que la phrase du
 contrat ne vaut que pour Java et la réécrire pour ne plus promettre ce qui n'est pas
 tenu. En attendant, **ne pas se fier à cette phrase côté Android**.
+
+**6. La force du mot de passe « par entropie » n'existe nulle part.** Relevé en
+écrivant S2-04. Trois documents l'affirment — la description de
+`RegisterRequest.password` dans le contrat (« *Strength is measured by entropy
+(zxcvbn), not by composition rules* »), la note d'US-01, et la ligne « Force du mot
+de passe » de ce fichier. **Aucune des trois surfaces ne le fait :**
+
+| Surface | Ce qui est réellement appliqué |
+|---|---|
+| `apps/api` | `AccountService.requireStrongPassword` : `length < 10` refusé, rien d'autre |
+| `apps/web` | `MIN_PASSWORD_LENGTH = 10`, affiché sous le champ |
+| `apps/android` | la même règle, affichée avant soumission (US-01) |
+
+Ce n'est pas un oubli d'implémentation qu'un client devrait rattraper seul :
+mesurer l'entropie sur le téléphone et nulle part ailleurs ferait **refuser au
+mobile des mots de passe que le serveur accepte** — la pire des trois situations,
+parce que le seul composant qui a tort est celui qui parle à l'utilisateur. Et
+l'entropie naïve (longueur × alphabet) n'est pas zxcvbn : elle décerne un bon score
+à `aaaaaaaaaa`, ce qui est pire que pas de jauge du tout.
+
+Décision à prendre, dans cet ordre : **le serveur** mesure-t-il l'entropie (c'est
+lui qui décide, et c'est une dépendance à ajouter à `apps/api`) ? Si oui, les
+clients affichent une jauge alignée sur sa règle. Si non, la phrase sort du contrat
+et d'US-01, et les trois surfaces continuent d'annoncer honnêtement une longueur
+minimale.
+
+**Point connexe, à trancher avec.** La formulation d'« email déjà enregistré »
+diverge : le web affirme (« Un compte existe déjà avec cette adresse »), Android
+n'affirme pas (« Si cette adresse a déjà un compte… »), parce que le backlog de
+S2-04 le demande explicitement. Le contrat protège le même secret par le temps de
+réponse ; le dire dans le message rend ce que la latence cachait. Une des deux
+formulations est à aligner sur l'autre — la prudente, de préférence.
 
 ---
 

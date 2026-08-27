@@ -26,7 +26,7 @@ doc mise à jour si un comportement observable change · démo faite sur device 
 
 ---
 
-## État au 27 août 2026 — **sprint 1 non clos, ~51 %**
+## État au 27 août 2026 — **sprint 1 non clos, ~54 %**
 
 **Convention de suivi, valable pour tous les sprints.** Une case par tâche, et un
 pourcentage dès que l'avancement est partiel. Le pourcentage mesure
@@ -37,7 +37,7 @@ story finie sont deux états différents.
 
 | | US | Avancement | Ce qui manque | DoD |
 |---|---|---|---|---|
-| ☐ | US-01 Compte email | **66 %** | l'écran mobile | ☐ |
+| ☐ | US-01 Compte email | 100 % | rien : l'écran mobile existe. Reste la démo sur device réel (DoD) | ☐ |
 | ☐ | US-02 Connexion email | 100 % | rien : l'écran mobile existe. Reste la démo sur device réel, qui est la DoD et pas l'implémentation | ☐ |
 | ☐ | US-03 Google | **33 %** | le bouton web, l'écran mobile | ☐ |
 | ☐ | US-04 Session et rotation | **90 %** | le mobile sait ouvrir une session depuis S2-05 ; la TV non (S2-12), et la persistance après redémarrage reste à vérifier de bout en bout (S2-07) | ☐ |
@@ -48,7 +48,7 @@ story finie sont deux états différents.
 | ☐ | US-09 Lecture mobile | **50 %** | le câblage : `Media3LumoPlayer` existe, aucun écran ne l'ouvre | ☐ |
 | ☐ | US-10 Lecture TV | **33 %** | tout le client TV | ☐ |
 
-**~51 % des 63 points**, et **0 story sur 10** au sens de la Definition of Done.
+**~54 % des 63 points**, et **0 story sur 10** au sens de la Definition of Done.
 
 Le serveur tient la verticale entière. Le web couvre l'inscription, la connexion
 et l'activation. **Les deux applications Android sont des placeholders de bout en
