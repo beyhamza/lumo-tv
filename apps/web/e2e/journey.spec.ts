@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import fr from "../src/messages/fr.json";
+import { SESSION_FILE } from "./support/stack";
 
 /**
  * What only a stack can test.
@@ -242,6 +243,96 @@ test.describe.serial("sources", () => {
     await expect(page.getByText(fr.App.playerFailedTitle)).toHaveCount(0);
   });
 
+  test("une chaîne mise en favori le reste, et rend la vue où elle était", async ({
+    page,
+  }) => {
+    await page.goto("/fr/app/sources");
+    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
+
+    // Filtrer d'abord. L'étoile doit revenir sur cette vue-là — catégorie,
+    // recherche et page comprises — et pas sur la page 1 de tout : c'est la
+    // régression qu'un simple `redirect("/app/sources/x/channels")` produit.
+    await page.getByRole("link", { name: "Sport" }).click();
+    const filtered = page.url();
+    await expect(channels(page).getByRole("listitem")).toHaveCount(2);
+
+    await stars(page, fr.App.catalogueFavoriteAdd).first().click();
+
+    await expect(page).toHaveURL(filtered);
+    await expect(stars(page, fr.App.catalogueFavoriteRemove)).toHaveCount(1);
+
+    // Le rail nomme la chaîne. Or `Favorite` ne porte qu'un `channel_id` : ce
+    // nom ne peut venir que du paramètre `ids` de GET /sources/{id}/channels.
+    const favorites = rail(page, fr.App.catalogueFavoritesTitle).getByRole("listitem");
+    await expect(favorites).toHaveCount(1);
+    await expect(favorites.first()).toContainText("Chaîne 03 HD");
+
+    // Rechargement : l'étoile pleine ne vient pas d'un état de page mais d'un
+    // GET /me/favorites, donc d'une ligne écrite en base par lumo-api.
+    await page.reload();
+    await expect(stars(page, fr.App.catalogueFavoriteRemove)).toHaveCount(1);
+
+    await stars(page, fr.App.catalogueFavoriteRemove).click();
+    await expect(stars(page, fr.App.catalogueFavoriteRemove)).toHaveCount(0);
+    await expect(stars(page, fr.App.catalogueFavoriteAdd)).toHaveCount(2);
+
+    // Et le rail disparaît avec son dernier favori, plutôt que de laisser un
+    // titre au-dessus d'une bande vide.
+    await expect(rail(page, fr.App.catalogueFavoritesTitle)).toHaveCount(0);
+  });
+
+  test("le rail des chaînes récentes nomme une chaîne absente de la page", async ({
+    page,
+  }) => {
+    await page.goto("/fr/app/sources");
+    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
+
+    // Chaîne 01 a été lancée par les tests de lecture plus haut, et le lecteur a
+    // envoyé PUT /me/recent-channels au démarrage — jamais au survol.
+    const recent = rail(page, fr.App.catalogueRecentTitle);
+    await expect(recent.getByRole("listitem").first()).toContainText("Chaîne 01 FHD");
+
+    // Le vrai test est ici : filtrer sur Sport retire Chaîne 01 de la liste, et
+    // le rail continue de la nommer. C'est exactement ce que le catalogue local
+    // d'Android fait, et ce que `ids` rend possible sans catalogue local.
+    await page.getByRole("link", { name: "Sport" }).click();
+    await expect(channels(page).getByRole("listitem")).toHaveCount(2);
+    await expect(recent.getByRole("listitem").first()).toContainText("Chaîne 01 FHD");
+
+    // Et une carte du rail lance la chaîne sans quitter la vue filtrée.
+    await recent.getByRole("link", { name: "Chaîne 01 FHD" }).click();
+    await expect(page).toHaveURL(/categoryId=/);
+    await expect(page).toHaveURL(/play=/);
+    await expect(page.locator("video")).toBeVisible();
+  });
+
+  test("l'étoile fonctionne sans JavaScript", async ({ browser }) => {
+    // Une Server Action posée sur `<form action={...}>` est soumise par le
+    // navigateur lui-même quand l'hydratation n'a pas lieu. C'est la promesse
+    // d'AGENTS.md §3 pour tous les formulaires de cette zone, et elle ne vaut
+    // que si quelque chose la vérifie : un `onClick` déguisé passerait tous les
+    // autres tests.
+    const context = await browser.newContext({
+      javaScriptEnabled: false,
+      storageState: SESSION_FILE,
+    });
+    const page = await context.newPage();
+
+    await page.goto("/fr/app/sources");
+    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
+
+    await stars(page, fr.App.catalogueFavoriteAdd).first().click();
+    await expect(stars(page, fr.App.catalogueFavoriteRemove)).toHaveCount(1);
+
+    await stars(page, fr.App.catalogueFavoriteRemove).click();
+    await expect(stars(page, fr.App.catalogueFavoriteRemove)).toHaveCount(0);
+
+    await context.close();
+  });
+
   test("le plafond de l'offre remplace le bouton d'ajout", async ({ page }) => {
     await page.goto("/fr/app/sources");
 
@@ -302,4 +393,28 @@ test.describe.serial("sources", () => {
  */
 function channels(page: Page) {
   return page.getByRole("list", { name: fr.App.catalogueTitle });
+}
+
+/**
+ * The favourite toggles in one of their two states.
+ *
+ * Queried by accessible name rather than by class or position: the name is the
+ * only thing a screen reader gets out of that button — the glyph inside it is
+ * `aria-hidden` — so a test that stops finding it is a test reporting that the
+ * control became unreachable.
+ */
+function stars(page: Page, label: string) {
+  return page.getByRole("button", { name: label });
+}
+
+/**
+ * One of the two rails above the catalogue, by its heading.
+ *
+ * Same reasoning as {@link channels}: three lists share this page, and a
+ * page-wide `listitem` query would count all of them. Each rail carries the
+ * accessible name a screen reader announces, so scoping to it here is scoping to
+ * the same thing a person using one would hear.
+ */
+function rail(page: Page, title: string) {
+  return page.getByRole("list", { name: title });
 }

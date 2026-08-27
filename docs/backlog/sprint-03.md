@@ -134,18 +134,22 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S3-05 | Gérer une source : renommer, resynchroniser, supprimer | sources | 3 | 100 % |
 | ☑ | S3-06 | Plafonds lus, jamais devinés | sources | 2 | 100 % |
 | ☑ | S3-07 | Catalogue : catégories, chaînes paginées, recherche | catalogue | 8 | 100 % |
-| ◩ | S3-08 | Favoris et chaînes récentes | catalogue | 3 | 30 % |
+| ☑ | S3-08 | Favoris et chaînes récentes | catalogue | 3 | 100 % |
 | ☑ | S3-09 | Route Handler de lecture : l'URL hors du HTML | lecture | 3 | 100 % |
 | ☑ | S3-10 | Lecteur HLS | lecture | 8 | 100 % |
 | ☑ | S3-11 | Échecs de lecture nommés | lecture | 5 | 100 % |
 | ☑ | S3-12 | Parcours e2e : compte → source → chaîne → image | vérif | 5 | 100 % |
 
-**Avancement du sprint : 96 % de 55 points.** Une chaîne se lance et s'affiche dans
+**Avancement du sprint : 100 % de 55 points.** Une chaîne se lance et s'affiche dans
 le navigateur, vérifié sur une image décodée et non sur la présence d'une balise.
 
-Reste **S3-08 à 30 %** : les chaînes récentes sont enregistrées au démarrage de la
-lecture — jamais au survol, comme le contrat l'exige — mais ni les favoris ni les
-deux rails ne sont écrits.
+**Une exception assumée à la règle « ce sprint ne touche pas le contrat ».** S3-08 a
+buté sur un manque réel, pas sur une dérive : `Favorite` et `RecentChannel` ne portent
+que des identifiants, et aucune opération ne rendait une chaîne par son id. Le manque
+a été remonté, la décision prise, puis portée — `ids` sur
+`GET /sources/{id}/channels`, un paramètre, servi et testé. La règle a joué son rôle :
+elle a forcé l'arrêt et la décision au lieu d'un contournement dans l'écran.
+Justification complète dans [`design/api-gaps.md`](../design/api-gaps.md), point 4.
 
 Sans US-11 : S3-00, S3-09, S3-10 et S3-11 tombent — **39 points**.
 
@@ -371,7 +375,7 @@ Deux pièges de la zone :
 
 ---
 
-### S3-08 — Favoris et chaînes récentes · **3**
+### S3-08 — Favoris et chaînes récentes · **3** · ☑
 
 `GET`/`POST /me/favorites`, `DELETE /me/favorites/{id}`, `GET`/`POST
 /me/favorite-groups`, `GET`/`PUT /me/recent-channels`.
@@ -389,6 +393,23 @@ deux choses :
   l'historique de l'utilisateur qu'on abîme.
 
 Dépend de S3-10 pour le second point ; le premier est autonome.
+
+**L'étoile.** Un `<form>` et une Server Action, donc le token reste hors du navigateur
+et le contrôle fonctionne sans JavaScript — vérifié par un test end-to-end qui coupe
+JavaScript et clique quand même. `group_id` n'est délibérément pas envoyé, tant que la
+décision 2 d'`api-gaps` n'est pas prise. Le retour se fait sur la vue exacte d'où
+l'étoile a été cliquée, catégorie, recherche et page comprises.
+
+**Les deux rails ont demandé un aller au contrat.** `Favorite` et `RecentChannel` ne
+portent que `channel_id` et `source_id` — volontairement, pour ne pas afficher un nom
+que la dernière ingestion a changé depuis. Android résout l'identifiant dans sa base
+Room ; le web n'a pas de catalogue local. `ids` sur `GET /sources/{id}/channels` est
+ce qui manquait, et c'est tout ce qui manquait.
+
+Les deux rails et la chaîne en cours de lecture sont réunis en **une** requête, moins
+ce que la page courante porte déjà. Conséquence secondaire : `?play=` n'a plus besoin
+que la chaîne soit sur la page courante pour afficher son nom — c'est ce qui permet à
+une carte de rail de lancer une chaîne sans quitter la vue filtrée.
 
 ---
 

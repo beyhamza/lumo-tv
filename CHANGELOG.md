@@ -24,6 +24,11 @@ ou d'un autre compte sont absents de la réponse, jamais une erreur : un favori
 devenu obsolète ne casse pas un écran, et l'opération ne permet pas de sonder
 l'existence d'un identifiant.
 
+**lumo.tv — favoris et chaînes récentes sur le catalogue.** Une étoile sur
+chaque ligne, et deux rails en haut de l'écran. L'étoile est un formulaire et
+une Server Action : elle fonctionne sans JavaScript, et le token reste hors du
+navigateur. Les deux rails coûtent **une** requête, pas une par entrée.
+
 **lumo-api — les trois tags qui n'avaient pas de contrôleur en ont un.**
 `account` (`/me`, appareils, droits d'accès), `userdata` (favoris, groupes,
 progression, chaînes récentes) et `billing` (session de paiement, portail).
