@@ -14,6 +14,16 @@ avec la maturité du produit.
 
 ### Ajouté
 
+**Contrat — `ids` sur `GET /sources/{id}/channels`.** Touche les trois
+applications, donc annoncé ici (AGENTS.md §3). Répétable, borné à cent, il
+résout des identifiants de chaîne en chaînes. `Favorite` et `RecentChannel` ne
+portent volontairement aucun nom — un nom recopié serait celui que la prochaine
+ingestion a déjà changé — et jusqu'ici seul un client à catalogue local (Room,
+sur Android) savait les lire. Les identifiants inconnus, ceux d'une autre source
+ou d'un autre compte sont absents de la réponse, jamais une erreur : un favori
+devenu obsolète ne casse pas un écran, et l'opération ne permet pas de sonder
+l'existence d'un identifiant.
+
 **lumo-api — les trois tags qui n'avaient pas de contrôleur en ont un.**
 `account` (`/me`, appareils, droits d'accès), `userdata` (favoris, groupes,
 progression, chaînes récentes) et `billing` (session de paiement, portail).

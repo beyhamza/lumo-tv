@@ -52,7 +52,7 @@ public class CatalogController implements CatalogApi {
 
     @Override
     public ResponseEntity<ChannelPage> listChannels(UUID id, UUID categoryId, String q,
-                                                    Integer page, Integer size) {
+                                                    List<UUID> ids, Integer page, Integer size) {
         UUID userId = CurrentUser.requireUserId();
         requireReadableSource(id, userId);
 
@@ -60,9 +60,16 @@ public class CatalogController implements CatalogApi {
         // Capped server-side so a large catalogue cannot be pulled in one call.
         int pageSize = size == null ? DEFAULT_PAGE_SIZE : Math.clamp(size, 1, MAX_PAGE_SIZE);
         String search = (q == null || q.isBlank()) ? null : q.trim();
+        // An empty list is read as "no filter", not as "restrict to nothing". The
+        // contract's `ids` is how a client resolves identifiers it already holds,
+        // and a caller holding none has no reason to be here — whereas `?ids=` on
+        // the end of a URL is an ordinary accident, and answering an empty page to
+        // it would look like a catalogue that lost its channels.
+        List<UUID> wanted = (ids == null || ids.isEmpty()) ? null : ids;
 
-        List<Channel> channels = catalog.findChannels(id, userId, categoryId, search, pageIndex, pageSize);
-        long total = catalog.countChannels(id, userId, categoryId, search);
+        List<Channel> channels =
+                catalog.findChannels(id, userId, categoryId, search, wanted, pageIndex, pageSize);
+        long total = catalog.countChannels(id, userId, categoryId, search, wanted);
 
         ChannelPage result = new ChannelPage(channels, pageIndex, pageSize, total,
                 (int) Math.ceil((double) total / pageSize));

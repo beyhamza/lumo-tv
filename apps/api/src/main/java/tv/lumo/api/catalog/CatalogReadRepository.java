@@ -64,7 +64,7 @@ public class CatalogReadRepository {
 
     /** One page of channels. Note the absence of {@code stream_url} in the projection. */
     public List<Channel> findChannels(UUID sourceId, UUID userId, UUID categoryId,
-                                      String search, int page, int size) {
+                                      String search, List<UUID> ids, int page, int size) {
         return jdbc.sql("""
                 SELECT ch.id, ch.source_id, ch.category_id, ch.external_id, ch.name,
                        ch.logo_url, ch.tvg_id, ch.number, ch.quality, ch.position, ch.is_adult
@@ -74,6 +74,7 @@ public class CatalogReadRepository {
                    AND s.user_id = :userId
                    AND (:categoryId::uuid IS NULL OR ch.category_id = :categoryId)
                    AND (:search::text IS NULL OR ch.name ILIKE '%' || :search || '%')
+                   AND (:ids::text IS NULL OR ch.id = ANY(string_to_array(:ids, ',')::uuid[]))
                  ORDER BY ch.category_id NULLS LAST, ch.position, ch.name
                  LIMIT :size OFFSET :offset
                 """)
@@ -81,13 +82,15 @@ public class CatalogReadRepository {
                 .param("userId", userId)
                 .param("categoryId", categoryId)
                 .param("search", search)
+                .param("ids", idArray(ids))
                 .param("size", size)
                 .param("offset", (long) page * size)
                 .query(CatalogReadRepository::mapChannel)
                 .list();
     }
 
-    public long countChannels(UUID sourceId, UUID userId, UUID categoryId, String search) {
+    public long countChannels(UUID sourceId, UUID userId, UUID categoryId, String search,
+                              List<UUID> ids) {
         return jdbc.sql("""
                 SELECT count(*)
                   FROM channel ch
@@ -96,13 +99,46 @@ public class CatalogReadRepository {
                    AND s.user_id = :userId
                    AND (:categoryId::uuid IS NULL OR ch.category_id = :categoryId)
                    AND (:search::text IS NULL OR ch.name ILIKE '%' || :search || '%')
+                   AND (:ids::text IS NULL OR ch.id = ANY(string_to_array(:ids, ',')::uuid[]))
                 """)
                 .param("sourceId", sourceId)
                 .param("userId", userId)
                 .param("categoryId", categoryId)
                 .param("search", search)
+                .param("ids", idArray(ids))
                 .query(Long.class)
                 .single();
+    }
+
+    /**
+     * The {@code ids} filter, as one bound value.
+     *
+     * <p>Joined into a single string and split back into a {@code uuid[]} by
+     * PostgreSQL, rather than expanded into an {@code IN (...)} list. Two reasons,
+     * and neither is style:
+     *
+     * <ul>
+     *   <li>the SQL above stays one static statement with one plan, instead of a
+     *       different statement — and a different prepared-statement cache entry —
+     *       for every number of identifiers a client happens to send;
+     *   <li>an absent filter needs no branch. {@code NULL} disables the clause the
+     *       same way it does for {@code categoryId} and {@code search} just above,
+     *       whereas an expanded {@code IN} list has no legal empty form.
+     * </ul>
+     *
+     * <p>The values are {@link UUID} instances, so their {@code toString} cannot
+     * contain a comma or a quote; and they are bound, not concatenated, so this is
+     * a parameter in every sense that matters.
+     */
+    private static String idArray(List<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return null;
+
+        StringBuilder joined = new StringBuilder();
+        for (UUID id : ids) {
+            if (!joined.isEmpty()) joined.append(',');
+            joined.append(id);
+        }
+        return joined.toString();
     }
 
     /**

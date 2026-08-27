@@ -2711,6 +2711,35 @@ export interface operations {
                 categoryId?: string;
                 /** @description Free-text search on the channel name, typo-tolerant (trigram). */
                 q?: string;
+                /**
+                 * @description Resolve these channels, and only these. Repeatable:
+                 *     `?ids=…&ids=…`.
+                 *
+                 *     **What it is for.** `Favorite` and `RecentChannel` carry identifiers
+                 *     and nothing else, deliberately — a name copied onto them would be a
+                 *     name the next ingestion has already changed. A client with a local
+                 *     catalogue resolves those identifiers against it; a client without one
+                 *     has no way to turn a favourite into a row a person can read. This
+                 *     parameter is that way, and it is why the two schemas can stay as they
+                 *     are.
+                 *
+                 *     **Semantics.** Composes with `categoryId` and `q` — every filter
+                 *     present narrows the same result. The order is unchanged (category,
+                 *     then `position`): the caller already holds the order it wants, and a
+                 *     rail sorted by *its* rule is the caller's job, not the query's.
+                 *     `total_elements` counts the matches, so a client can tell how many of
+                 *     the identifiers it sent still exist.
+                 *
+                 *     **Unknown identifiers are absent, not an error.** A channel dropped by
+                 *     the last re-synchronisation, or one belonging to another source or
+                 *     another account, is simply not in the answer. A 404 here would turn a
+                 *     stale favourite into a broken screen, and would let a caller probe for
+                 *     channel ids that are not theirs.
+                 *
+                 *     Bounded at 100, which is a lookup for a rail and not a bulk export of
+                 *     the catalogue: the paginated form above is how a catalogue is read.
+                 */
+                ids?: string[];
                 /** @description Zero-based page index. */
                 page?: components["parameters"]["Page"];
                 /** @description Page size. Capped server-side so a large catalogue cannot be pulled in one call. */

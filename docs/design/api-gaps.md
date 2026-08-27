@@ -36,7 +36,7 @@ Une ligne par manque. Le détail de chacun est dans sa section.
 Les trois tags qui n'avaient aucun contrôleur — `account`, `userdata`,
 `billing` — en ont un. Plus aucun chemin du contrat ne répond 404.
 
-### Trois points à trancher, remontés plutôt qu'inventés
+### Quatre points à trancher, remontés plutôt qu'inventés
 
 **1. Le webhook de paiement n'existe pas.** `POST /billing/checkout-session`
 ouvre bien une session Stripe et crée le client, mais **un paiement réussi ne
@@ -61,6 +61,50 @@ dans `packages/contracts/config/spring.yaml`, donc régénérer tous les clients
 casser tous les mappeurs existants. Implémenté en attendant : absent et `null`
 valent tous deux « inchangé ». La lecture inverse effacerait le nom de
 l'utilisateur à chaque fois qu'un client modifie sa langue.
+
+**4. Un client sans catalogue local ne peut pas nommer une chaîne.** ✅ **Tranché,
+porté au contrat et servi.** Relevé en
+écrivant S3-08. `Favorite` et `RecentChannel` ne portent que des identifiants —
+`channel_id`, `source_id` — et le contrat dit pourquoi : dénormaliser le nom
+ferait afficher au rail un nom que la dernière ingestion a changé depuis. Le
+raisonnement tient pour Android, qui résout l'identifiant dans sa base Room.
+
+Le web n'a pas de catalogue local, et n'a aucun moyen de nommer ces
+identifiants : il n'existe aucune opération rendant une chaîne par son id, et
+`GET /sources/{id}/channels` cherche par nom (`q`), pas par id. Nommer dix
+entrées de rail voudrait dire parcourir tout le catalogue de la source — quinze
+mille chaînes est ordinaire — ce que l'écran est précisément construit pour ne
+pas faire.
+
+Deux options étaient sur la table :
+
+| Option | Coût | Effet |
+|---|---|---|
+| **`ids` (répétable) sur `GET /sources/{id}/channels`** | un paramètre, un `uuid[]` | un appel nomme tout un rail, et servira la reprise VOD |
+| `channel` en expansion sur `Favorite` et `RecentChannel` | change deux schémas déjà servis | supprime l'aller-retour, mais réintroduit le nom dénormalisé que le contrat refuse |
+
+**Retenu : `ids`.** Elle conserve la position du contrat — les identifiants
+restent des identifiants, et le nom continue de venir du catalogue, qui est le
+seul endroit où il est à jour.
+
+Trois points fixés avec elle, parce qu'ils décident du comportement réel :
+
+- **elle compose**, elle ne remplace pas : `categoryId`, `q` et `ids` narguent le
+  même résultat ensemble ;
+- **elle ne réordonne pas** : l'appelant détient l'ordre qu'il veut — la position
+  d'un favori, la date d'un visionnage — et trie lui-même. Faire honorer l'ordre
+  du paramètre donnerait deux ordres différents à la même opération selon le
+  filtre utilisé ;
+- **un identifiant inconnu est absent, pas une erreur.** Une chaîne que la
+  dernière resynchronisation a retirée, une chaîne d'un autre compte : même
+  réponse, rien. Un 404 transformerait un favori obsolète en écran cassé, et
+  laisserait sonder l'existence d'identifiants qui ne vous appartiennent pas.
+
+Bornée à cent : c'est une résolution pour un rail, pas un export du catalogue —
+la forme paginée reste la façon de lire un catalogue.
+
+Servi par `catalog/CatalogReadRepository`, couvert par
+`catalog/ChannelLookupIntegrationTest`. S3-08 est fermé.
 
 ---
 

@@ -79,11 +79,12 @@ interface CatalogApi {
      * @param id Resource identifier.
      * @param categoryId Restrict to one category. (optional)
      * @param q Free-text search on the channel name, typo-tolerant (trigram). (optional)
+     * @param ids Resolve these channels, and only these. Repeatable: &#x60;?ids&#x3D;…&amp;ids&#x3D;…&#x60;.  **What it is for.** &#x60;Favorite&#x60; and &#x60;RecentChannel&#x60; carry identifiers and nothing else, deliberately — a name copied onto them would be a name the next ingestion has already changed. A client with a local catalogue resolves those identifiers against it; a client without one has no way to turn a favourite into a row a person can read. This parameter is that way, and it is why the two schemas can stay as they are.  **Semantics.** Composes with &#x60;categoryId&#x60; and &#x60;q&#x60; — every filter present narrows the same result. The order is unchanged (category, then &#x60;position&#x60;): the caller already holds the order it wants, and a rail sorted by *its* rule is the caller&#39;s job, not the query&#39;s. &#x60;total_elements&#x60; counts the matches, so a client can tell how many of the identifiers it sent still exist.  **Unknown identifiers are absent, not an error.** A channel dropped by the last re-synchronisation, or one belonging to another source or another account, is simply not in the answer. A 404 here would turn a stale favourite into a broken screen, and would let a caller probe for channel ids that are not theirs.  Bounded at 100, which is a lookup for a rail and not a bulk export of the catalogue: the paginated form above is how a catalogue is read.  (optional)
      * @param page Zero-based page index. (optional, default to 0)
      * @param size Page size. Capped server-side so a large catalogue cannot be pulled in one call. (optional, default to 50)
      * @return [ChannelPage]
      */
     @GET("sources/{id}/channels")
-    suspend fun listChannels(@Path("id") id: java.util.UUID, @Query("categoryId") categoryId: java.util.UUID? = null, @Query("q") q: kotlin.String? = null, @Query("page") page: kotlin.Int? = 0, @Query("size") size: kotlin.Int? = 50): Response<ChannelPage>
+    suspend fun listChannels(@Path("id") id: java.util.UUID, @Query("categoryId") categoryId: java.util.UUID? = null, @Query("q") q: kotlin.String? = null, @Query("ids") ids: @JvmSuppressWildcards kotlin.collections.List<java.util.UUID>? = null, @Query("page") page: kotlin.Int? = 0, @Query("size") size: kotlin.Int? = 50): Response<ChannelPage>
 
 }
