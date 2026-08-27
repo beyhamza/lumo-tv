@@ -1,11 +1,15 @@
 package tv.lumo.android.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -13,9 +17,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import tv.lumo.android.core.common.navigation.LumoDestination
+import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.core.designsystem.component.LumoMobileNavBar
 import tv.lumo.android.navigation.LumoMobileNavHost
 import tv.lumo.android.navigation.MobileDestinations
+import tv.lumo.android.navigation.mobileStartRoute
 
 /**
  * The phone shell: a navigation bar at the bottom and a NavHost above it.
@@ -24,11 +30,42 @@ import tv.lumo.android.navigation.MobileDestinations
  * applications legitimately differ. Everything either of them can do lives in a
  * `core:` or `feature:` module, so if logic appears here, it has been written in
  * a place the television cannot reach (docs/architecture.md §3).
+ *
+ * <h2>Nothing is drawn until the session has been read</h2>
+ *
+ * A `NavHost` keeps the start destination it was first composed with. Composing
+ * it before the session is known would mean guessing, and a wrong guess is not
+ * recoverable by re-rendering — it is a signed-in user landing on the onboarding
+ * screen on every launch, which is exactly the bug this task exists to remove.
+ *
+ * <h2>A session change rebuilds the graph, deliberately</h2>
+ *
+ * `key(startRoute)` throws the whole graph away when the start destination
+ * changes, which in practice means when the session appears or disappears. That
+ * is the behaviour a sign-out needs and it comes with the back stack cleared,
+ * which is the point: after signing out, `BACK` must not walk back into the
+ * account. A token rotation does *not* reach here — `AppStartDecision` filters
+ * those out, and the comment there explains why it has to.
  */
 @Composable
 fun LumoMobileApp(
+    startState: AppStart,
     navController: NavHostController = rememberNavController(),
 ) {
+    val startRoute = mobileStartRoute(startState)
+
+    if (startRoute == null) {
+        // The session is still being read. A plain background rather than a
+        // spinner: this lasts a frame or two on a DataStore read, and a spinner
+        // that flashes is more noticeable than a background that does not.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+        )
+        return
+    }
+
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
@@ -36,12 +73,15 @@ fun LumoMobileApp(
         modifier = Modifier.fillMaxSize(),
     ) { contentPadding ->
         Column(modifier = Modifier.padding(contentPadding)) {
-            LumoMobileNavHost(
-                navController = navController,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-            )
+            key(startRoute) {
+                LumoMobileNavHost(
+                    navController = navController,
+                    startDestination = startRoute,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                )
+            }
 
             LumoMobileNavBar(
                 destinations = MobileDestinations,

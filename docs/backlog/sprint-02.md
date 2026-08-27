@@ -85,7 +85,7 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 |---|---|---|---|---|---|---|
 | ☑ | S2-00 | Aligner les tokens Android sur la charte Spectre | S0-07 | android | 2 | 100 % |
 | ☑ | S2-01 | `core:data` : repositories et erreurs typées | socle | android | 8 | 100 % |
-| ☐ | S2-02 | Navigation pilotée par la session, périmètre réduit | socle | android | 3 | 0 % |
+| ☑ | S2-02 | Navigation pilotée par la session, périmètre réduit | socle | android | 3 | 100 % |
 | ◩ | S2-03 | Banc d'essai des sources | outillage | recette | 3 | **83 %** |
 | ☐ | S2-04 | Inscription | US-01 | mobile | 5 | 0 % |
 | ☐ | S2-05 | Connexion par email | US-02 | mobile | 3 | 0 % |
@@ -99,10 +99,11 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 0 % |
 | ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
 
-**Avancement du sprint : 15 % de 82 points.** Le socle est là : S2-00 pose la
-charte avant le premier écran, S2-01 pose la couche de données, et les deux
-préalables durs sont donc levés. Les écrans restent des placeholders : aucune
-story du sprint 1 n'a bougé, et c'est normal, ni l'un ni l'autre n'en ferme.
+**Avancement du sprint : 19 % de 82 points.** Le socle est fini : S2-00 pose la
+charte avant le premier écran, S2-01 la couche de données, S2-02 la navigation.
+Les trois tâches « socle » sont levées, et rien n'attend plus avant d'écrire des
+écrans. Ceux-ci restent des placeholders : aucune story du sprint 1 n'a bougé, et
+c'est normal, aucune des trois n'en ferme.
 
 S2-03 est à 83 % sans que le sprint 2 y ait touché : le banc d'essai est la seule
 tâche partagée avec le sprint 3, et c'est le web qui en a eu besoin le premier.
@@ -232,7 +233,42 @@ réseau coupé.
 
 ---
 
-### S2-02 — Navigation pilotée par la session, périmètre réduit · **3**
+### S2-02 — Navigation pilotée par la session, périmètre réduit · **3** · ☑
+
+> **Livré.** `AppStartDecision`, dans `core:data`, répond à la question une fois
+> pour les deux applications — et répond une **situation**, pas une route :
+> `Loading`, `SignedOut`, `NeedsSource`, `Ready`. Les routes appartiennent aux
+> features, `core:` n'a pas le droit de les référencer, et surtout la télévision a
+> le droit de répondre autrement à `SignedOut` : une activation par code, jamais
+> un formulaire à taper à la télécommande (US-05). Chaque app fait la
+> correspondance chez elle, sur une ligne.
+>
+> **`Loading` est un état réel, pas un remplissage.** La session est dans un
+> DataStore chiffré, la lire est asynchrone, et l'alternative est de supposer
+> « déconnecté » pendant une frame — c'est-à-dire de montrer l'onboarding à un
+> utilisateur connecté à chaque lancement. Rien n'est composé tant que la réponse
+> n'est pas là, parce qu'un `NavHost` garde la destination initiale qu'on lui a
+> donnée en premier : deviner ici, c'est figer la devinette pour toute la session.
+>
+> **Le `distinctUntilChanged` porte le poids.** `isSignedIn` dérive de la session
+> stockée, donc il ré-émet à chaque **écriture** — donc à chaque rotation de token,
+> soit environ toutes les heures pendant l'usage. Les deux coquilles reconstruisent
+> leur graphe quand l'état de départ change (c'est ce qui vide la pile au
+> déconnexion, et c'est voulu) : sans le filtre, l'utilisateur serait renvoyé au
+> premier écran toutes les heures. Un test le verrouille, et vérifie aussi que la
+> liste des sources n'est demandée qu'une fois.
+>
+> **Un serveur injoignable ouvre sur le catalogue, pas sur le formulaire de
+> source.** Les deux erreurs ne se valent pas : envoyer quelqu'un qui a des sources
+> vers « ajouter une source » parce que le réseau a cligné est un mauvais écran et
+> un écran inquiétant, alors qu'envoyer quelqu'un qui n'en a pas vers un catalogue
+> lui montre un état vide qui dit quoi faire — et le catalogue est offline-first.
+>
+> **Barre et rail passent de huit entrées à trois** : chaînes, source, réglages.
+> VOD, séries et recherche sortent — mais restent dans le graphe, parce que les
+> retirer aussi transformerait un écran simplement inatteignable en plantage pour
+> tout ce qui nomme encore sa route. Onboarding et authentification sortent pour
+> une autre raison : ce ne sont pas des endroits où l'on revient.
 
 Deux choses, petites et bloquantes.
 

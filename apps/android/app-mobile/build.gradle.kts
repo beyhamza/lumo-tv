@@ -22,6 +22,7 @@ dependencies {
     implementation(projects.core.network)
     implementation(projects.core.auth)
     implementation(projects.core.database)
+    implementation(projects.core.data)
     implementation(projects.core.player)
 
     implementation(projects.feature.onboarding)
@@ -35,6 +36,7 @@ dependencies {
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.material3)
 }
