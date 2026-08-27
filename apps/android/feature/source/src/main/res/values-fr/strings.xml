@@ -1,5 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="feature_source_title">Sources</string>
-    <string name="feature_source_placeholder">Vos playlists M3U et vos comptes Xtream apparaîtront ici.</string>
+    <string name="feature_source_title">Source</string>
+    <string name="feature_source_placeholder">Enregistrez une playlist M3U ou des identifiants Xtream Codes.</string>
+
+    <string name="feature_source_add_title">Ajouter une source</string>
+    <string name="feature_source_add_subtitle">Une playlist M3U ou un accès Xtream Codes. Lumo ne fournit aucun contenu : vous apportez le vôtre.</string>
+
+    <string name="feature_source_kind_legend">Type de source</string>
+    <string name="feature_source_kind_m3u">Playlist M3U</string>
+    <string name="feature_source_kind_m3u_hint">Une adresse qui renvoie un fichier de playlist.</string>
+    <string name="feature_source_kind_xtream">Xtream Codes</string>
+    <string name="feature_source_kind_xtream_hint">Les identifiants d\'un panel. Meilleure expérience : catégories, guide et informations de compte.</string>
+    <string name="feature_source_change_kind">Choisir un autre type</string>
+
+    <string name="feature_source_label_label">Nom</string>
+    <string name="feature_source_label_hint">Pour vous y retrouver si vous en enregistrez plusieurs.</string>
+    <string name="feature_source_playlist_label">Adresse de la playlist</string>
+    <string name="feature_source_playlist_hint">L\'adresse complète, telle que votre fournisseur vous l\'a donnée.</string>
+    <string name="feature_source_host_label">Adresse du serveur</string>
+    <string name="feature_source_host_hint">Avec ou sans http://, avec ou sans port. L\'adresse est normalisée pour vous.</string>
+    <string name="feature_source_username_label">Identifiant</string>
+    <string name="feature_source_password_label">Mot de passe</string>
+    <string name="feature_source_password_hint">Chiffré avant d\'être enregistré. Il n\'est jamais réaffiché, y compris à vous.</string>
+    <string name="feature_source_epg_label">Guide des programmes (facultatif)</string>
+    <string name="feature_source_epg_hint">Une adresse XMLTV, si votre fournisseur en propose une distincte.</string>
+
+    <string name="feature_source_submit">Enregistrer la source</string>
+    <string name="feature_source_submitting">Vérification…</string>
+
+    <string name="feature_source_syncing_title">Import en cours</string>
+    <string name="feature_source_syncing_body">Une grosse playlist peut prendre jusqu\'à une minute.</string>
+
+    <string name="feature_source_limit_title">Votre offre autorise %1$d source(s)</string>
+    <string name="feature_source_limit_body">Supprimez une source existante, ou passez à une offre supérieure pour en ajouter d\'autres.</string>
+
+    <string name="feature_source_error_unreachable">Le serveur n\'a pas répondu. Vérifiez l\'adresse, ou réessayez dans un moment.</string>
+    <string name="feature_source_error_auth_failed">Vos identifiants ont été refusés par le serveur.</string>
+    <string name="feature_source_error_invalid_format">Cette adresse ne renvoie pas une playlist exploitable.</string>
+    <string name="feature_source_error_empty">La playlist a été lue, mais elle ne contient aucune chaîne.</string>
+    <string name="feature_source_error_too_large">Cette playlist est trop volumineuse pour être importée.</string>
+    <string name="feature_source_error_max_connections">Votre abonnement chez ce fournisseur utilise déjà toutes les lectures qu\'il autorise. Arrêtez-en une, puis réessayez.</string>
+    <string name="feature_source_error_expired">Votre abonnement chez ce fournisseur a expiré. Lumo ne peut pas le renouveler.</string>
+    <string name="feature_source_error_limit">Votre offre ne permet pas d\'ajouter une source de plus.</string>
+    <string name="feature_source_error_validation">Certaines informations sont incorrectes.</string>
+    <string name="feature_source_error_rate_limited">Trop de tentatives. Réessayez dans un instant.</string>
+    <string name="feature_source_error_rate_limited_seconds">Trop de tentatives. Réessayez dans %1$d secondes.</string>
+    <string name="feature_source_error_offline">Pas de connexion. Rien n\'a été envoyé.</string>
+    <string name="feature_source_error_unexpected">Une erreur est survenue. Réessayez.</string>
 </resources>

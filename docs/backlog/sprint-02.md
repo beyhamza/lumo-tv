@@ -91,7 +91,7 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S2-05 | Connexion par email | US-02 | mobile | 3 | 100 % |
 | ☐ | S2-06 | Connexion Google (Credential Manager) | US-03 | mobile | 5 | 0 % |
 | ◩ | S2-07 | Session persistante, de bout en bout | US-04 | mobile + tv | 3 | **70 %** |
-| ☐ | S2-08 | Ajout de source : choix, formulaires, aide | US-06, US-07 | mobile | 8 | 0 % |
+| ☑ | S2-08 | Ajout de source : choix, formulaires, aide | US-06, US-07 | mobile | 8 | 100 % |
 | ☐ | S2-09 | États de la source : validation, succès, quatre erreurs | US-06, US-07 | mobile | 5 | 0 % |
 | ☐ | S2-10 | Liste des chaînes : catégories, pagination, hors ligne | US-08 | mobile | 8 | 0 % |
 | ☐ | S2-11 | Lecteur mobile | US-09 | mobile | 8 | 0 % |
@@ -99,15 +99,18 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 0 % |
 | ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
 
-**Avancement du sprint : 31 % de 82 points.** Le socle est fini — S2-00 la charte,
-S2-01 la couche de données, S2-02 la navigation — et **toute la porte d'entrée par
-email est posée dessus** : S2-05 ferme US-02, S2-04 ferme US-01. Deux stories du
-sprint 1 sur dix dont l'implémentation est complète.
+**Avancement du sprint : 41 % de 82 points.** Le socle est fini — S2-00 la charte,
+S2-01 la couche de données, S2-02 la navigation — et le parcours va maintenant du
+compte à la source : S2-04 ferme US-01, S2-05 ferme US-02, S2-08 pose l'écran
+d'ajout de source. Deux stories du sprint 1 sur dix ont une implémentation
+complète, et deux autres sont à mi-chemin.
 
-Leur Definition of Done ne l'est pas, et ne le sera pas avant une démo sur device
-réel : personne n'a encore vu ces écrans ailleurs que dans un build.
+Aucune Definition of Done n'est atteinte, et aucune ne le sera avant une démo sur
+device réel : personne n'a encore vu ces écrans ailleurs que dans un build.
 
-Les six autres écrans restent des placeholders.
+Ce qui manque pour finir le fil : ce que la source **devient** (S2-09), les
+chaînes (S2-10) et la lecture (S2-11). Puis la télévision, qui est entièrement
+devant nous.
 
 S2-03 est à 83 % sans que le sprint 2 y ait touché : le banc d'essai est la seule
 tâche partagée avec le sprint 3, et c'est le web qui en a eu besoin le premier.
@@ -453,7 +456,39 @@ casse en production : un refresh **refusé** déconnecte, un refresh **indisponi
 
 ---
 
-### S2-08 — Ajout de source · **8** · ferme US-06, US-07
+### S2-08 — Ajout de source · **8** · ferme US-06, US-07 · ☑
+
+> **Livré.** Deux cartes décrites plutôt qu'une liste déroulante, et une phrase en
+> français sous chaque champ. C'est la demande de la tâche prise au mot :
+> six champs correctement étiquetés font un formulaire que seul quelqu'un qui sait
+> déjà peut remplir — et ceux qui savent déjà ne sont pas ceux qu'il faut atteindre.
+>
+> **Rien ne rejette ce que le serveur accepterait.** L'adresse Xtream n'est ni
+> validée ni nettoyée ici : le contrat la normalise, avec ou sans schéma, port ou
+> slash final, et demande aux clients de tolérer. Une regex ici refuserait des
+> adresses que le serveur accepte, et l'utilisateur n'aurait aucun moyen de savoir
+> lequel des deux a tort. L'indice sous le champ le dit à voix haute, et un test
+> épingle les quatre formes.
+>
+> **Le plafond vient du serveur.** `Entitlement.max_sources` est lu avant d'offrir
+> le formulaire, jamais une constante : le jour où l'offre gratuite en autorise
+> deux, l'écran suit sans release. Le `409` reste le vrai garde-fou.
+>
+> **Un mot sur le mot de passe.** Il quitte l'état dès que la source est
+> enregistrée, l'API ne le renvoie à personne — pas même à son propriétaire — et
+> aucun écran d'édition n'existe qui pourrait le réafficher. L'indice sous le champ
+> dit les trois.
+>
+> **Ce que le test a trouvé.** La règle « une phrase par code, jamais de message
+> générique » est vérifiée par énumération sur `IngestionErrorCode` — et elle a
+> immédiatement attrapé `SOURCE_MAX_CONNECTIONS`, que le mapping oubliait. La
+> réponse nomme maintenant l'abonnement **de l'utilisateur**, parce qu'un plafond
+> présenté sans propriétaire se lit comme un refus de Lumo.
+>
+> Reste hors de cette tâche, par le tableau lui-même : la surface TV (cible
+> « mobile »), et ce que la source devient une fois acceptée — c'est `S2-09`.
+>
+> 11 tests JVM.
 
 L'écran le plus important de l'application, et le plus facile à rater. Choix M3U /
 Xtream, puis le formulaire correspondant.

@@ -2,8 +2,72 @@
 <!--
   English strings for feature:source. The French set lives in values-fr and ships
   at the same time (AGENTS.md §4); lint fails the build on a missing translation.
+
+  The wording is the site's, deliberately. The same person may register a source
+  on lumo.tv and then open the phone; two different explanations of what an M3U
+  is would read as two different products.
 -->
 <resources>
-    <string name="feature_source_title">Sources</string>
-    <string name="feature_source_placeholder">Your M3U playlists and Xtream accounts will be listed here.</string>
+    <string name="feature_source_title">Source</string>
+    <string name="feature_source_placeholder">Register an M3U playlist or Xtream Codes credentials.</string>
+
+    <string name="feature_source_add_title">Add a source</string>
+    <!-- Says what Lumo is, once, where it matters most (AGENTS.md §1). -->
+    <string name="feature_source_add_subtitle">An M3U playlist or Xtream Codes credentials. Lumo provides no content: you bring your own.</string>
+
+    <string name="feature_source_kind_legend">Kind of source</string>
+    <string name="feature_source_kind_m3u">M3U playlist</string>
+    <string name="feature_source_kind_m3u_hint">An address that returns a playlist file.</string>
+    <string name="feature_source_kind_xtream">Xtream Codes</string>
+    <string name="feature_source_kind_xtream_hint">A panel\'s credentials. Better experience: categories, guide and account details.</string>
+    <string name="feature_source_change_kind">Choose a different kind</string>
+
+    <string name="feature_source_label_label">Name</string>
+    <string name="feature_source_label_hint">So you can tell them apart if you register several.</string>
+    <string name="feature_source_playlist_label">Playlist address</string>
+    <string name="feature_source_playlist_hint">The full address, exactly as your provider gave it to you.</string>
+    <string name="feature_source_host_label">Server address</string>
+    <!--
+      Says out loud that the address is normalised server-side, so nobody hunts
+      for the "right" form of it (US-06).
+    -->
+    <string name="feature_source_host_hint">With or without http://, with or without a port. The address is normalised for you.</string>
+    <string name="feature_source_username_label">Username</string>
+    <string name="feature_source_password_label">Password</string>
+    <string name="feature_source_password_hint">Encrypted before it is stored. It is never shown again, not even to you.</string>
+    <string name="feature_source_epg_label">Programme guide (optional)</string>
+    <string name="feature_source_epg_hint">An XMLTV address, if your provider offers a separate one.</string>
+
+    <string name="feature_source_submit">Save source</string>
+    <!-- Not "Saving": the server contacts the provider before it answers. -->
+    <string name="feature_source_submitting">Checking…</string>
+
+    <string name="feature_source_syncing_title">Importing</string>
+    <string name="feature_source_syncing_body">A large playlist can take up to a minute.</string>
+
+    <string name="feature_source_limit_title">Your plan allows %1$d source(s)</string>
+    <string name="feature_source_limit_body">Remove an existing source, or move to a larger plan to add more.</string>
+
+    <!--
+      One message per code, never a generic fallback: on this surface the user's
+      next action differs completely between "the server is down" and "your
+      password is wrong", and the contract says no client may collapse them.
+    -->
+    <string name="feature_source_error_unreachable">The server did not answer. Check the address, or try again shortly.</string>
+    <string name="feature_source_error_auth_failed">Your credentials were refused by the server.</string>
+    <string name="feature_source_error_invalid_format">This address does not return a usable playlist.</string>
+    <string name="feature_source_error_empty">The playlist was read, but it holds no channel.</string>
+    <string name="feature_source_error_too_large">This playlist is too large to import.</string>
+    <!--
+      Names whose limit it is. A ceiling presented without an owner reads as Lumo
+      refusing, when it is the provider the user pays.
+    -->
+    <string name="feature_source_error_max_connections">Your subscription with this provider is already using all the streams it allows. Stop another one, then try again.</string>
+    <string name="feature_source_error_expired">Your subscription with this provider has expired. Lumo cannot renew it.</string>
+    <string name="feature_source_error_limit">Your plan does not allow one more source.</string>
+    <string name="feature_source_error_validation">Some of the information is incorrect.</string>
+    <string name="feature_source_error_rate_limited">Too many attempts. Try again in a moment.</string>
+    <string name="feature_source_error_rate_limited_seconds">Too many attempts. Try again in %1$d seconds.</string>
+    <string name="feature_source_error_offline">No connection. Nothing was sent.</string>
+    <string name="feature_source_error_unexpected">Something went wrong. Please try again.</string>
 </resources>
