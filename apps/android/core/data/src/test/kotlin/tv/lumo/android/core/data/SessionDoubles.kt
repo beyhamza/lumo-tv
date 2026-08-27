@@ -47,3 +47,16 @@ internal object RejectingRefresher : TokenRefresher {
     override suspend fun refresh(refreshToken: String): TokenRefreshResult =
         TokenRefreshResult.Rejected
 }
+
+/**
+ * A refresher that always answers the same thing.
+ *
+ * The two answers that matter are not symmetric, and telling them apart is the
+ * whole of US-04's second half: a **rejected** refresh means the token is gone
+ * and the user must sign in again; an **unavailable** one means the server did
+ * not answer, and signing someone out because a request timed out is the bug the
+ * distinction exists to prevent.
+ */
+internal class ScriptedRefresher(private val answer: TokenRefreshResult) : TokenRefresher {
+    override suspend fun refresh(refreshToken: String): TokenRefreshResult = answer
+}

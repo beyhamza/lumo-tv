@@ -5,45 +5,93 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
-import tv.lumo.android.core.auth.SessionManager
+import kotlinx.coroutines.launch
+import tv.lumo.android.core.data.repository.AccountRepository
+import tv.lumo.android.core.data.valueOrNull
 
 /**
- * The first real consumer of the dependency graph.
+ * The session, seen from the account screen — and the way out of it (US-04).
  *
- * Until this existed, `@HiltAndroidApp` sat on two Application classes and every
- * `@Module` in `core:` was written, compiled — and never asked for anything.
- * Dagger only validates the bindings reachable from an entry point, so a module
- * that could not satisfy its own dependencies would have compiled quietly and
- * failed the first time a screen needed it, which is to say in the first story
- * of the first sprint rather than here.
+ * <h2>Why signing out lives here</h2>
  *
- * It reads session state and nothing else, because that is all a placeholder can
- * honestly show. What it proves is the chain: Application → SingletonComponent →
- * AuthModule → encrypted DataStore → ViewModel → both surfaces. The same
- * instance backs the phone and the television; only the rendering differs
- * (AGENTS.md §2 — a duplicated piece of logic between app-mobile and app-tv is a
- * defect).
+ * US-04's second scenario ends "l'appareil doit se reconnecter", and until this
+ * existed there was no way to get back to that state: a device that signed in
+ * once stayed signed in until the application was uninstalled. That makes the
+ * story impossible to demonstrate twice and impossible to qualify at all
+ * (`R-17`, `R-18`), which is what S2-07 is for.
+ *
+ * <h2>Nothing here navigates either</h2>
+ *
+ * Signing out drops the session, `AppStartDecision` sees it go, and the shell
+ * rebuilds its graph onto the way in — with the back stack cleared, which is the
+ * part that matters: `BACK` must not walk back into an account that is gone.
+ *
+ * <h2>The address is shown because "still signed in" has to be visible</h2>
+ *
+ * "Kill the application and reopen it connected" is not observable if the screen
+ * only says *signed in*: a screen that always says that is indistinguishable
+ * from one that is right. The account's own address is the cheapest thing that
+ * could not have been guessed.
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    sessionManager: SessionManager,
+    private val account: AccountRepository,
 ) : ViewModel() {
 
+    private val email = MutableStateFlow<String?>(null)
+    private val signingOut = MutableStateFlow(false)
+
     val uiState: StateFlow<SettingsUiState> =
-        sessionManager.isSignedIn
-            .map(::SettingsUiState)
-            .stateIn(
-                scope = viewModelScope,
-                // Survives a rotation and a brief trip to the background without
-                // re-reading the encrypted store, and stops collecting when the
-                // screen is really gone.
-                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-                initialValue = SettingsUiState(signedIn = false),
-            )
+        combine(account.isSignedIn, email, signingOut) { signedIn, address, out ->
+            SettingsUiState(signedIn = signedIn, email = address, signingOut = out)
+        }.stateIn(
+            scope = viewModelScope,
+            // Survives a rotation and a brief trip to the background without
+            // re-reading the encrypted store, and stops collecting when the
+            // screen is really gone.
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = SettingsUiState(),
+        )
+
+    init {
+        viewModelScope.launch {
+            account.isSignedIn.distinctUntilChanged().collect { signedIn ->
+                // Asked once per session rather than on every emission: the
+                // session flow re-emits on each token rotation, and re-reading
+                // an address that cannot have changed would put a request on the
+                // wire every hour for nothing.
+                email.value = if (signedIn) account.me().valueOrNull()?.email else null
+            }
+        }
+    }
+
+    /**
+     * Ends the session on this device.
+     *
+     * The server is told first so the seat on the plan is freed, but the local
+     * session goes either way — that is [AccountRepository]'s doing and it is
+     * deliberate: someone who taps "sign out" on a train and stays signed in has
+     * been lied to by the application, and the refresh token they are still
+     * holding is the thing that made the tap urgent.
+     */
+    fun signOut() {
+        if (signingOut.value) return
+        signingOut.value = true
+
+        viewModelScope.launch {
+            account.signOut()
+            // Usually this screen is gone by now — the graph is rebuilt the
+            // moment the session disappears. Reset anyway rather than leave a
+            // spinner behind if it is not.
+            signingOut.value = false
+        }
+    }
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
@@ -51,7 +99,12 @@ class SettingsViewModel @Inject constructor(
 }
 
 /** What the settings surfaces render. Deliberately smaller than it will end up. */
-data class SettingsUiState(val signedIn: Boolean)
+data class SettingsUiState(
+    val signedIn: Boolean = false,
+    /** The account's address, once it has been read. Null while unknown. */
+    val email: String? = null,
+    val signingOut: Boolean = false,
+)
 
 /**
  * Maps the state to a string resource, once, for both surfaces.

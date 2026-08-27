@@ -4,4 +4,6 @@
     <string name="feature_settings_placeholder">Compte, lecture et langue.</string>
     <string name="feature_settings_session_open">Connecté sur cet appareil.</string>
     <string name="feature_settings_session_none">Non connecté sur cet appareil.</string>
+    <string name="feature_settings_sign_out">Se déconnecter de cet appareil</string>
+    <string name="feature_settings_sign_out_tv">Appuyez sur OK pour vous déconnecter de ce téléviseur.</string>
 </resources>

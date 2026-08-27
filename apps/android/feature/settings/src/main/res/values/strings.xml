@@ -8,4 +8,11 @@
     <string name="feature_settings_placeholder">Account, playback and language settings.</string>
     <string name="feature_settings_session_open">Signed in on this device.</string>
     <string name="feature_settings_session_none">Not signed in on this device.</string>
+    <string name="feature_settings_sign_out">Sign out of this device</string>
+    <!--
+      The card is the control on a television, so its own text has to say what the
+      centre key does. A separate button inside a focusable card would give the
+      D-pad two places to land on a screen with one thing to do.
+    -->
+    <string name="feature_settings_sign_out_tv">Press OK to sign out of this television.</string>
 </resources>

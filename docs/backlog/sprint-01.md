@@ -40,7 +40,7 @@ story finie sont deux états différents.
 | ☐ | US-01 Compte email | 100 % | rien : l'écran mobile existe. Reste la démo sur device réel (DoD) | ☐ |
 | ☐ | US-02 Connexion email | 100 % | rien : l'écran mobile existe. Reste la démo sur device réel, qui est la DoD et pas l'implémentation | ☐ |
 | ☐ | US-03 Google | **33 %** | le bouton web, l'écran mobile | ☐ |
-| ☐ | US-04 Session et rotation | **90 %** | le mobile sait ouvrir une session depuis S2-05 ; la TV non (S2-12), et la persistance après redémarrage reste à vérifier de bout en bout (S2-07) | ☐ |
+| ☐ | US-04 Session et rotation | **90 %** | le mobile ouvre et ferme une session, et la chaîne « refresh refusé → reconnexion » est prouvée en test (S2-07) ; la TV ne sait toujours pas en ouvrir une (S2-12), et la survie au redémarrage se vérifie sur un appareil | ☐ |
 | ☐ | US-05 Activer une TV | **66 %** | l'écran TV — code, QR, polling | ☐ |
 | ☐ | US-06 Source Xtream | **33 %** | le formulaire mobile et ses états d'erreur | ☐ |
 | ☐ | US-07 Playlist M3U | **33 %** | idem, plus le banc d'essai qui rend ses erreurs testables | ☐ |

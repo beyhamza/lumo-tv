@@ -90,7 +90,7 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S2-04 | Inscription | US-01 | mobile | 5 | 100 % |
 | ☑ | S2-05 | Connexion par email | US-02 | mobile | 3 | 100 % |
 | ☐ | S2-06 | Connexion Google (Credential Manager) | US-03 | mobile | 5 | 0 % |
-| ☐ | S2-07 | Session persistante, de bout en bout | US-04 | mobile + tv | 3 | 0 % |
+| ◩ | S2-07 | Session persistante, de bout en bout | US-04 | mobile + tv | 3 | **70 %** |
 | ☐ | S2-08 | Ajout de source : choix, formulaires, aide | US-06, US-07 | mobile | 8 | 0 % |
 | ☐ | S2-09 | États de la source : validation, succès, quatre erreurs | US-06, US-07 | mobile | 5 | 0 % |
 | ☐ | S2-10 | Liste des chaînes : catégories, pagination, hors ligne | US-08 | mobile | 8 | 0 % |
@@ -99,7 +99,7 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 0 % |
 | ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
 
-**Avancement du sprint : 29 % de 82 points.** Le socle est fini — S2-00 la charte,
+**Avancement du sprint : 31 % de 82 points.** Le socle est fini — S2-00 la charte,
 S2-01 la couche de données, S2-02 la navigation — et **toute la porte d'entrée par
 email est posée dessus** : S2-05 ferme US-02, S2-04 ferme US-01. Deux stories du
 sprint 1 sur dix dont l'implémentation est complète.
@@ -416,7 +416,35 @@ email : le serveur vérifie signature, `aud`, `iss` et `exp` lui-même. Le ratta
 
 ---
 
-### S2-07 — Session persistante, de bout en bout · **3** · ferme US-04
+### S2-07 — Session persistante, de bout en bout · **3** · ferme US-04 · ◩ **70 %**
+
+> **Ce qui manquait vraiment n'était pas la mécanique, c'était la sortie.** Un
+> appareil qui s'était connecté une fois le restait jusqu'à la désinstallation :
+> impossible de démontrer la story deux fois, impossible de la recetter du tout
+> (`R-17`, `R-18`). `feature:settings` a donc une déconnexion, sur les deux
+> surfaces. Sur la TV, la carte **est** le contrôle et son texte dit ce que fait
+> OK — un bouton dessiné dans une carte focalisable donnerait deux cibles au D-pad
+> sur un écran qui a une seule chose à faire (US-10).
+>
+> **L'écran affiche l'adresse du compte**, et c'est ce qui rend la story
+> observable : « rouvert toujours connecté » ne se vérifie pas sur un écran qui
+> dit seulement *connecté* — un écran qui dit toujours ça est indiscernable d'un
+> écran qui a raison.
+>
+> **Le cas qui casse en production est prouvé de bout en bout.** `SessionManagerTest`
+> savait qu'un refresh refusé vide la session et qu'un refresh indisponible n'y
+> touche pas ; `TokenAuthenticatorTest` savait qu'un 401 déclenche un refresh. Ce que
+> personne ne prouvait, c'est ce que l'**utilisateur** voit ensuite — il n'y avait
+> rien entre une session vidée et un écran avant `AppStartDecision`. C'est
+> exactement là que vit le bug : les deux échecs se ressemblent vus de la couche
+> réseau, et les confondre déconnecte les gens parce qu'un serveur a redémarré.
+> `SessionSurvivalTest` fait tourner la chaîne entière, refresh → store →
+> `isSignedIn` → état de départ.
+>
+> **Les 30 % restants ne sont pas du code.** Tuer l'application sur un téléphone
+> réel et la rouvrir connectée demande un téléphone réel : un test JVM n'a pas de
+> processus à tuer ni de Keystore à faire survivre. R-17 et R-18 sont dans le plan
+> de recette et s'exécutent à la main, sur un appareil, comme la DoD l'exige.
 
 La mécanique existe et est testée. Ce qui manque est la démonstration : ouvrir une
 session depuis un écran réel, tuer l'application, la rouvrir connectée. Et le cas qui
