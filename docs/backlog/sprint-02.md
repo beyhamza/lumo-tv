@@ -83,7 +83,7 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 
 | | Id | Tâche | Ferme | Cible | Points | Avancement |
 |---|---|---|---|---|---|---|
-| ☐ | S2-00 | Aligner les tokens Android sur la charte Spectre | S0-07 | android | 2 | 0 % |
+| ☑ | S2-00 | Aligner les tokens Android sur la charte Spectre | S0-07 | android | 2 | 100 % |
 | ☑ | S2-01 | `core:data` : repositories et erreurs typées | socle | android | 8 | 100 % |
 | ☐ | S2-02 | Navigation pilotée par la session, périmètre réduit | socle | android | 3 | 0 % |
 | ◩ | S2-03 | Banc d'essai des sources | outillage | recette | 3 | **83 %** |
@@ -99,9 +99,10 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 0 % |
 | ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
 
-**Avancement du sprint : 13 % de 82 points.** Le socle de données est là — S2-01,
-le préalable dur, est livré et testé. Les écrans restent des placeholders : aucune
-story du sprint 1 n'a bougé, et c'est normal, S2-01 n'en ferme aucune.
+**Avancement du sprint : 15 % de 82 points.** Le socle est là : S2-00 pose la
+charte avant le premier écran, S2-01 pose la couche de données, et les deux
+préalables durs sont donc levés. Les écrans restent des placeholders : aucune
+story du sprint 1 n'a bougé, et c'est normal, ni l'un ni l'autre n'en ferme.
 
 S2-03 est à 83 % sans que le sprint 2 y ait touché : le banc d'essai est la seule
 tâche partagée avec le sprint 3, et c'est le web qui en a eu besoin le premier.
@@ -135,7 +136,35 @@ encore rien**. C'est une décision à prendre, pas un oubli.
 
 ---
 
-### S2-00 — Aligner les tokens Android sur la charte · **2** · ferme S0-07
+### S2-00 — Aligner les tokens Android sur la charte · **2** · ferme S0-07 · ☑
+
+> **Livré, et la question de la police est tranchée : police système sur Android,
+> Sora sur le web.** La charte demande Sora et déclare elle-même `system-ui` comme
+> repli ; les applications prennent le repli. Embarquer une famille coûte un
+> téléchargement d'APK à chaque utilisateur, sur une box TV, pour une différence
+> invisible à trois mètres — alors qu'une police web coûte une requête mise en
+> cache sur les pages qui sont la porte d'entrée du produit. Les deux plateformes
+> divergent ici exprès, et le raisonnement est écrit dans
+> [`design/design-system.md`](../design/design-system.md).
+>
+> Trois choses en plus de la palette et des rayons :
+>
+> - **le `body` TV passe de 20 sp à 26 sp.** La charte écrit `body ≥ 24 px non
+>   négociable à 3 m`, et 20 était sous le plancher — l'écart que personne ne voit
+>   sur un bureau et que tout le monde voit sur un canapé ;
+> - **les surfaces translucides sont aplaties** (`#19181E`, `#232227`). Material
+>   donne `surface` à des composants qui le dessinent sur un parent quelconque : une
+>   valeur à 5 % d'alpha s'y compose avec ce qu'il y a derrière, pas avec le fond ;
+> - **`primary` vaut `text-primary`, pas le cyan.** Le cyan est la signature de
+>   focus ; en remplissage il met « la télécommande est ici » sur quelque chose qui
+>   est simplement présent, et une grille de tuiles cyan rend la tuile focalisée
+>   introuvable.
+>
+> **Ce que S2-00 ne pouvait pas régler.** La charte pose « jamais d'ombre portée »,
+> `architecture.md` §3 exige un focus TV en « échelle + bordure + élévation », et
+> `lumoTvFocus` dessine une ombre. Les deux se réconcilient si « élévation » veut
+> dire surface plus claire — mais c'est de la structure, pas de la valeur. À
+> trancher avant `S2-13`, qui construira la grille dessus.
 
 `LumoTokens.kt` porte une palette qui n'est pas Spectre : un bleu froid
 `#4CB8FF`, une encre `#07090F`, des rayons 8/12/20. La direction arrêtée en

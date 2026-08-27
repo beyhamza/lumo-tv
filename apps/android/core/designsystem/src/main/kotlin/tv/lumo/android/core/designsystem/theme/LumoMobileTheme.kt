@@ -22,8 +22,13 @@ fun LumoMobileTheme(
 ) {
     val scheme = if (darkTheme) {
         darkColorScheme(
-            primary = LumoColors.Accent,
-            onPrimary = LumoColors.OnAccent,
+            // Light on dark, not cyan on dark, and the site made the same call
+            // from the same charter. Cyan is the focus signature: a filled cyan
+            // button puts the one colour that means "the remote is here" on
+            // something that is merely present, and every focus ring in the
+            // product then competes with it.
+            primary = LumoColors.OnDark,
+            onPrimary = LumoColors.Ink,
             background = LumoColors.Ink,
             onBackground = LumoColors.OnDark,
             surface = LumoColors.Surface,
@@ -36,8 +41,11 @@ fun LumoMobileTheme(
         )
     } else {
         lightColorScheme(
-            primary = LumoColors.AccentPressed,
-            onPrimary = LumoColors.OnAccent,
+            // The dark pill on a light ground, as on the site's landing page.
+            // The Spectre accents are tuned for a dark background and both fall
+            // under 3:1 on this one, so neither can carry a filled control here.
+            primary = LumoColors.OnLight,
+            onPrimary = LumoColors.LightSurface,
             background = LumoColors.LightSurface,
             onBackground = LumoColors.OnLight,
             surface = LumoColors.LightSurfaceRaised,
@@ -45,8 +53,8 @@ fun LumoMobileTheme(
             surfaceVariant = LumoColors.LightSurface,
             onSurfaceVariant = LumoColors.OnLightMuted,
             outline = LumoColors.LightOutline,
-            error = LumoColors.Error,
-            onError = LumoColors.OnError,
+            error = LumoColors.LightError,
+            onError = LumoColors.LightSurfaceRaised,
         )
     }
 

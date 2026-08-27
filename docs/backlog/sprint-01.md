@@ -81,7 +81,7 @@ référence. Sprint 1 se ferme quand sprint 2 est vert.
 | ☑ | S0-04 | Scaffolding Spring Boot 4.1 / Java 25, virtual threads, Liquibase, `docker-compose` (Postgres + api), healthcheck | api | 100 % |
 | ☑ | S0-05 | Scaffolding Gradle Android : `app-mobile`, `app-tv`, `core/*`, `build-logic`, version catalog | android | 100 % |
 | ☑ | S0-06 | Scaffolding Next.js : App Router, Tailwind, shadcn/ui, `next-intl` FR/EN | web | 100 % |
-| ☐ | S0-07 | Design system : tokens partagés, déclinaison mobile / TV / web | android + web | **50 %** |
+| ☑ | S0-07 | Design system : tokens partagés, déclinaison mobile / TV / web | android + web | 100 % |
 | ☑ | S0-08 | CI GitHub Actions : lint + test + build des trois apps | racine | 100 % |
 | ☑ | S0-09 | `.env.example` documenté sur les trois apps | racine | 100 % |
 
@@ -91,9 +91,17 @@ shadcn par défaut, et Android une palette inventée — un bleu froid `#4CB8FF`
 sans rapport avec la direction Spectre arrêtée en passe 1.
 
 Le web est aligné depuis le 26 août : palette, Sora et Space Mono, rayons,
-signature de focus cyan, thème clair réservé au marketing. **Android ne l'est
-pas** : c'est la tâche `S2-00` du sprint suivant, à faire avant le premier écran,
-pour ne pas construire dix écrans sur la mauvaise palette.
+signature de focus cyan, thème clair réservé au marketing. **Android l'est depuis
+le 27 août** (`S2-00`), avant le premier écran, ce qui était tout l'intérêt de la
+tâche : palette Spectre, rayons 8/14/20, et les deux échelles typographiques
+telles que la charte les dérive.
+
+La typographie a été tranchée plutôt que reportée : **police système sur Android,
+Sora sur le web**. La charte demande Sora et déclare elle-même `system-ui` comme
+repli ; les applications prennent le repli, parce qu'embarquer une famille coûte
+un téléchargement d'APK sur une box TV pour une différence invisible à trois
+mètres. Le raisonnement complet est dans
+[`design/design-system.md`](../design/design-system.md).
 
 ---
 

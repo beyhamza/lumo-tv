@@ -23,8 +23,12 @@ fun LumoTvTheme(content: @Composable () -> Unit) {
 
     MaterialTheme(
         colorScheme = darkColorScheme(
-            primary = LumoColors.Accent,
-            onPrimary = LumoColors.OnAccent,
+            // Same reasoning as the phone: cyan is what "the remote is here"
+            // looks like, so it stays out of anything filled and merely present.
+            // On a television that matters more, not less — a grid of cyan tiles
+            // makes the focused one impossible to find.
+            primary = LumoColors.OnDark,
+            onPrimary = LumoColors.Ink,
             background = LumoColors.Ink,
             onBackground = LumoColors.OnDark,
             surface = LumoColors.Surface,

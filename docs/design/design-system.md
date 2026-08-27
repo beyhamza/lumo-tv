@@ -95,7 +95,7 @@ Valeurs web dérivées : `display` 35, `title` 22, `body` 16, `detail` 13.
 | Surface | État |
 |---|---|
 | `apps/web` | ✅ aligné le 26 août 2026 |
-| `apps/android` | ❌ palette différente — tâche `S2-00` |
+| `apps/android` | ✅ aligné le 27 août 2026 — `S2-00` |
 
 **Web.** `apps/web/src/app/globals.css` porte la charte : palette complète dans
 les deux thèmes, Sora et Space Mono via `next/font`, rayons, durées et courbes,
@@ -122,8 +122,43 @@ saisie d'un coup.
 `#FF7A8A` sur `#F7F6FA` tombe à 2,5:1, illisible ; le thème clair utilise
 `#C2334A`, même teinte, assombrie jusqu'à passer AA en texte courant.
 
-**Android.** `LumoTokens.kt` porte une palette qui n'est pas Spectre — un bleu
-froid `#4CB8FF`, une encre `#07090F`. À aligner **avant le premier écran** du
-sprint 2, sinon la reprise coûte dix fois plus. La typographie est un point
-ouvert : la charte impose Sora, `LumoTypography.kt` argumente pour la police
-système sur une box TV. À trancher, pas à décider seul.
+**Android.** `LumoTokens.kt` et `LumoTypography.kt` portent la charte : palette
+Spectre, rayons 8/14/20, échelles mobile et TV telles que la charte les dérive.
+Fait **avant le premier écran** du sprint 2, ce qui était tout l'intérêt de la
+tâche.
+
+Quatre points à connaître avant d'y toucher.
+
+**La typographie est tranchée : police système sur Android, Sora sur le web.**
+La charte demande Sora et déclare elle-même `system-ui, sans-serif` comme
+repli ; les deux applications prennent le repli. Embarquer une famille coûte un
+téléchargement d'APK à chaque utilisateur — sur une box TV, sur une connexion
+que personne n'a choisie — pour une différence invisible à trois mètres. Sur le
+web, une police coûte une requête mise en cache et les pages marketing sont la
+porte d'entrée du produit : elle y reste. Les deux plateformes divergent ici
+exprès.
+
+**Le `body` TV est passé de 20 sp à 26 sp.** La charte écrit `body ≥ 24 px non
+négociable à 3 m` ; 20 était sous le plancher. C'est le genre d'écart que
+personne ne voit sur un bureau et que tout le monde voit sur un canapé.
+
+**Les surfaces translucides sont aplaties.** La charte modélise l'élévation par
+transparence superposée (5 %, 9 %, 13 % de blanc). Compose sait l'exprimer
+littéralement, et c'est le mauvais choix pour un `ColorScheme` Material :
+`surface` est donné à des composants qui le dessinent sur un parent quelconque,
+donc une valeur translucide se compose avec ce qui se trouve derrière et pas
+avec le fond. Aplati : `#19181E` et `#232227` — ce dernier est exactement le
+`--popover` du web, qui avait dû faire le même calcul.
+
+**Le cyan ne remplit rien.** `primary` vaut `text-primary` sur les deux
+plateformes, comme sur le site. Le cyan est la signature de focus : un bouton
+plein en cyan met la couleur qui veut dire « la télécommande est ici » sur
+quelque chose qui est simplement présent, et sur une télévision une grille de
+tuiles cyan rend la tuile focalisée introuvable.
+
+**Un désaccord reste ouvert, et il n'est pas de la couleur.** La charte pose
+« transparence superposée, **jamais d'ombre portée** » ; `docs/architecture.md`
+§3 exige un focus TV en « échelle + bordure + élévation », et `lumoTvFocus`
+dessine une ombre. Les deux se réconcilient si « élévation » veut dire surface
+plus claire — mais c'est un changement de structure, pas de valeur, donc hors
+de S2-00. À trancher avant que la grille TV soit construite dessus (`S2-13`).
