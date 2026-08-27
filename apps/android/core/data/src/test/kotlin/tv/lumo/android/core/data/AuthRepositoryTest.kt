@@ -192,6 +192,61 @@ class AuthRepositoryTest {
         assertThat(store.saved).isNull()
     }
 
+    @Test
+    fun `a Google sign-in opens the session like any other`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(authSession()))
+
+        val result = repository().signInWithGoogle("a.signed.token")
+
+        // The fourth road to a session, ending exactly where the other three do.
+        assertThat(result).isEqualTo(LumoResult.Success(Unit))
+        assertThat(store.saved?.accessToken).isEqualTo("access-token")
+    }
+
+    @Test
+    fun `the id_token is sent, and no email with it`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(authSession()))
+
+        repository().signInWithGoogle("a.signed.token")
+
+        val body = server.takeRequest().body.readUtf8()
+        assertThat(body).contains("\"id_token\":\"a.signed.token\"")
+        // US-03's rule, and the whole reason the server verifies the token
+        // itself: an email a client sends is an email anybody can send. The
+        // address comes out of the verified token, on the server.
+        assertThat(body).doesNotContain("email")
+    }
+
+    @Test
+    fun `a token the server refuses leaves no session behind`() = runBlocking {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(401)
+                .setBody("""{"type":"x","title":"x","status":401,"code":"OAUTH_TOKEN_INVALID"}"""),
+        )
+
+        val result = repository().signInWithGoogle("a.forged.token")
+
+        val error = (result as LumoResult.Failure).error as LumoError.Api
+        assertThat(error.code).isEqualTo(ErrorCode.OAUTH_TOKEN_INVALID)
+        assertThat(store.saved).isNull()
+    }
+
+    @Test
+    fun `an account that already exists is the server's business, not a second call`() = runBlocking {
+        // US-03: an address already registered with a password gets the Google
+        // identity attached, and no duplicate account. The contract answers that
+        // with an ordinary 200 — there is no "linked" flag to read and nothing
+        // for a client to decide, which is what keeps a screen from deciding
+        // which account somebody owns.
+        server.enqueue(MockResponse().setResponseCode(200).setBody(authSession()))
+
+        val result = repository().signInWithGoogle("a.signed.token")
+
+        assertThat(result).isEqualTo(LumoResult.Success(Unit))
+        assertThat(server.requestCount).isEqualTo(1)
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private fun repository() = AuthRepository(

@@ -89,7 +89,7 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ◩ | S2-03 | Banc d'essai des sources | outillage | recette | 3 | **83 %** |
 | ☑ | S2-04 | Inscription | US-01 | mobile | 5 | 100 % |
 | ☑ | S2-05 | Connexion par email | US-02 | mobile | 3 | 100 % |
-| ☐ | S2-06 | Connexion Google (Credential Manager) | US-03 | mobile | 5 | 0 % |
+| ☑ | S2-06 | Connexion Google (Credential Manager) | US-03 | mobile | 5 | 100 % |
 | ◩ | S2-07 | Session persistante, de bout en bout | US-04 | mobile + tv | 3 | **70 %** |
 | ☑ | S2-08 | Ajout de source : choix, formulaires, aide | US-06, US-07 | mobile | 8 | 100 % |
 | ☑ | S2-09 | États de la source : validation, succès, quatre erreurs | US-06, US-07 | mobile | 5 | 100 % |
@@ -99,21 +99,20 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 100 % |
 | ☑ | S2-14 | Lecteur TV | US-10 | tv | 5 | 100 % |
 
-**Avancement du sprint : 92 % de 82 points.** **La verticale tient de bout en bout
-sur les deux surfaces** : compte, connexion, source, import, chaînes, lecture sur le
-téléphone ; activation par code, grille et lecture sur le téléviseur. **Neuf des dix
-stories du sprint 1 ont une implémentation complète** — il ne manque que la connexion
-Google.
+**Avancement du sprint : 98 % de 82 points.** **Les quinze tâches de code sont
+faites.** La verticale tient de bout en bout sur les deux surfaces : compte,
+connexion — email ou Google —, source, import, chaînes et lecture sur le téléphone ;
+activation par code, grille et lecture sur le téléviseur. **Les dix stories du
+sprint 1 ont une implémentation Android complète.**
 
 Aucune Definition of Done n'est atteinte, et aucune ne le sera avant une démo sur
 appareil réel, télécommande en main pour la partie TV : rien de tout cela n'a été
 vu ailleurs que dans un build. C'est ce qui reste, et c'est le plus important.
 
-Il reste **une tâche de code, 5 points** : la connexion Google (S2-06), la seule
-story du sprint 1 qui n'ait encore aucune implémentation Android.
-
-S2-03 est à 83 % sans que le sprint 2 y ait touché : le banc d'essai est la seule
-tâche partagée avec le sprint 3, et c'est le web qui en a eu besoin le premier.
+Les 2 % qui manquent ne sont pas du code Android : les 30 % de S2-07 se vérifient en
+tuant l'application sur un téléphone, et S2-03 est à 83 % sans que le sprint 2 y ait
+touché — le banc d'essai est la seule tâche partagée avec le sprint 3, et c'est le
+web qui en a eu besoin le premier.
 
 ### Lot serveur — livré, hors périmètre du sprint
 
@@ -411,7 +410,43 @@ Message générique sur identifiants invalides. Après cinq échecs le serveur r
 
 ---
 
-### S2-06 — Connexion Google · **5** · ferme US-03
+### S2-06 — Connexion Google · **5** · ferme US-03 · ☑
+
+> **Livré côté Android.** Credential Manager, un bouton sur la connexion **et** sur
+> l'inscription, et l'`id_token` envoyé seul.
+>
+> **Le client n'envoie jamais d'email.** Le serveur vérifie signature, `aud`, `iss`
+> et `exp` lui-même, et lit l'adresse dans le jeton qu'il vient de vérifier — un
+> email transmis par un client est un email que n'importe qui peut transmettre. Un
+> test l'épingle : le corps de la requête contient `id_token`, et pas la chaîne
+> `email`.
+>
+> **Le même bouton sur les deux écrans, et c'est un choix.** Les formulaires sont
+> deux parce qu'un formulaire est deux ; Google n'en est pas un. À la première
+> connexion le compte est créé, à la suivante il est rattaché ou réutilisé, et
+> **c'est le serveur qui décide** — le contrat répond 200 sans drapeau à lire.
+> Mettre le bouton sur un seul des deux écrans aurait demandé à l'utilisateur de
+> répondre d'avance à une question que lui seul ne peut pas trancher.
+>
+> **Aucun client OAuth configuré : aucun bouton.** Ni bouton grisé, ni message —
+> rien. C'est l'état d'un dépôt fraîchement cloné, puisqu'aucun identifiant client
+> ne peut être commité (AGENTS.md §5), et un bouton qui échouera à coup sûr apprend
+> à l'utilisateur que l'application est cassée. Le formulaire email se suffit.
+>
+> **Fermer la feuille n'est pas une erreur.** Changer d'avis est une décision ; un
+> message rouge en réponse serait un reproche. Trois refus ont en revanche leur
+> phrase : aucun compte Google sur l'appareil, sélecteur indisponible — sans
+> proposer de réessayer, puisque rien n'aura changé — et jeton refusé par le
+> serveur, qui n'accuse pas le compte parce que c'est presque toujours un build
+> configuré avec le mauvais client OAuth.
+>
+> **Deux choses restent, et aucune n'est du code Android.** Le bouton web d'US-03
+> (`googleClientId()` existe dans `apps/web` et n'est appelé nulle part), et
+> l'habillage du bouton selon les règles de marque de Google, qui demandent leur
+> propre logo : aucun asset de ce genre n'entre dans ce dépôt sans qu'on ait
+> décidé d'où il vient.
+>
+> 11 tests de plus — 4 dans `core:data` sur le fil, 7 sur la traduction des refus.
 
 Credential Manager. Le client envoie l'`id_token` et **rien d'autre** — jamais un
 email : le serveur vérifie signature, `aud`, `iss` et `exp` lui-même. Le rattachement

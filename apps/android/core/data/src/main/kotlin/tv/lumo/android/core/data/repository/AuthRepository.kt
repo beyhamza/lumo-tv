@@ -15,6 +15,7 @@ import tv.lumo.android.network.generated.model.DeviceCodeRequest
 import tv.lumo.android.network.generated.model.DeviceCodeResponse
 import tv.lumo.android.network.generated.model.DeviceTokenRequest
 import tv.lumo.android.network.generated.model.ErrorCode
+import tv.lumo.android.network.generated.model.GoogleSignInRequest
 import tv.lumo.android.network.generated.model.Locale
 import tv.lumo.android.network.generated.model.LoginRequest
 import tv.lumo.android.network.generated.model.RegisterRequest
@@ -25,9 +26,9 @@ import tv.lumo.android.network.generated.model.RegisterRequest
  * <h2>The session is stored here, not by the screen</h2>
  *
  * A sign-in screen that received tokens and saved them itself would be a second
- * place that knows how a session is persisted — and there would be three of them
- * within a sprint, since registration (S2-04), Google (S2-06) and the television's
- * device code (S2-12) all end in exactly the same way. They end here instead.
+ * place that knows how a session is persisted — and there are four roads to it:
+ * sign-in, registration (S2-04), Google (S2-06) and the television's device code
+ * (S2-12) all end in exactly the same way. They end here instead.
  *
  * The consequence is worth stating because it is what makes the screens simple:
  * **nothing navigates after signing in.** `AppStartDecision` watches the session,
@@ -112,6 +113,33 @@ class AuthRepository @Inject internal constructor(
                     displayName = displayName?.trim()?.takeIf { it.isNotEmpty() },
                     locale = locale,
                 ),
+            )
+        }
+
+        return result.map { session.open(it.asTokens()) }
+    }
+
+    /**
+     * Exchanges a Google ID token for a session (US-03).
+     *
+     * **The client sends the token and nothing else â never an email.** The
+     * server verifies the signature, `aud`, `iss` and `exp` itself and reads the
+     * address out of the verified token; an email supplied by a client is an
+     * email anybody can supply.
+     *
+     * Attaching a Google identity to an account that already exists under the
+     * same address is the server's job too, and it is why this returns a session
+     * rather than "created" or "linked": the contract says a duplicate account is
+     * never created, and a screen that had to tell the two apart would be a
+     * screen deciding which account somebody owns.
+     *
+     * @param idToken what Credential Manager handed back. Not logged, not
+     * stored, not kept after this call.
+     */
+    suspend fun signInWithGoogle(idToken: String): LumoResult<Unit> {
+        val result = calls.call {
+            api.signInWithGoogle(
+                GoogleSignInRequest(idToken = idToken, device = device.registration()),
             )
         }
 

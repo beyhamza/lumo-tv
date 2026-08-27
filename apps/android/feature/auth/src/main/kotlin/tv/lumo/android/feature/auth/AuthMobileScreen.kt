@@ -42,8 +42,8 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
  * There is no success branch and no navigation. Signing in opens a session,
  * `AppStartDecision` is watching it, and the shell rebuilds its graph onto the
  * catalogue — or onto the source form for an account that has none. Registration,
- * Google and the television's device code will all end the same way, which is why
- * none of them will need a callback either.
+ * Google and the television's device code all end the same way, which is why none
+ * of them needs a callback either.
  *
  * <h2>Every refusal is a different sentence</h2>
  *
@@ -149,6 +149,10 @@ fun AuthMobileScreen(
                 Text(stringResource(R.string.feature_auth_sign_in_submit))
             }
         }
+
+        // The other way in, when the build has an OAuth client. It draws
+        // nothing when it has not, which is the state of a fresh checkout.
+        GoogleSignInButton()
 
         // The way to the other half. Onboarding is where this choice will
         // eventually be made, but it is still a placeholder, and a screen that

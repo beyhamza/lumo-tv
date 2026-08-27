@@ -161,6 +161,11 @@ fun SignUpMobileScreen(
             }
         }
 
+        // The same button as the sign-in screen, and the same flow: a first
+        // Google sign-in creates the account, so putting it only on the other
+        // screen would ask the user to guess which of the two they need.
+        GoogleSignInButton()
+
         TextButton(onClick = onSignIn, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.feature_auth_have_account))
         }

@@ -51,6 +51,24 @@
     <string name="feature_auth_error_unexpected">Something went wrong. Please try again.</string>
 
     <!--
+      Google sign-in (US-03). The whole block is absent from the screen when no
+      OAuth client is configured in the build, so none of these appear then.
+    -->
+    <string name="feature_auth_google_continue">Continue with Google</string>
+    <string name="feature_auth_google_no_account">No Google account on this device. Add one in your phone\'s settings, or use an email address.</string>
+    <!--
+      Does not offer to try again: nothing will have changed by the next press.
+      Names the way in that does work instead.
+    -->
+    <string name="feature_auth_google_unavailable">Google sign-in is not available on this device. Use an email address instead.</string>
+    <!--
+      OAUTH_TOKEN_INVALID. Not something the user did - most often a build
+      configured with the wrong OAuth client - so it does not blame the account
+      and does not send anybody to Google to fix something that is not there.
+    -->
+    <string name="feature_auth_google_rejected">Google sign-in could not be completed. Use an email address instead.</string>
+
+    <!--
       Activating a television from a phone (US-05). Read from three metres,
       often by somebody standing up, so the wording is short and the code is the
       largest thing on the panel.

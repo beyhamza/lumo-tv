@@ -44,6 +44,15 @@ androidxRoom = "2.8.4"
 androidxPaging = "3.5.1"
 androidxMedia3 = "1.11.0"
 androidxHiltNavigationCompose = "1.4.0"
+# Credential Manager, for Google sign-in (US-03). The platform's own account
+# picker: no Google Play services SDK in the UI layer, no account list read by
+# this application, and one API for the password manager and the Google account
+# alike.
+androidxCredentials = "1.5.0"
+# The request type that asks Credential Manager for a Google account, and the
+# parser for what comes back. Separate artefact, separate cadence â it is the
+# Google identity vendor's half of the Credential Manager contract.
+googleId = "1.1.1"
 
 # ---- Injection --------------------------------------------------------------
 hilt = "2.60.1"
@@ -133,6 +142,13 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidxCredentials" }
+# Routes Credential Manager to Google Play services on API levels below 34,
+# where the platform has no credential provider of its own. Without it, the
+# phone that most users hold answers "no provider" instead of showing a picker.
+androidx-credentials-play-services = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidxCredentials" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleId" }
 
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
