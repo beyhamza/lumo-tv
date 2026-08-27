@@ -19,6 +19,7 @@ import androidx.navigation.compose.rememberNavController
 import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.core.designsystem.component.LumoMobileNavBar
+import tv.lumo.android.feature.live.PlayerDestination
 import tv.lumo.android.navigation.LumoMobileNavHost
 import tv.lumo.android.navigation.MobileDestinations
 import tv.lumo.android.navigation.mobileStartRoute
@@ -86,7 +87,11 @@ fun LumoMobileApp(
             // No bar for a signed-out user. It would offer the catalogue and the
             // settings of an account that does not exist yet, and the only screen
             // reachable while signed out is the one already on display.
-            if (startState != AppStart.SignedOut) {
+            //
+            // And none over a video: the player hides the system bars and fills
+            // the panel (US-09), so leaving ours across the bottom would be the
+            // one strip of chrome in an otherwise full-screen picture.
+            if (startState != AppStart.SignedOut && currentRoute != PlayerDestination.route) {
                 LumoMobileNavBar(
                     destinations = MobileDestinations,
                     selectedRoute = currentRoute,

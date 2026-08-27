@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ADR 0008 — cleartext to the user's server, and only there.
+
+  The base configuration has to permit cleartext because we cannot know the hosts
+  in advance: a provider is a hostname somebody types into a form, most panels
+  serve their streams, logos and guide over plain HTTP on a high port, and there
+  is no list to allow. Refusing it means refusing the product's central promise
+  on its main platform — and it is the very promise ADR 0007 leans on when it
+  tells a browser user to open the applications instead.
+
+  The domain rule is what keeps that from being a blanket. `api.lumo.tv` carries
+  the session tokens and every piece of account data, and it is the one host whose
+  address we know at build time; downgrading it has to be impossible rather than
+  merely unlikely, so it is refused by policy and not by everybody remembering to
+  type https.
+
+  Never `android:usesCleartextTraffic="true"` instead of this file: that is the
+  same permission with no exception for our own API, which is exactly the part
+  that must not be downgradable.
+-->
+<network-security-config>
+
+    <base-config cleartextTrafficPermitted="true" />
+
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">api.lumo.tv</domain>
+    </domain-config>
+
+</network-security-config>

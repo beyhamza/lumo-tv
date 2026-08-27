@@ -94,22 +94,24 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S2-08 | Ajout de source : choix, formulaires, aide | US-06, US-07 | mobile | 8 | 100 % |
 | ☑ | S2-09 | États de la source : validation, succès, quatre erreurs | US-06, US-07 | mobile | 5 | 100 % |
 | ☑ | S2-10 | Liste des chaînes : catégories, pagination, hors ligne | US-08 | mobile | 8 | 100 % |
-| ☐ | S2-11 | Lecteur mobile | US-09 | mobile | 8 | 0 % |
+| ☑ | S2-11 | Lecteur mobile | US-09 | mobile | 8 | 100 % |
 | ☐ | S2-12 | Activation TV : code, QR, polling | US-05 | tv | 8 | 0 % |
 | ☐ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 0 % |
 | ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
 
-**Avancement du sprint : 57 % de 82 points.** Le téléphone va maintenant du compte
-à une source prête : S2-04 ferme US-01, S2-05 ferme US-02, S2-08 et S2-09 ferment
-US-06 et US-07 ensemble. **Quatre des dix stories du sprint 1 ont une
-implémentation complète.**
+**Avancement du sprint : 67 % de 82 points.** **La verticale tient sur le
+téléphone, de bout en bout** : créer un compte, s'y connecter, enregistrer une
+source, la voir s'importer, parcourir ses chaînes, en lancer une. Six des dix
+stories du sprint 1 ont une implémentation complète — US-01, US-02, US-06, US-07,
+US-09, et US-08 pour sa moitié mobile.
 
 Aucune Definition of Done n'est atteinte, et aucune ne le sera avant une démo sur
-device réel : personne n'a encore vu ces écrans ailleurs que dans un build.
+device réel : personne n'a encore vu ces écrans ailleurs que dans un build. C'est
+la seule chose qui manque au téléphone, et c'est la plus importante.
 
-Il reste **une tâche pour finir le fil du téléphone** : la lecture (S2-11), qui
-demande d'abord de trancher le trafic en clair — la note sous cette tâche dit
-pourquoi. Puis la télévision, entièrement devant nous : trois tâches, 21 points.
+**La télévision est entièrement devant nous** : trois tâches, 21 points, et c'est
+là que se trouve le risque restant — la D-pad, le focus, l'overscan, et une
+activation par code qu'aucune ligne n'a encore.
 
 S2-03 est à 83 % sans que le sprint 2 y ait touché : le banc d'essai est la seule
 tâche partagée avec le sprint 3, et c'est le web qui en a eu besoin le premier.
@@ -602,7 +604,7 @@ image de repli.
 
 ---
 
-### S2-11 — Lecteur mobile · **8** · ferme US-09
+### S2-11 — Lecteur mobile · **8** · ferme US-09 · ☑
 
 > **À trancher avant d'écrire une ligne : le trafic en clair.** Relevé en écrivant
 > S2-10. Aucun des deux manifestes ne déclare `usesCleartextTraffic` ni de
@@ -621,6 +623,41 @@ image de repli.
 > l'interdit pour `api.lumo.tv`. Notre API reste en HTTPS strict, les flux de
 > l'utilisateur passent. C'est une posture de sécurité, donc un ADR, pas une ligne
 > de manifeste glissée dans une tâche d'écran.
+>
+> **Tranché : c'est l'option étroite, écrite dans
+> [`adr/0008`](../adr/0008-android-cleartext-for-user-servers.md)** et appliquée
+> dans `core:network`, un fichier partagé par les deux applications. Sans cette
+> décision, ce lecteur n'aurait rien joué chez la plupart des utilisateurs, et
+> l'échec aurait été un `SecurityException` au fond de Media3 : un rectangle noir,
+> pas un message.
+>
+> **`core:player` n'a pas eu à bouger.** Focus audio, wake lock, `stop()` qui vide
+> l'élément média : tout était déjà là et testé. S2-11 est le câblage — l'URL
+> demandée à la volée, l'état rendu, les erreurs nommées.
+>
+> **La rotation n'interrompt rien, et ça tient à trois choses ensemble** : l'Activity
+> déclare `configChanges` (elle n'est pas recréée), le player est un singleton du
+> processus (il n'est pas reconstruit), et l'écran ne relance pas une chaîne qu'il
+> joue déjà. Il en manque une et le flux repart du début du tampon à chaque tour de
+> poignet.
+>
+> **Jamais de rectangle noir muet** — le critère d'acceptation le dit mot pour mot.
+> Chaque échec finit sur une phrase, et seuls ceux qui peuvent aider finissent sur
+> un bouton : réessayer une chaîne que l'appareil ne sait pas décoder coûte une
+> attente pour réapprendre ce que la phrase disait.
+>
+> **La limite de connexions nomme l'abonnement de l'utilisateur.** Un panel à court
+> de connexions répond une erreur HTTP et non une panne réseau ; c'est le cas que
+> US-09 demande de formuler comme une limite d'abonnement, et
+> `PlaybackInfo.max_connections` est porté jusqu'ici pour que la phrase puisse
+> donner le chiffre — ou s'en passer quand le panel ne l'a pas donné.
+>
+> **L'URL de flux ne se pose nulle part** : demandée par lecture, passée au player,
+> jamais en base, jamais dans un log, jamais dans un état sauvegardé. La barre de
+> navigation disparaît aussi — une bande de chrome en bas d'une image plein écran.
+>
+> 6 tests JVM, dont les trois refus qui partagent un `409` et se lisent
+> différemment.
 
 Media3. L'URL de flux est demandée **à la volée** à `GET /channels/{id}/playback`,
 une chaîne à la fois. Elle ne s'écrit dans aucun log, à aucun niveau, et ne survit pas

@@ -3,6 +3,9 @@
   The module that needs the permission declares it. Both applications inherit it
   through the manifest merger, so neither can forget it and neither can drift
   from the other (ADR 0004).
+
+  The network security policy is here for the same reason: it is one file, shared,
+  in the module that already owns how this product talks to anything (ADR 0008).
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -10,5 +13,7 @@
     <!-- Offline detection: US-08 shows the cached catalogue with an indicator
          rather than an error when the network is gone. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application android:networkSecurityConfig="@xml/network_security_config" />
 
 </manifest>

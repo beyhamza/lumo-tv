@@ -11,7 +11,9 @@ import tv.lumo.android.feature.auth.SignUpDestination
 import tv.lumo.android.feature.auth.navigation.authMobileScreen
 import tv.lumo.android.feature.auth.navigation.signUpMobileScreen
 import tv.lumo.android.feature.live.LiveDestination
+import tv.lumo.android.feature.live.PlayerDestination
 import tv.lumo.android.feature.live.navigation.liveMobileScreen
+import tv.lumo.android.feature.live.navigation.livePlayerMobileScreen
 import tv.lumo.android.feature.onboarding.navigation.onboardingMobileScreen
 import tv.lumo.android.feature.search.navigation.searchMobileScreen
 import tv.lumo.android.feature.series.navigation.seriesMobileScreen
@@ -60,7 +62,12 @@ fun LumoMobileNavHost(
             onSignIn = { navController.popBackStack(AuthDestination.route, false) },
         )
         sourceMobileScreen()
-        liveMobileScreen()
+        liveMobileScreen(
+            onPlay = { channelId, name ->
+                navController.navigate(PlayerDestination.routeFor(channelId, name))
+            },
+        )
+        livePlayerMobileScreen(onBack = { navController.popBackStack() })
         vodMobileScreen()
         seriesMobileScreen()
         searchMobileScreen()

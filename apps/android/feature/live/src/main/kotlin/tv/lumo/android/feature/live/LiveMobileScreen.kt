@@ -68,6 +68,7 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
  */
 @Composable
 fun LiveMobileScreen(
+    onPlay: (channelId: String, name: String?) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LiveViewModel = hiltViewModel(),
 ) {
@@ -109,7 +110,7 @@ fun LiveMobileScreen(
                         // Null is a placeholder Paging has not loaded yet. It is
                         // drawn as a row of the right height so the scrollbar
                         // keeps its size on a fifteen-thousand-channel list.
-                        ChannelRow(channels[index])
+                        ChannelRow(channels[index], onPlay)
                     }
                 }
             }
@@ -245,10 +246,18 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
  * deciding what the provider meant.
  */
 @Composable
-private fun ChannelRow(channel: Channel?) {
+private fun ChannelRow(
+    channel: Channel?,
+    onPlay: (channelId: String, name: String?) -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            // Null is a row Paging has not loaded yet: it draws, and it does
+            // nothing when tapped, rather than opening a player for no channel.
+            .clickable(enabled = channel != null) {
+                channel?.let { onPlay(it.id, it.name) }
+            }
             .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.sm),
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,

@@ -8,6 +8,13 @@ android {
 
 dependencies {
     implementation(projects.core.data)
+    // The player itself stays behind LumoPlayer; this module composes its surface
+    // and never imports androidx.media3 (docs/architecture.md §3).
+    implementation(projects.core.player)
+
+    // LocalActivity, for the window that owns the system bars while a video is
+    // full screen. Nothing else in this module touches an Activity.
+    implementation(libs.androidx.activity.compose)
 
     // Paging in Compose. The list reads windows out of SQLite and never holds a
     // whole catalogue: fifteen thousand channels is an ordinary source (US-08).
