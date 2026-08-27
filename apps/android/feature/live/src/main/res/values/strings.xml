@@ -6,4 +6,26 @@
 <resources>
     <string name="feature_live_title">Live TV</string>
     <string name="feature_live_placeholder">Your channels will appear here once a source has finished syncing.</string>
+
+    <string name="feature_live_no_source_title">No channels yet</string>
+    <string name="feature_live_no_source_body">Register an M3U playlist or an Xtream Codes account from the Source tab, and your channels will appear here.</string>
+
+    <!--
+      Distinct from "no channels": a source that is still importing is a wait,
+      and an empty list would read as a source that holds nothing.
+    -->
+    <string name="feature_live_not_ready_title">Your source is not ready</string>
+    <string name="feature_live_not_ready_body">The import has not finished, or it failed. The Source tab says where it got to.</string>
+
+    <string name="feature_live_all_categories">All</string>
+    <string name="feature_live_category_count">%1$s (%2$d)</string>
+
+    <!--
+      Discreet on purpose (US-08). The list works offline, so this is a normal
+      state rather than a failure — but a catalogue silently a week old is the
+      failure nobody can diagnose, so it is said.
+    -->
+    <string name="feature_live_offline">From your device</string>
+    <string name="feature_live_refresh">Refresh</string>
+    <string name="feature_live_refresh_failed">Could not reach the server. The list below is the one already on your device.</string>
 </resources>

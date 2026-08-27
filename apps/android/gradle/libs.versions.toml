@@ -55,6 +55,10 @@ okhttp = "5.5.0"
 # @JsonClass(generateAdapter = true), so there is no compile-time adapter to
 # link against. See the consumer rules in core/network.
 moshi = "1.15.2"
+# Image loading, for channel logos and nothing else. The logos are the ones the
+# user's own playlist advertises (`tvg-logo`); Lumo ships no artwork of its own
+# (AGENTS.md §1). Coil shares the OkHttp stack rather than opening a second one.
+coil = "3.0.4"
 kotlinxCoroutines = "1.11.0"
 
 # ---- Test -------------------------------------------------------------------
@@ -120,6 +124,9 @@ okhttp-logging = { module = "com.squareup.okhttp3:logging-interceptor", version.
 okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
 moshi-core = { module = "com.squareup.moshi:moshi", version.ref = "moshi" }
 moshi-kotlin = { module = "com.squareup.moshi:moshi-kotlin", version.ref = "moshi" }
+
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }

@@ -93,13 +93,13 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ◩ | S2-07 | Session persistante, de bout en bout | US-04 | mobile + tv | 3 | **70 %** |
 | ☑ | S2-08 | Ajout de source : choix, formulaires, aide | US-06, US-07 | mobile | 8 | 100 % |
 | ☑ | S2-09 | États de la source : validation, succès, quatre erreurs | US-06, US-07 | mobile | 5 | 100 % |
-| ☐ | S2-10 | Liste des chaînes : catégories, pagination, hors ligne | US-08 | mobile | 8 | 0 % |
+| ☑ | S2-10 | Liste des chaînes : catégories, pagination, hors ligne | US-08 | mobile | 8 | 100 % |
 | ☐ | S2-11 | Lecteur mobile | US-09 | mobile | 8 | 0 % |
 | ☐ | S2-12 | Activation TV : code, QR, polling | US-05 | tv | 8 | 0 % |
 | ☐ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 0 % |
 | ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
 
-**Avancement du sprint : 47 % de 82 points.** Le téléphone va maintenant du compte
+**Avancement du sprint : 57 % de 82 points.** Le téléphone va maintenant du compte
 à une source prête : S2-04 ferme US-01, S2-05 ferme US-02, S2-08 et S2-09 ferment
 US-06 et US-07 ensemble. **Quatre des dix stories du sprint 1 ont une
 implémentation complète.**
@@ -107,9 +107,9 @@ implémentation complète.**
 Aucune Definition of Done n'est atteinte, et aucune ne le sera avant une démo sur
 device réel : personne n'a encore vu ces écrans ailleurs que dans un build.
 
-Il reste, pour finir le fil du téléphone : les chaînes (S2-10) et la lecture
-(S2-11). Puis la télévision, qui est entièrement devant nous — trois tâches et
-21 points.
+Il reste **une tâche pour finir le fil du téléphone** : la lecture (S2-11), qui
+demande d'abord de trancher le trafic en clair — la note sous cette tâche dit
+pourquoi. Puis la télévision, entièrement devant nous : trois tâches, 21 points.
 
 S2-03 est à 83 % sans que le sprint 2 y ait touché : le banc d'essai est la seule
 tâche partagée avec le sprint 3, et c'est le web qui en a eu besoin le premier.
@@ -556,7 +556,41 @@ panel la donne.
 
 ---
 
-### S2-10 — Liste des chaînes · **8** · ferme US-08
+### S2-10 — Liste des chaînes · **8** · ferme US-08 · ☑
+
+> **Livré.** Catégories avec leur nombre de chaînes, liste paginée par Paging 3
+> lisant des fenêtres directement dans SQLite, indicateur hors ligne discret,
+> logos de la playlist de l'utilisateur.
+>
+> **Tout vient du cache, et le réseau ne fait que le remplir.** C'est ce qui rend
+> le cas hors ligne ordinaire plutôt que spécial : même chemin de code, même
+> liste, et la seule différence est ce que `Cached.origin` en dit. L'indicateur
+> est un libellé discret et pas une bannière, parce que servir le cache est ce que
+> cet écran fait bien — mais ne rien dire serait la panne qu'un utilisateur ne
+> peut pas diagnostiquer.
+>
+> **Actualiser n'est pas gratuit, donc ce n'est pas automatique.** Un refresh
+> parcourt tout le catalogue de la source ; le faire à chaque ouverture coûterait
+> une minute de données pour une liste inchangée. Il a lieu au premier affichage
+> d'un cache vide, et ensuite seulement si l'utilisateur le demande.
+>
+> **Une dépendance ajoutée, et c'est la seule : Coil**, pour les logos. Le web
+> s'en sortait avec une balise `<img>` ; Android n'a pas d'équivalent, et écrire un
+> chargeur d'images n'est pas le sujet de cette tâche.
+>
+> **Les tests portent sur `core:data`, pas sur l'écran.** Deux comportements ne se
+> voient que quand ils sont faux sur le téléphone de quelqu'un : qu'un refresh
+> parcourt **toute** la pagination — un cache qui ne tient que la première page
+> n'est pas un cache, c'est une position de défilement, et rien ne plante si la
+> boucle s'arrête tôt — et que l'origine dise la vérité plutôt que « réseau »
+> systématiquement. Les DAO sont des doublures : ce qui est testé est la marche et
+> la comptabilité, et Room demanderait un runtime Android que le build s'interdit.
+>
+> **Une trouvaille qui dépasse cette tâche, écrite sous `S2-11`** : rien
+> n'autorise le trafic en clair, et les logos comme les flux des panels sont
+> massivement en `http`. Ici ça se voit comme un logo qui ne charge pas — traité :
+> un logo illisible retombe sur l'initiale, donc il ressemble à une chaîne sans
+> logo. Là-bas, ça décide si quoi que ce soit se lit.
 
 Catégories, puis chaînes, avec le nombre de chaînes par catégorie. Paging 3 sur
 `CataloguePager`, qui existe déjà — la liste doit rester fluide au-delà de 500
@@ -569,6 +603,24 @@ image de repli.
 ---
 
 ### S2-11 — Lecteur mobile · **8** · ferme US-09
+
+> **À trancher avant d'écrire une ligne : le trafic en clair.** Relevé en écrivant
+> S2-10. Aucun des deux manifestes ne déclare `usesCleartextTraffic` ni de
+> `networkSecurityConfig`, donc Android bloque `http://` par défaut depuis
+> `targetSdk` 28. Or **la majorité des panels servent leurs flux — et leurs logos —
+> en clair** : c'est le constat qui fonde l'ADR 0007, dont l'argument est
+> précisément que « les applications Android et Android TV n'ont pas cette limite,
+> elles ouvrent le flux directement ». En l'état, elles l'ont.
+>
+> Sans décision, ce lecteur ne jouera rien chez la plupart des utilisateurs, et
+> l'échec sera silencieux — un `SecurityException` dans Media3, pas un message.
+>
+> L'option étroite existe et vaut d'être écrite plutôt que devinée : une
+> `networkSecurityConfig` dont la `base-config` autorise le clair (on ne connaît pas
+> les domaines des fournisseurs à la compilation) **et** une `domain-config` qui
+> l'interdit pour `api.lumo.tv`. Notre API reste en HTTPS strict, les flux de
+> l'utilisateur passent. C'est une posture de sécurité, donc un ADR, pas une ligne
+> de manifeste glissée dans une tâche d'écran.
 
 Media3. L'URL de flux est demandée **à la volée** à `GET /channels/{id}/playback`,
 une chaîne à la fois. Elle ne s'écrit dans aucun log, à aucun niveau, et ne survit pas
