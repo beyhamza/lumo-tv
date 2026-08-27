@@ -111,7 +111,8 @@
     "forgotPassword": "Mot de passe oublié ?",
     "toRegister": "Créer un compte",
     "toLogin": "Se connecter",
-    "passwordResetDone": "Votre mot de passe a été changé. Connectez-vous avec le nouveau."
+    "passwordResetDone": "Votre mot de passe a été changé. Connectez-vous avec le nouveau.",
+    "orSeparator": "ou"
   },
   "VerifyEmail": {
     "metaTitle": "Confirmer votre adresse email",
@@ -298,6 +299,7 @@
     "SOURCE_TOO_LARGE": "Cette playlist est trop volumineuse pour être importée.",
     "SOURCE_LIMIT_REACHED": "Votre offre ne permet pas d'ajouter une source de plus.",
     "DEVICE_LIMIT_REACHED": "Votre offre ne permet pas de connecter un appareil de plus.",
+    "OAUTH_TOKEN_INVALID": "La connexion Google n'a pas pu aboutir. Connectez-vous avec votre adresse email.",
     "CHANNEL_NOT_FOUND": "Cette chaîne n'existe pas, ou plus."
   },
   "NotFound": {

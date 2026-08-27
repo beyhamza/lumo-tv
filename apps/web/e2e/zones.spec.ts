@@ -91,6 +91,46 @@ test.describe("account", () => {
     const readable = await page.evaluate(() => document.cookie);
     expect(readable).not.toContain("lumo_session");
   });
+
+  test("no Google button without a client ID, and no request to Google", async ({
+    page,
+  }) => {
+    // The state of this build, and of a fresh checkout: no OAuth client is
+    // configured, so nothing is drawn and Google's script is never fetched. A
+    // button certain to fail teaches a visitor that the site is broken.
+    const toGoogle: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("accounts.google.com")) toGoogle.push(request.url());
+    });
+
+    await page.goto("/fr/login");
+    await expect(page.getByRole("button", { name: /google/i })).toHaveCount(0);
+    expect(toGoogle).toEqual([]);
+  });
+
+  test("a Google post with no CSRF token is refused, in the visitor's language", async ({
+    request,
+  }) => {
+    // Google's double-submit cookie is the only thing standing between this
+    // endpoint and a forged cross-site POST: the body can be faked, the cookie
+    // cannot. A request carrying neither must not pass by comparing "" to "".
+    //
+    // It also pins the redirect that follows. The handler answers with an
+    // unprefixed `/login`, on purpose — it sits outside the [locale] segment
+    // because Google posts to one fixed URL — and `proxy.ts` is what puts the
+    // language back. If that ever stops happening, this fails here rather than
+    // in front of somebody who has just been signed out.
+    const response = await request.post("/api/auth/google", {
+      form: { credential: "not.a.token" },
+      maxRedirects: 0,
+    });
+
+    expect(response.status()).toBe(303);
+    expect(response.headers()["location"]).toContain("/login?google=VALIDATION_FAILED");
+
+    const page = await request.get("/login?google=VALIDATION_FAILED");
+    expect(page.url()).toMatch(/\/(fr|en)\/login\?google=VALIDATION_FAILED$/);
+  });
 });
 
 test.describe("activation", () => {

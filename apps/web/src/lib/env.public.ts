@@ -19,11 +19,6 @@ export function publicApiBaseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/v1";
 }
 
-/**
- * A Google OAuth client ID is not a secret — it identifies the application, and
- * the backend verifies the resulting id_token on its own (US-03). The client
- * SECRET has no business in this application at all.
- */
-export function googleClientId(): string | undefined {
-  return process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || undefined;
-}
+// The Google OAuth client ID lives with the rest of that flow, in
+// `lib/auth/google.ts`. It is published like everything in this file, and it is
+// read by the button and by nothing else.

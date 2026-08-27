@@ -39,7 +39,7 @@ story finie sont deux états différents.
 |---|---|---|---|---|
 | ☐ | US-01 Compte email | 100 % | rien : l'écran mobile existe. Reste la démo sur device réel (DoD) | ☐ |
 | ☐ | US-02 Connexion email | 100 % | rien : l'écran mobile existe. Reste la démo sur device réel, qui est la DoD et pas l'implémentation | ☐ |
-| ☐ | US-03 Google | **67 %** | le bouton web. Credential Manager est en place sur le téléphone, sur les deux écrans, et le serveur vérifie le jeton lui-même. Reste la démo sur device réel (DoD) | ☐ |
+| ☐ | US-03 Google | 100 % | rien : Credential Manager sur le téléphone, le bouton de Google sur le web, et le serveur qui vérifie le jeton lui-même. **Aucun des deux n'a jamais tourné avec un vrai client OAuth** — il n'y en a pas dans ce dépôt, et c'est ce que la démo (DoD) vérifiera | ☐ |
 | ☐ | US-04 Session et rotation | **95 %** | les deux surfaces savent maintenant ouvrir une session — le mobile par formulaire, la TV par code (S2-12) — et la chaîne « refresh refusé → reconnexion » est prouvée en test. Reste la survie au redémarrage, qui se vérifie sur un appareil | ☐ |
 | ☐ | US-05 Activer une TV | 100 % | rien : code, QR, polling à l'intervalle du serveur, et renouvellement sans intervention. Reste la démo sur device réel (DoD) | ☐ |
 | ☐ | US-06 Source Xtream | 100 % | rien : formulaire, suivi de l'import, chaînes comptées, date d'expiration, et une sortie par erreur. Reste la démo sur device réel (DoD) | ☐ |
@@ -48,14 +48,18 @@ story finie sont deux états différents.
 | ☐ | US-09 Lecture mobile | 100 % | rien : lecture, plein écran, rotation sans coupure, et deux erreurs nommées. Reste la démo sur device réel (DoD) | ☐ |
 | ☐ | US-10 Lecture TV | 100 % | rien : lecture plein écran, aucun overlay au repos, barre d'information sur OK et retour positionné sur la chaîne regardée. Reste la démo, télécommande en main (DoD) | ☐ |
 
-**~97 % des 63 points**, et **0 story sur 10** au sens de la Definition of Done.
+**~99 % des 63 points**, et **0 story sur 10** au sens de la Definition of Done.
 
-Le serveur tient la verticale entière. Le web couvre l'inscription, la connexion
-et l'activation. **Les deux applications Android tiennent maintenant leur verticale**
-— compte, connexion par email ou par Google, source, chaînes et lecture sur le
-téléphone ; activation par code, grille et lecture sur le téléviseur. Ce qui reste
-n'est plus une story sans implémentation mais un morceau d'une seule : le bouton
-Google du web.
+Le serveur tient la verticale entière, le web aussi, et les deux applications
+Android également : compte, connexion par email ou par Google, source, chaînes et
+lecture sur le téléphone ; activation par code, grille et lecture sur le
+téléviseur ; et sur lumo.tv, l'inscription, la connexion, l'activation, les
+sources, le catalogue et la lecture. **Les dix stories ont une implémentation.**
+
+Ce qui reste n'est donc plus du code : ce sont les dix démonstrations. Aucune n'a
+été faite, et la Definition of Done ne s'allège pas — appareil réel, télécommande
+en main pour la partie TV, et un vrai client OAuth pour US-03, qui n'existe dans
+aucun des trois builds.
 
 Côté serveur, les six contrôleurs existent : `auth`, `sources`, `catalog`, et —
 livrés hors périmètre depuis, voir le lot serveur de

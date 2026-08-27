@@ -139,9 +139,14 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S3-10 | Lecteur HLS | lecture | 8 | 100 % |
 | ☑ | S3-11 | Échecs de lecture nommés | lecture | 5 | 100 % |
 | ☑ | S3-12 | Parcours e2e : compte → source → chaîne → image | vérif | 5 | 100 % |
+| ☑ | S3-13 | Connexion Google : le bouton, et l'échange côté serveur | auth | 3 | 100 % |
 
-**Avancement du sprint : 100 % de 55 points.** Une chaîne se lance et s'affiche dans
+**Avancement du sprint : 100 % de 58 points.** Une chaîne se lance et s'affiche dans
 le navigateur, vérifié sur une image décodée et non sur la présence d'une balise.
+
+S3-13 a été ajoutée après la clôture, et les 3 points avec : la moitié web d'US-03
+n'était dans aucun sprint. La compter ailleurs aurait laissé un sprint à 100 %
+et une story à 67 %, sans rien pour dire où était la différence.
 
 **Une exception assumée à la règle « ce sprint ne touche pas le contrat ».** S3-08 a
 buté sur un manque réel, pas sur une dérive : `Favorite` et `RecentChannel` ne portent
@@ -151,7 +156,7 @@ a été remonté, la décision prise, puis portée — `ids` sur
 elle a forcé l'arrêt et la décision au lieu d'un contournement dans l'écran.
 Justification complète dans [`design/api-gaps.md`](../design/api-gaps.md), point 4.
 
-Sans US-11 : S3-00, S3-09, S3-10 et S3-11 tombent — **39 points**.
+Sans US-11 : S3-00, S3-09, S3-10 et S3-11 tombent — **42 points**.
 
 ---
 
@@ -504,7 +509,7 @@ télévision.
 
 > **Livré.** Le parcours va de la création de compte à une image qui bouge, et son
 > pendant vérifie qu'un flux sans CORS produit un message nommé plutôt qu'un carré
-> noir. 32 tests e2e au total.
+> noir. 39 tests e2e au total, S3-08 et S3-13 compris.
 
 Le parcours s'arrête aujourd'hui à la création de compte et à l'activation. Ce qui
 manquait n'était plus l'environnement — la pile Docker est branchée depuis le
@@ -520,6 +525,55 @@ S3-11 et non une vidéo noire.
 
 Le projet `journey` de `playwright.config.ts` accueille les deux ; la pile est déjà
 adoptée ou construite par `global-setup.ts`.
+
+---
+
+### S3-13 — Connexion Google · **3** · ferme la moitié web d'US-03 · ☑
+
+> **Ajoutée après coup**, et assumée comme telle : US-03 avait sa moitié Android
+> (S2-06) et son serveur, et rien sur le web. La tâche n'était dans aucun sprint,
+> ce qui est exactement comment un morceau de story disparaît.
+>
+> **Google dessine son propre bouton.** `renderButton` place leur contrôle dans
+> l'élément — leur logo, leur libellé, dans la langue du visiteur. Ce n'est pas
+> qu'une commodité : leurs règles de marque exigent leur asset, et aucun logo
+> tiers n'entre dans ce dépôt (AGENTS.md §1). Le dessiner nous-mêmes aurait voulu
+> dire en livrer un.
+>
+> **Le jeton ne passe pas par notre JavaScript.** `ux_mode: "redirect"` fait
+> poster l'`id_token` par le script de Google directement sur
+> `/api/auth/google` ; l'échange et le cookie de session se font côté serveur.
+> C'est la même règle que le formulaire email, qui passe par une Server Action
+> pour cette raison exacte (`architecture.md` §5). Le prix est une ligne de plus
+> dans la console Google : cette URL doit être enregistrée comme *redirect URI*,
+> là où le mode callback ne demande que l'origine. Documenté dans `.env.example`,
+> parce que l'oubli produit un `redirect_uri_mismatch` au moment précis où
+> quelqu'un choisit son compte.
+>
+> **La vérification CSRF est celle de Google, et elle n'est pas facultative.**
+> Le handler reçoit un POST cross-site sans session et hors Server Action :
+> aucune protection de Next ne s'applique. Le `g_csrf_token` arrive à la fois en
+> cookie et dans le corps ; un formulaire forgé peut porter le champ, pas le
+> cookie. Un test e2e épingle qu'une requête qui ne porte ni l'un ni l'autre ne
+> passe pas en comparant `""` à `""`.
+>
+> **Aucune des deux redirections ne nomme de langue.** Le handler est hors du
+> segment `[locale]` — Google poste sur une URL fixe — et répond sur `/app` ou
+> `/login` sans préfixe, en laissant `proxy.ts` faire la négociation qu'il fait
+> déjà. Deviner depuis `NEXT_LOCALE` aurait été faux précisément quand le cookie
+> est absent, c'est-à-dire la plupart du temps : next-intl ne l'écrit que si la
+> langue choisie diffère de l'`Accept-Language`.
+>
+> **Sans client OAuth, rien n'est dessiné** — pas même la requête vers le script
+> de Google. C'est l'état de ce dépôt, et un test e2e le vérifie dans les deux
+> sens : aucun bouton, aucune requête vers `accounts.google.com`.
+>
+> **Ce bouton ne marche pas sans JavaScript, et c'est honnête.** Le reste de la
+> zone fonctionne sans, parce que Next poste les formulaires à des Server
+> Actions. Ici tout le flux est le script de Google : un `<noscript>` aurait été
+> un bouton qui ne fait rien.
+>
+> 4 tests unitaires sur le rétrécissement du paramètre `?google=`, 2 e2e.
 
 ---
 

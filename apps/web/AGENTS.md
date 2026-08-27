@@ -295,12 +295,11 @@ contorsions.
 
 ## 10. Ce qui n'est pas encore fait
 
-- Google Sign-In (US-03) : `NEXT_PUBLIC_GOOGLE_CLIENT_ID` est documenté, aucun
-  bouton ne le lit.
 - Stripe (ADR 0003) : la page abonnement lit `GET /me/entitlement` et n'ouvre
   aucune session de paiement.
-- `/app` gère les sources, le catalogue et la lecture. Manquent les favoris et
-  les deux rails (S3-08).
+- Google Sign-In (US-03) : le bouton existe sur `/login` et `/register`, et rien
+  n'est dessiné tant que `NEXT_PUBLIC_GOOGLE_CLIENT_ID` est vide — l'état de ce
+  dépôt. Personne ne l'a donc encore vu avec un vrai client OAuth.
 - **La lecture web est directe ou refusée, jamais relayée** (`adr/0007`). Elle ne
   marche donc pas chez tous les fournisseurs, et l`échec est nommé plutôt que
   silencieux — c'est la moitié du travail, pas un détail.

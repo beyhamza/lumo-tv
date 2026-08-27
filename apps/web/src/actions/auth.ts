@@ -3,8 +3,8 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
 import { api, problemCode } from "@/lib/api/client";
-import type { AuthSession, DeviceRegistration } from "@/lib/api/types";
-import type { SessionPayload } from "@/lib/session/cookie";
+import { WEB_DEVICE } from "@/lib/auth/web-device";
+import { sessionFrom } from "@/lib/session/from-auth-session";
 import { safeRedirectTarget } from "@/lib/security/redirect-target";
 import { closeSession, getSession, openSession } from "@/lib/session/session";
 import { routing } from "@/i18n/routing";
@@ -26,20 +26,6 @@ import { routing } from "@/i18n/routing";
 export type AuthFormState = {
   /** Already translated, ready to render. Never a raw API message. */
   error?: string;
-};
-
-/**
- * How this browser identifies itself to the API.
- *
- * The contract requires a device on sign-in and registration
- * (docs/domain-model.md, `device`): a session is bound to one, and that is what
- * lets a user list and revoke their sessions from the account page.
- */
-const WEB_DEVICE: DeviceRegistration = {
-  platform: "WEB",
-  name: "lumo.tv",
-  model: null,
-  app_version: "0.1.0",
 };
 
 /**
@@ -166,22 +152,4 @@ export async function signOut(): Promise<void> {
 
   await closeSession();
   redirect({ href: "/login", locale });
-}
-
-/**
- * Shapes the contract's `AuthSession` into what the cookie stores.
- *
- * The parameter is the contract's type, not a local description of it: a field
- * renamed in openapi.yaml has to fail here, at build time, rather than at the
- * first sign-in after deployment.
- */
-function sessionFrom(authSession: AuthSession): SessionPayload {
-  return {
-    accessToken: authSession.access_token,
-    refreshToken: authSession.refresh_token,
-    accessTokenExpiresAt: Math.floor(Date.now() / 1000) + authSession.expires_in,
-    userId: authSession.user.id,
-    deviceId: authSession.device_id,
-    email: authSession.user.email,
-  };
 }

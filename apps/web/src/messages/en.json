@@ -111,7 +111,8 @@
     "forgotPassword": "Forgotten your password?",
     "toRegister": "Create an account",
     "toLogin": "Sign in",
-    "passwordResetDone": "Your password has been changed. Sign in with the new one."
+    "passwordResetDone": "Your password has been changed. Sign in with the new one.",
+    "orSeparator": "or"
   },
   "VerifyEmail": {
     "metaTitle": "Confirm your email address",
@@ -298,6 +299,7 @@
     "SOURCE_TOO_LARGE": "This playlist is too large to import.",
     "SOURCE_LIMIT_REACHED": "Your plan does not allow one more source.",
     "DEVICE_LIMIT_REACHED": "Your plan does not allow one more device.",
+    "OAUTH_TOKEN_INVALID": "Google sign-in could not be completed. Sign in with your email address instead.",
     "CHANNEL_NOT_FOUND": "This channel does not exist, or no longer does."
   },
   "NotFound": {
