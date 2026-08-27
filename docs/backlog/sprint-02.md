@@ -96,26 +96,21 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S2-10 | Liste des chaînes : catégories, pagination, hors ligne | US-08 | mobile | 8 | 100 % |
 | ☑ | S2-11 | Lecteur mobile | US-09 | mobile | 8 | 100 % |
 | ☑ | S2-12 | Activation TV : code, QR, polling | US-05 | tv | 8 | 100 % |
-| ☐ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 0 % |
+| ☑ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 100 % |
 | ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
 
-**Avancement du sprint : 77 % de 82 points.** **La verticale tient sur le
-téléphone, de bout en bout** : créer un compte, s'y connecter, enregistrer une
-source, la voir s'importer, parcourir ses chaînes, en lancer une. Six des dix
-stories du sprint 1 ont une implémentation complète — US-01, US-02, US-06, US-07,
-US-09, et US-08 pour sa moitié mobile.
+**Avancement du sprint : 86 % de 82 points.** **La verticale tient sur le
+téléphone de bout en bout**, et la télévision sait entrer et parcourir : compte,
+connexion, source, import, chaînes, lecture sur le téléphone ; activation par code
+et grille sur le téléviseur. **Huit des dix stories du sprint 1 ont une
+implémentation complète.**
 
 Aucune Definition of Done n'est atteinte, et aucune ne le sera avant une démo sur
-device réel : personne n'a encore vu ces écrans ailleurs que dans un build. C'est
-la seule chose qui manque au téléphone, et c'est la plus importante.
+appareil réel, télécommande en main pour la partie TV : rien de tout cela n'a été
+vu ailleurs que dans un build. C'est ce qui reste, et c'est le plus important.
 
-**La télévision sait maintenant entrer** : S2-12 ferme US-05, et le téléviseur
-s'active depuis un téléphone sans qu'une seule lettre soit tapée à la télécommande.
-Sept stories sur dix ont une implémentation complète.
-
-Il reste **deux tâches, 13 points** : la grille TV et son parcours de focus
-(S2-13), et le lecteur TV (S2-14). C'est là qu'est le risque restant — le focus,
-l'overscan, et une DoD qui exige une télécommande en main.
+Il reste **une tâche de code, 5 points** : le lecteur TV (S2-14), qui est aussi ce
+qui donnera un sens à la touche OK sur la grille.
 
 S2-03 est à 83 % sans que le sprint 2 y ait touché : le banc d'essai est la seule
 tâche partagée avec le sprint 3, et c'est le web qui en a eu besoin le premier.
@@ -724,7 +719,37 @@ intervention** — l'utilisateur, lui, est peut-être encore devant son téléph
 
 ---
 
-### S2-13 — Accueil et grille TV · **8** · ferme US-08
+### S2-13 — Accueil et grille TV · **8** · ferme US-08 · ☑
+
+> **Livré, et la carte du parcours de focus avec** —
+> [`design/tv-focus-map.md`](../design/tv-focus-map.md), un document par surface :
+> ce qui a le focus à l'arrivée, et où mène chaque direction depuis chaque zone.
+> C'est le livrable qui évite le défaut le plus courant des applications TV, et il
+> ne plante jamais quand il manque : il se découvre une télécommande à la main,
+> souvent après publication.
+>
+> **Une grille paginée plutôt qu'un rail par catégorie**, et c'est un vrai choix.
+> Les rails ressemblent davantage à une télévision, mais un rail plafonne ce qu'il
+> contient — et un rail plafonné est un rail dont la huit-centième chaîne est
+> inatteignable. La bande de catégories choisit l'étagère, la grille parcourt
+> **tout** ce qu'elle contient.
+>
+> **Le focus arrive sur la première chaîne, pas sur les catégories.** Quelqu'un qui
+> allume sa télévision veut une chaîne ; l'étagère où il est déjà est la bonne.
+> Atteindre les catégories coûte un `UP` ; l'inverse aurait coûté un `DOWN` plus une
+> décision que personne n'a demandée.
+>
+> **Deux lignes, pas trois.** Avec des cartes assez grandes pour être lues à trois
+> mètres, la troisième tombe sous la marge d'overscan sur une dalle 1080p — et une
+> ligne que personne ne voit est une ligne que personne ne focalise.
+>
+> **Une carte de remplacement n'est pas focalisable.** Paging dessine les fenêtres
+> non chargées à la bonne taille pour que la grille garde sa forme ; focalisables,
+> elles feraient s'arrêter la D-pad sur des culs-de-sac qui apparaissent et
+> disparaissent au défilement.
+>
+> **La touche OK ne fait rien pour l'instant, délibérément.** `S2-14` met un lecteur
+> derrière ; un demi-lecteur posé ici aurait été à défaire.
 
 Rails horizontaux, pas des listes verticales. Le focus est le curseur : il combine
 échelle, bordure et élévation, jamais une simple variation de couleur, indistinguable

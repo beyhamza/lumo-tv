@@ -41,7 +41,12 @@ fun LumoTvNavHost(
         onboardingTvScreen()
         authTvScreen()
         sourceTvScreen()
-        liveTvScreen()
+        liveTvScreen(
+            // `S2-14` puts a player behind this. Until then the grid is
+            // navigable and OK does nothing — deliberately nothing, rather
+            // than a half-built player that would have to be unpicked.
+            onPlay = { _, _ -> },
+        )
         vodTvScreen()
         seriesTvScreen()
         searchTvScreen()

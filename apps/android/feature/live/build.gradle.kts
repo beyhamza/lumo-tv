@@ -20,6 +20,10 @@ dependencies {
     // whole catalogue: fifteen thousand channels is an ordinary source (US-08).
     implementation(libs.androidx.paging.compose)
 
+    // The television surface draws with androidx.tv: its components carry focus
+    // states and the phone library's do not (AGENTS.md §6).
+    implementation(libs.androidx.tv.material)
+
     // Channel logos, and nothing else. They are the ones the user's own playlist
     // advertises; Lumo ships no artwork of its own (AGENTS.md §1).
     implementation(libs.coil.compose)

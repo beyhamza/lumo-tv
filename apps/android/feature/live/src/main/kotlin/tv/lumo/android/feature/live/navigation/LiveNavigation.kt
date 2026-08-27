@@ -45,7 +45,13 @@ fun NavGraphBuilder.livePlayerMobileScreen(onBack: () -> Unit) {
     }
 }
 
-/** The television plays through its own screen (US-10, `S2-14`). */
-fun NavGraphBuilder.liveTvScreen() {
-    composable(route = LiveDestination.route) { LiveTvScreen() }
+/**
+ * The television's grid (S2-13).
+ *
+ * `onPlay` is the same callback as the phone's and carries the same two values.
+ * What it opens differs: `S2-14` gives the television its own player, because a
+ * screen driven by a remote is not a screen driven by a thumb.
+ */
+fun NavGraphBuilder.liveTvScreen(onPlay: (channelId: String, name: String?) -> Unit) {
+    composable(route = LiveDestination.route) { LiveTvScreen(onPlay = onPlay) }
 }

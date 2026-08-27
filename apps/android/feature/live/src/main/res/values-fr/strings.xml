@@ -12,6 +12,7 @@
     <string name="feature_live_all_categories">Toutes</string>
     <string name="feature_live_category_count">%1$s (%2$d)</string>
 
+    <string name="feature_live_tv_loading">Chargement de vos chaînes…</string>
     <string name="feature_live_offline">Depuis votre appareil</string>
     <string name="feature_live_refresh">Actualiser</string>
     <string name="feature_live_refresh_failed">Serveur injoignable. La liste ci-dessous est celle déjà présente sur votre appareil.</string>

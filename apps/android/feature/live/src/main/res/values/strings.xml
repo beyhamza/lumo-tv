@@ -25,6 +25,7 @@
       state rather than a failure — but a catalogue silently a week old is the
       failure nobody can diagnose, so it is said.
     -->
+    <string name="feature_live_tv_loading">Loading your channels…</string>
     <string name="feature_live_offline">From your device</string>
     <string name="feature_live_refresh">Refresh</string>
     <string name="feature_live_refresh_failed">Could not reach the server. The list below is the one already on your device.</string>

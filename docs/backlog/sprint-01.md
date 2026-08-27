@@ -26,7 +26,7 @@ doc mise à jour si un comportement observable change · démo faite sur device 
 
 ---
 
-## État au 27 août 2026 — **sprint 1 non clos, ~84 %**
+## État au 27 août 2026 — **sprint 1 non clos, ~86 %**
 
 **Convention de suivi, valable pour tous les sprints.** Une case par tâche, et un
 pourcentage dès que l'avancement est partiel. Le pourcentage mesure
@@ -44,11 +44,11 @@ story finie sont deux états différents.
 | ☐ | US-05 Activer une TV | 100 % | rien : code, QR, polling à l'intervalle du serveur, et renouvellement sans intervention. Reste la démo sur device réel (DoD) | ☐ |
 | ☐ | US-06 Source Xtream | 100 % | rien : formulaire, suivi de l'import, chaînes comptées, date d'expiration, et une sortie par erreur. Reste la démo sur device réel (DoD) | ☐ |
 | ☐ | US-07 Playlist M3U | 100 % | idem. Le banc d'essai couvre cinq de ses six chemins (S2-03) | ☐ |
-| ☐ | US-08 Chaînes par catégorie | **80 %** | l'écran mobile est là (S2-10) ; la grille TV et son parcours de focus non (S2-13) | ☐ |
+| ☐ | US-08 Chaînes par catégorie | 100 % | rien : les deux écrans existent, et la carte du parcours de focus avec. Reste la démo, télécommande en main (DoD) | ☐ |
 | ☐ | US-09 Lecture mobile | 100 % | rien : lecture, plein écran, rotation sans coupure, et deux erreurs nommées. Reste la démo sur device réel (DoD) | ☐ |
 | ☐ | US-10 Lecture TV | **33 %** | tout le client TV | ☐ |
 
-**~84 % des 63 points**, et **0 story sur 10** au sens de la Definition of Done.
+**~86 % des 63 points**, et **0 story sur 10** au sens de la Definition of Done.
 
 Le serveur tient la verticale entière. Le web couvre l'inscription, la connexion
 et l'activation. **Les deux applications Android sont des placeholders de bout en
