@@ -4,12 +4,17 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import tv.lumo.android.core.auth.SessionManager
 import tv.lumo.android.core.auth.SessionTokens
+import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.internal.ApiCaller
 import tv.lumo.android.core.data.internal.DeviceDescriber
 import tv.lumo.android.core.data.map
 import tv.lumo.android.network.generated.api.AuthApi
 import tv.lumo.android.network.generated.model.AuthSession
+import tv.lumo.android.network.generated.model.DeviceCodeRequest
+import tv.lumo.android.network.generated.model.DeviceCodeResponse
+import tv.lumo.android.network.generated.model.DeviceTokenRequest
+import tv.lumo.android.network.generated.model.ErrorCode
 import tv.lumo.android.network.generated.model.Locale
 import tv.lumo.android.network.generated.model.LoginRequest
 import tv.lumo.android.network.generated.model.RegisterRequest
@@ -112,6 +117,106 @@ class AuthRepository @Inject internal constructor(
 
         return result.map { session.open(it.asTokens()) }
     }
+
+    /**
+     * Asks for a code the television can show (US-05, RFC 8628).
+     *
+     * The whole flow exists so that nobody types an email and a password on a
+     * remote control — the first place people give up on a TV application. The
+     * `device_code` in the answer is the television's secret and is polled with;
+     * the `user_code` is the short one on screen.
+     */
+    suspend fun requestDeviceCode(): LumoResult<DeviceCodeResponse> {
+        val registration = device.registration()
+
+        return calls.call {
+            api.requestDeviceCode(
+                DeviceCodeRequest(
+                    platform = registration.platform,
+                    name = registration.name,
+                    model = registration.model,
+                    appVersion = registration.appVersion,
+                ),
+            )
+        }
+    }
+
+    /**
+     * One poll, translated into what the television should do next.
+     *
+     * **`AUTHORIZATION_PENDING` is the nominal answer**, not a failure. It is what
+     * comes back for every poll until somebody approves on their phone, and a
+     * client that showed it as an error would put a red message on a screen where
+     * nothing is wrong — which is most of the time this screen is on display.
+     *
+     * The session is opened here on approval, exactly as for a sign-in: this is
+     * the only place a session is opened, and the television's activation is the
+     * fourth road that ends here.
+     */
+    suspend fun pollDeviceToken(deviceCode: String): DevicePoll {
+        val result = calls.call {
+            api.pollDeviceToken(DeviceTokenRequest(deviceCode = deviceCode))
+        }
+
+        return when (result) {
+            is LumoResult.Success -> {
+                session.open(result.value.asTokens())
+                DevicePoll.Approved
+            }
+
+            is LumoResult.Failure -> result.error.asPoll()
+        }
+    }
+}
+
+/**
+ * What one poll means, in RFC 8628's vocabulary.
+ *
+ * A type of its own rather than a raw [LumoError] because three of these are not
+ * errors at all: two say "keep going" and one says "start over". Handing a screen
+ * an error object and trusting it to know which is which is how a pending
+ * authorization ends up rendered in red.
+ */
+sealed interface DevicePoll {
+
+    /** Approved. The session is already open; nothing else to do. */
+    data object Approved : DevicePoll
+
+    /** Nobody has approved yet. Poll again at the same interval. */
+    data object Pending : DevicePoll
+
+    /** Polling too fast. RFC 8628 says add five seconds, and keep going. */
+    data object SlowDown : DevicePoll
+
+    /** The user refused on their phone. Stop, and say so. */
+    data object Denied : DevicePoll
+
+    /**
+     * The code is no longer usable — expired, or unknown to the server.
+     *
+     * The television asks for a new one and shows it **without anyone doing
+     * anything**: the person who walked away to fetch their phone is not there to
+     * press a button, and a screen showing a dead code is a screen that has
+     * stopped working without saying so.
+     */
+    data object NeedsNewCode : DevicePoll
+
+    /** Something else. The screen keeps its code and waits. */
+    data class Unavailable(val error: LumoError) : DevicePoll
+}
+
+private fun LumoError.asPoll(): DevicePoll = when (this) {
+    // A poll that never left the device is not a refusal. The code on screen is
+    // still valid, and the next attempt may well succeed.
+    is LumoError.Offline -> DevicePoll.Unavailable(this)
+    is LumoError.Api -> when (code) {
+        ErrorCode.AUTHORIZATION_PENDING -> DevicePoll.Pending
+        ErrorCode.SLOW_DOWN -> DevicePoll.SlowDown
+        ErrorCode.ACCESS_DENIED -> DevicePoll.Denied
+        ErrorCode.EXPIRED_TOKEN, ErrorCode.DEVICE_CODE_NOT_FOUND -> DevicePoll.NeedsNewCode
+        else -> DevicePoll.Unavailable(this)
+    }
+    is LumoError.UnknownCode, is LumoError.Unreadable -> DevicePoll.Unavailable(this)
 }
 
 private fun AuthSession.asTokens() = SessionTokens(

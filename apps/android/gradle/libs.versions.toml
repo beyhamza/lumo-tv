@@ -59,6 +59,10 @@ moshi = "1.15.2"
 # user's own playlist advertises (`tvg-logo`); Lumo ships no artwork of its own
 # (AGENTS.md §1). Coil shares the OkHttp stack rather than opening a second one.
 coil = "3.0.4"
+# QR encoding for the television's activation code (US-05). Pure Java, no
+# camera, no Android dependency: it produces a matrix of bits and the screen
+# draws it on a Canvas.
+zxing = "3.5.3"
 kotlinxCoroutines = "1.11.0"
 
 # ---- Test -------------------------------------------------------------------
@@ -127,6 +131,8 @@ moshi-kotlin = { module = "com.squareup.moshi:moshi-kotlin", version.ref = "mosh
 
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }

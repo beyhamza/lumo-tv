@@ -49,4 +49,25 @@
     <string name="feature_auth_error_device_limit">Your plan does not allow another device. Unlink one from your account, or move to a larger plan.</string>
     <string name="feature_auth_error_offline">No connection. Your details were not sent.</string>
     <string name="feature_auth_error_unexpected">Something went wrong. Please try again.</string>
+
+    <!--
+      Activating a television from a phone (US-05). Read from three metres,
+      often by somebody standing up, so the wording is short and the code is the
+      largest thing on the panel.
+    -->
+    <string name="feature_auth_tv_preparing">Preparing…</string>
+    <string name="feature_auth_tv_title">Sign in from your phone</string>
+    <string name="feature_auth_tv_instruction">Scan the code, or go to %1$s and enter the code below.</string>
+    <!--
+      Says that waiting is the normal state. Every poll comes back "not yet" until
+      somebody approves, and a screen that showed that as an error would be red
+      almost all of the time it is on display.
+    -->
+    <string name="feature_auth_tv_waiting">Waiting for your approval…</string>
+
+    <string name="feature_auth_tv_denied_title">Activation refused</string>
+    <string name="feature_auth_tv_denied_body">The request was declined on your phone. Restart the application to try again.</string>
+
+    <string name="feature_auth_tv_unavailable_title">Cannot reach Lumo</string>
+    <string name="feature_auth_tv_unavailable_body">No activation code could be obtained. Check this television\'s connection, then restart the application.</string>
 </resources>

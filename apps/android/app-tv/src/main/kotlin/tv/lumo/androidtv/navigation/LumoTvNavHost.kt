@@ -6,10 +6,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.data.AppStart
+import tv.lumo.android.feature.auth.AuthDestination
 import tv.lumo.android.feature.auth.navigation.authTvScreen
 import tv.lumo.android.feature.live.LiveDestination
 import tv.lumo.android.feature.live.navigation.liveTvScreen
-import tv.lumo.android.feature.onboarding.OnboardingDestination
 import tv.lumo.android.feature.onboarding.navigation.onboardingTvScreen
 import tv.lumo.android.feature.search.navigation.searchTvScreen
 import tv.lumo.android.feature.series.navigation.seriesTvScreen
@@ -57,17 +57,16 @@ fun LumoTvNavHost(
  * (docs/architecture.md §5), which is why the product has a device-code flow at
  * all: the set shows a code, the phone approves it (US-05).
  *
- * That screen does not exist yet — `S2-12` builds it — so this still points at
- * the onboarding placeholder. The difference is that the reason is now written
- * down and lives on one line, instead of being a hard-coded start destination
- * that looked like a decision nobody had made.
+ * `S2-12` built that screen, and this is where it is reached: the television
+ * surface of `feature:auth` is the activation, not a sign-in form. Onboarding
+ * keeps its placeholder and stops being the way in.
  *
  * @return null while the session is still being read; the caller must not
  * compose the graph yet.
  */
 fun tvStartRoute(start: AppStart): String? = when (start) {
     AppStart.Loading -> null
-    AppStart.SignedOut -> OnboardingDestination.route
+    AppStart.SignedOut -> AuthDestination.route
     // A source is registered on the phone, in practice — but a television that
     // opens on an empty catalogue with no explanation is worse than one that
     // says what is missing, and the source screen is where that is said.

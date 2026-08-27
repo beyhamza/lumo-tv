@@ -95,11 +95,11 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S2-09 | États de la source : validation, succès, quatre erreurs | US-06, US-07 | mobile | 5 | 100 % |
 | ☑ | S2-10 | Liste des chaînes : catégories, pagination, hors ligne | US-08 | mobile | 8 | 100 % |
 | ☑ | S2-11 | Lecteur mobile | US-09 | mobile | 8 | 100 % |
-| ☐ | S2-12 | Activation TV : code, QR, polling | US-05 | tv | 8 | 0 % |
+| ☑ | S2-12 | Activation TV : code, QR, polling | US-05 | tv | 8 | 100 % |
 | ☐ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 0 % |
 | ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
 
-**Avancement du sprint : 67 % de 82 points.** **La verticale tient sur le
+**Avancement du sprint : 77 % de 82 points.** **La verticale tient sur le
 téléphone, de bout en bout** : créer un compte, s'y connecter, enregistrer une
 source, la voir s'importer, parcourir ses chaînes, en lancer une. Six des dix
 stories du sprint 1 ont une implémentation complète — US-01, US-02, US-06, US-07,
@@ -109,9 +109,13 @@ Aucune Definition of Done n'est atteinte, et aucune ne le sera avant une démo s
 device réel : personne n'a encore vu ces écrans ailleurs que dans un build. C'est
 la seule chose qui manque au téléphone, et c'est la plus importante.
 
-**La télévision est entièrement devant nous** : trois tâches, 21 points, et c'est
-là que se trouve le risque restant — la D-pad, le focus, l'overscan, et une
-activation par code qu'aucune ligne n'a encore.
+**La télévision sait maintenant entrer** : S2-12 ferme US-05, et le téléviseur
+s'active depuis un téléphone sans qu'une seule lettre soit tapée à la télécommande.
+Sept stories sur dix ont une implémentation complète.
+
+Il reste **deux tâches, 13 points** : la grille TV et son parcours de focus
+(S2-13), et le lecteur TV (S2-14). C'est là qu'est le risque restant — le focus,
+l'overscan, et une DoD qui exige une télécommande en main.
 
 S2-03 est à 83 % sans que le sprint 2 y ait touché : le banc d'essai est la seule
 tâche partagée avec le sprint 3, et c'est le web qui en a eu besoin le premier.
@@ -670,7 +674,44 @@ atteinte, que `PlaybackInfo.max_connections` permet d'expliquer.
 
 ---
 
-### S2-12 — Activation TV · **8** · ferme US-05
+### S2-12 — Activation TV · **8** · ferme US-05 · ☑
+
+> **Livré.** Le code et son QR, très grands, sur la surface TV de `feature:auth` —
+> qui cesse d'être un placeholder. `tvStartRoute(SignedOut)` y mène désormais :
+> une télévision non connectée n'ouvre pas un formulaire, et c'était toute la
+> raison d'être de ce flux.
+>
+> **`AUTHORIZATION_PENDING` est la réponse nominale, et n'est jamais affichée.**
+> C'est ce que renvoie *presque chaque* sondage, aussi longtemps que cet écran est
+> à l'affiche. Un client qui la rendrait mettrait un message rouge sur un écran où
+> rien ne va mal. `DevicePoll` existe pour ça : un type à part plutôt qu'un
+> `LumoError` brut, parce que trois de ces `400` ne sont pas des erreurs — deux
+> disent « continue » et un dit « recommence ».
+>
+> **Le code périmé se remplace sans personne devant l'écran.** L'expiration est vue
+> par le sondage — le serveur répond `EXPIRED_TOKEN` — et non par une horloge à
+> nous : il y a une seule horloge, et c'est la sienne. La personne est partie
+> chercher son téléphone ; il n'y a personne pour appuyer sur quoi que ce soit, et
+> un écran affichant un code mort a cessé de fonctionner sans le dire.
+>
+> **Le QR encode `verification_uri_complete`**, donc le chemin nominal ne comporte
+> aucune saisie : on vise l'écran, on approuve. Le code écrit et l'adresse courte
+> sont le repli, pas le plan. Dessiné sur un Canvas depuis la matrice ZXing —
+> pas d'image, net à n'importe quelle taille — en noir sur blanc, parce qu'inverser
+> un QR pour aller avec un thème sombre coûte aux gens la possibilité de le
+> scanner.
+>
+> **Rien n'est focalisable sur cet écran, et c'est le flux, pas un oubli.** Il n'y
+> a aucun contrôle : on lit, on approuve ailleurs, et le téléviseur avance seul.
+> Ajouter un bouton pour que quelque chose prenne le focus serait ajouter une
+> chose à presser sans raison, sur un écran dont tout l'argument est que la
+> télécommande est le mauvais instrument. Le rail est masqué en déconnecté, donc
+> `BACK` reste ce qu'il est toujours sur une TV : la sortie de l'application.
+>
+> **Une dépendance : ZXing core**, pur Java, sans caméra ni dépendance Android.
+>
+> 7 tests JVM sur les états de sondage, dont un code inconnu qui garde l'écran en
+> attente au lieu de jeter un code peut-être à une approbation près.
 
 Le code à 8 caractères et son QR, très grands, avec l'instruction « rendez-vous sur
 lumo.tv/activate ». Le QR encode `verification_uri_complete`, donc `?code=…` : le
