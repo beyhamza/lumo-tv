@@ -17,7 +17,11 @@ spring:
       enabled: true
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/lumo}
+    # The fallback is the local development database as `docker-compose.yml`
+    # publishes it — port 15432 on the host, chosen so several projects can each
+    # run a Postgres without arguing over 5432. Every deployed environment sets
+    # SPRING_DATASOURCE_URL and never reaches this value.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:15432/lumo}
     username: ${POSTGRES_USER:lumo}
     password: ${POSTGRES_PASSWORD:lumo}
     hikari:
