@@ -380,6 +380,45 @@ test.describe.serial("sources", () => {
     // send the user looking in the wrong place.
     await expect(page.getByText(fr.Errors.SOURCE_INVALID_FORMAT)).toBeVisible();
   });
+
+  test("une playlist au-delà du plafond est refusée sur sa taille", async ({
+    page,
+  }) => {
+    // The sixth path of the bench, and the last one S2-03 was missing.
+    //
+    // What it actually exercises is not "a big file": it is that the API caps
+    // the bytes it READS. The bench sends a few hundred kilobytes of gzip that
+    // expand past two hundred megabytes, which is exactly the case a
+    // Content-Length check would wave through — and the case a hostile panel
+    // produces on purpose.
+    //
+    // The free plan allows ONE source and the previous test left one behind.
+    // This suite is a chained narrative against a single account, so a test that
+    // registers a source has to make room first — the ceiling is the product's,
+    // and the test bends rather than the plan.
+    await page.goto("/fr/app/sources");
+    await page.getByRole("link", { name: "Page HTML" }).click();
+    await page.getByRole("link", { name: fr.App.sourceDelete }).click();
+    await page.getByRole("button", { name: fr.App.sourceDeleteConfirm }).click();
+    await expect(page.getByText(fr.App.sourcesEmpty)).toBeVisible();
+
+    await page.goto("/fr/app/sources/new");
+
+    await page.getByLabel(fr.App.sourceLabelLabel).fill("Trop volumineuse");
+    await page
+      .getByLabel(fr.App.sourceM3uUrlLabel)
+      .fill("http://bench/oversized.m3u");
+    await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+
+    await expect(page.getByText(fr.App.sourceErrorTitle)).toBeVisible({
+      // The same budget as its neighbours, and it turns out to be plenty:
+      // decoding and walking two hundred megabytes costs the API about a
+      // second. Cheap, because the parser skips comment lines without
+      // allocating — which is exactly why the fixture is comment lines.
+      timeout: 30_000,
+    });
+    await expect(page.getByText(fr.Errors.SOURCE_TOO_LARGE)).toBeVisible();
+  });
 });
 
 

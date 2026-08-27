@@ -15,17 +15,44 @@ Gherkin font foi. Un cas rouge bloque la Definition of Done de sa story.
 Sans ces quatre points, la recette n'est pas exécutable — et surtout, la moitié
 « erreurs » ne l'est pas du tout.
 
-**Le banc d'essai des sources (S2-03) tourne.** C'est lui qui permet de provoquer un
-refus d'identifiants ou une playlist vide. Six chemins sont attendus :
+**Le banc d'essai des sources (S2-03) tourne, et le téléphone l'atteint.** C'est lui
+qui permet de provoquer un refus d'identifiants, une playlist vide ou une réponse
+hors plafond. Six chemins, et les six sont servis :
 
-| Chemin | Sert à | Code attendu |
-|---|---|---|
-| playlist valide | R-20, R-30 | — |
-| playlist vide | R-32 | `SOURCE_EMPTY` |
-| réponse non M3U | R-31 | `SOURCE_INVALID_FORMAT` |
-| panel Xtream en 401 | R-22 | `SOURCE_AUTH_FAILED` |
-| hôte qui ne répond pas | R-23 | `SOURCE_UNREACHABLE` |
-| réponse hors plafond | R-33 | `SOURCE_TOO_LARGE` |
+| Chemin | URL sur le banc | Sert à | Code attendu |
+|---|---|---|---|
+| playlist valide | `/playlist.m3u` | R-20, R-30 | — |
+| playlist vide | `/empty.m3u` | R-32 | `SOURCE_EMPTY` |
+| réponse non M3U | `/not-a-playlist.html` | R-31 | `SOURCE_INVALID_FORMAT` |
+| panel Xtream en 401 | `/xtream-401/` | R-22 | `SOURCE_AUTH_FAILED` |
+| hôte qui ne répond pas | `192.0.2.1` | R-23 | `SOURCE_UNREACHABLE` |
+| réponse hors plafond | `/oversized.m3u` | R-33 | `SOURCE_TOO_LARGE` |
+
+L'hôte muet n'est pas sur le banc et n'a pas à l'être : `192.0.2.1` est TEST-NET-1,
+réservé par la RFC 5737 et routé nulle part. Meilleure reproduction que tout ce qu'un
+conteneur pourrait simuler.
+
+**Le démarrer, avec l'adresse que le téléphone verra :**
+
+```bash
+BENCH_PUBLIC_URL=http://192.168.1.20:18081 LUMO_INGEST_ALLOW_PRIVATE_HOSTS=true docker compose --profile bench --env-file apps/api/.env up -d
+```
+
+Remplacer `192.168.1.20` par l'adresse de la machine **sur le réseau local**. Les deux
+variables répondent à deux problèmes différents, et oublier l'une ou l'autre produit
+une panne qui ne ressemble pas à sa cause :
+
+- **`BENCH_PUBLIC_URL`** est l'adresse écrite dans les URL de flux de la playlist.
+  Sans elle, la playlist nomme `localhost:18081` — qui, depuis un téléphone, est le
+  téléphone. La source s'importe très bien et **aucune chaîne ne se lance**.
+- **`LUMO_INGEST_ALLOW_PRIVATE_HOSTS`** lève le refus des adresses privées. L'API
+  refuse par défaut qu'une source pointe à l'intérieur de son propre réseau — et doit
+  continuer de le refuser en production, où c'est un moyen de cartographier notre
+  infrastructure. Sans elle, le banc sur le réseau local est refusé comme
+  `SOURCE_UNREACHABLE`, ce qui ressemble à un banc éteint.
+
+Le vérifier avant de commencer, depuis le téléphone lui-même, dans un navigateur :
+`http://192.168.1.20:18081/playlist.m3u` doit s'afficher et nommer cinq chaînes.
 
 **Matériel.** Un téléphone Android physique, une box ou un téléviseur Android TV
 physique **avec sa télécommande**. L'émulateur ne vaut que pour un pré-test : il ne

@@ -1,11 +1,11 @@
 #EXTM3U
 #EXTINF:-1 tvg-id="bench.1" tvg-chno="1" group-title="Généralistes",Chaîne 01 FHD
-http://localhost:18081/stream/index.m3u8
+__BENCH_PUBLIC_URL__/stream/index.m3u8
 #EXTINF:-1 tvg-id="bench.2" tvg-chno="2" group-title="Généralistes",Chaîne 02
-http://localhost:18081/stream-nocors/index.m3u8
+__BENCH_PUBLIC_URL__/stream-nocors/index.m3u8
 #EXTINF:-1 tvg-id="bench.3" tvg-chno="3" group-title="Sport",Chaîne 03 HD
-http://localhost:18081/stream/index.m3u8
+__BENCH_PUBLIC_URL__/stream/index.m3u8
 #EXTINF:-1 tvg-id="bench.4" group-title="Sport",Chaîne 04 4K
-http://localhost:18081/stream/index.m3u8
+__BENCH_PUBLIC_URL__/stream/index.m3u8
 #EXTINF:-1,Chaîne 05
-http://localhost:18081/stream/index.m3u8
+__BENCH_PUBLIC_URL__/stream/index.m3u8

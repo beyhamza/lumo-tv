@@ -206,6 +206,13 @@ manque le jour où quelqu'un ajoute « juste un petit proxy ».
 > Les segments portent l'extension `.ts`, que TypeScript et ESLint prenaient pour du
 > code. Exclus dans les deux configurations, avec la raison écrite.
 
+
+> **Suite à S2-03, après coup** : le sixième chemin — la réponse au-delà du
+> plafond — a été ajouté depuis, et le banc a quitté la pile Playwright pour le
+> `docker-compose.yml` de développement, derrière un profil. Il est désormais
+> joignable depuis un téléphone, ce que la recette Android exige. Voir
+> [S2-03](./sprint-02.md).
+
 Reprend **S2-03** et l'étend. Si le sprint 2 l'a déjà fait, cette tâche se limite à
 l'extension et vaut 1 point.
 

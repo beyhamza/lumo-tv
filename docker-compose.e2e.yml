@@ -69,28 +69,17 @@ services:
       # is a way to map our own network. Opened here and nowhere else.
       LUMO_INGEST_ALLOW_PRIVATE_HOSTS: "true"
 
-  # The source test bench. Serves, on fixed paths, the playlists and panel
-  # answers a qualification run needs and cannot get from a real provider:
-  # a valid playlist, an empty one, an HTML page pretending to be one, and a
-  # panel that refuses credentials. See apps/web/e2e/bench/nginx.conf.
+  # The source test bench, defined in docker-compose.yml behind the `bench`
+  # profile. Naming it on the command line — global-setup.ts does — is what
+  # enables that profile, so nothing here has to repeat the service.
   #
-  # Reachable as http://bench from the API container, and only from it: no port
-  # is published, because nothing outside this stack has any business here.
+  # It is published on 18081 by the base file, because the BROWSER has to reach
+  # the streams: the playlist names them by URL and the player opens them
+  # directly (ADR 0007). BENCH_PUBLIC_URL is left at its default, which is
+  # exactly that address seen from this machine.
   bench:
-    image: nginx:1.27-alpine
     container_name: lumo-e2e-bench
     restart: "no"
-    # Published, unlike the rest of the bench, because the BROWSER has to reach
-    # the streams: the playlist names them by URL and the player opens them
-    # directly (ADR 0007). The port is fixed rather than parameterised — the
-    # playlist is a static fixture and has to name a port that will be there.
-    ports:
-      - "18081:80"
-    volumes:
-      - ./apps/web/e2e/bench/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./apps/web/e2e/bench/www:/usr/share/nginx/html:ro
-    networks:
-      - lumo
 
 # ------------------------------------------------------------------ network ---
 #

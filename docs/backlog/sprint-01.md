@@ -43,7 +43,7 @@ story finie sont deux états différents.
 | ☐ | US-04 Session et rotation | **95 %** | les deux surfaces savent maintenant ouvrir une session — le mobile par formulaire, la TV par code (S2-12) — et la chaîne « refresh refusé → reconnexion » est prouvée en test. Reste la survie au redémarrage, qui se vérifie sur un appareil | ☐ |
 | ☐ | US-05 Activer une TV | 100 % | rien : code, QR, polling à l'intervalle du serveur, et renouvellement sans intervention. Reste la démo sur device réel (DoD) | ☐ |
 | ☐ | US-06 Source Xtream | 100 % | rien : formulaire, suivi de l'import, chaînes comptées, date d'expiration, et une sortie par erreur. Reste la démo sur device réel (DoD) | ☐ |
-| ☐ | US-07 Playlist M3U | 100 % | idem. Le banc d'essai couvre cinq de ses six chemins (S2-03) | ☐ |
+| ☐ | US-07 Playlist M3U | 100 % | idem. Le banc d'essai couvre ses six chemins et se laisse joindre depuis un téléphone (S2-03) | ☐ |
 | ☐ | US-08 Chaînes par catégorie | 100 % | rien : les deux écrans existent, et la carte du parcours de focus avec. Reste la démo, télécommande en main (DoD) | ☐ |
 | ☐ | US-09 Lecture mobile | 100 % | rien : lecture, plein écran, rotation sans coupure, et deux erreurs nommées. Reste la démo sur device réel (DoD) | ☐ |
 | ☐ | US-10 Lecture TV | 100 % | rien : lecture plein écran, aucun overlay au repos, barre d'information sur OK et retour positionné sur la chaîne regardée. Reste la démo, télécommande en main (DoD) | ☐ |

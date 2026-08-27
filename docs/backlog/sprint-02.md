@@ -86,7 +86,7 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S2-00 | Aligner les tokens Android sur la charte Spectre | S0-07 | android | 2 | 100 % |
 | ☑ | S2-01 | `core:data` : repositories et erreurs typées | socle | android | 8 | 100 % |
 | ☑ | S2-02 | Navigation pilotée par la session, périmètre réduit | socle | android | 3 | 100 % |
-| ◩ | S2-03 | Banc d'essai des sources | outillage | recette | 3 | **83 %** |
+| ☑ | S2-03 | Banc d'essai des sources | outillage | recette | 3 | 100 % |
 | ☑ | S2-04 | Inscription | US-01 | mobile | 5 | 100 % |
 | ☑ | S2-05 | Connexion par email | US-02 | mobile | 3 | 100 % |
 | ☑ | S2-06 | Connexion Google (Credential Manager) | US-03 | mobile | 5 | 100 % |
@@ -99,7 +99,7 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 100 % |
 | ☑ | S2-14 | Lecteur TV | US-10 | tv | 5 | 100 % |
 
-**Avancement du sprint : 98 % de 82 points.** **Les quinze tâches de code sont
+**Avancement du sprint : 99 % de 82 points.** **Les quinze tâches de code sont
 faites.** La verticale tient de bout en bout sur les deux surfaces : compte,
 connexion — email ou Google —, source, import, chaînes et lecture sur le téléphone ;
 activation par code, grille et lecture sur le téléviseur. **Les dix stories du
@@ -109,10 +109,9 @@ Aucune Definition of Done n'est atteinte, et aucune ne le sera avant une démo s
 appareil réel, télécommande en main pour la partie TV : rien de tout cela n'a été
 vu ailleurs que dans un build. C'est ce qui reste, et c'est le plus important.
 
-Les 2 % qui manquent ne sont pas du code Android : les 30 % de S2-07 se vérifient en
-tuant l'application sur un téléphone, et S2-03 est à 83 % sans que le sprint 2 y ait
-touché — le banc d'essai est la seule tâche partagée avec le sprint 3, et c'est le
-web qui en a eu besoin le premier.
+Le pour cent qui manque n'est pas du code : ce sont les 30 % de S2-07, qui se
+vérifient en tuant l'application sur un téléphone réel. **Les quinze tâches sont
+cochées**, banc d'essai compris, et il n'y a plus rien à écrire avant la recette.
 
 ### Lot serveur — livré, hors périmètre du sprint
 
@@ -290,25 +289,47 @@ tout seul, et mal.
 
 ---
 
-### S2-03 — Banc d'essai des sources · **3** · ◩ **83 %**
+### S2-03 — Banc d'essai des sources · **3** · ☑
 
-> **Construit par le sprint 3**, qui en a eu besoin le premier — c'est la seule
+> **Fermé.** Les six chemins sont servis, et le banc se démarre depuis
+> `docker-compose.yml` — pas seulement depuis la pile Playwright.
+>
+> **Construit par le sprint 3**, qui en a eu besoin le premier : c'est la seule
 > tâche que les deux sprints partagent, et [`S3-01`](./sprint-03.md) l'a reprise
-> et étendue. Le conteneur `bench` (`apps/web/e2e/bench/`) est démarré par
-> `docker-compose.e2e.yml` et sert **cinq des six chemins** ci-dessous, plus deux
-> flux HLS décodables que le sprint 2 n'avait pas demandés.
+> et étendue avec deux flux HLS décodables que le sprint 2 n'avait pas demandés.
 >
-> Le sixième — **la réponse au-delà du plafond de taille** (`SOURCE_TOO_LARGE`) —
-> n'est servi par rien. C'est ce qui reste, et ça vaut environ un demi-point.
+> **Le sixième chemin est un piège intéressant.** Il fallait dépasser un plafond
+> de deux cents mégaoctets ; committer un fichier de cette taille aurait été
+> absurde, et servir deux cents mégaoctets à chaque tentative, pénible. Le banc
+> envoie donc **670 Ko de gzip qui se décompressent en 230 Mo** — et ce n'est pas
+> un raccourci, c'est la reproduction juste : `SizeCappedInputStream` compte les
+> octets qu'il **lit**, précisément parce qu'un corps compressé grossit après que
+> son `Content-Length` a été écrit. C'est aussi ce qu'un panel hostile fait
+> exprès. Le fichier est fabriqué au démarrage du conteneur, pas dans le dépôt.
 >
-> L'hôte muet, lui, est traité et mieux que prévu : `192.0.2.1`, TEST-NET-1
-> réservé par la RFC 5737 et routé nulle part. Meilleure reproduction que tout ce
-> qu'un conteneur pourrait simuler, et sans conteneur.
+> **Le remplissage est fait de commentaires**, et c'est délibéré : le parseur M3U
+> les saute sans rien allouer, donc l'API lit deux cents mégaoctets et n'en garde
+> rien. Avec des entrées de chaîne, le plafond se serait déclenché sur une API qui
+> avait déjà construit cinq millions d'objets en mémoire. Coût mesuré du chemin
+> complet : **une seconde**.
 >
-> Reste à vérifier à l'ouverture de la recette : le banc est démarré par la pile
-> Playwright, pas par `docker-compose.yml`. Une recette Android le veut joignable
-> depuis un téléphone sur le réseau local — ce n'est pas la même adresse que
-> `http://bench` vu depuis le conteneur de l'API.
+> **Le banc est maintenant joignable depuis un téléphone**, ce qui était l'autre
+> moitié de ce qui manquait. Deux choses le bloquaient et aucune ne ressemble à sa
+> cause :
+>
+> - la playlist nommait `localhost:18081` dans ses URL de flux — depuis un
+>   téléphone, `localhost` est le téléphone. Elle est devenue un gabarit, et
+>   `BENCH_PUBLIC_URL` y est substitué au démarrage ;
+> - l'API refuse par défaut qu'une source pointe vers une adresse privée
+>   (`PrivateAddressGuard`), et doit continuer de le refuser en production. Le
+>   passe-plat `LUMO_INGEST_ALLOW_PRIVATE_HOSTS` existe maintenant dans le
+>   `docker-compose.yml` de développement, à `false` sauf demande explicite.
+>
+> Le service est **derrière un profil compose** : `docker compose up -d` un jour
+> ordinaire ne démarre pas d'outillage de recette. La procédure exacte est dans
+> [la recette §1](./sprint-02-recette.md).
+>
+> 1 test e2e de plus — 40 au total.
 
 Sans lui, la recette de US-06 et US-07 n'est pas exécutable : on ne peut pas
 provoquer un refus d'identifiants ou une playlist vide en tapant une vraie URL.
