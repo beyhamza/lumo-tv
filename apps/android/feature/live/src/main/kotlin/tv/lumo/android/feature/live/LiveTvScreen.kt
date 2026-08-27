@@ -16,9 +16,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -85,6 +88,8 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
 fun LiveTvScreen(
     onPlay: (channelId: String, name: String?) -> Unit,
     modifier: Modifier = Modifier,
+    returnedChannelId: String? = null,
+    onReturnHandled: () -> Unit = {},
     viewModel: LiveViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -123,6 +128,8 @@ fun LiveTvScreen(
                 channels = channels,
                 onSelectCategory = viewModel::onCategorySelected,
                 onPlay = onPlay,
+                returnedChannelId = returnedChannelId,
+                onReturnHandled = onReturnHandled,
             )
         }
     }
@@ -134,12 +141,42 @@ private fun Browsing(
     channels: LazyPagingItems<Channel>,
     onSelectCategory: (String?) -> Unit,
     onPlay: (channelId: String, name: String?) -> Unit,
+    returnedChannelId: String?,
+    onReturnHandled: () -> Unit,
 ) {
     // Arrival focus. The grid rather than the category strip: somebody who turns
     // the television on wants a channel, and the shelf they are already on is the
     // right one. Reaching the categories is one `UP` away; reaching a channel from
     // the categories would have been one `DOWN` plus a decision nobody asked for.
-    val firstChannel = remember { FocusRequester() }
+    val focusTarget = remember { FocusRequester() }
+    val gridState = rememberLazyGridState()
+    var focusIndex by remember { mutableIntStateOf(0) }
+
+    // Coming back from the player. US-10 asks for the list to return **positioned
+    // on the channel that was being watched**, and a catalogue of fifteen thousand
+    // that comes back at the top has lost the viewer's place — the ten presses to
+    // get back to where they were are the whole cost of having left.
+    LaunchedEffect(returnedChannelId, channels.itemCount) {
+        val target = returnedChannelId ?: return@LaunchedEffect
+        val index = channels.itemSnapshotList.items.indexOfFirst { it.id == target }
+
+        // Not among the windows Paging currently holds — the list was rebuilt, or
+        // the channel was dropped by a re-synchronisation. The first card keeps
+        // the focus, which is where an arrival would have put it anyway.
+        if (index < 0) return@LaunchedEffect
+
+        focusIndex = index
+        gridState.scrollToItem(index)
+        onReturnHandled()
+    }
+
+    LaunchedEffect(focusIndex, channels.itemCount) {
+        if (channels.itemCount == 0) return@LaunchedEffect
+        // The card may not be composed yet on the frame this runs: an empty grid
+        // or a scroll still settling. Failing to focus is recoverable — the D-pad
+        // still works — and throwing would take the screen down.
+        runCatching { focusTarget.requestFocus() }
+    }
 
     Column(
         modifier = Modifier.padding(LumoSpacing.lg),
@@ -179,6 +216,7 @@ private fun Browsing(
             rows = GridCells.Fixed(2),
             horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+            state = gridState,
             contentPadding = PaddingValues(LumoSpacing.sm),
             modifier = Modifier.fillMaxSize(),
         ) {
@@ -189,8 +227,10 @@ private fun Browsing(
                 ChannelCard(
                     channel = channels[index],
                     onPlay = onPlay,
-                    modifier = if (index == 0) {
-                        Modifier.focusRequester(firstChannel)
+                    // One requester, moved to whichever card is the target: the
+                    // first on arrival, the one just watched on the way back.
+                    modifier = if (index == focusIndex) {
+                        Modifier.focusRequester(focusTarget)
                     } else {
                         Modifier
                     },

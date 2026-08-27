@@ -9,6 +9,9 @@ import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.feature.auth.AuthDestination
 import tv.lumo.android.feature.auth.navigation.authTvScreen
 import tv.lumo.android.feature.live.LiveDestination
+import tv.lumo.android.feature.live.PlayerDestination
+import tv.lumo.android.feature.live.navigation.KEY_RETURNED_CHANNEL
+import tv.lumo.android.feature.live.navigation.livePlayerTvScreen
 import tv.lumo.android.feature.live.navigation.liveTvScreen
 import tv.lumo.android.feature.onboarding.navigation.onboardingTvScreen
 import tv.lumo.android.feature.search.navigation.searchTvScreen
@@ -42,10 +45,20 @@ fun LumoTvNavHost(
         authTvScreen()
         sourceTvScreen()
         liveTvScreen(
-            // `S2-14` puts a player behind this. Until then the grid is
-            // navigable and OK does nothing — deliberately nothing, rather
-            // than a half-built player that would have to be unpicked.
-            onPlay = { _, _ -> },
+            onPlay = { channelId, name ->
+                navController.navigate(PlayerDestination.routeFor(channelId, name))
+            },
+        )
+        livePlayerTvScreen(
+            onBack = { channelId ->
+                // US-10: the grid comes back positioned on the channel that was
+                // being watched. The id is left on the entry underneath before
+                // popping, which is the one moment both entries exist.
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set(KEY_RETURNED_CHANNEL, channelId)
+                navController.popBackStack()
+            },
         )
         vodTvScreen()
         seriesTvScreen()

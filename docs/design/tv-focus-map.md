@@ -79,7 +79,8 @@ reste ce qu'il est toujours sur une TV — la sortie de l'application.
 
 ## Chaînes (`LiveTvScreen`) — l'écran principal
 
-**Focus à l'arrivée : la première carte de la grille.**
+**Focus à l'arrivée : la première carte de la grille — sauf au retour du lecteur,
+où c'est la chaîne qu'on regardait (US-10, voir *Lecteur TV* plus bas).**
 
 Pas la bande de catégories : quelqu'un qui allume sa télévision veut une chaîne, et
 l'étagère où il se trouve déjà est la bonne. Atteindre les catégories coûte un
@@ -140,12 +141,45 @@ vidée : `BACK` ne doit pas ramener dans un compte qui n'existe plus.
 
 ---
 
-## Lecteur TV — `S2-14`, à remplir avec l'écran
+## Lecteur TV (`PlayerTvScreen`)
 
-La ligne à ne pas oublier au moment de l'écrire, parce que c'est le piège classique
-du lecteur TV : **les contrôles s'effacent, et la D-pad doit les rappeler.** Un
-lecteur plein écran sans cible focalisable pendant que les contrôles sont masqués
-est un écran où seul `BACK` répond — le cas que la règle 1 interdit.
+**Focus à l'arrivée : la surface vidéo elle-même.**
+
+C'est le piège classique du lecteur TV : **les contrôles s'effacent, et la D-pad
+doit les rappeler.** Un lecteur plein écran sans cible focalisable pendant que les
+contrôles sont masqués est un écran où seul `BACK` répond — le cas que la règle 1
+interdit. La surface est donc `focusable()` bien qu'elle ne soit pas un contrôle :
+elle ne fait rien d'autre que donner à la télécommande un endroit où être, pour que
+`OK` arrive quelque part.
+
+Au repos, **rien n'est dessiné sur l'image** : ni barre, ni dégradé, ni logo. C'est
+l'écran devant lequel on reste une heure, et tout ce qui est posé sur l'image est
+posé sur ce pour quoi on est venu.
+
+| Depuis | UP/DOWN/LEFT/RIGHT | OK | BACK |
+|---|---|---|---|
+| La surface, au repos | — (rien à atteindre) | ouvre la barre d'information | retour aux chaînes |
+| La surface, barre visible | — | relance les cinq secondes | retour aux chaînes |
+| Bouton *Réessayer* (échec) | — (seule cible) | relance la lecture | retour aux chaînes |
+
+Le rail est masqué sur cette destination, comme sur l'activation et pour une raison
+de plus : c'est une cible focalisable qui disputerait la D-pad à l'image, sur un
+écran qui ne doit écouter que `OK` et `BACK`.
+
+**Cinq secondes d'inactivité, pas cinq secondes.** Chaque appui relance le
+compte à rebours, pour que quelqu'un qui lit lentement le nom de la chaîne ne se le
+fasse pas retirer en cours de phrase.
+
+**`BACK` ramène la grille positionnée sur la chaîne qu'on regardait** (US-10). Le
+lecteur écrit son `channelId` dans le `SavedStateHandle` de l'entrée du dessous
+avant de dépiler ; la grille le lit, y place le focus et l'efface. Sans cela, le
+retour repart en haut d'un catalogue de quinze mille lignes, et la chaîne qu'on
+vient de quitter est la plus difficile à retrouver de toutes.
+
+Deux choses qui se vérifient à la télécommande et nulle part ailleurs : que la barre
+part bien **cinq secondes après le dernier appui** et non après le premier, et que le
+retour tombe sur la bonne carte quand la chaîne regardée était en bas d'une grille
+qu'il a fallu faire défiler.
 
 ---
 

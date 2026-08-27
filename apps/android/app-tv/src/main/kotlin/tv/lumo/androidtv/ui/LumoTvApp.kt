@@ -17,6 +17,7 @@ import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.core.designsystem.component.LumoTvNavRail
 import tv.lumo.android.core.designsystem.theme.LumoColors
+import tv.lumo.android.feature.live.PlayerDestination
 import tv.lumo.androidtv.navigation.LumoTvNavHost
 import tv.lumo.androidtv.navigation.TvDestinations
 import tv.lumo.androidtv.navigation.tvStartRoute
@@ -67,7 +68,12 @@ fun LumoTvApp(
         // thing the D-pad lands on, so an activation screen behind a rail of
         // destinations that all refuse is a screen whose one useful control is
         // the hardest to reach (US-10).
-        if (startState != AppStart.SignedOut) {
+        //
+        // And none over a video. US-10 asks for full screen and for no overlay at
+        // rest, and a rail down the left is both — plus a focus target competing
+        // with the picture for a D-pad that should only be listening for OK and
+        // BACK.
+        if (startState != AppStart.SignedOut && currentRoute != PlayerDestination.route) {
             LumoTvNavRail(
                 destinations = TvDestinations,
                 selectedRoute = currentRoute,

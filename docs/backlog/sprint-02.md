@@ -97,20 +97,20 @@ checklist se met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S2-11 | Lecteur mobile | US-09 | mobile | 8 | 100 % |
 | ☑ | S2-12 | Activation TV : code, QR, polling | US-05 | tv | 8 | 100 % |
 | ☑ | S2-13 | Accueil et grille TV, carte du parcours de focus | US-08 | tv | 8 | 100 % |
-| ☐ | S2-14 | Lecteur TV | US-10 | tv | 5 | 0 % |
+| ☑ | S2-14 | Lecteur TV | US-10 | tv | 5 | 100 % |
 
-**Avancement du sprint : 86 % de 82 points.** **La verticale tient sur le
-téléphone de bout en bout**, et la télévision sait entrer et parcourir : compte,
-connexion, source, import, chaînes, lecture sur le téléphone ; activation par code
-et grille sur le téléviseur. **Huit des dix stories du sprint 1 ont une
-implémentation complète.**
+**Avancement du sprint : 92 % de 82 points.** **La verticale tient de bout en bout
+sur les deux surfaces** : compte, connexion, source, import, chaînes, lecture sur le
+téléphone ; activation par code, grille et lecture sur le téléviseur. **Neuf des dix
+stories du sprint 1 ont une implémentation complète** — il ne manque que la connexion
+Google.
 
 Aucune Definition of Done n'est atteinte, et aucune ne le sera avant une démo sur
 appareil réel, télécommande en main pour la partie TV : rien de tout cela n'a été
 vu ailleurs que dans un build. C'est ce qui reste, et c'est le plus important.
 
-Il reste **une tâche de code, 5 points** : le lecteur TV (S2-14), qui est aussi ce
-qui donnera un sens à la touche OK sur la grille.
+Il reste **une tâche de code, 5 points** : la connexion Google (S2-06), la seule
+story du sprint 1 qui n'ait encore aucune implémentation Android.
 
 S2-03 est à 83 % sans que le sprint 2 y ait touché : le banc d'essai est la seule
 tâche partagée avec le sprint 3, et c'est le web qui en a eu besoin le premier.
@@ -748,8 +748,8 @@ intervention** — l'utilisateur, lui, est peut-être encore devant son téléph
 > elles feraient s'arrêter la D-pad sur des culs-de-sac qui apparaissent et
 > disparaissent au défilement.
 >
-> **La touche OK ne fait rien pour l'instant, délibérément.** `S2-14` met un lecteur
-> derrière ; un demi-lecteur posé ici aurait été à défaire.
+> **La touche OK ouvre le lecteur** depuis `S2-14`, et le lecteur rend le focus sur
+> la chaîne qu'on quitte.
 
 Rails horizontaux, pas des listes verticales. Le focus est le curseur : il combine
 échelle, bordure et élévation, jamais une simple variation de couleur, indistinguable
@@ -763,7 +763,35 @@ qu'aucune séquence de touches n'atteint.
 
 ---
 
-### S2-14 — Lecteur TV · **5** · ferme US-10
+### S2-14 — Lecteur TV · **5** · ferme US-10 · ☑
+
+> **Livré.** État de repos sans aucun overlay, `OK` fait apparaître le nom de la
+> chaîne, `BACK` ramène la grille sur la chaîne qu'on regardait. La carte du parcours
+> de focus a sa section — [`design/tv-focus-map.md`](../design/tv-focus-map.md).
+>
+> **La surface vidéo est focalisable alors qu'elle n'est pas un contrôle.** C'est le
+> piège du lecteur TV : les contrôles s'effacent, et un plein écran sans cible
+> focalisable est un écran où seul `BACK` répond. La surface ne fait rien d'autre que
+> donner à la D-pad un endroit où être, pour que `OK` arrive quelque part.
+>
+> **Cinq secondes d'inactivité, pas cinq secondes.** Chaque appui relance le compte à
+> rebours. La différence ne se voit qu'à la télécommande, et c'est celle entre un nom
+> de chaîne qu'on a le temps de lire et un nom qui disparaît sous le pouce.
+>
+> **Le rail est masqué sur cette destination.** Pour la même raison que sur
+> l'activation, plus une : c'est une cible focalisable qui disputerait la D-pad à
+> l'image.
+>
+> **La position au retour passe par le `SavedStateHandle` de l'entrée du dessous**,
+> écrite au moment de dépiler — le seul instant où les deux entrées existent
+> ensemble. La grille la lit, y place le focus, fait défiler jusqu'à elle et
+> l'efface, pour qu'une visite ultérieure ne rejoue pas le focus d'une visite
+> précédente. Sans cela, `BACK` repart en haut de quinze mille lignes et la chaîne
+> qu'on vient de quitter devient la plus difficile à retrouver de toutes.
+>
+> **Aucun contrôle de transport, et c'est le direct qui le décide** : pas de pause,
+> pas de barre de progression, pas d'avance. Un flux live n'a pas de position à
+> montrer ; les dessiner aurait été promettre des touches qui ne répondent pas.
 
 État de repos sans aucun overlay. OK fait apparaître une barre d'information avec le
 nom de la chaîne, qui disparaît après cinq secondes d'inactivité. BACK revient à la

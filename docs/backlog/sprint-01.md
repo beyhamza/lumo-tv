@@ -46,21 +46,20 @@ story finie sont deux états différents.
 | ☐ | US-07 Playlist M3U | 100 % | idem. Le banc d'essai couvre cinq de ses six chemins (S2-03) | ☐ |
 | ☐ | US-08 Chaînes par catégorie | 100 % | rien : les deux écrans existent, et la carte du parcours de focus avec. Reste la démo, télécommande en main (DoD) | ☐ |
 | ☐ | US-09 Lecture mobile | 100 % | rien : lecture, plein écran, rotation sans coupure, et deux erreurs nommées. Reste la démo sur device réel (DoD) | ☐ |
-| ☐ | US-10 Lecture TV | **33 %** | tout le client TV | ☐ |
+| ☐ | US-10 Lecture TV | 100 % | rien : lecture plein écran, aucun overlay au repos, barre d'information sur OK et retour positionné sur la chaîne regardée. Reste la démo, télécommande en main (DoD) | ☐ |
 
-**~86 % des 63 points**, et **0 story sur 10** au sens de la Definition of Done.
+**~94 % des 63 points**, et **0 story sur 10** au sens de la Definition of Done.
 
 Le serveur tient la verticale entière. Le web couvre l'inscription, la connexion
-et l'activation. **Les deux applications Android sont des placeholders de bout en
-bout** — chaque `*MobileScreen` et `*TvScreen` appelle `LumoMobilePlaceholder` ou
-`LumoTvPlaceholder`. Les couches basses, elles, sont réelles et testées : session
-chiffrée, rotation de token, Room, Media3, design system, navigation.
+et l'activation. **Les deux applications Android tiennent maintenant leur verticale**
+— compte, connexion, source, chaînes et lecture sur le téléphone ; activation par
+code, grille et lecture sur le téléviseur. Il ne reste qu'US-03, la connexion Google,
+sans implémentation Android.
 
-Côté serveur, trois contrôleurs sur six : `auth`, `sources`, `catalog`. `/me`,
-`/me/entitlement`, `/me/devices`, les favoris et la progression n'ont **aucun
-contrôleur** — état figé par `NotImplementedEndpointsTest`, que le web lit comme
-« écran en cours de construction ». Aucune de ces surfaces n'est nécessaire aux dix
-stories ci-dessus.
+Côté serveur, les six contrôleurs existent : `auth`, `sources`, `catalog`, et —
+livrés hors périmètre depuis, voir le lot serveur de
+[`sprint-02.md`](./sprint-02.md) — `account`, `billing`, `userdata`. Le
+`NotImplementedEndpointsTest` qui figeait leur absence a disparu avec elle.
 
 Ce qui reste à faire est décrit dans **[`sprint-02.md`](./sprint-02.md)**, qui ne
 réécrit aucune story : les critères d'acceptation Gherkin de ce document restent la

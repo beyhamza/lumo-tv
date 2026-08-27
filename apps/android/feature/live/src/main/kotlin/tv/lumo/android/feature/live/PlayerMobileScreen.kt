@@ -163,7 +163,7 @@ private fun Failure(
         // Only where it can help. A retry on a channel this device cannot decode,
         // or on a subscription that has expired, costs a wait to learn what the
         // sentence above already said.
-        if (failure.retryable()) {
+        if (failure.isRetryable()) {
             Button(onClick = onRetry) {
                 Text(stringResource(R.string.feature_live_player_retry))
             }
@@ -175,7 +175,14 @@ private fun Failure(
     }
 }
 
-private fun PlayerFailure.retryable(): Boolean = when (this) {
+/**
+ * Whether trying the same thing again can help.
+ *
+ * Shared by both surfaces, because the answer is a property of the failure and
+ * not of the screen: a stream this device cannot decode will not decode on the
+ * second press, on a phone or on a television.
+ */
+internal fun PlayerFailure.isRetryable(): Boolean = when (this) {
     is PlayerFailure.Unreachable -> retryable
     // Worth one more try: something else may have stopped playing since.
     is PlayerFailure.TooManyStreams -> true
