@@ -96,9 +96,16 @@ décision que personne n'a demandée**.
 **La bande porte les groupes de favoris depuis `S4-06`, et ce tableau n'a pas
 bougé.** C'est le résultat qu'on espérait et il a été vérifié ligne à ligne, pas
 supposé : un groupe filtre la grille exactement comme une catégorie, donc sa puce
-se comporte comme une puce. Ordre de la bande : **Toutes · [groupes] · [catégories
-de la source]**, séparés par un intervalle et non par un libellé de section — la
-bande n'a pas la hauteur d'une ligne de titres.
+se comporte comme une puce. Ordre de la bande : **Toutes · Repris · [groupes] ·
+[catégories de la source]**, les deux derniers blocs séparés par un intervalle et
+non par un libellé de section — la bande n'a pas la hauteur d'une ligne de titres.
+
+**« Repris » est la puce des chaînes vues récemment** (`S4-08`), en deuxième
+position parce que c'est ce vers quoi quelqu'un qui allume sa télévision tend le
+plus souvent — et la seule étagère qu'il n'a pas eu à construire. Elle n'apparaît
+pas tant que rien n'a été regardé. C'est aussi la forme retenue contre le *rail*
+que décrivait [`api-gaps.md`](./api-gaps.md) M5 : le rail se défendait sur le fond,
+mais il aurait ouvert un second mécanisme sur un écran qui en a déjà un.
 
 **Un groupe vide n'a pas de puce.** Filtrer sur rien produit une grille blanche au
 bout d'un `OK`, ce qui à trois mètres ressemble à une panne et pas à une étagère

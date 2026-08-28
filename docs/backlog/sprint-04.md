@@ -201,10 +201,10 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S4-05 | Mobile : organiser — renommer, supprimer, déplacer, réordonner | mobile | mobile | 3 | 100 % |
 | ☑ | S4-06 | TV : les groupes dans la bande de puces | tv | tv | 5 | 100 % |
 | ☑ | S4-07 | TV : mettre en favori sans quitter la grille | tv | tv | 3 | 100 % |
-| ☐ | S4-08 | TV : les chaînes récemment regardées, et la divergence M5 tranchée | tv | tv | 3 | 0 % |
+| ☑ | S4-08 | TV : les chaînes récemment regardées, et la divergence M5 tranchée | tv | tv | 3 | 100 % |
 | ☐ | S4-09 | Web : organiser ses groupes | web | web | 3 | 0 % |
 
-**Avancement du sprint : 84 % de 38 points.** **Le téléphone est fini** : un cœur sur
+**Avancement du sprint : 92 % de 38 points.** **Le téléphone est fini** : un cœur sur
 chaque chaîne, un onglet Favoris par groupe, et de quoi renommer, supprimer,
 déplacer et réordonner. La télévision sait afficher les groupes. Restent S4-07,
 S4-08 et le web.
@@ -557,7 +557,28 @@ action sans retour visible est une action dont on ne sait pas si elle a eu lieu.
 
 ---
 
-### S4-08 — TV : les chaînes récemment regardées · **3**
+### S4-08 — TV : les chaînes récemment regardées · **3** · ☑
+
+> **Livré, et la divergence M5 est tranchée** — dans le sens proposé ci-dessous :
+> une puce « Repris », deuxième de la bande, et non un rail.
+> [`api-gaps.md`](../design/api-gaps.md) M5 est corrigé pour décrire ce qui existe,
+> avec la raison : le rail se défendait sur le fond — l'objection du plafond ne
+> s'applique pas à une liste que le serveur garde courte — mais il aurait ouvert un
+> **second mécanisme** sur un écran qui en a déjà un.
+>
+> **Ce qui manquait n'était que la lecture.** `PlaybackRepository.recordWatched`
+> écrit dans cette fenêtre depuis `S2-11`, à chaque démarrage de lecture. Personne
+> n'appelait jamais `GET /me/recent-channels` : la liste existait sur le serveur et
+> n'apparaissait sur aucun écran.
+>
+> **Un refactor que la tâche a rendu nécessaire.** Les favoris et les récents ont
+> la même forme — des identifiants et rien d'autre — donc la même résolution par
+> `?ids=`. Écrite deux fois, c'était deux fois le même piège, et le piège n'est pas
+> le plafond à 100 mais le `size` par défaut à 50, qui répond à moitié avec un
+> `200`. `ChannelResolver` l'écrit une fois, pour les deux.
+>
+> Migration Room `3 → 4`, vérifiée contre le `4.json` généré. **122 tests verts**,
+> `lint` et `assembleDebug` propres.
 
 `SRV-06` a livré la table, la fenêtre glissante et les deux endpoints il y a un
 sprint. **Personne ne les appelle**, sur aucune des deux applications Android.

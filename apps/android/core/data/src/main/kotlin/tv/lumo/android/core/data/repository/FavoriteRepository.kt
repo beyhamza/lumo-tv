@@ -11,16 +11,15 @@ import tv.lumo.android.core.common.di.Dispatcher
 import tv.lumo.android.core.common.di.LumoDispatcher
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.internal.ApiCaller
+import tv.lumo.android.core.data.internal.ChannelResolver
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
-import tv.lumo.android.core.database.dao.ChannelDao
 import tv.lumo.android.core.database.dao.FavoriteDao
 import tv.lumo.android.core.database.model.ChannelEntity
 import tv.lumo.android.core.database.model.FavoriteChannelRow
 import tv.lumo.android.core.database.model.FavoriteEntity
 import tv.lumo.android.core.database.model.FavoriteGroupEntity
-import tv.lumo.android.network.generated.api.CatalogApi
 import tv.lumo.android.network.generated.api.UserdataApi
 import tv.lumo.android.network.generated.model.AddFavoriteRequest
 import tv.lumo.android.network.generated.model.CreateFavoriteGroupRequest
@@ -69,10 +68,9 @@ import tv.lumo.android.network.generated.model.FavoriteGroup as ApiFavoriteGroup
 @Singleton
 class FavoriteRepository @Inject internal constructor(
     private val api: UserdataApi,
-    private val catalog: CatalogApi,
     private val calls: ApiCaller,
     private val favoriteDao: FavoriteDao,
-    private val channelDao: ChannelDao,
+    private val resolver: ChannelResolver,
     @Dispatcher(LumoDispatcher.IO) private val io: CoroutineDispatcher,
 ) {
 
@@ -248,52 +246,17 @@ class FavoriteRepository @Inject internal constructor(
     /**
      * Fetches the channels that favourites point at and this device does not hold.
      *
-     * One call per source per chunk of [ID_CHUNK]. Two details are load-bearing
-     * and neither is obvious:
+     * Delegated to [ChannelResolver] because the recently watched window needs the
+     * same thing, and the chunking it does is a trap that would have been written
+     * correctly once and wrongly the second time.
      *
-     * - **`size` is sent explicitly.** The default page is 50, so a chunk of 100
-     *   identifiers would come back half answered, with a `200` and no clue that
-     *   anything was missing.
-     * - **A failure here is not a failed refresh.** The groups and the favourites
-     *   are already written; what is missing is the readable name of a favourite
-     *   whose source has never been synchronised on this device. The next refresh,
-     *   or the next catalogue synchronisation, resolves it. Failing the whole call
-     *   would put an error in front of somebody whose favourites are perfectly
-     *   fine.
+     * Always a success: the groups and the favourites are already written by now,
+     * and what is missing is only the readable name of a favourite whose source has
+     * never been synchronised here.
      */
     private suspend fun resolveMissingChannels(): LumoResult<Unit> {
-        val missing = favoriteDao.unresolvedFavorites()
-        if (missing.isEmpty()) return LumoResult.Success(Unit)
-
-        val resolved = mutableListOf<ChannelEntity>()
-        for ((sourceId, channelIds) in missing.groupBy({ it.sourceId }, { it.channelId })) {
-            for (chunk in channelIds.chunked(ID_CHUNK)) {
-                val page = calls.call {
-                    catalog.listChannels(
-                        id = UUID.fromString(sourceId),
-                        ids = chunk.map(UUID::fromString),
-                        size = ID_CHUNK,
-                    )
-                }
-                if (page is LumoResult.Failure) return LumoResult.Success(Unit)
-                resolved += (page as LumoResult.Success).value.items.map(ApiChannel::asEntity)
-            }
-        }
-
-        // Upserted, not replaced: these are genuine channels of that source, and
-        // wiping the source's cache to add them would empty a catalogue in order
-        // to name a favourite.
-        channelDao.upsert(resolved)
+        resolver.resolve(favoriteDao.unresolvedFavorites().map { it.sourceId to it.channelId })
         return LumoResult.Success(Unit)
-    }
-
-    private companion object {
-        /**
-         * The contract's cap on `?ids=`, and the reason this repository chunks at
-         * all. Sending more is a `400`; sending exactly this and forgetting `size`
-         * is worse, because it succeeds.
-         */
-        const val ID_CHUNK = 100
     }
 }
 

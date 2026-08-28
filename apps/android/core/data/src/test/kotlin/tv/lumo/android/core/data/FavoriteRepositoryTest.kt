@@ -17,6 +17,7 @@ import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import tv.lumo.android.core.data.internal.ApiCaller
+import tv.lumo.android.core.data.internal.ChannelResolver
 import tv.lumo.android.core.data.internal.ProblemReader
 import tv.lumo.android.core.data.repository.FavoriteRepository
 import tv.lumo.android.core.database.dao.ChannelDao
@@ -211,12 +212,17 @@ class FavoriteRepositoryTest {
 
     private fun repository() = FavoriteRepository(
         api = userdata,
-        catalog = catalog,
-        calls = ApiCaller(ProblemReader(Serializer.moshiBuilder.build())),
+        calls = calls(),
         favoriteDao = favoriteDao,
-        channelDao = channelDao,
+        resolver = ChannelResolver(
+            catalog = catalog,
+            calls = calls(),
+            channelDao = channelDao,
+        ),
         io = UnconfinedTestDispatcher(),
     )
+
+    private fun calls() = ApiCaller(ProblemReader(Serializer.moshiBuilder.build()))
 
     private fun json(body: String) = MockResponse().setResponseCode(200).setBody(body)
 

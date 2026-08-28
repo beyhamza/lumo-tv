@@ -72,4 +72,10 @@
       service; it says what holding OK does, since nothing on the card can.
     -->
     <string name="feature_live_tv_favorite_hint">Hold OK to choose favourite groups</string>
+
+    <!--
+      The chip that shows what this account watched recently, on any of its
+      devices (M5). Not a rail: see docs/design/tv-focus-map.md.
+    -->
+    <string name="feature_live_recent">Recently watched</string>
 </resources>

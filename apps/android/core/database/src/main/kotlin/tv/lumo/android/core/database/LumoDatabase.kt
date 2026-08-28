@@ -8,10 +8,12 @@ import androidx.sqlite.execSQL
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.ChannelDao
 import tv.lumo.android.core.database.dao.FavoriteDao
+import tv.lumo.android.core.database.dao.RecentChannelDao
 import tv.lumo.android.core.database.model.CategoryEntity
 import tv.lumo.android.core.database.model.ChannelEntity
 import tv.lumo.android.core.database.model.FavoriteEntity
 import tv.lumo.android.core.database.model.FavoriteGroupEntity
+import tv.lumo.android.core.database.model.RecentChannelEntity
 
 /**
  * The offline-first catalogue cache (docs/architecture.md §3).
@@ -33,14 +35,16 @@ import tv.lumo.android.core.database.model.FavoriteGroupEntity
         CategoryEntity::class,
         FavoriteGroupEntity::class,
         FavoriteEntity::class,
+        RecentChannelEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class LumoDatabase : RoomDatabase() {
     abstract fun channelDao(): ChannelDao
     abstract fun categoryDao(): CategoryDao
     abstract fun favoriteDao(): FavoriteDao
+    abstract fun recentChannelDao(): RecentChannelDao
 }
 
 /**
@@ -111,6 +115,36 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         )
         connection.execSQL(
             "CREATE INDEX IF NOT EXISTS `index_favorite_channel_id` ON `favorite` (`channel_id`)",
+        )
+    }
+}
+
+/**
+ * 3 → 4: the recently watched window (M5, `S4-08`).
+ *
+ * One table, cached for the same reason the favourites are: the list is short by
+ * construction — the server keeps a rolling window — and it is the first thing
+ * somebody looks at when they turn the television on. No foreign key to `channel`,
+ * same reasoning as `favorite`.
+ *
+ * Nothing to backfill. The window lives on the server, and the first refresh after
+ * this migration fills it.
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `recent_channel` (
+                `channel_id` TEXT NOT NULL,
+                `source_id` TEXT NOT NULL,
+                `position` INTEGER NOT NULL,
+                PRIMARY KEY(`channel_id`)
+            )
+            """.trimIndent(),
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_recent_channel_position` " +
+                "ON `recent_channel` (`position`)",
         )
     }
 }

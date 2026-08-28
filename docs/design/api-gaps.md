@@ -590,10 +590,29 @@ Premium » avec un badge `HD` faux.
 
 ## M5 — Les chaînes regardées récemment
 
-**Écran.** TV, accueil : le rail **« Reprendre »** mélange un épisode en cours
-(« Documentaire — Épisode 3 · 42 min restantes ») et deux chaînes en direct
-(« Chaîne 12 — Magazine », « Chaîne 04 — Sport »). La direction artistique
-montre le même rail sous le nom « Chaînes récentes ».
+> **Livré, et la forme a changé en route.** ✅ Le contrat, la table et la fenêtre
+> glissante sont arrivés avec `SRV-06` ; la lecture côté client est arrivée avec
+> `S4-08`, un sprint plus tard, et **ce n'est pas un rail** — c'est une puce
+> « Repris » dans la bande de l'écran des chaînes.
+>
+> **Pourquoi la divergence, et pourquoi elle est tranchée dans ce sens.** Ce
+> document décrivait un rail comme premier écran de la télévision. `S2-13` a
+> ensuite livré une grille et écrit pourquoi : *un rail plafonne ce qu'il
+> contient, et un rail dont la huit-centième chaîne est inatteignable est un
+> défaut*. Cette objection ne s'applique pas à une liste que le serveur garde
+> courte par construction — sur ce point le rail se défendait. Ce qu'elle ne
+> justifiait pas, c'était **d'ouvrir un second mécanisme** sur un écran qui en a
+> déjà un : la bande filtre la grille, une puce de plus n'ajoute aucune zone de
+> focus, et la carte du parcours n'a pas bougé d'une ligne.
+>
+> Le reste du raisonnement ci-dessous tient intégralement, à commencer par le plus
+> important : la valeur de cette liste vient de ce qu'elle est **sur le compte**.
+> C'est ce qui fait que la télévision sait ce qu'on a regardé sur le téléphone.
+
+**Écran, tel qu'il était dessiné.** TV, accueil : le rail **« Reprendre »** mélange
+un épisode en cours (« Documentaire — Épisode 3 · 42 min restantes ») et deux
+chaînes en direct (« Chaîne 12 — Magazine », « Chaîne 04 — Sport »). La direction
+artistique montre le même rail sous le nom « Chaînes récentes ».
 
 **Ce qui manque.** `GET /me/progress` (ajouté au lot 1) couvre la première
 carte. Les deux autres, non : `ProgressItemType` vaut `VOD | EPISODE`, et le

@@ -134,6 +134,7 @@ fun LiveTvScreen(
                 channels = channels,
                 onSelectCategory = viewModel::onCategorySelected,
                 onSelectGroup = viewModel::onGroupSelected,
+                onSelectRecent = viewModel::onRecentSelected,
                 onFavorite = viewModel::onFavoriteLongPressed,
                 onPlay = onPlay,
                 returnedChannelId = returnedChannelId,
@@ -170,6 +171,7 @@ private fun Browsing(
     channels: LazyPagingItems<Channel>,
     onSelectCategory: (String?) -> Unit,
     onSelectGroup: (String) -> Unit,
+    onSelectRecent: () -> Unit,
     onFavorite: (Channel) -> Unit,
     onPlay: (channelId: String, name: String?) -> Unit,
     returnedChannelId: String?,
@@ -241,8 +243,10 @@ private fun Browsing(
             groups = state.groupsWithChannels,
             categories = state.categories,
             filter = state.filter,
+            hasRecent = state.recent.isNotEmpty(),
             onSelectCategory = onSelectCategory,
             onSelectGroup = onSelectGroup,
+            onSelectRecent = onSelectRecent,
         )
 
         LazyHorizontalGrid(
@@ -306,8 +310,10 @@ private fun Filters(
     groups: List<FavoriteGroup>,
     categories: List<Category>,
     filter: CatalogueFilter,
+    hasRecent: Boolean,
     onSelectCategory: (String?) -> Unit,
     onSelectGroup: (String) -> Unit,
+    onSelectRecent: () -> Unit,
 ) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
@@ -319,6 +325,18 @@ private fun Filters(
                 selected = filter is CatalogueFilter.All,
                 onClick = { onSelectCategory(null) },
             )
+        }
+        // Second, and only when there is something in it. What was watched
+        // recently is what somebody turning the television on is most often
+        // reaching for, and it is the one shelf they did not have to build.
+        if (hasRecent) {
+            item {
+                CategoryChip(
+                    label = stringResource(R.string.feature_live_recent),
+                    selected = filter is CatalogueFilter.Recent,
+                    onClick = onSelectRecent,
+                )
+            }
         }
         items(groups, key = { "group-" + it.id }) { group ->
             CategoryChip(

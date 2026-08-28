@@ -40,4 +40,6 @@
     <string name="feature_live_favorite_failed">Cette modification n\'a pas pu être enregistrée. Vérifiez votre connexion et réessayez.</string>
 
     <string name="feature_live_tv_favorite_hint">Maintenez OK pour choisir les groupes de favoris</string>
+
+    <string name="feature_live_recent">Repris</string>
 </resources>

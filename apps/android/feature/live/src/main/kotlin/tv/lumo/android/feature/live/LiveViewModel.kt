@@ -26,6 +26,7 @@ import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
 import tv.lumo.android.core.data.repository.CatalogueRepository
 import tv.lumo.android.core.data.repository.FavoriteRepository
+import tv.lumo.android.core.data.repository.RecentChannelRepository
 import tv.lumo.android.core.data.repository.SourceRepository
 import tv.lumo.android.core.data.valueOrNull
 import tv.lumo.android.network.generated.model.SourceStatus
@@ -56,6 +57,7 @@ class LiveViewModel @Inject constructor(
     private val catalogue: CatalogueRepository,
     private val sources: SourceRepository,
     private val favorites: FavoriteRepository,
+    private val recents: RecentChannelRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LiveState())
@@ -68,7 +70,7 @@ class LiveViewModel @Inject constructor(
      * the phone re-reads the first page and jumps the user back to the top.
      */
     val channels: Flow<PagingData<Channel>> = _state
-        .map { ChannelQuery(it.sourceId, it.filter, it.favorites) }
+        .map { ChannelQuery(it.sourceId, it.filter, it.favorites, it.recent) }
         .distinctUntilChanged()
         .flatMapLatest { query -> channelsFor(query) }
         .cachedIn(viewModelScope)
@@ -95,6 +97,11 @@ class LiveViewModel @Inject constructor(
                     .map { it.channel },
             ),
         )
+
+        // Already in the server's order, most recent first. Re-sorting it here on
+        // anything — a name, a number — would throw away the one thing this list
+        // knows and the catalogue does not.
+        query.filter is CatalogueFilter.Recent -> flowOf(PagingData.from(query.recent))
 
         else -> catalogue.channels(
             query.sourceId,
@@ -183,6 +190,10 @@ class LiveViewModel @Inject constructor(
      */
     fun onGroupSelected(groupId: String) =
         _state.update { it.copy(filter = CatalogueFilter.Group(groupId)) }
+
+    /** Filters the grid to what was watched recently, on any of this account's devices. */
+    fun onRecentSelected() =
+        _state.update { it.copy(filter = CatalogueFilter.Recent) }
 
     // ---- favourites (US-12) -------------------------------------------------
 
@@ -298,6 +309,13 @@ class LiveViewModel @Inject constructor(
             favorites.groups().collect { groups -> _state.update { it.copy(groups = groups) } }
         }
         viewModelScope.launch {
+            recents.recent().collect { rows -> _state.update { it.copy(recent = rows) } }
+        }
+        // Cheap — one request against a list the server keeps short — and the
+        // moment somebody expects to see what they watched on the phone is the
+        // moment they turn the television on.
+        viewModelScope.launch { recents.refresh() }
+        viewModelScope.launch {
             favorites.favorites().collect { rows -> _state.update { it.copy(favorites = rows) } }
         }
         viewModelScope.launch {
@@ -323,6 +341,18 @@ sealed interface CatalogueFilter {
     data class Category(val id: String) : CatalogueFilter
 
     data class Group(val id: String) : CatalogueFilter
+
+    /**
+     * The channels this account watched recently (S4-08).
+     *
+     * A chip like the others, and that settles the divergence with
+     * `docs/design/api-gaps.md` M5, which described a *rail* as the television's
+     * first screen. `S2-13` chose a grid over rails because a rail caps what it
+     * holds and its eight-hundredth channel cannot be reached — an objection that
+     * never applied to a list the server keeps short on purpose. What it did not
+     * justify was opening a second mechanism on a screen that already has one.
+     */
+    data object Recent : CatalogueFilter
 }
 
 /** What the grid's contents depend on, gathered so the flow restarts on a real change. */
@@ -330,6 +360,7 @@ private data class ChannelQuery(
     val sourceId: String?,
     val filter: CatalogueFilter,
     val favorites: List<FavoriteChannel>,
+    val recent: List<Channel>,
 )
 
 sealed interface LiveStep {
@@ -372,6 +403,9 @@ data class LiveState(
 
     /** Starred channel ids, as Room holds them. The grid draws its hearts from this. */
     val favoritedChannelIds: Set<String> = emptySet(),
+
+    /** What was watched recently, on any device of this account. Server order. */
+    val recent: List<Channel> = emptyList(),
 
     /**
      * Hearts whose change has not come back yet, and what they should show
