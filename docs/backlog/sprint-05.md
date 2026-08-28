@@ -246,7 +246,7 @@ met à jour **dans le commit qui livre le travail**, pas après.
 
 | | Id | Tâche | Lot | Cible | Points | Avancement |
 |---|---|---|---|---|---|---|
-| ☐ | S5-00 | ADR 0009 — reconnaître un film dans une playlist M3U | décision | décision | 2 | 0 % |
+| ☑ | S5-00 | ADR 0009 — reconnaître un film dans une playlist M3U | décision | décision | 2 | 100 % |
 | ☐ | S5-01 | Contrat : `VodItem`, ses deux lectures, et la phrase à corriger | contrat | contrat | 5 | 0 % |
 | ☐ | S5-02 | Base : `vod_item`, et l'upsert qui survit à une resynchronisation | serveur | api | 3 | 0 % |
 | ☐ | S5-03 | Ingestion Xtream : catégories et films, en flux | serveur | api | 5 | 0 % |
@@ -259,11 +259,42 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S5-10 | Web : grille et fiche | web | web | 5 | 0 % |
 | ☐ | S5-11 | Reprise de lecture, et le rail qui la rend visible | 3 clients | mobile + tv + web | 8 | 0 % |
 
-**Avancement du sprint : 0 % de 60 points.**
+**Avancement du sprint : 3 % de 60 points.** La seule vraie inconnue est tranchée
+([`adr/0009`](../adr/0009-m3u-film-detection.md)), ce qui débloque le contrat.
 
 ---
 
-### S5-00 — ADR 0009 : reconnaître un film dans un M3U · **2**
+### S5-00 — ADR 0009 : reconnaître un film dans un M3U · **2** · ☑ tranché
+
+> **Décision écrite dans [`adr/0009`](../adr/0009-m3u-film-detection.md).** Les
+> trois questions ont leur réponse, et une quatrième s'est imposée en les écrivant.
+>
+> **1. Seule l'URL classe.** Pas « deux indices sur quatre » : `group-title` et
+> l'absence de `tvg-id` ne classent **pas du tout**, ni seuls ni combinés. Les deux
+> indices retenus — une extension de fichier, le segment `/movie/` — décrivent *ce
+> que la chose est* ; les deux écartés décrivent *comment on l'a appelée*, et on
+> appelle des chaînes en direct `CINE+`, `Film4`, `VOD Sports News`. L'URL est
+> aussi le seul indice dont le sens ne dépend d'aucune langue : une liste de
+> mots-clés par langue est une liste perpétuellement en retard d'une langue.
+>
+> **2. Le doute penche vers `LIVE`**, comme proposé, et la raison est asymétrique :
+> un film rangé dans les chaînes est en désordre, une chaîne rangée dans les films
+> est **cassée** — grille d'affiches sans affiche, « reprendre à 20 min » sur un
+> flux continu, et des lignes de `playback_progress` pour quelque chose qui n'a pas
+> de position.
+>
+> **3. La correction a une forme et un prix, pas encore une date.** Elle est **sur
+> la catégorie, pas sur la source** : une source porte les deux genres, donc une
+> bascule par source serait fausse partout où on l'afficherait. Une catégorie est
+> exactement le `group-title` que l'utilisateur voit déjà. **3 points**, et c'est
+> écrit au hors-périmètre ci-dessous.
+>
+> **4. Une conséquence qui contraint S5-01 : un film M3U n'a pas de
+> `container_extension`.** Un film Xtream en a besoin parce que son URL se
+> *construit* ; une entrée M3U porte l'URL complète, extension comprise — c'est
+> précisément ce que la règle 1 lit. Le champ est donc rempli pour Xtream et nul
+> pour M3U, et tout ce qui le traiterait comme obligatoire rejetterait la moitié
+> des sources pour lesquelles cet ADR existe.
 
 La seule vraie inconnue du sprint, donc elle se tranche en premier — c'est le rôle
 qu'avait S3-00 au sprint précédent.
@@ -625,6 +656,12 @@ Explicitement, pour que la question ne se repose pas en cours de route :
   est réel et tracé ici pour ne pas être découvert : il demande un aller au contrat
   (un `item_type` sur le favori, ou une opération séparée) et cette décision se prend
   quand les films et les séries existent tous les deux, pas entre les deux.
+- **Corriger un classement à la main.** [`adr/0009`](../adr/0009-m3u-film-detection.md)
+  règle 3 lui donne sa forme — une bascule **sur la catégorie**, jamais sur la
+  source — et son prix : un champ nullable sur `Category`, une colonne, un `PATCH`,
+  un contrôle sur les trois surfaces. **3 points.** Écarté de ce sprint, pas de la
+  suite : c'est la sortie de secours de toute la classe des faux classements, et
+  l'ADR décide sa forme précisément pour que rien d'ici ne la bloque.
 - **Acteurs, réalisateur, bande-annonce, recommandations.** `get_vod_info` les sert
   parfois. Rien dans US-13 ne les demande, et chacun coûte un champ dans le contrat.
 - **Le contrôle parental sur `is_adult`.** Le champ est ingéré et exposé ; le filtrer
