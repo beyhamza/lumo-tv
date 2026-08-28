@@ -19,6 +19,7 @@ import tv.lumo.api.generated.model.ContentType;
 import tv.lumo.api.generated.model.IngestionErrorCode;
 import tv.lumo.api.generated.model.SourceKind;
 import tv.lumo.api.generated.model.SyncStep;
+import tv.lumo.api.ingest.m3u.M3uContentClassifier;
 import tv.lumo.api.ingest.m3u.M3uStreamParser;
 import tv.lumo.api.ingest.xmltv.XmltvStreamParser;
 import tv.lumo.api.ingest.xtream.XtreamClient;
@@ -292,39 +293,73 @@ public class IngestionService {
 
         // An M3U has no category list: groups are discovered while streaming and
         // created on first sight. computeIfAbsent means one statement per distinct
-        // group, not one per channel.
+        // group, not one per entry.
+        //
+        // Keyed on the content type as well as the name, because the same group can
+        // legitimately hold both: `VOD - ACTION` with one entry served as `.m3u8`
+        // produces a LIVE category and a VOD category of the same name, which is
+        // exactly what the unique index on (source_id, content_type, external_id)
+        // allows.
         Map<String, UUID> categoryIds = new HashMap<>();
-        List<String> seenExternalIds = new ArrayList<>();
-        int[] position = {0};
+        List<String> seenChannelIds = new ArrayList<>();
+        List<String> seenFilmIds = new ArrayList<>();
+        int[] channelPosition = {0};
+        int[] filmPosition = {0};
 
-        CatalogWriteRepository.Batcher<CatalogWriteRepository.ChannelUpsert> batcher =
+        CatalogWriteRepository.Batcher<CatalogWriteRepository.ChannelUpsert> channels =
                 CatalogWriteRepository.batcher(batch -> catalogWrites.upsertChannels(source.id(), batch));
+        CatalogWriteRepository.Batcher<CatalogWriteRepository.VodUpsert> films =
+                CatalogWriteRepository.batcher(batch -> catalogWrites.upsertVodItems(source.id(), batch));
 
         // No AUTHENTICATED step: a playlist URL is fetched, not authenticated
         // against. The contract says these are the server's real phases and that
         // a step the implementation does not distinguish is a reassuring fiction.
+        //
+        // No PARSING_VOD either, and for the same reason: a playlist is read once,
+        // and its films and its channels come off the same pass.
         sources.markSyncStep(source.id(), SyncStep.PARSING_CHANNELS);
-        http.get(host, uri, stream -> m3uParser.parse(stream, channel -> {
-            UUID categoryId = categoryIds.computeIfAbsent(channel.categoryName(), name ->
-                    catalogWrites.upsertCategoryReturningId(
-                            source.id(), externalIdFor(name), name,
-                            ContentType.LIVE.getValue(), categoryIds.size()));
+        http.get(host, uri, stream -> m3uParser.parse(stream, entry -> {
+            ContentType type = M3uContentClassifier.classify(entry.streamUrl());
 
-            // An M3U carries no stable per-channel id, so one is derived from the
+            UUID categoryId = categoryIds.computeIfAbsent(
+                    type.getValue() + ":" + entry.categoryName(),
+                    key -> catalogWrites.upsertCategoryReturningId(
+                            source.id(), externalIdFor(entry.categoryName()), entry.categoryName(),
+                            type.getValue(), categoryIds.size()));
+
+            // An M3U carries no stable per-entry id, so one is derived from the
             // entry itself. The stream URL is hashed rather than used directly:
             // external_id is returned by the API, and a stream URL must never
             // leave through a listing (AGENTS.md §5).
-            String externalId = "m3u:" + Integer.toHexString(channel.streamUrl().hashCode())
-                    + ":" + Integer.toHexString(channel.name().hashCode());
-            seenExternalIds.add(externalId);
-            batcher.add(new CatalogWriteRepository.ChannelUpsert(
-                    UUID.randomUUID(), categoryId, externalId, channel.name(),
-                    channel.logoUrl(), channel.tvgId(), channel.streamUrl(),
-                    position[0]++, false, channel.number(), channel.quality()));
+            String externalId = "m3u:" + Integer.toHexString(entry.streamUrl().hashCode())
+                    + ":" + Integer.toHexString(entry.name().hashCode());
+
+            if (type == ContentType.VOD) {
+                seenFilmIds.add(externalId);
+                films.add(new CatalogWriteRepository.VodUpsert(
+                        UUID.randomUUID(), categoryId, externalId, entry.name(),
+                        entry.logoUrl(), null, null, null, entry.streamUrl(),
+                        // Null, and deliberately: the playlist carries the whole
+                        // URL, so there is nothing to build and nothing to store
+                        // (ADR 0009, ruling 4).
+                        null, filmPosition[0]++, false));
+            } else {
+                seenChannelIds.add(externalId);
+                channels.add(new CatalogWriteRepository.ChannelUpsert(
+                        UUID.randomUUID(), categoryId, externalId, entry.name(),
+                        entry.logoUrl(), entry.tvgId(), entry.streamUrl(),
+                        channelPosition[0]++, false, entry.number(), entry.quality()));
+            }
         }));
-        batcher.flushNow();
-        catalogWrites.deleteChannelsNotIn(source.id(), seenExternalIds);
-        log.info("Source {}: ingested {} channel(s) from playlist", source.id(), seenExternalIds.size());
+        channels.flushNow();
+        films.flushNow();
+
+        catalogWrites.deleteChannelsNotIn(source.id(), seenChannelIds);
+        catalogWrites.deleteVodNotIn(source.id(), seenFilmIds);
+        // Counted apart, as for an Xtream panel: one total would hide a playlist
+        // the classifier sent entirely one way.
+        log.info("Source {}: ingested {} channel(s) and {} film(s) from playlist",
+                source.id(), seenChannelIds.size(), seenFilmIds.size());
     }
 
     // ---- XMLTV --------------------------------------------------------------

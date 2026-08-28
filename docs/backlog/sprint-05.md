@@ -251,7 +251,7 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S5-02 | Base : `vod_item`, et l'upsert qui survit à une resynchronisation | serveur | api | 3 | 100 % |
 | ☑ | S5-03 | Ingestion Xtream : catégories et films, en flux | serveur | api | 5 | 100 % |
 | ☑ | S5-04 | La fiche d'un film, à la demande et jamais à l'ingestion | serveur | api | 3 | 100 % |
-| ☐ | S5-05 | Ingestion M3U : appliquer la règle de S5-00 | serveur | api | 3 | 0 % |
+| ☑ | S5-05 | Ingestion M3U : appliquer la règle de S5-00 | serveur | api | 3 | 100 % |
 | ☐ | S5-06 | Le plafond de volume, et ce que l'écran en dit | serveur | api + recette | 5 | 0 % |
 | ☐ | S5-07 | `core:data` et Room : les films hors ligne | socle | android | 5 | 0 % |
 | ☐ | S5-08 | Mobile : grille d'affiches, fiche, lecture | mobile | mobile | 8 | 0 % |
@@ -259,7 +259,7 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S5-10 | Web : grille et fiche | web | web | 5 | 0 % |
 | ☐ | S5-11 | Reprise de lecture, et le rail qui la rend visible | 3 clients | mobile + tv + web | 8 | 0 % |
 
-**Avancement du sprint : 30 % de 60 points.** La seule vraie inconnue est tranchée
+**Avancement du sprint : 35 % de 60 points.** La seule vraie inconnue est tranchée
 ([`adr/0009`](../adr/0009-m3u-film-detection.md)), ce qui débloque le contrat.
 
 ---
@@ -529,7 +529,39 @@ film est le produit.
 
 ---
 
-### S5-05 — Ingestion M3U : appliquer la règle de S5-00 · **3** · dépend de S5-00
+### S5-05 — Ingestion M3U : appliquer la règle de S5-00 · **3** · dépend de S5-00 · ☑
+
+> **Livré.** `M3uContentClassifier` : une URL en entrée, un `ContentType` en
+> sortie, aucune dépendance, testable sans réseau. C'est la règle 2 de l'ADR.
+>
+> **Le test dit comment la règle se trompe**, comme la règle 3 l'exige, et ce
+> n'est pas de la modestie : une liste des cas où elle a raison serait un test qui
+> prétend qu'elle ne se trompe jamais, et la personne suivante n'aurait aucune idée
+> du sens dans lequel les erreurs devaient tomber. Les deux directions y sont, avec
+> le raisonnement qui les rend acceptables.
+>
+> **Deux choses que la tâche ne prévoyait pas, trouvées en écrivant :**
+>
+> **La chaîne de requête n'est pas le chemin.** Les vraies playlists portent des
+> jetons et des identifiants de session, et un jeton peut finir par n'importe
+> quoi — `?session=x.mkv` classerait un direct en film. Le classificateur coupe
+> avant `?` et `#`.
+>
+> **Un point avant le dernier slash appartient à un hôte, pas à un fichier.**
+> `http://vod.example/live/1` n'est pas un film.
+>
+> **Et une conséquence sur les catégories que le modèle rendait déjà possible :**
+> `categoryIds` est maintenant clé sur `(type, nom)`. Un groupe `VOD - ACTION` dont
+> une entrée est servie en `.m3u8` produit deux catégories du même nom, une `LIVE`
+> et une `VOD` — exactement ce que l'index unique `(source_id, content_type,
+> external_id)` autorise depuis le sprint 1.
+>
+> **Aucune étape `PARSING_VOD` côté M3U**, et c'est cohérent avec la règle de
+> l'énumération : une playlist se lit une fois, et ses films sortent de la même
+> passe que ses chaînes. Une étape que l'implémentation ne distingue pas est une
+> fiction rassurante.
+>
+> 15 cas de plus, **220 tests API**.
 
 Le classement décidé dans l'ADR, écrit une fois, dans une classe qui ne fait que ça
 et qui se teste sans réseau — une entrée M3U en entrée, un `ContentType` en sortie.
