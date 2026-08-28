@@ -27,6 +27,8 @@ public class PlaybackProgress {
 
   private UUID id;
 
+  private UUID sourceId;
+
   private ProgressItemType itemType;
 
   private String itemRef;
@@ -45,8 +47,9 @@ public class PlaybackProgress {
   /**
    * Constructor with only required parameters
    */
-  public PlaybackProgress(UUID id, ProgressItemType itemType, String itemRef, Long positionMs, OffsetDateTime updatedAt) {
+  public PlaybackProgress(UUID id, UUID sourceId, ProgressItemType itemType, String itemRef, Long positionMs, OffsetDateTime updatedAt) {
     this.id = id;
+    this.sourceId = sourceId;
     this.itemType = itemType;
     this.itemRef = itemRef;
     this.positionMs = positionMs;
@@ -70,6 +73,25 @@ public class PlaybackProgress {
 
   public void setId(UUID id) {
     this.id = id;
+  }
+
+  public PlaybackProgress sourceId(UUID sourceId) {
+    this.sourceId = sourceId;
+    return this;
+  }
+
+  /**
+   * The source this position belongs to. Returned because it is part of the key: a client reading a page of progress has to be able to tell two subscriptions' `1042` apart, exactly as the server does. 
+   * @return sourceId
+   */
+  @NotNull @Valid 
+  @JsonProperty("source_id")
+  public UUID getSourceId() {
+    return sourceId;
+  }
+
+  public void setSourceId(UUID sourceId) {
+    this.sourceId = sourceId;
   }
 
   public PlaybackProgress itemType(ProgressItemType itemType) {
@@ -97,7 +119,7 @@ public class PlaybackProgress {
   }
 
   /**
-   * Identifier of the item within its source.
+   * Identifier of the item within its source, opaque and minted by the user's panel. Unique only in combination with `source_id`. 
    * @return itemRef
    */
   @NotNull 
@@ -179,6 +201,7 @@ public class PlaybackProgress {
     }
     PlaybackProgress playbackProgress = (PlaybackProgress) o;
     return Objects.equals(this.id, playbackProgress.id) &&
+        Objects.equals(this.sourceId, playbackProgress.sourceId) &&
         Objects.equals(this.itemType, playbackProgress.itemType) &&
         Objects.equals(this.itemRef, playbackProgress.itemRef) &&
         Objects.equals(this.positionMs, playbackProgress.positionMs) &&
@@ -188,7 +211,7 @@ public class PlaybackProgress {
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, itemType, itemRef, positionMs, durationMs, updatedAt);
+    return Objects.hash(id, sourceId, itemType, itemRef, positionMs, durationMs, updatedAt);
   }
 
   @Override
@@ -196,6 +219,7 @@ public class PlaybackProgress {
     StringBuilder sb = new StringBuilder();
     sb.append("class PlaybackProgress {\n");
     sb.append("    id: ").append(toIndentedString(id)).append("\n");
+    sb.append("    sourceId: ").append(toIndentedString(sourceId)).append("\n");
     sb.append("    itemType: ").append(toIndentedString(itemType)).append("\n");
     sb.append("    itemRef: ").append(toIndentedString(itemRef)).append("\n");
     sb.append("    positionMs: ").append(toIndentedString(positionMs)).append("\n");

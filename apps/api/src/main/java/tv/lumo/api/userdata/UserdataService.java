@@ -19,6 +19,7 @@ import tv.lumo.api.generated.model.SaveProgressRequest;
 import tv.lumo.api.generated.model.UpdateFavoriteGroupRequest;
 import tv.lumo.api.generated.model.UpdateFavoriteRequest;
 import tv.lumo.api.shared.error.ApiException;
+import tv.lumo.api.source.SourceRepository;
 
 /**
  * Favourites, favourite groups, playback progress and recently watched channels.
@@ -67,15 +68,18 @@ public class UserdataService {
     private final ProgressRepository progress;
     private final RecentChannelRepository recents;
     private final CatalogReadRepository catalog;
+    private final SourceRepository sources;
 
     public UserdataService(FavoriteRepository favorites,
                            ProgressRepository progress,
                            RecentChannelRepository recents,
-                           CatalogReadRepository catalog) {
+                           CatalogReadRepository catalog,
+                           SourceRepository sources) {
         this.favorites = favorites;
         this.progress = progress;
         this.recents = recents;
         this.catalog = catalog;
+        this.sources = sources;
     }
 
     // ---- favourites ---------------------------------------------------------
@@ -235,22 +239,41 @@ public class UserdataService {
 
     // ---- progress -----------------------------------------------------------
 
-    public PlaybackProgressPage listProgress(UUID userId, ProgressItemType itemType, String itemRef,
-                                             Integer page, Integer size) {
+    public PlaybackProgressPage listProgress(UUID userId, UUID sourceId, ProgressItemType itemType,
+                                             String itemRef, Integer page, Integer size) {
         int pageIndex = page == null ? 0 : Math.max(0, page);
         int pageSize = size == null ? 50 : Math.clamp(size, 1, MAX_PAGE_SIZE);
         String ref = (itemRef == null || itemRef.isBlank()) ? null : itemRef;
 
-        List<PlaybackProgress> items = progress.findPage(userId, itemType, ref, pageIndex, pageSize);
-        long total = progress.count(userId, itemType, ref);
+        List<PlaybackProgress> items =
+                progress.findPage(userId, sourceId, itemType, ref, pageIndex, pageSize);
+        long total = progress.count(userId, sourceId, itemType, ref);
 
         return new PlaybackProgressPage(items, pageIndex, pageSize, total,
                 (int) Math.ceil((double) total / pageSize));
     }
 
+    /**
+     * Saves a position.
+     *
+     * <p>The source is checked before it is written, and reported as
+     * {@code SOURCE_NOT_FOUND} rather than {@code FORBIDDEN} when it belongs to
+     * somebody else — the same rule the rest of this service follows, so these
+     * endpoints cannot be used to discover which identifiers exist.
+     *
+     * <p>The item itself is <b>not</b> checked, and cannot be: {@code item_ref} is
+     * minted by the user's own panel and this server holds no table to resolve it
+     * against for an episode. What the check is worth is that a position cannot be
+     * filed under a source the caller does not own — which is the whole point of
+     * the source being in the key.
+     */
     public PlaybackProgress saveProgress(UUID userId, SaveProgressRequest request) {
-        return progress.upsert(userId, request.getItemType(), request.getItemRef(),
-                request.getPositionMs(), request.getDurationMs());
+        sources.findOwned(request.getSourceId(), userId)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.SOURCE_NOT_FOUND,
+                        "No such source on this account"));
+
+        return progress.upsert(userId, request.getSourceId(), request.getItemType(),
+                request.getItemRef(), request.getPositionMs(), request.getDurationMs());
     }
 
     // ---- recently watched ---------------------------------------------------

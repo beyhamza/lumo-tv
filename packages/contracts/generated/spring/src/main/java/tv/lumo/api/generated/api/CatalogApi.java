@@ -14,6 +14,8 @@ import java.time.OffsetDateTime;
 import tv.lumo.api.generated.model.PlaybackInfo;
 import tv.lumo.api.generated.model.Problem;
 import java.util.UUID;
+import tv.lumo.api.generated.model.VodItemPage;
+import tv.lumo.api.generated.model.VodPlaybackInfo;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.lang.Nullable;
@@ -81,6 +83,27 @@ public interface CatalogApi {
 
 
     /**
+     * GET /vod/{id}/playback : Obtain the stream URL for one film, on demand
+     * The twin of &#x60;GET /channels/{id}/playback&#x60;, and everything written there applies here unchanged: the URL is issued at the moment of playback, after checking that the film belongs to a source owned by the caller; it is never logged, never cached in a shared store, never handed to anyone but its owner; and the player opens it directly against the user&#39;s own server, so the media does not transit through Lumo.  Two operations rather than one because they address two id spaces — a film is not a channel and the identifier could not be resolved without being told which of the two it is.  **A film&#39;s URL is built, a channel&#39;s is stored.** For an Xtream source the panel gives an identifier and a container extension, and this endpoint assembles &#x60;/movie/{user}/{pass}/{id}.{ext}&#x60;; an M3U playlist carries the whole URL already (&#x60;adr/0009&#x60;). The client sees neither difference. 
+     *
+     * @param id Resource identifier. (required)
+     * @return Playback details for this film. (status code 200)
+     *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
+     *         or No such film, or it does not belong to a source owned by the caller (&#x60;VOD_ITEM_NOT_FOUND&#x60;). Non-ownership is a &#x60;404&#x60; and not a &#x60;403&#x60;, so the endpoint cannot be used to probe for identifiers.  (status code 404)
+     *         or The source cannot serve playback right now — &#x60;SOURCE_NOT_READY&#x60;, &#x60;SOURCE_EXPIRED&#x60;, &#x60;SOURCE_MAX_CONNECTIONS&#x60;. The same three as for a channel, and they mean the same things: a subscription&#39;s simultaneous-stream limit counts a film exactly as it counts a channel.  (status code 409)
+     */
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = "/vod/{id}/playback",
+        produces = { "application/json", "application/problem+json" }
+    )
+    
+    ResponseEntity<VodPlaybackInfo> getVodPlayback(
+         @PathVariable("id") UUID id
+    );
+
+
+    /**
      * GET /sources/{id}/categories : Categories of a source
      *
      * @param id Resource identifier. (required)
@@ -125,6 +148,38 @@ public interface CatalogApi {
     )
     
     ResponseEntity<ChannelPage> listChannels(
+         @PathVariable("id") UUID id,
+         @Valid @RequestParam(value = "categoryId", required = false) @Nullable UUID categoryId,
+        @Size(min = 1, max = 100)  @Valid @RequestParam(value = "q", required = false) @Nullable String q,
+        @Size(max = 100)  @Valid @RequestParam(value = "ids", required = false) @Nullable List<UUID> ids,
+        @Min(0)  @Valid @RequestParam(value = "page", required = false, defaultValue = "0") Integer page,
+        @Min(1) @Max(200)  @Valid @RequestParam(value = "size", required = false, defaultValue = "50") Integer size
+    );
+
+
+    /**
+     * GET /sources/{id}/vod : Films of a source, paginated
+     * The same shape as &#x60;GET /sources/{id}/channels&#x60;, down to the parameter names, and that is the point: a client reuses the pagination, the search and the identifier lookup it already wrote instead of growing a second set that drifts from the first.  **No &#x60;stream_url&#x60; here either**, for the reason given on the channel listing: a page of films does not carry a page of credential-bearing URLs. Playback URLs come from &#x60;GET /vod/{id}/playback&#x60;, one at a time.  **No &#x60;plot&#x60; here.** It is loaded when somebody opens a film, not when they scroll past it — see &#x60;VodItem.plot&#x60;. 
+     *
+     * @param id Resource identifier. (required)
+     * @param categoryId Restrict to one category. Its &#x60;content_type&#x60; is &#x60;VOD&#x60;. (optional)
+     * @param q Free-text search on the title. Case-insensitive substring, as on the channel listing — the trigram index makes it fast, not approximate.  (optional)
+     * @param ids Resolve these films, and only these. Repeatable, bounded at 100, and it composes with the other filters — the same semantics as &#x60;ids&#x60; on the channel listing, including that unknown identifiers are absent from the answer rather than an error.  **Send &#x60;size&#x60; with it.** The default page is 50, so a hundred identifiers asked for without it come back half answered, with a &#x60;200&#x60; and nothing to say the rest was dropped.  (optional)
+     * @param page Zero-based page index. (optional, default to 0)
+     * @param size Page size. Capped server-side so a large catalogue cannot be pulled in one call. (optional, default to 50)
+     * @return A page of films, ordered by category then &#x60;position&#x60;. (status code 200)
+     *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
+     *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
+     *         or No such source on this account (&#x60;SOURCE_NOT_FOUND&#x60;). (status code 404)
+     *         or The source has not finished ingesting (&#x60;SOURCE_NOT_READY&#x60;). The client keeps polling &#x60;GET /sources/{id}&#x60;.  (status code 409)
+     */
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = "/sources/{id}/vod",
+        produces = { "application/json", "application/problem+json" }
+    )
+    
+    ResponseEntity<VodItemPage> listVod(
          @PathVariable("id") UUID id,
          @Valid @RequestParam(value = "categoryId", required = false) @Nullable UUID categoryId,
         @Size(min = 1, max = 100)  @Valid @RequestParam(value = "q", required = false) @Nullable String q,

@@ -247,8 +247,8 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | | Id | Tâche | Lot | Cible | Points | Avancement |
 |---|---|---|---|---|---|---|
 | ☑ | S5-00 | ADR 0009 — reconnaître un film dans une playlist M3U | décision | décision | 2 | 100 % |
-| ☐ | S5-01 | Contrat : `VodItem`, ses deux lectures, et la phrase à corriger | contrat | contrat | 5 | 0 % |
-| ☐ | S5-02 | Base : `vod_item`, et l'upsert qui survit à une resynchronisation | serveur | api | 3 | 0 % |
+| ☑ | S5-01 | Contrat : `VodItem`, ses deux lectures, et la phrase à corriger | contrat | contrat | 5 | 100 % |
+| ☑ | S5-02 | Base : `vod_item`, et l'upsert qui survit à une resynchronisation | serveur | api | 3 | 100 % |
 | ☐ | S5-03 | Ingestion Xtream : catégories et films, en flux | serveur | api | 5 | 0 % |
 | ☐ | S5-04 | La fiche d'un film, à la demande et jamais à l'ingestion | serveur | api | 3 | 0 % |
 | ☐ | S5-05 | Ingestion M3U : appliquer la règle de S5-00 | serveur | api | 3 | 0 % |
@@ -259,7 +259,7 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S5-10 | Web : grille et fiche | web | web | 5 | 0 % |
 | ☐ | S5-11 | Reprise de lecture, et le rail qui la rend visible | 3 clients | mobile + tv + web | 8 | 0 % |
 
-**Avancement du sprint : 3 % de 60 points.** La seule vraie inconnue est tranchée
+**Avancement du sprint : 17 % de 60 points.** La seule vraie inconnue est tranchée
 ([`adr/0009`](../adr/0009-m3u-film-detection.md)), ce qui débloque le contrat.
 
 ---
@@ -326,7 +326,34 @@ font foi. L'ADR le dit, sinon quelqu'un l'appliquera partout par symétrie.
 
 ---
 
-### S5-01 — Contrat : `VodItem` et ses deux lectures · **5** · dépend de S5-00
+### S5-01 — Contrat : `VodItem` et ses deux lectures · **5** · dépend de S5-00 · ☑
+
+> **Livré avec S5-02, et pas par choix.** `skipDefaultInterface` fait d'une
+> opération non implémentée une erreur de compilation (ADR 0001) : ajouter
+> `listVod` au contrat rend l'API non compilable tant que la table n'existe pas.
+> C'est le même enchaînement qu'à S4-00/S4-01, et c'est la règle qui fonctionne
+> comme prévu plutôt qu'une entorse.
+>
+> **Une correction à la spécification de la tâche.** Elle disait
+> `container_extension` « non nullable en base, jamais exposé ». La règle 4 de
+> l'ADR l'a contredite le matin même : il est **nullable**, parce qu'un film M3U
+> n'en a pas. Non exposé, en revanche, et pour une raison de plus que le secret —
+> c'est un fragment d'URL Xtream dont aucun client n'a rien à faire, et un champ
+> que tous les consommateurs ignorent n'a pas sa place dans un contrat.
+>
+> **Deux petites choses tranchées en écrivant.** `VodPlaybackInfo` est un schéma à
+> part plutôt qu'un `channel_id` renommé en quelque chose de générique : le
+> renommage casserait trois clients générés aujourd'hui pour économiser un objet.
+> Et `plot` est stocké mais **absent de toute projection de liste** — un test le
+> vérifie, parce que c'est le genre de champ qu'on ajoute au `SELECT` par réflexe.
+>
+> **Le risque de collision d'`item_ref` est fermé, pas seulement déclaré.**
+> `source_id` entre dans le corps, dans la réponse, dans le filtre de lecture et
+> dans l'index unique (migration `0015`). Le rejeter comme « à faire plus tard »
+> aurait laissé un contrat qui ment pendant un sprint entier.
+>
+> `redocly` valide, aucun avertissement ajouté, non-dérive verte, **198 tests
+> API**, Android et web inchangés et verts.
 
 **`VodItem`** — l'équivalent de `Channel` pour un film, et il ne le copie pas :
 
@@ -373,7 +400,22 @@ foi coûte plus cher qu'une description absente.
 
 ---
 
-### S5-02 — Base : `vod_item` · **3** · dépend de S5-01
+### S5-02 — Base : `vod_item` · **3** · dépend de S5-01 · ☑
+
+> **Livré**, migration `0015`, sur le modèle exact de `channel` : index unique sur
+> `(source_id, external_id)` pour que la resynchronisation soit un upsert, index
+> trigram sur le nom, `stream_url` lu par une seule requête.
+>
+> **Deux colonnes que la tâche ne prévoyait pas.** `plot_fetched_at`, parce que
+> S5-04 doit distinguer « jamais chargé » de « chargé et vide » — un synopsis
+> absent chez le fournisseur ne doit pas provoquer un appel à chaque ouverture.
+> Et `container_extension` nullable, par la règle 4 de l'ADR.
+>
+> **La renumérotation de `playback_progress` est dans la même migration**, et son
+> changeset le dit : aucun remplissage n'est possible, une ligne existante ne peut
+> pas être attribuée à une source après coup. Il n'y en a aucune à perdre — rien
+> n'a jamais appelé `PUT /me/progress` — et supprimer est honnête là où deviner ne
+> le serait pas.
 
 Une table, sur le modèle exact de `channel` : `PRIMARY KEY` uuid, `source_id` en
 cascade, `category_id` en `SET NULL`, et surtout **l'index unique sur

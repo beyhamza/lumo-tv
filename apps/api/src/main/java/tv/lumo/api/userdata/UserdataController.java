@@ -87,10 +87,11 @@ public class UserdataController implements UserdataApi {
     }
 
     @Override
-    public ResponseEntity<PlaybackProgressPage> listProgress(ProgressItemType itemType, String itemRef,
-                                                             Integer page, Integer size) {
+    public ResponseEntity<PlaybackProgressPage> listProgress(UUID sourceId, ProgressItemType itemType,
+                                                             String itemRef, Integer page,
+                                                             Integer size) {
         return ResponseEntity.ok(userdata.listProgress(
-                CurrentUser.requireUserId(), itemType, itemRef, page, size));
+                CurrentUser.requireUserId(), sourceId, itemType, itemRef, page, size));
     }
 
     @Override

@@ -21,8 +21,9 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * Upsert keyed on `(item_type, item_ref)` for the caller.
+ * Upsert keyed on `(source_id, item_type, item_ref)` for the caller.
  *
+ * @param sourceId The source the item belongs to, and **part of the key**.  `item_ref` is minted by the user's own panel and is opaque to us — two subscriptions can perfectly well use `1042` for two different films, and without this field the progress of one would be served for the other. The bug would look like a film mysteriously resuming twenty minutes in.  Sent by the client rather than derived here because the client is what holds the item: `item_ref` is not one of our identifiers, so there is nothing to look it up in.  The alternative was a convention — prefix `item_ref` with the source id — and it was refused: a convention is a rule three clients have to apply identically, and one of them getting it wrong produces exactly the collision this field prevents, silently. 
  * @param itemType 
  * @param itemRef 
  * @param positionMs 
@@ -31,6 +32,10 @@ import com.squareup.moshi.JsonClass
 
 
 data class SaveProgressRequest (
+
+    /* The source the item belongs to, and **part of the key**.  `item_ref` is minted by the user's own panel and is opaque to us — two subscriptions can perfectly well use `1042` for two different films, and without this field the progress of one would be served for the other. The bug would look like a film mysteriously resuming twenty minutes in.  Sent by the client rather than derived here because the client is what holds the item: `item_ref` is not one of our identifiers, so there is nothing to look it up in.  The alternative was a convention — prefix `item_ref` with the source id — and it was refused: a convention is a rule three clients have to apply identically, and one of them getting it wrong produces exactly the collision this field prevents, silently.  */
+    @Json(name = "source_id")
+    val sourceId: java.util.UUID,
 
     @Json(name = "item_type")
     val itemType: ProgressItemType,

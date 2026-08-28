@@ -24,8 +24,9 @@ import com.squareup.moshi.JsonClass
  * Where the user stopped watching a VOD item or an episode.
  *
  * @param id 
+ * @param sourceId The source this position belongs to. Returned because it is part of the key: a client reading a page of progress has to be able to tell two subscriptions' `1042` apart, exactly as the server does. 
  * @param itemType 
- * @param itemRef Identifier of the item within its source.
+ * @param itemRef Identifier of the item within its source, opaque and minted by the user's panel. Unique only in combination with `source_id`. 
  * @param positionMs Playback position, in milliseconds.
  * @param updatedAt 
  * @param durationMs Total duration, when known.
@@ -37,10 +38,14 @@ data class PlaybackProgress (
     @Json(name = "id")
     val id: java.util.UUID,
 
+    /* The source this position belongs to. Returned because it is part of the key: a client reading a page of progress has to be able to tell two subscriptions' `1042` apart, exactly as the server does.  */
+    @Json(name = "source_id")
+    val sourceId: java.util.UUID,
+
     @Json(name = "item_type")
     val itemType: ProgressItemType,
 
-    /* Identifier of the item within its source. */
+    /* Identifier of the item within its source, opaque and minted by the user's panel. Unique only in combination with `source_id`.  */
     @Json(name = "item_ref")
     val itemRef: kotlin.String,
 

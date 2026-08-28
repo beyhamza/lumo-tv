@@ -78,3 +78,6 @@ src/main/kotlin/tv/lumo/android/network/generated/model/UpdateFavoriteRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/UpdateSourceRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/UpdateUserRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/User.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/VodItem.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/VodItemPage.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/VodPlaybackInfo.kt

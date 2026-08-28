@@ -144,8 +144,9 @@ public interface UserdataApi {
 
     /**
      * GET /me/progress : Playback positions saved by this account
-     * Ordered by &#x60;updated_at&#x60;, most recent first — which is also the order a \&quot;Continue watching\&quot; rail wants.  Without this operation &#x60;PUT /me/progress&#x60; writes into a void: progress could be saved on the phone and never read back on the television, and \&quot;resume across screens\&quot; would be a promise no client could keep.  Passing both &#x60;itemType&#x60; and &#x60;itemRef&#x60; narrows the page to the single matching row, which is how a player looks up one item before opening it. There is deliberately no &#x60;/me/progress/{itemType}/{itemRef}&#x60; variant: &#x60;item_ref&#x60; is an opaque identifier minted by the user&#39;s own panel, and nothing stops it containing a slash or a percent sign. Filtering keeps it in a query parameter, where encoding is unambiguous, instead of a path segment, where it is not. 
+     * Ordered by &#x60;updated_at&#x60;, most recent first — which is also the order a \&quot;Continue watching\&quot; rail wants.  Without this operation &#x60;PUT /me/progress&#x60; writes into a void: progress could be saved on the phone and never read back on the television, and \&quot;resume across screens\&quot; would be a promise no client could keep.  Passing &#x60;sourceId&#x60;, &#x60;itemType&#x60; and &#x60;itemRef&#x60; together narrows the page to the single matching row, which is how a player looks up one item before opening it. All three, because the key is all three: &#x60;item_ref&#x60; is minted by the user&#39;s own panel and two subscriptions can use the same value for two different films.  There is deliberately no &#x60;/me/progress/{itemType}/{itemRef}&#x60; variant: &#x60;item_ref&#x60; is opaque and nothing stops it containing a slash or a percent sign. Filtering keeps it in a query parameter, where encoding is unambiguous, instead of a path segment, where it is not. 
      *
+     * @param sourceId Restrict to one source. Part of an item&#39;s key, not a convenience. (optional)
      * @param itemType Restrict to one kind of item. (optional)
      * @param itemRef Restrict to one item. Combined with &#x60;itemType&#x60; this yields at most one element.  (optional)
      * @param page Zero-based page index. (optional, default to 0)
@@ -161,6 +162,7 @@ public interface UserdataApi {
     )
     
     ResponseEntity<PlaybackProgressPage> listProgress(
+         @Valid @RequestParam(value = "sourceId", required = false) @Nullable UUID sourceId,
          @Valid @RequestParam(value = "itemType", required = false) @Nullable ProgressItemType itemType,
         @Size(max = 200)  @Valid @RequestParam(value = "itemRef", required = false) @Nullable String itemRef,
         @Min(0)  @Valid @RequestParam(value = "page", required = false, defaultValue = "0") Integer page,
@@ -231,7 +233,7 @@ public interface UserdataApi {
 
     /**
      * PUT /me/progress : Save playback progress for a VOD item or an episode
-     * Idempotent upsert keyed on &#x60;(item_type, item_ref)&#x60; for the caller.  Live channels have no progress. Sending &#x60;item_type&#x60; for a live channel is a client bug, not a supported case. 
+     * Idempotent upsert keyed on &#x60;(source_id, item_type, item_ref)&#x60; for the caller. The source is part of the key rather than a passenger — see &#x60;SaveProgressRequest.source_id&#x60;.  Live channels have no progress. &#x60;ProgressItemType&#x60; has no &#x60;LIVE&#x60; value, and sending one for a channel is a client bug rather than a supported case: a position means nothing on a continuous stream. What a channel gets instead is &#x60;PUT /me/recent-channels&#x60;. 
      *
      * @param saveProgressRequest  (required)
      * @return The stored progress. (status code 200)

@@ -67,3 +67,6 @@ src/main/java/tv/lumo/api/generated/model/UpdateFavoriteRequest.java
 src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java
 src/main/java/tv/lumo/api/generated/model/UpdateUserRequest.java
 src/main/java/tv/lumo/api/generated/model/User.java
+src/main/java/tv/lumo/api/generated/model/VodItem.java
+src/main/java/tv/lumo/api/generated/model/VodItemPage.java
+src/main/java/tv/lumo/api/generated/model/VodPlaybackInfo.java

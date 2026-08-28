@@ -12,6 +12,8 @@ import tv.lumo.android.network.generated.model.ContentType
 import tv.lumo.android.network.generated.model.EpgProgrammeList
 import tv.lumo.android.network.generated.model.PlaybackInfo
 import tv.lumo.android.network.generated.model.Problem
+import tv.lumo.android.network.generated.model.VodItemPage
+import tv.lumo.android.network.generated.model.VodPlaybackInfo
 
 interface CatalogApi {
     /**
@@ -47,6 +49,22 @@ interface CatalogApi {
      */
     @GET("channels/{id}/playback")
     suspend fun getChannelPlayback(@Path("id") id: java.util.UUID): Response<PlaybackInfo>
+
+    /**
+     * GET vod/{id}/playback
+     * Obtain the stream URL for one film, on demand
+     * The twin of &#x60;GET /channels/{id}/playback&#x60;, and everything written there applies here unchanged: the URL is issued at the moment of playback, after checking that the film belongs to a source owned by the caller; it is never logged, never cached in a shared store, never handed to anyone but its owner; and the player opens it directly against the user&#39;s own server, so the media does not transit through Lumo.  Two operations rather than one because they address two id spaces — a film is not a channel and the identifier could not be resolved without being told which of the two it is.  **A film&#39;s URL is built, a channel&#39;s is stored.** For an Xtream source the panel gives an identifier and a container extension, and this endpoint assembles &#x60;/movie/{user}/{pass}/{id}.{ext}&#x60;; an M3U playlist carries the whole URL already (&#x60;adr/0009&#x60;). The client sees neither difference. 
+     * Responses:
+     *  - 200: Playback details for this film.
+     *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
+     *  - 404: No such film, or it does not belong to a source owned by the caller (`VOD_ITEM_NOT_FOUND`). Non-ownership is a `404` and not a `403`, so the endpoint cannot be used to probe for identifiers. 
+     *  - 409: The source cannot serve playback right now — `SOURCE_NOT_READY`, `SOURCE_EXPIRED`, `SOURCE_MAX_CONNECTIONS`. The same three as for a channel, and they mean the same things: a subscription's simultaneous-stream limit counts a film exactly as it counts a channel. 
+     *
+     * @param id Resource identifier.
+     * @return [VodPlaybackInfo]
+     */
+    @GET("vod/{id}/playback")
+    suspend fun getVodPlayback(@Path("id") id: java.util.UUID): Response<VodPlaybackInfo>
 
     /**
      * GET sources/{id}/categories
@@ -86,5 +104,27 @@ interface CatalogApi {
      */
     @GET("sources/{id}/channels")
     suspend fun listChannels(@Path("id") id: java.util.UUID, @Query("categoryId") categoryId: java.util.UUID? = null, @Query("q") q: kotlin.String? = null, @Query("ids") ids: @JvmSuppressWildcards kotlin.collections.List<java.util.UUID>? = null, @Query("page") page: kotlin.Int? = 0, @Query("size") size: kotlin.Int? = 50): Response<ChannelPage>
+
+    /**
+     * GET sources/{id}/vod
+     * Films of a source, paginated
+     * The same shape as &#x60;GET /sources/{id}/channels&#x60;, down to the parameter names, and that is the point: a client reuses the pagination, the search and the identifier lookup it already wrote instead of growing a second set that drifts from the first.  **No &#x60;stream_url&#x60; here either**, for the reason given on the channel listing: a page of films does not carry a page of credential-bearing URLs. Playback URLs come from &#x60;GET /vod/{id}/playback&#x60;, one at a time.  **No &#x60;plot&#x60; here.** It is loaded when somebody opens a film, not when they scroll past it — see &#x60;VodItem.plot&#x60;. 
+     * Responses:
+     *  - 200: A page of films, ordered by category then `position`.
+     *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
+     *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
+     *  - 404: No such source on this account (`SOURCE_NOT_FOUND`).
+     *  - 409: The source has not finished ingesting (`SOURCE_NOT_READY`). The client keeps polling `GET /sources/{id}`. 
+     *
+     * @param id Resource identifier.
+     * @param categoryId Restrict to one category. Its &#x60;content_type&#x60; is &#x60;VOD&#x60;. (optional)
+     * @param q Free-text search on the title. Case-insensitive substring, as on the channel listing — the trigram index makes it fast, not approximate.  (optional)
+     * @param ids Resolve these films, and only these. Repeatable, bounded at 100, and it composes with the other filters — the same semantics as &#x60;ids&#x60; on the channel listing, including that unknown identifiers are absent from the answer rather than an error.  **Send &#x60;size&#x60; with it.** The default page is 50, so a hundred identifiers asked for without it come back half answered, with a &#x60;200&#x60; and nothing to say the rest was dropped.  (optional)
+     * @param page Zero-based page index. (optional, default to 0)
+     * @param size Page size. Capped server-side so a large catalogue cannot be pulled in one call. (optional, default to 50)
+     * @return [VodItemPage]
+     */
+    @GET("sources/{id}/vod")
+    suspend fun listVod(@Path("id") id: java.util.UUID, @Query("categoryId") categoryId: java.util.UUID? = null, @Query("q") q: kotlin.String? = null, @Query("ids") ids: @JvmSuppressWildcards kotlin.collections.List<java.util.UUID>? = null, @Query("page") page: kotlin.Int? = 0, @Query("size") size: kotlin.Int? = 50): Response<VodItemPage>
 
 }

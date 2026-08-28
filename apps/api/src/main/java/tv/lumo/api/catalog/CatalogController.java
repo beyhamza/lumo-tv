@@ -17,6 +17,9 @@ import tv.lumo.api.generated.model.EpgProgrammeList;
 import tv.lumo.api.generated.model.ErrorCode;
 import tv.lumo.api.generated.model.PlaybackInfo;
 import tv.lumo.api.generated.model.SourceStatus;
+import tv.lumo.api.generated.model.VodItem;
+import tv.lumo.api.generated.model.VodItemPage;
+import tv.lumo.api.generated.model.VodPlaybackInfo;
 import tv.lumo.api.shared.error.ApiException;
 import tv.lumo.api.source.SourceRepository;
 
@@ -77,7 +80,39 @@ public class CatalogController implements CatalogApi {
     }
 
     /**
-     * The only operation that emits a stream URL.
+     * Films, in the same shape as channels down to the parameter names.
+     *
+     * <p>Deliberately a second method rather than a flag on {@link #listChannels}:
+     * the two return different types, the client that calls one has no use for the
+     * other's fields, and a `contentType` parameter would have made the response
+     * shape depend on a query value.
+     */
+    @Override
+    public ResponseEntity<VodItemPage> listVod(UUID id, UUID categoryId, String q,
+                                               List<UUID> ids, Integer page, Integer size) {
+        UUID userId = CurrentUser.requireUserId();
+        requireReadableSource(id, userId);
+
+        int pageIndex = page == null ? 0 : Math.max(0, page);
+        int pageSize = size == null ? DEFAULT_PAGE_SIZE : Math.clamp(size, 1, MAX_PAGE_SIZE);
+        String search = (q == null || q.isBlank()) ? null : q.trim();
+        // Empty means "no filter", as on the channel listing and for the same
+        // reason: `?ids=` on the end of a URL is an ordinary accident, and
+        // answering an empty page to it would look like a catalogue that lost its
+        // films.
+        List<UUID> wanted = (ids == null || ids.isEmpty()) ? null : ids;
+
+        List<VodItem> items =
+                catalog.findVod(id, userId, categoryId, search, wanted, pageIndex, pageSize);
+        long total = catalog.countVod(id, userId, categoryId, search, wanted);
+
+        VodItemPage result = new VodItemPage(items, pageIndex, pageSize, total,
+                (int) Math.ceil((double) total / pageSize));
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * One of the two operations that emit a stream URL.
      *
      * <p>Ownership is enforced inside the query, and a channel the caller does not
      * own is reported as 404 rather than 403 so the endpoint cannot be used to
@@ -91,20 +126,36 @@ public class CatalogController implements CatalogApi {
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.CHANNEL_NOT_FOUND,
                         "No such channel on a source owned by the caller"));
 
-        if (!SourceStatus.READY.getValue().equals(row.sourceStatus())) {
-            throw ApiException.conflict(ErrorCode.SOURCE_NOT_READY,
-                    "The source has not finished ingesting");
-        }
-        if (row.sourceExpiresAt() != null && row.sourceExpiresAt().isBefore(OffsetDateTime.now())) {
-            throw ApiException.conflict(ErrorCode.SOURCE_EXPIRED,
-                    "The subscription with the provider has expired");
-        }
+        requirePlayableSource(row);
 
         PlaybackInfo playback = new PlaybackInfo(id, row.streamUrl());
         // Echoed so the player can explain a stream the panel refuses (US-09).
         playback.setMaxConnections(row.maxConnections());
         // Nothing is logged here. This response body is the single most sensitive
         // one this API produces (AGENTS.md §5).
+        return ResponseEntity.ok(playback);
+    }
+
+    /**
+     * The same, for a film.
+     *
+     * <p>The three refusals are the channel's three, and they mean the same
+     * things: a subscription's simultaneous-stream ceiling counts a film exactly
+     * as it counts a channel, so the guard is shared rather than re-argued.
+     */
+    @Override
+    public ResponseEntity<VodPlaybackInfo> getVodPlayback(UUID id) {
+        UUID userId = CurrentUser.requireUserId();
+
+        CatalogReadRepository.PlaybackRow row = catalog.findVodStreamUrlOwnedBy(id, userId)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.VOD_ITEM_NOT_FOUND,
+                        "No such film on a source owned by the caller"));
+
+        requirePlayableSource(row);
+
+        VodPlaybackInfo playback = new VodPlaybackInfo(id, row.streamUrl());
+        playback.setMaxConnections(row.maxConnections());
+        // Nothing is logged here, exactly as for a channel (AGENTS.md §5).
         return ResponseEntity.ok(playback);
     }
 
@@ -131,6 +182,25 @@ public class CatalogController implements CatalogApi {
         // A channel with no tvg_id, or a source with no guide, yields an empty
         // list rather than an error.
         return ResponseEntity.ok(new EpgProgrammeList(catalog.findProgrammes(id, userId, start, end)));
+    }
+
+    /**
+     * The two conflicts a source can raise at the moment of playback.
+     *
+     * <p>Shared by the channel and the film paths rather than written twice: they
+     * are properties of the *source*, and a film hitting a different rule from a
+     * channel on the same subscription would be a bug on whichever side was
+     * changed last.
+     */
+    private void requirePlayableSource(CatalogReadRepository.PlaybackRow row) {
+        if (!SourceStatus.READY.getValue().equals(row.sourceStatus())) {
+            throw ApiException.conflict(ErrorCode.SOURCE_NOT_READY,
+                    "The source has not finished ingesting");
+        }
+        if (row.sourceExpiresAt() != null && row.sourceExpiresAt().isBefore(OffsetDateTime.now())) {
+            throw ApiException.conflict(ErrorCode.SOURCE_EXPIRED,
+                    "The subscription with the provider has expired");
+        }
     }
 
     /**

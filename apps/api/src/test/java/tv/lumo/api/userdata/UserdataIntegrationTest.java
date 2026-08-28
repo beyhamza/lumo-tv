@@ -353,7 +353,7 @@ class UserdataIntegrationTest extends PostgresIntegrationTest {
         assertThat(second.getId()).isEqualTo(first.getId());
         assertThat(second.getPositionMs()).isEqualTo(45_000L);
 
-        PlaybackProgressPage page = userdata.listProgress(user.id(), null, null, 0, 50);
+        PlaybackProgressPage page = userdata.listProgress(user.id(), null, null, null, 0, 50);
         assertThat(page.getTotalElements()).isEqualTo(1);
     }
 
@@ -363,12 +363,12 @@ class UserdataIntegrationTest extends PostgresIntegrationTest {
         userdata.saveProgress(user.id(), progressRequest("vod:1", 10L, null));
         userdata.saveProgress(user.id(), progressRequest("vod:2", 20L, null));
 
-        PlaybackProgressPage page = userdata.listProgress(user.id(), null, null, 0, 50);
+        PlaybackProgressPage page = userdata.listProgress(user.id(), null, null, null, 0, 50);
         assertThat(page.getItems()).extracting(PlaybackProgress::getItemRef)
                 // The order a "Continue watching" rail wants, so no client re-sorts it.
                 .containsExactly("vod:2", "vod:1");
 
-        PlaybackProgressPage one = userdata.listProgress(user.id(), ProgressItemType.VOD, "vod:1", 0, 50);
+        PlaybackProgressPage one = userdata.listProgress(user.id(), null, ProgressItemType.VOD, "vod:1", 0, 50);
         assertThat(one.getItems()).hasSize(1);
         assertThat(one.getTotalElements()).isEqualTo(1);
     }
@@ -380,9 +380,52 @@ class UserdataIntegrationTest extends PostgresIntegrationTest {
         // becomes a path segment.
         userdata.saveProgress(user.id(), progressRequest("series/12/ep 3?x=1", 5L, null));
 
-        PlaybackProgressPage page = userdata.listProgress(user.id(),
+        PlaybackProgressPage page = userdata.listProgress(user.id(), null,
                 ProgressItemType.VOD, "series/12/ep 3?x=1", 0, 50);
         assertThat(page.getItems()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("two sources can use the same item_ref without sharing a position")
+    void progressIsKeyedOnTheSourceToo() {
+        UUID otherSourceId = UUID.randomUUID();
+        sources.insert(otherSourceId, user.id(), "Second source", SourceKind.M3U_URL, null, null,
+                null, "https://playlist.example/two.m3u", null, null, null);
+
+        // `item_ref` is minted by the user's own panel. Two subscriptions using
+        // `1042` for two different films is ordinary, not adversarial — and before
+        // the source joined the key, the second save moved the first one's row.
+        userdata.saveProgress(user.id(), progressRequest(sourceId, "1042", 1_000L, null));
+        userdata.saveProgress(user.id(), progressRequest(otherSourceId, "1042", 45_000L, null));
+
+        PlaybackProgressPage all = userdata.listProgress(user.id(), null, null, null, 0, 50);
+        assertThat(all.getTotalElements()).isEqualTo(2);
+
+        // And each one reads back its own position. A film resuming twenty minutes
+        // in on its first viewing is what the collision looked like from outside.
+        PlaybackProgressPage first =
+                userdata.listProgress(user.id(), sourceId, ProgressItemType.VOD, "1042", 0, 50);
+        assertThat(first.getItems()).hasSize(1);
+        assertThat(first.getItems().getFirst().getPositionMs()).isEqualTo(1_000L);
+    }
+
+    @Test
+    @DisplayName("progress cannot be filed under a source the caller does not own")
+    void progressChecksSourceOwnership() {
+        UserRow stranger = users.insert(UUID.randomUUID(),
+                "stranger-" + UUID.randomUUID() + "@test.example",
+                "$argon2id$irrelevant", "Stranger", "en");
+        UUID theirSource = UUID.randomUUID();
+        sources.insert(theirSource, stranger.id(), "Theirs", SourceKind.M3U_URL, null, null, null,
+                "https://playlist.example/theirs.m3u", null, null, null);
+
+        // A 404 and not a 403: confirming the source exists would let this endpoint
+        // be used to discover identifiers.
+        assertThatThrownBy(() -> userdata.saveProgress(user.id(),
+                progressRequest(theirSource, "1042", 1_000L, null)))
+                .isInstanceOf(ApiException.class)
+                .extracting(e -> ((ApiException) e).code())
+                .isEqualTo(ErrorCode.SOURCE_NOT_FOUND);
     }
 
     // ---- recently watched ---------------------------------------------------
@@ -432,8 +475,15 @@ class UserdataIntegrationTest extends PostgresIntegrationTest {
 
     // ---- helpers ------------------------------------------------------------
 
-    private static SaveProgressRequest progressRequest(String itemRef, long positionMs, Long durationMs) {
-        SaveProgressRequest request = new SaveProgressRequest(ProgressItemType.VOD, itemRef, positionMs);
+    private SaveProgressRequest progressRequest(String itemRef, long positionMs, Long durationMs) {
+        return progressRequest(sourceId, itemRef, positionMs, durationMs);
+    }
+
+    /** The source is part of the key, so a test that means to collide has to say so. */
+    private static SaveProgressRequest progressRequest(UUID source, String itemRef,
+                                                       long positionMs, Long durationMs) {
+        SaveProgressRequest request =
+                new SaveProgressRequest(source, ProgressItemType.VOD, itemRef, positionMs);
         request.setDurationMs(durationMs);
         return request;
     }

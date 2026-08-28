@@ -33,21 +33,24 @@ public class ProgressRepository {
      * One page, most recently updated first — which is the order a "Continue
      * watching" rail wants, so no client has to re-sort it.
      *
+     * @param sourceId null for every source
      * @param itemType null for every kind
-     * @param itemRef  null for every item; with {@code itemType} it yields at most one
+     * @param itemRef  null for every item; with the other two it yields at most one
      */
-    public List<PlaybackProgress> findPage(UUID userId, ProgressItemType itemType, String itemRef,
-                                           int page, int size) {
+    public List<PlaybackProgress> findPage(UUID userId, UUID sourceId, ProgressItemType itemType,
+                                           String itemRef, int page, int size) {
         return jdbc.sql("""
-                SELECT id, item_type, item_ref, position_ms, duration_ms, updated_at
+                SELECT id, source_id, item_type, item_ref, position_ms, duration_ms, updated_at
                   FROM playback_progress
                  WHERE user_id = :userId
+                   AND (:sourceId::uuid IS NULL OR source_id = :sourceId)
                    AND (:itemType::text IS NULL OR item_type = :itemType)
                    AND (:itemRef::text  IS NULL OR item_ref  = :itemRef)
                  ORDER BY updated_at DESC
                  LIMIT :size OFFSET :offset
                 """)
                 .param("userId", userId)
+                .param("sourceId", sourceId)
                 .param("itemType", itemType == null ? null : itemType.getValue())
                 .param("itemRef", itemRef)
                 .param("size", size)
@@ -56,15 +59,17 @@ public class ProgressRepository {
                 .list();
     }
 
-    public long count(UUID userId, ProgressItemType itemType, String itemRef) {
+    public long count(UUID userId, UUID sourceId, ProgressItemType itemType, String itemRef) {
         return jdbc.sql("""
                 SELECT count(*)
                   FROM playback_progress
                  WHERE user_id = :userId
+                   AND (:sourceId::uuid IS NULL OR source_id = :sourceId)
                    AND (:itemType::text IS NULL OR item_type = :itemType)
                    AND (:itemRef::text  IS NULL OR item_ref  = :itemRef)
                 """)
                 .param("userId", userId)
+                .param("sourceId", sourceId)
                 .param("itemType", itemType == null ? null : itemType.getValue())
                 .param("itemRef", itemRef)
                 .query(Long.class)
@@ -72,7 +77,14 @@ public class ProgressRepository {
     }
 
     /**
-     * Idempotent upsert on {@code (user_id, item_type, item_ref)}.
+     * Idempotent upsert on {@code (user_id, source_id, item_type, item_ref)}.
+     *
+     * <p><b>The source is part of the key, not a passenger.</b> {@code item_ref} is
+     * minted by the user's own panel: two subscriptions can perfectly well both
+     * call a film {@code 1042}, and without the source in the key the position of
+     * one would be served for the other. The symptom would be a film that resumes
+     * twenty minutes in on its first viewing, which nobody would think to report as
+     * a key collision.
      *
      * <p>{@code RETURNING} rather than a second SELECT: a player saves a position
      * every few seconds, and on a conflict the row that matters is the one already
@@ -82,20 +94,22 @@ public class ProgressRepository {
      * reporting a duration has stopped reporting it, and a remembered one would
      * quietly outlive the item it described.
      */
-    public PlaybackProgress upsert(UUID userId, ProgressItemType itemType, String itemRef,
-                                   long positionMs, Long durationMs) {
+    public PlaybackProgress upsert(UUID userId, UUID sourceId, ProgressItemType itemType,
+                                   String itemRef, long positionMs, Long durationMs) {
         return jdbc.sql("""
-                INSERT INTO playback_progress (id, user_id, item_type, item_ref,
+                INSERT INTO playback_progress (id, user_id, source_id, item_type, item_ref,
                                                position_ms, duration_ms, updated_at)
-                VALUES (:id, :userId, :itemType, :itemRef, :positionMs, :durationMs, now())
-                ON CONFLICT (user_id, item_type, item_ref)
+                VALUES (:id, :userId, :sourceId, :itemType, :itemRef,
+                        :positionMs, :durationMs, now())
+                ON CONFLICT (user_id, source_id, item_type, item_ref)
                 DO UPDATE SET position_ms = EXCLUDED.position_ms,
                               duration_ms = EXCLUDED.duration_ms,
                               updated_at  = now()
-                RETURNING id, item_type, item_ref, position_ms, duration_ms, updated_at
+                RETURNING id, source_id, item_type, item_ref, position_ms, duration_ms, updated_at
                 """)
                 .param("id", UUID.randomUUID())
                 .param("userId", userId)
+                .param("sourceId", sourceId)
                 .param("itemType", itemType.getValue())
                 .param("itemRef", itemRef)
                 .param("positionMs", positionMs)
@@ -107,6 +121,7 @@ public class ProgressRepository {
     static PlaybackProgress map(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
         PlaybackProgress progress = new PlaybackProgress(
                 rs.getObject("id", UUID.class),
+                rs.getObject("source_id", UUID.class),
                 ProgressItemType.fromValue(rs.getString("item_type")),
                 rs.getString("item_ref"),
                 rs.getLong("position_ms"),

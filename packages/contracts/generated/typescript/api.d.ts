@@ -505,6 +505,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sources/{id}/vod": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Films of a source, paginated
+         * @description The same shape as `GET /sources/{id}/channels`, down to the parameter
+         *     names, and that is the point: a client reuses the pagination, the search
+         *     and the identifier lookup it already wrote instead of growing a second
+         *     set that drifts from the first.
+         *
+         *     **No `stream_url` here either**, for the reason given on the channel
+         *     listing: a page of films does not carry a page of credential-bearing
+         *     URLs. Playback URLs come from `GET /vod/{id}/playback`, one at a time.
+         *
+         *     **No `plot` here.** It is loaded when somebody opens a film, not when
+         *     they scroll past it — see `VodItem.plot`.
+         */
+        get: operations["listVod"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/channels/{id}/playback": {
         parameters: {
             query?: never;
@@ -550,6 +580,41 @@ export interface paths {
          *     list.
          */
         get: operations["getChannelEpg"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vod/{id}/playback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtain the stream URL for one film, on demand
+         * @description The twin of `GET /channels/{id}/playback`, and everything written there
+         *     applies here unchanged: the URL is issued at the moment of playback,
+         *     after checking that the film belongs to a source owned by the caller; it
+         *     is never logged, never cached in a shared store, never handed to anyone
+         *     but its owner; and the player opens it directly against the user's own
+         *     server, so the media does not transit through Lumo.
+         *
+         *     Two operations rather than one because they address two id spaces — a
+         *     film is not a channel and the identifier could not be resolved without
+         *     being told which of the two it is.
+         *
+         *     **A film's URL is built, a channel's is stored.** For an Xtream source
+         *     the panel gives an identifier and a container extension, and this
+         *     endpoint assembles `/movie/{user}/{pass}/{id}.{ext}`; an M3U playlist
+         *     carries the whole URL already (`adr/0009`). The client sees neither
+         *     difference.
+         */
+        get: operations["getVodPlayback"];
         put?: never;
         post?: never;
         delete?: never;
@@ -690,21 +755,28 @@ export interface paths {
          *     could be saved on the phone and never read back on the television, and
          *     "resume across screens" would be a promise no client could keep.
          *
-         *     Passing both `itemType` and `itemRef` narrows the page to the single
-         *     matching row, which is how a player looks up one item before opening it.
+         *     Passing `sourceId`, `itemType` and `itemRef` together narrows the page to
+         *     the single matching row, which is how a player looks up one item before
+         *     opening it. All three, because the key is all three: `item_ref` is minted
+         *     by the user's own panel and two subscriptions can use the same value for
+         *     two different films.
+         *
          *     There is deliberately no `/me/progress/{itemType}/{itemRef}` variant:
-         *     `item_ref` is an opaque identifier minted by the user's own panel, and
-         *     nothing stops it containing a slash or a percent sign. Filtering keeps
-         *     it in a query parameter, where encoding is unambiguous, instead of a
-         *     path segment, where it is not.
+         *     `item_ref` is opaque and nothing stops it containing a slash or a percent
+         *     sign. Filtering keeps it in a query parameter, where encoding is
+         *     unambiguous, instead of a path segment, where it is not.
          */
         get: operations["listProgress"];
         /**
          * Save playback progress for a VOD item or an episode
-         * @description Idempotent upsert keyed on `(item_type, item_ref)` for the caller.
+         * @description Idempotent upsert keyed on `(source_id, item_type, item_ref)` for the
+         *     caller. The source is part of the key rather than a passenger — see
+         *     `SaveProgressRequest.source_id`.
          *
-         *     Live channels have no progress. Sending `item_type` for a live channel is
-         *     a client bug, not a supported case.
+         *     Live channels have no progress. `ProgressItemType` has no `LIVE` value,
+         *     and sending one for a channel is a client bug rather than a supported
+         *     case: a position means nothing on a continuous stream. What a channel
+         *     gets instead is `PUT /me/recent-channels`.
          */
         put: operations["saveProgress"];
         post?: never;
@@ -919,7 +991,7 @@ export interface components {
          *       `SOURCE_SYNC_IN_PROGRESS`, `SOURCE_SYNC_RATE_LIMITED`, plus every
          *       `IngestionErrorCode`.
          *     - **Catalogue and user data** — `CHANNEL_NOT_FOUND`,
-         *       `FAVORITE_NOT_FOUND`, `FAVORITE_ALREADY_EXISTS`,
+         *       `VOD_ITEM_NOT_FOUND`, `FAVORITE_NOT_FOUND`, `FAVORITE_ALREADY_EXISTS`,
          *       `FAVORITE_GROUP_NOT_FOUND`, `FAVORITE_GROUP_ALREADY_EXISTS`,
          *       `FAVORITE_GROUP_NOT_DELETABLE`.
          *
@@ -937,7 +1009,7 @@ export interface components {
          *       second: removing something, or upgrading.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_DELETABLE" | "SOURCE_LIMIT_REACHED" | "DEVICE_LIMIT_REACHED" | "ALREADY_SUBSCRIBED" | "BILLING_CUSTOMER_NOT_FOUND";
+        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "VOD_ITEM_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_DELETABLE" | "SOURCE_LIMIT_REACHED" | "DEVICE_LIMIT_REACHED" | "ALREADY_SUBSCRIBED" | "BILLING_CUSTOMER_NOT_FOUND";
         /**
          * @description UI language. FR and EN are supported from the first screen.
          * @enum {string}
@@ -982,19 +1054,40 @@ export interface components {
          *     |---|---|
          *     | `CONNECTING` | Opening the connection to the user's server. |
          *     | `AUTHENTICATED` | Credentials accepted; nothing parsed yet. |
-         *     | `PARSING_CHANNELS` | Reading the playlist or the panel's catalogue. |
+         *     | `PARSING_CHANNELS` | Reading the live channels. |
+         *     | `PARSING_VOD` | Reading the film catalogue, when the source has one. |
          *     | `FETCHING_EPG` | Retrieving the XMLTV guide, when the source has one. |
          *
          *     These are the server's real phases and must stay so. A step the
          *     implementation does not actually distinguish is a reassuring fiction,
          *     and three true steps beat four invented ones.
+         *
+         *     `PARSING_VOD` earns its place by that rule rather than in spite of it: a
+         *     film catalogue is commonly three times the size of the channel list, so
+         *     an ingestion that stayed on `PARSING_CHANNELS` throughout would leave the
+         *     waiting screen still and silent for the longest minute of the import —
+         *     which is where somebody decides the application is broken and closes it.
          * @enum {string}
          */
-        SyncStep: "CONNECTING" | "AUTHENTICATED" | "PARSING_CHANNELS" | "FETCHING_EPG";
+        SyncStep: "CONNECTING" | "AUTHENTICATED" | "PARSING_CHANNELS" | "PARSING_VOD" | "FETCHING_EPG";
         /**
-         * @description Kind of catalogue a `category` groups. Only `LIVE` is exercised by
-         *     sprint 1; `VOD` and `SERIES` are ingested and exposed but have no
-         *     dedicated endpoints in v1.
+         * @description Kind of catalogue a `category` groups.
+         *
+         *     `LIVE` and `VOD` are ingested and served, each with its own listing and
+         *     its own playback operation. `SERIES` is **accepted by this enumeration
+         *     and produced by nothing**: the column and the value exist so the schema
+         *     is complete, and the ingestion that would fill them is sprint 6.
+         *
+         *     An earlier version of this description claimed all three were ingested.
+         *     They were not — only `LIVE` was — and a false sentence in the document
+         *     that decides what the server does costs more than an absent one.
+         *
+         *     How an entry becomes `VOD` differs by source, and only one of the two
+         *     cases is a judgement call. An Xtream panel answers it itself, through
+         *     `get_vod_streams` beside `get_live_streams`. An M3U playlist declares
+         *     nothing, so the type is inferred — from the URL alone, and never from
+         *     what the entry is called. The rule, what it costs when it is wrong, and
+         *     which way its doubt falls are `adr/0009`.
          * @enum {string}
          */
         ContentType: "LIVE" | "VOD" | "SERIES";
@@ -1626,6 +1719,107 @@ export interface components {
             total_pages: number;
         };
         /**
+         * @description A film.
+         *
+         *     **Not a `Channel` with extra columns.** A channel is played; a film is
+         *     *chosen*, and nobody chooses without a poster, a year and a running time.
+         *     Putting those on `Channel` would mean six null columns on the fifteen
+         *     thousand rows of an ordinary channel list.
+         *
+         *     **`stream_url` is absent**, for the reason it is absent from `Channel`:
+         *     it is credential-bearing and comes from `GET /vod/{id}/playback`, one
+         *     film at a time, after an ownership check.
+         *
+         *     **`container_extension` is absent too, and that one is not about
+         *     secrecy.** It is a fragment the server uses to build an Xtream playback
+         *     URL, it is null for every M3U film (`adr/0009`), and no client has
+         *     anything to do with it. A field that is meaningless to every consumer is
+         *     not a field the contract should carry.
+         */
+        VodItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            source_id: string;
+            /** Format: uuid */
+            category_id?: string | null;
+            /** @description Identifier used by the origin panel or playlist. */
+            external_id?: string | null;
+            name: string;
+            /**
+             * @description Artwork advertised by the user's own source. Lumo ships no bundled
+             *     poster and no fallback of its own; null means a client renders the
+             *     title, never a picture of ours standing in for one of theirs.
+             */
+            poster_url?: string | null;
+            /**
+             * Format: int32
+             * @description Release year, when the source states one. Many do not.
+             */
+            year?: number | null;
+            /**
+             * Format: int32
+             * @description Running time. Null far more often than not — and a client that needs
+             *     it to decide whether something was watched to the end has to cope
+             *     without it (see `PlaybackProgress.duration_ms`).
+             */
+            duration_seconds?: number | null;
+            /**
+             * @description Whatever the source calls a rating, echoed verbatim and never
+             *     reinterpreted — `7.4`, `PG-13` and `★★★★` all occur. A number here
+             *     would mean this layer deciding what the provider meant, which is the
+             *     decision already refused for `Channel.quality`.
+             */
+            rating?: string | null;
+            /**
+             * @description Synopsis, and **absent from the listing on purpose**: it is fetched
+             *     when somebody opens a film rather than when they scroll past a
+             *     thousand.
+             *
+             *     The reason is not response size, it is the user's own server: on an
+             *     Xtream panel the synopsis comes from `get_vod_info`, which is **one
+             *     HTTP call per film**. Loading it for a catalogue of thirty thousand
+             *     at every synchronisation is not slow — it is the kind of thing that
+             *     gets our address banned by somebody's provider.
+             *
+             *     So it is null in a page, and populated on the single-film read that
+             *     fills it in.
+             */
+            plot?: string | null;
+            /**
+             * Format: int32
+             * @description Display order within the source.
+             */
+            position: number;
+            /**
+             * @description As the source flags it. Exposed and **not acted on**: filtering it is
+             *     a parental control, parental control needs profiles, and profiles are
+             *     v2 (`AGENTS.md` §6).
+             */
+            is_adult: boolean;
+        };
+        /** @description One page of films. */
+        VodItemPage: {
+            items: components["schemas"]["VodItem"][];
+            /**
+             * Format: int32
+             * @description Zero-based index of this page.
+             */
+            page: number;
+            /**
+             * Format: int32
+             * @description Requested page size, after the server-side cap.
+             */
+            size: number;
+            /**
+             * Format: int64
+             * @description Total films matching the filters.
+             */
+            total_elements: number;
+            /** Format: int32 */
+            total_pages: number;
+        };
+        /**
          * @description Everything the player needs to open one channel. Issued on demand,
          *     scoped to the owner.
          */
@@ -1664,6 +1858,51 @@ export interface components {
              * @description When this URL stops being valid, when the panel issues time-limited
              *     links. Null means no known expiry; the client re-requests on failure
              *     rather than assuming.
+             */
+            expires_at?: string | null;
+        };
+        /**
+         * @description Everything the player needs to open one film. Issued on demand, scoped to
+         *     the owner.
+         *
+         *     A separate schema rather than a `channel_id` renamed to something
+         *     generic: that rename would break three generated clients today to spare
+         *     one duplicated object, and the two identifiers really do point at two
+         *     different tables. The rules on `stream_url` are the ones written on
+         *     [`PlaybackInfo`](#/components/schemas/PlaybackInfo) and are not repeated
+         *     here — there is exactly one place they are stated, and it is that one.
+         *
+         *     **What a player must do differently with this URL.** It is a progressive
+         *     file, not an HLS manifest: seeking works only if the user's server
+         *     answers `Range` requests, and many do not. A player finds that out on the
+         *     first attempt and says so, rather than drawing a scrubber that does
+         *     nothing.
+         */
+        VodPlaybackInfo: {
+            /** Format: uuid */
+            vod_item_id: string;
+            /**
+             * Format: password
+             * @description **Sensitive**, and typed `format: password` for the reason given on
+             *     `PlaybackInfo.stream_url`: it must never reach a log line at any
+             *     level, `DEBUG` included (AGENTS.md §5).
+             */
+            stream_url: string;
+            /**
+             * @description User-Agent the player should send, when the source requires a
+             *     specific one. Null means the client's default.
+             */
+            user_agent?: string | null;
+            /**
+             * Format: int32
+             * @description Simultaneous streams the user's subscription allows. A film counts
+             *     against that ceiling exactly as a channel does.
+             */
+            max_connections?: number | null;
+            /**
+             * Format: date-time
+             * @description When this URL stops being valid, when the panel issues time-limited
+             *     links. Null means no known expiry.
              */
             expires_at?: string | null;
         };
@@ -1804,8 +2043,18 @@ export interface components {
         PlaybackProgress: {
             /** Format: uuid */
             id: string;
+            /**
+             * Format: uuid
+             * @description The source this position belongs to. Returned because it is part of
+             *     the key: a client reading a page of progress has to be able to tell
+             *     two subscriptions' `1042` apart, exactly as the server does.
+             */
+            source_id: string;
             item_type: components["schemas"]["ProgressItemType"];
-            /** @description Identifier of the item within its source. */
+            /**
+             * @description Identifier of the item within its source, opaque and minted by the
+             *     user's panel. Unique only in combination with `source_id`.
+             */
             item_ref: string;
             /**
              * Format: int64
@@ -1877,8 +2126,28 @@ export interface components {
             /** Format: uuid */
             channel_id: string;
         };
-        /** @description Upsert keyed on `(item_type, item_ref)` for the caller. */
+        /** @description Upsert keyed on `(source_id, item_type, item_ref)` for the caller. */
         SaveProgressRequest: {
+            /**
+             * Format: uuid
+             * @description The source the item belongs to, and **part of the key**.
+             *
+             *     `item_ref` is minted by the user's own panel and is opaque to us —
+             *     two subscriptions can perfectly well use `1042` for two different
+             *     films, and without this field the progress of one would be served for
+             *     the other. The bug would look like a film mysteriously resuming
+             *     twenty minutes in.
+             *
+             *     Sent by the client rather than derived here because the client is
+             *     what holds the item: `item_ref` is not one of our identifiers, so
+             *     there is nothing to look it up in.
+             *
+             *     The alternative was a convention — prefix `item_ref` with the source
+             *     id — and it was refused: a convention is a rule three clients have to
+             *     apply identically, and one of them getting it wrong produces exactly
+             *     the collision this field prevents, silently.
+             */
+            source_id: string;
             item_type: components["schemas"]["ProgressItemType"];
             item_ref: string;
             /** Format: int64 */
@@ -2889,6 +3158,56 @@ export interface operations {
             409: components["responses"]["SourceNotReady"];
         };
     };
+    listVod: {
+        parameters: {
+            query?: {
+                /** @description Restrict to one category. Its `content_type` is `VOD`. */
+                categoryId?: string;
+                /**
+                 * @description Free-text search on the title. Case-insensitive substring, as on the
+                 *     channel listing — the trigram index makes it fast, not approximate.
+                 */
+                q?: string;
+                /**
+                 * @description Resolve these films, and only these. Repeatable, bounded at 100, and
+                 *     it composes with the other filters — the same semantics as `ids` on
+                 *     the channel listing, including that unknown identifiers are absent
+                 *     from the answer rather than an error.
+                 *
+                 *     **Send `size` with it.** The default page is 50, so a hundred
+                 *     identifiers asked for without it come back half answered, with a
+                 *     `200` and nothing to say the rest was dropped.
+                 */
+                ids?: string[];
+                /** @description Zero-based page index. */
+                page?: components["parameters"]["Page"];
+                /** @description Page size. Capped server-side so a large catalogue cannot be pulled in one call. */
+                size?: components["parameters"]["Size"];
+            };
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of films, ordered by category then `position`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VodItemPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["SourceNotFound"];
+            409: components["responses"]["SourceNotReady"];
+        };
+    };
     getChannelPlayback: {
         parameters: {
             query?: never;
@@ -2984,6 +3303,58 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             /** @description No such channel on a source owned by the caller (`CHANNEL_NOT_FOUND`). */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getVodPlayback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Playback details for this film. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VodPlaybackInfo"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /**
+             * @description No such film, or it does not belong to a source owned by the caller
+             *     (`VOD_ITEM_NOT_FOUND`). Non-ownership is a `404` and not a `403`, so
+             *     the endpoint cannot be used to probe for identifiers.
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /**
+             * @description The source cannot serve playback right now — `SOURCE_NOT_READY`,
+             *     `SOURCE_EXPIRED`, `SOURCE_MAX_CONNECTIONS`. The same three as for a
+             *     channel, and they mean the same things: a subscription's
+             *     simultaneous-stream limit counts a film exactly as it counts a
+             *     channel.
+             */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3302,6 +3673,8 @@ export interface operations {
     listProgress: {
         parameters: {
             query?: {
+                /** @description Restrict to one source. Part of an item's key, not a convenience. */
+                sourceId?: string;
                 /** @description Restrict to one kind of item. */
                 itemType?: components["schemas"]["ProgressItemType"];
                 /**

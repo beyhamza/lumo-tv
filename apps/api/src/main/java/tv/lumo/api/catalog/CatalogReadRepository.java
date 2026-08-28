@@ -10,6 +10,7 @@ import tv.lumo.api.generated.model.Category;
 import tv.lumo.api.generated.model.Channel;
 import tv.lumo.api.generated.model.ContentType;
 import tv.lumo.api.generated.model.EpgProgramme;
+import tv.lumo.api.generated.model.VodItem;
 
 /**
  * User-scoped catalogue reads.
@@ -244,9 +245,114 @@ public class CatalogReadRepository {
                 .list();
     }
 
+    // ---- films --------------------------------------------------------------
+    //
+    // Deliberately the channel queries again rather than one parameterised over a
+    // table name: the two projections differ (a film has a poster and a year, a
+    // channel has a tvg_id and a number), and a shared query would take a table
+    // name from Java, which is the one kind of value that cannot be bound.
+
+    /** One page of films. Note the absence of {@code stream_url} and of {@code plot}. */
+    public List<VodItem> findVod(UUID sourceId, UUID userId, UUID categoryId,
+                                 String search, List<UUID> ids, int page, int size) {
+        return jdbc.sql("""
+                SELECT v.id, v.source_id, v.category_id, v.external_id, v.name,
+                       v.poster_url, v.year, v.duration_seconds, v.rating,
+                       v.position, v.is_adult
+                  FROM vod_item v
+                  JOIN source s ON s.id = v.source_id
+                 WHERE v.source_id = :sourceId
+                   AND s.user_id = :userId
+                   AND (:categoryId::uuid IS NULL OR v.category_id = :categoryId)
+                   AND (:search::text IS NULL OR v.name ILIKE '%' || :search || '%')
+                   AND (:ids::text IS NULL OR v.id = ANY(string_to_array(:ids, ',')::uuid[]))
+                 ORDER BY v.category_id NULLS LAST, v.position, v.name
+                 LIMIT :size OFFSET :offset
+                """)
+                .param("sourceId", sourceId)
+                .param("userId", userId)
+                .param("categoryId", categoryId)
+                .param("search", search)
+                .param("ids", idArray(ids))
+                .param("size", size)
+                .param("offset", (long) page * size)
+                .query(CatalogReadRepository::mapVodItem)
+                .list();
+    }
+
+    public long countVod(UUID sourceId, UUID userId, UUID categoryId, String search,
+                         List<UUID> ids) {
+        return jdbc.sql("""
+                SELECT count(*)
+                  FROM vod_item v
+                  JOIN source s ON s.id = v.source_id
+                 WHERE v.source_id = :sourceId
+                   AND s.user_id = :userId
+                   AND (:categoryId::uuid IS NULL OR v.category_id = :categoryId)
+                   AND (:search::text IS NULL OR v.name ILIKE '%' || :search || '%')
+                   AND (:ids::text IS NULL OR v.id = ANY(string_to_array(:ids, ',')::uuid[]))
+                """)
+                .param("sourceId", sourceId)
+                .param("userId", userId)
+                .param("categoryId", categoryId)
+                .param("search", search)
+                .param("ids", idArray(ids))
+                .query(Long.class)
+                .single();
+    }
+
+    /**
+     * The second query in this application that reads a stream URL, and the last.
+     *
+     * <p>Scoped to the owner in the same statement, for the reason written on
+     * {@link #findStreamUrlOwnedBy}: there is no window in which the URL is loaded
+     * for a caller who turns out not to own it.
+     */
+    public Optional<PlaybackRow> findVodStreamUrlOwnedBy(UUID vodItemId, UUID userId) {
+        return jdbc.sql("""
+                SELECT v.stream_url, s.max_connections, s.status, s.expires_at
+                  FROM vod_item v
+                  JOIN source s ON s.id = v.source_id
+                 WHERE v.id = :vodItemId
+                   AND s.user_id = :userId
+                """)
+                .param("vodItemId", vodItemId)
+                .param("userId", userId)
+                .query((rs, n) -> new PlaybackRow(
+                        rs.getString("stream_url"),
+                        rs.getObject("max_connections", Integer.class),
+                        rs.getString("status"),
+                        rs.getObject("expires_at", OffsetDateTime.class)))
+                .optional();
+    }
+
     /** @param streamUrl sensitive; must not be logged or cached anywhere shared */
     public record PlaybackRow(String streamUrl, Integer maxConnections,
                               String sourceStatus, OffsetDateTime sourceExpiresAt) {
+    }
+
+    /**
+     * Maps a film row.
+     *
+     * <p>{@code plot} is absent from every projection that feeds this, and that is
+     * not an omission: it is fetched when somebody opens a film rather than when
+     * they scroll past a thousand, because on an Xtream panel it costs one HTTP
+     * call to the user's own server per film.
+     */
+    static VodItem mapVodItem(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        VodItem item = new VodItem(
+                rs.getObject("id", UUID.class),
+                rs.getObject("source_id", UUID.class),
+                rs.getString("name"),
+                rs.getInt("position"),
+                rs.getBoolean("is_adult"));
+        item.setCategoryId(rs.getObject("category_id", UUID.class));
+        item.setExternalId(rs.getString("external_id"));
+        item.setPosterUrl(rs.getString("poster_url"));
+        item.setYear(rs.getObject("year", Integer.class));
+        item.setDurationSeconds(rs.getObject("duration_seconds", Integer.class));
+        item.setRating(rs.getString("rating"));
+        return item;
     }
 
     static Channel mapChannel(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
