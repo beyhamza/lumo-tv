@@ -41,6 +41,9 @@ class VodCatalogIntegrationTest extends PostgresIntegrationTest {
     private CatalogReadRepository catalog;
 
     @Autowired
+    private CatalogWriteRepository writes;
+
+    @Autowired
     private UserRepository users;
 
     @Autowired
@@ -125,6 +128,51 @@ class VodCatalogIntegrationTest extends PostgresIntegrationTest {
         assertThat(catalog.findVodStreamUrlOwnedBy(UUID.randomUUID(), user.id())).isEmpty();
     }
 
+    // ---- the synopsis, and what it costs (S5-04) ----------------------------
+
+    @Test
+    @DisplayName("a synopsis already fetched is served from the cache, without asking again")
+    void aFetchedPlotIsNotFetchedTwice() {
+        writes.updateVodPlot(first, "Un synopsis.");
+
+        CatalogReadRepository.VodDetail detail =
+                catalog.findVodOwnedBy(first, user.id()).orElseThrow();
+
+        assertThat(detail.plot()).isEqualTo("Un synopsis.");
+        // The stamp is what the controller branches on, and it is what stops a
+        // second call to somebody's own panel.
+        assertThat(detail.plotFetchedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("a provider with no synopsis is asked once, not once per open")
+    void anEmptyAnswerIsStillAnAnswer() {
+        // The panel answered and had nothing. Two columns rather than one exist
+        // precisely for this: `plot` null with `plot_fetched_at` set means asked
+        // and settled, and asking again would spend the user's own panel on a
+        // question already answered.
+        writes.updateVodPlot(first, null);
+
+        CatalogReadRepository.VodDetail detail =
+                catalog.findVodOwnedBy(first, user.id()).orElseThrow();
+
+        assertThat(detail.plot()).isNull();
+        assertThat(detail.plotFetchedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("a film never opened carries no stamp, which is what triggers the fetch")
+    void aNeverOpenedFilmHasNoStamp() {
+        CatalogReadRepository.VodDetail detail =
+                catalog.findVodOwnedBy(second, user.id()).orElseThrow();
+
+        // Ingestion writes films and never their synopsis — get_vod_info is one
+        // call per film, and a catalogue walk would be thirty thousand of them.
+        assertThat(detail.plotFetchedAt()).isNull();
+        assertThat(detail.sourceKind()).isEqualTo(SourceKind.M3U_URL);
+        assertThat(detail.externalId()).isNotNull();
+    }
+
     // ---- helpers ------------------------------------------------------------
 
     private UserRow insertUser() {
@@ -165,10 +213,10 @@ class VodCatalogIntegrationTest extends PostgresIntegrationTest {
         UUID id = UUID.randomUUID();
         jdbc.sql("""
                 INSERT INTO vod_item (id, source_id, category_id, external_id, name,
-                                      poster_url, year, plot, stream_url,
+                                      poster_url, year, stream_url,
                                       container_extension, position)
                 VALUES (:id, :sourceId, :categoryId, :externalId, :name,
-                        'https://poster.example/1.jpg', 1998, 'Un synopsis.',
+                        'https://poster.example/1.jpg', 1998,
                         'https://stream.example/movie.mkv', 'mkv', :position)
                 """)
                 .param("id", id)

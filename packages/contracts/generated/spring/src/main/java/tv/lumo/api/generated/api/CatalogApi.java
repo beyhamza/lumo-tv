@@ -14,6 +14,7 @@ import java.time.OffsetDateTime;
 import tv.lumo.api.generated.model.PlaybackInfo;
 import tv.lumo.api.generated.model.Problem;
 import java.util.UUID;
+import tv.lumo.api.generated.model.VodItem;
 import tv.lumo.api.generated.model.VodItemPage;
 import tv.lumo.api.generated.model.VodPlaybackInfo;
 import org.springframework.http.HttpStatus;
@@ -78,6 +79,26 @@ public interface CatalogApi {
     )
     
     ResponseEntity<PlaybackInfo> getChannelPlayback(
+         @PathVariable("id") UUID id
+    );
+
+
+    /**
+     * GET /vod/{id} : One film, with its synopsis
+     * The only operation that returns a populated &#x60;plot&#x60;, and the reason the listing does not.  **A film&#39;s synopsis costs a call to the user&#39;s own server.** On an Xtream panel it comes from &#x60;get_vod_info&#x60;, which takes one identifier and answers for one film. Fetching it for a catalogue of thirty thousand at every synchronisation is not slow — it is the kind of traffic that gets our address banned by somebody&#39;s provider. So it is fetched when a person opens a film, and cached from then on.  **The consequences a client should plan for.** A film opened before is instant. A film never opened costs one round trip, which is why the listing already carries the poster, the title and the year: a detail screen has everything it needs to draw immediately, and only the synopsis arrives late.  **A panel that refuses is not an error here.** The film is returned with whatever is already known and &#x60;plot&#x60; null. The synopsis is a comfort; the film is the product, and the playback operation does not depend on this one. 
+     *
+     * @param id Resource identifier. (required)
+     * @return The film. &#x60;plot&#x60; is null when the source could not supply one. (status code 200)
+     *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
+     *         or No such film on a source owned by the caller (&#x60;VOD_ITEM_NOT_FOUND&#x60;), reported as &#x60;404&#x60; and not &#x60;403&#x60; for the reason given on the playback operation.  (status code 404)
+     */
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = "/vod/{id}",
+        produces = { "application/json", "application/problem+json" }
+    )
+    
+    ResponseEntity<VodItem> getVodItem(
          @PathVariable("id") UUID id
     );
 

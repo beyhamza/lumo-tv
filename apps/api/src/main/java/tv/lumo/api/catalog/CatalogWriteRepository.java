@@ -222,6 +222,21 @@ public class CatalogWriteRepository {
     }
 
     /**
+     * Caches the synopsis fetched for one film.
+     *
+     * <p>{@code plot_fetched_at} is stamped even when {@code plot} is null, and
+     * that is the entire point of having two columns: it is what tells "never
+     * asked" from "asked, and the provider has nothing". Without it a film with no
+     * synopsis would cost a call to the user's panel every single time somebody
+     * opened it.
+     */
+    public void updateVodPlot(UUID vodItemId, String plot) {
+        jdbcTemplate.update(
+                "UPDATE vod_item SET plot = ?, plot_fetched_at = now() WHERE id = ?",
+                plot, vodItemId);
+    }
+
+    /**
      * Removes films this sync did not see.
      *
      * <p>Same rule as {@link #deleteChannelsNotIn}: after a successful full

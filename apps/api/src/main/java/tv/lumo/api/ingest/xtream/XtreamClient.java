@@ -189,6 +189,43 @@ public class XtreamClient {
     }
 
     /**
+     * The synopsis of one film, from {@code get_vod_info}.
+     *
+     * <p><b>One call, one film, and that is the whole reason this is not part of
+     * the listing.</b> A catalogue of thirty thousand films would be thirty
+     * thousand requests against the user's own panel at every synchronisation —
+     * not slow, bannable. So it is called when somebody opens a film, and the
+     * answer is cached.
+     *
+     * <p>Returns null rather than throwing when the panel answers with something
+     * unusable, which they do: an empty array where an object was expected, an
+     * `info` object with no `plot`, a `plot` that is the empty string. None of
+     * those is a failure worth showing a person — the film still plays.
+     *
+     * <p>The response is read whole rather than streamed, unlike every other call
+     * here. It describes one film and is a few kilobytes; the streaming machinery
+     * exists for the catalogue walks, where the array is the size of the panel.
+     */
+    public String fetchVodPlot(String host, String username, String password, String streamId) {
+        URI uri = playerApiWithId(host, username, password, "get_vod_info", streamId);
+        return http.get(host, uri, stream -> {
+            try {
+                JsonNode root = objectMapper.readTree(stream);
+                String plot = readText(root.path("info").path("plot"));
+                // Panels disagree on the key: `plot` on most, `description` on
+                // some, and a few serve both with only one of them filled.
+                return plot != null ? plot : readText(root.path("info").path("description"));
+            } catch (RuntimeException e) {
+                // A malformed answer to an optional field — an array where an
+                // object belongs is the common one. The film is unaffected, and a
+                // synopsis is not worth failing an open over.
+                log.info("Panel returned an unreadable film sheet");
+                return null;
+            }
+        });
+    }
+
+    /**
      * Builds the playback URL for one channel.
      *
      * <p>Kept next to the client that knows the panel's conventions rather than
@@ -310,6 +347,13 @@ public class XtreamClient {
             url.append("&action=").append(action);
         }
         return URI.create(url.toString());
+    }
+
+    /** The same, for the actions that address one item — {@code get_vod_info} and its kin. */
+    private static URI playerApiWithId(String host, String username, String password,
+                                       String action, String streamId) {
+        return URI.create(playerApi(host, username, password, action)
+                + "&vod_id=" + encode(streamId));
     }
 
     private static String encode(String value) {

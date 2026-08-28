@@ -38,10 +38,13 @@ public class CatalogController implements CatalogApi {
 
     private final CatalogReadRepository catalog;
     private final SourceRepository sources;
+    private final VodPlotSource plots;
 
-    public CatalogController(CatalogReadRepository catalog, SourceRepository sources) {
+    public CatalogController(CatalogReadRepository catalog, SourceRepository sources,
+                             VodPlotSource plots) {
         this.catalog = catalog;
         this.sources = sources;
+        this.plots = plots;
     }
 
     @Override
@@ -109,6 +112,39 @@ public class CatalogController implements CatalogApi {
         VodItemPage result = new VodItemPage(items, pageIndex, pageSize, total,
                 (int) Math.ceil((double) total / pageSize));
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * One film, with its synopsis — fetched from the provider the first time, and
+     * cached from then on.
+     *
+     * <p>The listing deliberately carries no synopsis, because on an Xtream panel
+     * each one costs a call to the user's own server. This is where that call
+     * happens, once per film, at the moment somebody asks to see it.
+     *
+     * <p><b>A provider that cannot answer is not an error here.</b> The film comes
+     * back with everything already known and a null {@code plot}; playback does not
+     * depend on this operation, and a screen that refused to open because a
+     * synopsis was missing would be trading the product for a comfort.
+     */
+    @Override
+    public ResponseEntity<VodItem> getVodItem(UUID id) {
+        UUID userId = CurrentUser.requireUserId();
+
+        CatalogReadRepository.VodDetail detail = catalog.findVodOwnedBy(id, userId)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.VOD_ITEM_NOT_FOUND,
+                        "No such film on a source owned by the caller"));
+
+        VodItem item = detail.item();
+        if (detail.plotFetchedAt() != null) {
+            // Asked before. Null here means the provider had nothing, and asking
+            // again would spend their capacity on a settled question.
+            item.setPlot(detail.plot());
+        } else {
+            item.setPlot(plots.fetchAndCachePlot(detail.sourceId(), id, detail.externalId()));
+        }
+
+        return ResponseEntity.ok(item);
     }
 
     /**

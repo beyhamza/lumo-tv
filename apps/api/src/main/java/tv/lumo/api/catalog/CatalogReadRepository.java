@@ -10,6 +10,7 @@ import tv.lumo.api.generated.model.Category;
 import tv.lumo.api.generated.model.Channel;
 import tv.lumo.api.generated.model.ContentType;
 import tv.lumo.api.generated.model.EpgProgramme;
+import tv.lumo.api.generated.model.SourceKind;
 import tv.lumo.api.generated.model.VodItem;
 
 /**
@@ -299,6 +300,53 @@ public class CatalogReadRepository {
                 .param("ids", idArray(ids))
                 .query(Long.class)
                 .single();
+    }
+
+    /**
+     * One film, with its synopsis and everything needed to decide whether to ask
+     * the panel for one.
+     *
+     * <p>The only projection that selects {@code plot}. It also selects
+     * {@code plot_fetched_at}, which is not on the contract and is not meant to
+     * be: whether a synopsis has been asked for is this server's bookkeeping, and
+     * a client that could see it would start deciding when to refresh — which is
+     * exactly the decision that has to stay on this side of the wire, because it
+     * spends the user's own panel's capacity.
+     */
+    public Optional<VodDetail> findVodOwnedBy(UUID vodItemId, UUID userId) {
+        return jdbc.sql("""
+                SELECT v.id, v.source_id, v.category_id, v.external_id, v.name,
+                       v.poster_url, v.year, v.duration_seconds, v.rating,
+                       v.position, v.is_adult, v.plot, v.plot_fetched_at,
+                       v.container_extension, s.kind AS source_kind
+                  FROM vod_item v
+                  JOIN source s ON s.id = v.source_id
+                 WHERE v.id = :vodItemId
+                   AND s.user_id = :userId
+                """)
+                .param("vodItemId", vodItemId)
+                .param("userId", userId)
+                .query((rs, n) -> new VodDetail(
+                        mapVodItem(rs, n),
+                        rs.getString("plot"),
+                        rs.getObject("plot_fetched_at", OffsetDateTime.class),
+                        rs.getObject("source_id", UUID.class),
+                        rs.getString("external_id"),
+                        SourceKind.fromValue(rs.getString("source_kind"))))
+                .optional();
+    }
+
+    /**
+     * A film plus what the server needs in order to decide whether to call the
+     * panel, and how.
+     *
+     * @param plotFetchedAt null means never asked. Non-null with a null
+     *                      {@code plot} means asked, and the provider had nothing
+     * @param sourceKind    an M3U film has no panel to ask: its playlist is the
+     *                      whole of what is known about it
+     */
+    public record VodDetail(VodItem item, String plot, OffsetDateTime plotFetchedAt,
+                            UUID sourceId, String externalId, SourceKind sourceKind) {
     }
 
     /**

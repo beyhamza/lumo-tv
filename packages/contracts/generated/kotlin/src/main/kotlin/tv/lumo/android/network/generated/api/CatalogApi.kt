@@ -12,6 +12,7 @@ import tv.lumo.android.network.generated.model.ContentType
 import tv.lumo.android.network.generated.model.EpgProgrammeList
 import tv.lumo.android.network.generated.model.PlaybackInfo
 import tv.lumo.android.network.generated.model.Problem
+import tv.lumo.android.network.generated.model.VodItem
 import tv.lumo.android.network.generated.model.VodItemPage
 import tv.lumo.android.network.generated.model.VodPlaybackInfo
 
@@ -49,6 +50,21 @@ interface CatalogApi {
      */
     @GET("channels/{id}/playback")
     suspend fun getChannelPlayback(@Path("id") id: java.util.UUID): Response<PlaybackInfo>
+
+    /**
+     * GET vod/{id}
+     * One film, with its synopsis
+     * The only operation that returns a populated &#x60;plot&#x60;, and the reason the listing does not.  **A film&#39;s synopsis costs a call to the user&#39;s own server.** On an Xtream panel it comes from &#x60;get_vod_info&#x60;, which takes one identifier and answers for one film. Fetching it for a catalogue of thirty thousand at every synchronisation is not slow — it is the kind of traffic that gets our address banned by somebody&#39;s provider. So it is fetched when a person opens a film, and cached from then on.  **The consequences a client should plan for.** A film opened before is instant. A film never opened costs one round trip, which is why the listing already carries the poster, the title and the year: a detail screen has everything it needs to draw immediately, and only the synopsis arrives late.  **A panel that refuses is not an error here.** The film is returned with whatever is already known and &#x60;plot&#x60; null. The synopsis is a comfort; the film is the product, and the playback operation does not depend on this one. 
+     * Responses:
+     *  - 200: The film. `plot` is null when the source could not supply one.
+     *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
+     *  - 404: No such film on a source owned by the caller (`VOD_ITEM_NOT_FOUND`), reported as `404` and not `403` for the reason given on the playback operation. 
+     *
+     * @param id Resource identifier.
+     * @return [VodItem]
+     */
+    @GET("vod/{id}")
+    suspend fun getVodItem(@Path("id") id: java.util.UUID): Response<VodItem>
 
     /**
      * GET vod/{id}/playback

@@ -250,7 +250,7 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S5-01 | Contrat : `VodItem`, ses deux lectures, et la phrase à corriger | contrat | contrat | 5 | 100 % |
 | ☑ | S5-02 | Base : `vod_item`, et l'upsert qui survit à une resynchronisation | serveur | api | 3 | 100 % |
 | ☑ | S5-03 | Ingestion Xtream : catégories et films, en flux | serveur | api | 5 | 100 % |
-| ☐ | S5-04 | La fiche d'un film, à la demande et jamais à l'ingestion | serveur | api | 3 | 0 % |
+| ☑ | S5-04 | La fiche d'un film, à la demande et jamais à l'ingestion | serveur | api | 3 | 100 % |
 | ☐ | S5-05 | Ingestion M3U : appliquer la règle de S5-00 | serveur | api | 3 | 0 % |
 | ☐ | S5-06 | Le plafond de volume, et ce que l'écran en dit | serveur | api + recette | 5 | 0 % |
 | ☐ | S5-07 | `core:data` et Room : les films hors ligne | socle | android | 5 | 0 % |
@@ -259,7 +259,7 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S5-10 | Web : grille et fiche | web | web | 5 | 0 % |
 | ☐ | S5-11 | Reprise de lecture, et le rail qui la rend visible | 3 clients | mobile + tv + web | 8 | 0 % |
 
-**Avancement du sprint : 25 % de 60 points.** La seule vraie inconnue est tranchée
+**Avancement du sprint : 30 % de 60 points.** La seule vraie inconnue est tranchée
 ([`adr/0009`](../adr/0009-m3u-film-detection.md)), ce qui débloque le contrat.
 
 ---
@@ -480,7 +480,32 @@ un `ILIKE '%q%'` sur trente mille lignes sans index est un balayage complet.
 
 ---
 
-### S5-04 — La fiche d'un film, à la demande · **3** · dépend de S5-03
+### S5-04 — La fiche d'un film, à la demande · **3** · dépend de S5-03 · ☑
+
+> **Livré**, et il manquait une opération que ni la tâche ni S5-01 n'avaient
+> nommée : la liste ne porte pas de synopsis, donc il fallait bien un endroit d'où
+> le lire. C'est **`GET /vod/{id}`**, ajouté au contrat ici.
+>
+> **Une inversion de dépendance plutôt qu'un cycle.** `ingest` dépend déjà de
+> `catalog` — c'est lui qui écrit le catalogue — donc un contrôleur qui serait allé
+> chercher `XtreamClient` dans l'autre sens aurait bouclé les deux paquets.
+> L'interface `VodPlotSource` est déclarée dans `catalog`, où le besoin est, et
+> implémentée dans `ingest`, où vivent les appels sortants.
+>
+> **Ce qui est horodaté et ce qui ne l'est pas**, et c'est toute la valeur d'avoir
+> deux colonnes :
+>
+> | Ce qui s'est passé | Horodaté ? | Pourquoi |
+> |---|---|---|
+> | Le panel a répondu, sans synopsis | **oui** | La réponse ne changera pas ; redemander à chaque ouverture dépenserait le panel de quelqu'un sur une question réglée |
+> | Le panel était injoignable | **non** | C'est un moment, pas un fait. La prochaine ouverture réessaie |
+> | Source M3U, aucun panel à interroger | **oui** | Sa playlist est tout ce qu'on saura jamais d'elle |
+>
+> **`plot_fetched_at` n'est pas au contrat et ne doit pas y être** : décider quand
+> redemander dépense la capacité du panel de l'utilisateur, et cette décision reste
+> de ce côté du fil.
+>
+> 3 cas de plus, **205 tests API**.
 
 **La tâche la plus courte du sprint et la plus structurante.**
 
