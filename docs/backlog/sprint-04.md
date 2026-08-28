@@ -719,6 +719,15 @@ jour où il existera, viendra de `GET /me/entitlement` et de nulle part ailleurs
 
 ## Documents associés
 
-Sur le modèle du sprint 2, deux documents suivent une fois les tâches acceptées :
-`sprint-04-recette.md` et `sprint-04-demo.md`. Ils ne sont pas écrits d'avance — la
-recette de S4-08 dépend de ce que la tâche tranche sur la divergence M5.
+**[`sprint-04-recette.md`](./sprint-04-recette.md) est écrit** — 58 cas,
+`R-100` → `R-194`, la numérotation reprenant à 100 pour ne pas empiéter sur les
+quarante du sprint 2. Il attendait S4-08 : la recette de la puce « Repris »
+dépendait de ce que la tâche trancherait sur la divergence M5.
+
+Deux de ses prérequis se lisent avant de commencer, parce qu'ils rendent des cas
+injouables et qu'on ne s'en aperçoit qu'au moment de les jouer : **deux sources
+enregistrées**, et une **mise à jour par-dessus un build antérieur** plutôt qu'une
+installation neuve — les migrations Room `2 → 3` et `3 → 4` ne s'exécutent que sur
+une mise à jour.
+
+`sprint-04-demo.md` suivra le déroulé de la session.
