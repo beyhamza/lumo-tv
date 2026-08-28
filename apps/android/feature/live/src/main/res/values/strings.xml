@@ -66,4 +66,10 @@
     -->
     <string name="feature_live_favorite_default_group">Favourites</string>
     <string name="feature_live_favorite_failed">That change could not be saved. Check your connection and try again.</string>
+
+    <!--
+      The long-press label on a television card (S4-07). Read by an accessibility
+      service; it says what holding OK does, since nothing on the card can.
+    -->
+    <string name="feature_live_tv_favorite_hint">Hold OK to choose favourite groups</string>
 </resources>

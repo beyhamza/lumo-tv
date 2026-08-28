@@ -1,7 +1,9 @@
 package tv.lumo.android.feature.live
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +50,8 @@ import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.FavoriteGroup
+import tv.lumo.android.core.designsystem.component.LumoFavoriteGroupChoice
+import tv.lumo.android.core.designsystem.component.LumoTvFavoriteGroupSheet
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
@@ -130,9 +134,31 @@ fun LiveTvScreen(
                 channels = channels,
                 onSelectCategory = viewModel::onCategorySelected,
                 onSelectGroup = viewModel::onGroupSelected,
+                onFavorite = viewModel::onFavoriteLongPressed,
                 onPlay = onPlay,
                 returnedChannelId = returnedChannelId,
                 onReturnHandled = onReturnHandled,
+            )
+        }
+
+        // Over the grid rather than instead of it, and inside the same `Box` so it
+        // takes the focus while it is open. A television has one screen; a layer
+        // that replaced the grid would read as having navigated somewhere.
+        state.sheetChannel?.let { channel ->
+            val inGroups = state.groupsOf(channel.id)
+            LumoTvFavoriteGroupSheet(
+                title = channel.name,
+                groups = state.groups.map { group ->
+                    LumoFavoriteGroupChoice(
+                        id = group.id,
+                        label = group.displayName(),
+                        checked = group.id in inGroups,
+                    )
+                },
+                onToggle = { groupId, checked ->
+                    viewModel.onGroupToggled(channel.id, groupId, checked)
+                },
+                onDismiss = viewModel::onGroupSheetDismissed,
             )
         }
     }
@@ -144,6 +170,7 @@ private fun Browsing(
     channels: LazyPagingItems<Channel>,
     onSelectCategory: (String?) -> Unit,
     onSelectGroup: (String) -> Unit,
+    onFavorite: (Channel) -> Unit,
     onPlay: (channelId: String, name: String?) -> Unit,
     returnedChannelId: String?,
     onReturnHandled: () -> Unit,
@@ -233,9 +260,12 @@ private fun Browsing(
                 count = channels.itemCount,
                 key = channels.itemKey { it.id },
             ) { index ->
+                val channel = channels[index]
                 ChannelCard(
-                    channel = channels[index],
+                    channel = channel,
+                    favorited = channel != null && state.isFavorited(channel.id),
                     onPlay = onPlay,
+                    onFavorite = onFavorite,
                     // One requester, moved to whichever card is the target: the
                     // first on arrival, the one just watched on the way back.
                     modifier = if (index == focusIndex) {
@@ -353,11 +383,24 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
  * the grid keeps its shape, and it is **not** focusable: a card the D-pad can stop
  * on and that has no channel behind it is a dead end that appears and disappears
  * as the user scrolls.
+ *
+ * <h2>`OK` plays, a long `OK` files (S4-07)</h2>
+ *
+ * And there is no second button on the card, deliberately. A grid holds hundreds
+ * of these; a favourite control drawn beside the name would give each card two
+ * focus targets and double the length of every horizontal journey — for an action
+ * somebody performs on a given channel roughly once in their life. `OK` keeps
+ * doing what US-10 says it does.
+ *
+ * The heart is drawn, never focusable: it is the state, not a control.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChannelCard(
     channel: Channel?,
+    favorited: Boolean,
     onPlay: (channelId: String, name: String?) -> Unit,
+    onFavorite: (Channel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -371,10 +414,12 @@ private fun ChannelCard(
             .lumoTvFocus(focused)
             .clip(LumoShapes.medium)
             .background(if (focused) LumoColors.SurfaceRaised else LumoColors.Surface)
-            .clickable(
+            .combinedClickable(
                 enabled = channel != null,
                 interactionSource = interactionSource,
                 indication = null,
+                onLongClick = { channel?.let(onFavorite) },
+                onLongClickLabel = stringResource(R.string.feature_live_tv_favorite_hint),
             ) { channel?.let { onPlay(it.id, it.name) } }
             .padding(LumoSpacing.md),
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
@@ -382,7 +427,10 @@ private fun ChannelCard(
     ) {
         Logo(channel)
 
-        Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+        ) {
             Text(
                 text = channel?.name.orEmpty(),
                 style = MaterialTheme.typography.bodyLarge,
@@ -399,6 +447,17 @@ private fun ChannelCard(
                     color = LumoColors.OnDarkMuted,
                 )
             }
+        }
+
+        // Drawn state, not a control: no focus target, nothing to press. At three
+        // metres an action with no visible result is an action nobody knows
+        // happened, and this is that result.
+        if (favorited) {
+            Text(
+                text = "♥",
+                style = MaterialTheme.typography.titleMedium,
+                color = LumoColors.Accent,
+            )
         }
     }
 }

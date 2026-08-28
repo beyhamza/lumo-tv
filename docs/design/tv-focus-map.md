@@ -125,6 +125,41 @@ cache le reste.
 
 ---
 
+## Groupes de favoris (`LumoTvFavoriteGroupSheet`) — couche modale
+
+Livrée par `S4-07`. Ouverte par un **appui long sur `OK`** depuis une carte de la
+grille, et c'est la seule surface de ce document qui se superpose à une autre.
+
+**Focus à l'arrivée : la première ligne.** Toute surface doit en avoir une, sinon
+`BACK` devient la seule touche qui fait quelque chose — c'est la règle 1 de ce
+document, et une couche modale n'y échappe pas.
+
+| Depuis | UP | DOWN | LEFT | RIGHT | OK | BACK |
+|---|---|---|---|---|---|---|
+| Ligne de groupe, 1re | — (bord haut) | groupe suivant | — | — | ajoute ou retire | ferme, sans rien changer |
+| Ligne de groupe, autre | groupe précédent | groupe suivant / — (bord bas) | — | — | ajoute ou retire | ferme, sans rien changer |
+
+**Trois décisions qui se voient à la télécommande et nulle part ailleurs :**
+
+- **`LEFT` et `RIGHT` ne font rien, exprès.** Il n'y a rien à côté de cette liste,
+  et un focus qui s'échapperait latéralement atterrirait sur la grille *pendant*
+  que la feuille est ouverte — deux couches actives, et l'utilisateur ne saurait
+  plus laquelle reçoit ses touches.
+- **Pas de bouclage aux extrémités.** Une liste qui reboucle n'a pas de fin, et
+  personne ne peut savoir qu'il a tout vu.
+- **La case n'est pas une seconde cible.** `OK` sur la ligne bascule le groupe. Une
+  case à cocher focalisable doublerait la longueur du parcours dans une liste dont
+  on cherche à sortir.
+
+**Le geste qui l'ouvre, et pourquoi ce geste-là.** `OK` court lance la chaîne —
+c'est US-10 et ça ne bouge pas. Un second bouton dessiné sur chaque carte donnerait
+**deux cibles de focus par carte** dans une grille qui en compte des centaines : le
+parcours horizontal doublerait de longueur pour une action qu'on fait une fois par
+chaîne dans une vie. Le cœur affiché sur une carte favorite est un **état dessiné**,
+jamais focalisable.
+
+---
+
 ## Source (`SourceTvScreen`) — placeholder
 
 La carte entière est la cible focalisable, et son texte dit ce que fait OK. Un

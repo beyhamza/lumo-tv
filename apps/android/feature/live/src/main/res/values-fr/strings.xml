@@ -38,4 +38,6 @@
     <string name="feature_live_favorite_group_create">Créer</string>
     <string name="feature_live_favorite_default_group">Favoris</string>
     <string name="feature_live_favorite_failed">Cette modification n\'a pas pu être enregistrée. Vérifiez votre connexion et réessayez.</string>
+
+    <string name="feature_live_tv_favorite_hint">Maintenez OK pour choisir les groupes de favoris</string>
 </resources>

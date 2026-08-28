@@ -62,6 +62,18 @@ object LumoColors {
     /** `color.border`. */
     val Outline = Color(0xFF26232F)
 
+    /**
+     * What a modal layer puts over the screen behind it.
+     *
+     * Translucent rather than flattened, and this is the case where that is right:
+     * a scrim exists precisely to composite against whatever is underneath. The
+     * charter has no token for it — it describes pages, not television overlays —
+     * so the value is [Ink] at the opacity that keeps a grid legible underneath
+     * while leaving no doubt about which layer is taking key presses. At three
+     * metres that doubt is the whole problem a scrim solves.
+     */
+    val Scrim = Ink.copy(alpha = 0.82f)
+
     // ---- Text --------------------------------------------------------------
 
     /** `color.text-primary` — 17.1:1 on [Ink], AAA. */

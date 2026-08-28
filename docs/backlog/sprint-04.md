@@ -200,11 +200,11 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S4-04 | Mobile : l'écran Favoris, un onglet par groupe | mobile | mobile | 5 | 100 % |
 | ☑ | S4-05 | Mobile : organiser — renommer, supprimer, déplacer, réordonner | mobile | mobile | 3 | 100 % |
 | ☑ | S4-06 | TV : les groupes dans la bande de puces | tv | tv | 5 | 100 % |
-| ☐ | S4-07 | TV : mettre en favori sans quitter la grille | tv | tv | 3 | 0 % |
+| ☑ | S4-07 | TV : mettre en favori sans quitter la grille | tv | tv | 3 | 100 % |
 | ☐ | S4-08 | TV : les chaînes récemment regardées, et la divergence M5 tranchée | tv | tv | 3 | 0 % |
 | ☐ | S4-09 | Web : organiser ses groupes | web | web | 3 | 0 % |
 
-**Avancement du sprint : 76 % de 38 points.** **Le téléphone est fini** : un cœur sur
+**Avancement du sprint : 84 % de 38 points.** **Le téléphone est fini** : un cœur sur
 chaque chaîne, un onglet Favoris par groupe, et de quoi renommer, supprimer,
 déplacer et réordonner. La télévision sait afficher les groupes. Restent S4-07,
 S4-08 et le web.
@@ -517,7 +517,27 @@ d'un `OK`, ce qui ressemble à une panne.
 
 ---
 
-### S4-07 — TV : mettre en favori sans quitter la grille · **3** · dépend de S4-06
+### S4-07 — TV : mettre en favori sans quitter la grille · **3** · dépend de S4-06 · ☑
+
+> **Livré**, et c'est la tâche qui **ajoute** à la carte du parcours de focus là où
+> S4-06 n'y touchait pas : `LumoTvFavoriteGroupSheet` est une couche modale, donc
+> une nouvelle section dans [`tv-focus-map.md`](../design/tv-focus-map.md), avec ses
+> six directions et le focus d'arrivée.
+>
+> **Trois décisions qui ne se voient qu'à la télécommande** et qui sont le vrai
+> contenu de cette tâche : `LEFT` et `RIGHT` ne font **rien** — il n'y a rien à côté
+> de cette liste, et un focus qui s'échapperait latéralement atterrirait sur la
+> grille pendant que la feuille est ouverte ; **pas de bouclage** aux extrémités,
+> parce qu'une liste qui reboucle n'a pas de fin et que personne ne peut savoir
+> qu'il a tout vu ; et **la case n'est pas une seconde cible**, `OK` sur la ligne
+> bascule le groupe.
+>
+> **Un jeton ajouté au design system : `LumoColors.Scrim`.** Le seul cas du fichier
+> où une couleur translucide est le bon choix plutôt qu'aplatie — un voile existe
+> précisément pour se composer avec ce qu'il y a dessous. À trois mètres, savoir
+> laquelle des deux couches reçoit les touches est tout le problème qu'il résout.
+>
+> **122 tests verts** sur Android, `lint` et `assembleDebug` propres.
 
 Le geste qui coûte le plus cher à mal concevoir sur une télécommande.
 
