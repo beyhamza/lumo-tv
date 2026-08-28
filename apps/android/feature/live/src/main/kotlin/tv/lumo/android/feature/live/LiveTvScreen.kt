@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -46,6 +47,7 @@ import coil3.compose.SubcomposeAsyncImage
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
+import tv.lumo.android.core.data.model.FavoriteGroup
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
@@ -127,6 +129,7 @@ fun LiveTvScreen(
                 state = state,
                 channels = channels,
                 onSelectCategory = viewModel::onCategorySelected,
+                onSelectGroup = viewModel::onGroupSelected,
                 onPlay = onPlay,
                 returnedChannelId = returnedChannelId,
                 onReturnHandled = onReturnHandled,
@@ -140,6 +143,7 @@ private fun Browsing(
     state: LiveState,
     channels: LazyPagingItems<Channel>,
     onSelectCategory: (String?) -> Unit,
+    onSelectGroup: (String) -> Unit,
     onPlay: (channelId: String, name: String?) -> Unit,
     returnedChannelId: String?,
     onReturnHandled: () -> Unit,
@@ -203,10 +207,15 @@ private fun Browsing(
             }
         }
 
-        Categories(
+        Filters(
+            // Only groups that hold something: an empty group's chip filters onto
+            // nothing, and a grid that goes blank after an OK reads as a breakage
+            // rather than as an empty shelf.
+            groups = state.groupsWithChannels,
             categories = state.categories,
-            selectedId = state.selectedCategoryId,
-            onSelect = onSelectCategory,
+            filter = state.filter,
+            onSelectCategory = onSelectCategory,
+            onSelectGroup = onSelectGroup,
         )
 
         LazyHorizontalGrid(
@@ -241,18 +250,34 @@ private fun Browsing(
 }
 
 /**
- * The category strip, above the grid.
+ * The strip above the grid: everything, then the user's groups, then the source's
+ * categories.
  *
- * `UP` from the grid lands here, `DOWN` goes back. Every category is reachable
- * with `LEFT`/`RIGHT`, and "All" is first because it is what the screen opens on:
- * a catalogue that starts inside somebody's first category is a catalogue that
- * hides the rest.
+ * `UP` from the grid lands here, `DOWN` goes back. Every chip is reachable with
+ * `LEFT`/`RIGHT`, and "All" is first because it is what the screen opens on: a
+ * catalogue that starts inside somebody's first category is a catalogue that hides
+ * the rest.
+ *
+ * <h2>A group is a chip, not a rail (S4-06)</h2>
+ *
+ * The television's whole way into favourites, and it costs no new focus zone.
+ * `S2-13` ruled against rails on this screen — a rail caps what it holds, and its
+ * eight-hundredth channel cannot be reached at all — and a group filters this grid
+ * in exactly the way a category does. So the [tv-focus-map](../../../../../../../../docs/design/tv-focus-map.md)
+ * entry for *Chaînes* stays true word for word: `LEFT`/`RIGHT` walk the strip,
+ * `DOWN` enters the grid, `OK` filters.
+ *
+ * Groups come **before** the categories, separated by spacing rather than by a
+ * section label: the strip has no room for a line of headings, and the things the
+ * user named themselves are the ones they are looking for.
  */
 @Composable
-private fun Categories(
+private fun Filters(
+    groups: List<FavoriteGroup>,
     categories: List<Category>,
-    selectedId: String?,
-    onSelect: (String?) -> Unit,
+    filter: CatalogueFilter,
+    onSelectCategory: (String?) -> Unit,
+    onSelectGroup: (String) -> Unit,
 ) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
@@ -261,21 +286,34 @@ private fun Categories(
         item {
             CategoryChip(
                 label = stringResource(R.string.feature_live_all_categories),
-                selected = selectedId == null,
-                onClick = { onSelect(null) },
+                selected = filter is CatalogueFilter.All,
+                onClick = { onSelectCategory(null) },
             )
         }
-        items(categories, key = { it.id }) { category ->
+        items(groups, key = { "group-" + it.id }) { group ->
+            CategoryChip(
+                label = group.displayName(),
+                selected = (filter as? CatalogueFilter.Group)?.id == group.id,
+                onClick = { onSelectGroup(group.id) },
+            )
+        }
+        if (groups.isNotEmpty()) {
+            // The visual break between what the user named and what the provider
+            // did. A heading would cost a line the strip does not have.
+            item { Spacer(modifier = Modifier.size(LumoSpacing.lg)) }
+        }
+        items(categories, key = { "category-" + it.id }) { category ->
             CategoryChip(
                 label = category.channelCount
                     ?.let { stringResource(R.string.feature_live_category_count, category.name, it) }
                     ?: category.name,
-                selected = selectedId == category.id,
-                onClick = { onSelect(category.id) },
+                selected = (filter as? CatalogueFilter.Category)?.id == category.id,
+                onClick = { onSelectCategory(category.id) },
             )
         }
     }
 }
+
 
 @Composable
 private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {

@@ -10,6 +10,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -67,15 +68,39 @@ class LiveViewModel @Inject constructor(
      * the phone re-reads the first page and jumps the user back to the top.
      */
     val channels: Flow<PagingData<Channel>> = _state
-        .map { it.sourceId to it.selectedCategoryId }
-        .flatMapLatest { (sourceId, categoryId) ->
-            if (sourceId == null) {
-                flowOf(PagingData.empty())
-            } else {
-                catalogue.channels(sourceId, categoryId)
-            }
-        }
+        .map { ChannelQuery(it.sourceId, it.filter, it.favorites) }
+        .distinctUntilChanged()
+        .flatMapLatest { query -> channelsFor(query) }
         .cachedIn(viewModelScope)
+
+    /**
+     * The grid's contents, from whichever of the two shelves is open.
+     *
+     * A favourite group is served as a one-page [PagingData] rather than through
+     * its own list, and that is what keeps the television's grid a single code
+     * path — same cards, same focus handling, same return-to-the-channel-you-were
+     * -watching. The shapes underneath are genuinely different: fifteen thousand
+     * channels are read out of SQLite in windows, while a group somebody curated
+     * by hand is a list of tens that is already in memory.
+     */
+    private fun channelsFor(query: ChannelQuery): Flow<PagingData<Channel>> = when {
+        query.sourceId == null -> flowOf(PagingData.empty())
+
+        query.filter is CatalogueFilter.Group -> flowOf(
+            PagingData.from(
+                query.favorites
+                    .filter { it.groupId == query.filter.id }
+                    // The user's own order, not the provider's.
+                    .sortedBy { it.position }
+                    .map { it.channel },
+            ),
+        )
+
+        else -> catalogue.channels(
+            query.sourceId,
+            (query.filter as? CatalogueFilter.Category)?.id,
+        )
+    }
 
     init {
         load()
@@ -141,8 +166,23 @@ class LiveViewModel @Inject constructor(
     }
 
     /** Null is every channel of the source, which is what the screen opens on. */
-    fun onCategorySelected(categoryId: String?) =
-        _state.update { it.copy(selectedCategoryId = categoryId) }
+    fun onCategorySelected(categoryId: String?) = _state.update {
+        it.copy(
+            filter = categoryId?.let(CatalogueFilter::Category) ?: CatalogueFilter.All,
+        )
+    }
+
+    /**
+     * Filters the grid to one favourite group (S4-06).
+     *
+     * The television's only way into favourites, and it is deliberately not a
+     * screen: a group filters a grid exactly as a category does, so it is a chip
+     * in the same strip. `S2-13` ruled against rails on this screen — a rail caps
+     * what it holds, and its eight-hundredth channel cannot be reached — and
+     * nothing about a group changes that reasoning.
+     */
+    fun onGroupSelected(groupId: String) =
+        _state.update { it.copy(filter = CatalogueFilter.Group(groupId)) }
 
     // ---- favourites (US-12) -------------------------------------------------
 
@@ -268,6 +308,30 @@ class LiveViewModel @Inject constructor(
     }
 }
 
+/**
+ * Which shelf the grid is showing.
+ *
+ * One value rather than a nullable category id beside a nullable group id: those
+ * two have a state that means nothing — both set — and the screen would have to
+ * decide which one wins every time it drew.
+ */
+sealed interface CatalogueFilter {
+
+    /** Every channel of the source. What the screen opens on. */
+    data object All : CatalogueFilter
+
+    data class Category(val id: String) : CatalogueFilter
+
+    data class Group(val id: String) : CatalogueFilter
+}
+
+/** What the grid's contents depend on, gathered so the flow restarts on a real change. */
+private data class ChannelQuery(
+    val sourceId: String?,
+    val filter: CatalogueFilter,
+    val favorites: List<FavoriteChannel>,
+)
+
 sealed interface LiveStep {
 
     data object Loading : LiveStep
@@ -293,7 +357,8 @@ data class LiveState(
      * is the only thing that knows whether the last refresh succeeded, says it.
      */
     val origin: DataOrigin = DataOrigin.Cache,
-    val selectedCategoryId: String? = null,
+    /** Which shelf the grid is showing: everything, one category, or one group. */
+    val filter: CatalogueFilter = CatalogueFilter.All,
     val refreshing: Boolean = false,
     val refreshFailed: Boolean = false,
 
@@ -325,6 +390,25 @@ data class LiveState(
     /** The last favourite write that failed. Offline is the ordinary case here. */
     val favoriteError: LumoError? = null,
 ) {
+
+    /** The open category, for a screen that draws only category chips. */
+    val selectedCategoryId: String?
+        get() = (filter as? CatalogueFilter.Category)?.id
+
+    /** The open group, for the television's strip. */
+    val selectedGroupId: String?
+        get() = (filter as? CatalogueFilter.Group)?.id
+
+    /**
+     * The groups worth offering a chip, which is the ones that hold something.
+     *
+     * An empty group's chip filters onto nothing, and a grid that goes blank after
+     * an `OK` looks like a breakage rather than an empty shelf. On a phone the
+     * favourites tab can afford to say "this group is empty"; a strip on a
+     * television has no room to say anything.
+     */
+    val groupsWithChannels: List<FavoriteGroup>
+        get() = groups.filter { group -> favorites.any { it.groupId == group.id } }
 
     /** What the heart on this channel should show right now. */
     fun isFavorited(channelId: String): Boolean =

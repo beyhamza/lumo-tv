@@ -171,25 +171,6 @@ fun LiveMobileScreen(
     }
 }
 
-/**
- * What to call a group on screen.
- *
- * The server has to name the group it creates on the first add, and names it
- * `Favorites`, in English — a user-visible string in one language. `is_default`
- * is what lets a client translate it, and the second half of the condition is
- * what stops the translation overriding the user: once they have renamed the
- * group, their name wins, flag or no flag.
- */
-@Composable
-private fun FavoriteGroup.displayName(): String =
-    if (isDefault && name == SERVER_DEFAULT_GROUP_NAME) {
-        stringResource(R.string.feature_live_favorite_default_group)
-    } else {
-        name
-    }
-
-/** The name the server gives the default group, verbatim. */
-private const val SERVER_DEFAULT_GROUP_NAME = "Favorites"
 
 @Composable
 private fun Header(state: LiveState, onRefresh: () -> Unit) {

@@ -100,7 +100,48 @@ class LiveFavoritesTest {
         ).isFalse()
     }
 
+    // ---- the television's strip (S4-06) ------------------------------------
+
+    @Test
+    fun `an empty group gets no chip`() {
+        val state = LiveState(
+            groups = listOf(group("documentaire", "Documentaire"), group("cine", "Ciné")),
+            favorites = listOf(favorite("f1", "documentaire", channel)),
+        )
+
+        // Filtering onto nothing leaves a blank grid one OK after a chip, which at
+        // three metres reads as a breakage rather than as an empty shelf. The
+        // phone's favourites tab can afford to say "this group is empty"; a strip
+        // on a television has no room to say anything.
+        assertThat(state.groupsWithChannels.map { it.id }).containsExactly("documentaire")
+    }
+
+    @Test
+    fun `one filter at a time, so no screen has to decide which of two wins`() {
+        val category = LiveState(filter = CatalogueFilter.Category("sport"))
+        val group = LiveState(filter = CatalogueFilter.Group("documentaire"))
+        val all = LiveState()
+
+        assertThat(category.selectedCategoryId).isEqualTo("sport")
+        assertThat(category.selectedGroupId).isNull()
+
+        assertThat(group.selectedGroupId).isEqualTo("documentaire")
+        // The state a nullable category id beside a nullable group id would allow,
+        // and which means nothing: both set at once.
+        assertThat(group.selectedCategoryId).isNull()
+
+        assertThat(all.selectedCategoryId).isNull()
+        assertThat(all.selectedGroupId).isNull()
+    }
+
     // ---- helpers -----------------------------------------------------------
+
+    private fun group(id: String, name: String) = tv.lumo.android.core.data.model.FavoriteGroup(
+        id = id,
+        name = name,
+        position = 0,
+        isDefault = false,
+    )
 
     private fun channel(id: String) = Channel(
         id = id,

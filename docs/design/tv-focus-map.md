@@ -89,9 +89,21 @@ décision que personne n'a demandée**.
 
 | Depuis | UP | DOWN | LEFT | RIGHT | OK |
 |---|---|---|---|---|---|
-| Carte de chaîne, 1re colonne | catégories (si 1re ligne) / carte au-dessus | carte en dessous | **rail** | carte suivante | lance la chaîne |
-| Carte de chaîne, ailleurs | carte au-dessus / catégories | carte en dessous | carte précédente | carte suivante | lance la chaîne |
-| Puce de catégorie | — (bord haut) | grille | puce précédente | puce suivante | filtre la grille |
+| Carte de chaîne, 1re colonne | bande (si 1re ligne) / carte au-dessus | carte en dessous | **rail** | carte suivante | lance la chaîne |
+| Carte de chaîne, ailleurs | carte au-dessus / bande | carte en dessous | carte précédente | carte suivante | lance la chaîne |
+| Puce de la bande | — (bord haut) | grille | puce précédente | puce suivante | filtre la grille |
+
+**La bande porte les groupes de favoris depuis `S4-06`, et ce tableau n'a pas
+bougé.** C'est le résultat qu'on espérait et il a été vérifié ligne à ligne, pas
+supposé : un groupe filtre la grille exactement comme une catégorie, donc sa puce
+se comporte comme une puce. Ordre de la bande : **Toutes · [groupes] · [catégories
+de la source]**, séparés par un intervalle et non par un libellé de section — la
+bande n'a pas la hauteur d'une ligne de titres.
+
+**Un groupe vide n'a pas de puce.** Filtrer sur rien produit une grille blanche au
+bout d'un `OK`, ce qui à trois mètres ressemble à une panne et pas à une étagère
+vide. Le téléphone peut se permettre d'écrire « ce groupe est vide » ; la bande
+n'a la place de rien écrire.
 
 `BACK` depuis n'importe où sur cet écran quitte l'application : c'est la
 destination de départ quand une session existe et qu'une source est prête.

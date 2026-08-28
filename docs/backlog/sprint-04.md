@@ -199,14 +199,15 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S4-03 | Mobile : mettre en favori, choisir le groupe, en créer un à la volée | mobile | mobile | 5 | 100 % |
 | ☑ | S4-04 | Mobile : l'écran Favoris, un onglet par groupe | mobile | mobile | 5 | 100 % |
 | ☑ | S4-05 | Mobile : organiser — renommer, supprimer, déplacer, réordonner | mobile | mobile | 3 | 100 % |
-| ☐ | S4-06 | TV : les groupes dans la bande de puces | tv | tv | 5 | 0 % |
+| ☑ | S4-06 | TV : les groupes dans la bande de puces | tv | tv | 5 | 100 % |
 | ☐ | S4-07 | TV : mettre en favori sans quitter la grille | tv | tv | 3 | 0 % |
 | ☐ | S4-08 | TV : les chaînes récemment regardées, et la divergence M5 tranchée | tv | tv | 3 | 0 % |
 | ☐ | S4-09 | Web : organiser ses groupes | web | web | 3 | 0 % |
 
-**Avancement du sprint : 63 % de 38 points.** **Le téléphone est fini** : un cœur sur
+**Avancement du sprint : 76 % de 38 points.** **Le téléphone est fini** : un cœur sur
 chaque chaîne, un onglet Favoris par groupe, et de quoi renommer, supprimer,
-déplacer et réordonner. Restent la télévision (S4-06 → S4-08) et le web (S4-09).
+déplacer et réordonner. La télévision sait afficher les groupes. Restent S4-07,
+S4-08 et le web.
 
 ---
 
@@ -472,7 +473,28 @@ TalkBack. Le glisser-déposer est le confort, pas le mécanisme.
 
 ---
 
-### S4-06 — TV : les groupes dans la bande de puces · **5** · dépend de S4-02
+### S4-06 — TV : les groupes dans la bande de puces · **5** · dépend de S4-02 · ☑
+
+> **Livré, et la carte du parcours de focus n'a pas bougé** — ce qui était le pari
+> du troisième constat, et il a été **vérifié ligne à ligne plutôt que supposé**.
+> Le tableau du § *Chaînes* de [`tv-focus-map.md`](../design/tv-focus-map.md) porte
+> maintenant la mention qui le dit, et les deux règles qui s'y ajoutent : l'ordre
+> **Toutes · [groupes] · [catégories]**, et le fait qu'un groupe vide n'a pas de
+> puce.
+>
+> **Un refactor rendu nécessaire par la fonction, pas choisi.** Le filtre de la
+> grille était un `selectedCategoryId: String?`. Ajouter un `selectedGroupId`
+> à côté aurait créé un état qui ne veut rien dire — les deux posés — et chaque
+> écran aurait dû décider lequel gagne à chaque dessin. C'est devenu un
+> `CatalogueFilter` scellé : `All`, `Category`, `Group`.
+>
+> **Un groupe est servi à la grille comme un `PagingData` d'une page.** C'est ce qui
+> garde un seul chemin de code sur la télévision — mêmes cartes, même focus, même
+> retour sur la chaîne qu'on regardait — alors que les deux sources n'ont rien à
+> voir : quinze mille chaînes lues par fenêtres dans SQLite d'un côté, une liste de
+> dizaines déjà en mémoire de l'autre.
+>
+> 2 cas de plus, **122 tests verts** sur Android, `lint` et `assembleDebug` propres.
 
 Les groupes deviennent des puces, devant les catégories de la source, séparés d'elles
 par un intervalle visuel — pas par un libellé de section, qui prendrait une hauteur
