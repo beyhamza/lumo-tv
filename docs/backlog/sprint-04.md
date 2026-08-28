@@ -195,7 +195,7 @@ met à jour **dans le commit qui livre le travail**, pas après.
 |---|---|---|---|---|---|---|
 | ☑ | S4-00 | Contrat : renommer, supprimer, déplacer — et le nom du groupe par défaut | contrat | contrat | 3 | 100 % |
 | ☑ | S4-01 | `userdata` : les trois opérations, et ce que devient un groupe supprimé | serveur | api | 3 | 100 % |
-| ☐ | S4-02 | `core:data` et Room : favoris et groupes lisibles hors ligne | socle | android | 5 | 0 % |
+| ☑ | S4-02 | `core:data` et Room : favoris et groupes lisibles hors ligne | socle | android | 5 | 100 % |
 | ☐ | S4-03 | Mobile : mettre en favori, choisir le groupe, en créer un à la volée | mobile | mobile | 5 | 0 % |
 | ☐ | S4-04 | Mobile : l'écran Favoris, un onglet par groupe | mobile | mobile | 5 | 0 % |
 | ☐ | S4-05 | Mobile : organiser — renommer, supprimer, déplacer, réordonner | mobile | mobile | 3 | 0 % |
@@ -204,9 +204,9 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S4-08 | TV : les chaînes récemment regardées, et la divergence M5 tranchée | tv | tv | 3 | 0 % |
 | ☐ | S4-09 | Web : organiser ses groupes | web | web | 3 | 0 % |
 
-**Avancement du sprint : 16 % de 38 points.** Le contrat porte les trois opérations
-qui manquaient et le serveur les sert. Rien n'est visible d'un utilisateur : ce qui
-suit est du socle Android, puis des écrans.
+**Avancement du sprint : 29 % de 38 points.** Le contrat porte les trois opérations
+qui manquaient, le serveur les sert, et Android sait lire et écrire des favoris.
+Rien n'est encore visible d'un utilisateur : ce qui suit, ce sont les écrans.
 
 ---
 
@@ -288,7 +288,27 @@ groupe d'un autre compte (`404`, pas `403` — un `403` confirme que le groupe e
 
 ---
 
-### S4-02 — `core:data` et Room : hors ligne · **5** · dépend de S4-01
+### S4-02 — `core:data` et Room : hors ligne · **5** · dépend de S4-01 · ☑
+
+> **Livré.** Deux tables Room (`favorite_group`, `favorite`), `MIGRATION_2_3` écrite
+> à la main et vérifiée mot pour mot contre le `3.json` que Room génère, et un
+> `FavoriteRepository` qui lit depuis la base et écrit par le réseau.
+>
+> **Le découpage à 100 a un piège de plus que prévu.** Le plafond du contrat était
+> connu ; ce qui ne l'était pas, c'est que `size` vaut 50 par défaut sur la même
+> opération. Un lot de 100 identifiants envoyé sans `size` revient donc **à moitié
+> répondu, avec un `200` et aucune erreur** — un catalogue qui ressemble simplement
+> à un plus petit catalogue. Le test l'affirme sur les trois appels.
+>
+> **Une décision prise en écrivant : deux routes de rafraîchissement après une
+> écriture.** Ajouter, retirer, créer et renommer touchent une ligne et s'appliquent
+> localement — mettre un cœur ne coûte pas trois allers-retours. Déplacer un favori,
+> déplacer un groupe et supprimer un groupe font **renuméroter par le serveur** des
+> lignes que l'appareil détient : ceux-là relisent les deux listes, parce que deviner
+> ce que la renumérotation a fait est la façon dont un ordre local cesse
+> silencieusement de correspondre à celui du compte.
+>
+> 7 cas, **108 tests verts** sur Android, `lint` et `assembleDebug` propres.
 
 Le socle Android, et il vient avant les écrans pour la raison qui a fait de S2-01 un
 préalable dur : trois écrans écrits avant lui produiraient trois façons de lire un

@@ -7,8 +7,11 @@ import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.ChannelDao
+import tv.lumo.android.core.database.dao.FavoriteDao
 import tv.lumo.android.core.database.model.CategoryEntity
 import tv.lumo.android.core.database.model.ChannelEntity
+import tv.lumo.android.core.database.model.FavoriteEntity
+import tv.lumo.android.core.database.model.FavoriteGroupEntity
 
 /**
  * The offline-first catalogue cache (docs/architecture.md §3).
@@ -28,13 +31,16 @@ import tv.lumo.android.core.database.model.ChannelEntity
     entities = [
         ChannelEntity::class,
         CategoryEntity::class,
+        FavoriteGroupEntity::class,
+        FavoriteEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class LumoDatabase : RoomDatabase() {
     abstract fun channelDao(): ChannelDao
     abstract fun categoryDao(): CategoryDao
+    abstract fun favoriteDao(): FavoriteDao
 }
 
 /**
@@ -55,5 +61,56 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(connection: SQLiteConnection) {
         connection.execSQL("ALTER TABLE channel ADD COLUMN number INTEGER")
         connection.execSQL("ALTER TABLE channel ADD COLUMN quality TEXT")
+    }
+}
+
+/**
+ * 2 → 3: favourites and their groups (US-12).
+ *
+ * Two tables and their indexes, and **no foreign key from `favorite` to
+ * `channel`** — see [FavoriteEntity] for why: a favourite can legitimately point
+ * at a channel this device has not cached, and a constraint would lose the
+ * favourite rather than wait for the channel.
+ *
+ * Nothing is backfilled and nothing needs to be. The favourites live on the
+ * server; the first refresh after this migration fills both tables, and until it
+ * runs the screens show an empty state rather than wrong data.
+ *
+ * The statements are the ones Room generates for these entities, written out
+ * because `DatabaseModule` still has no `fallbackToDestructiveMigration` and the
+ * alternative to this file is wiping a synchronised catalogue.
+ */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `favorite_group` (
+                `id` TEXT NOT NULL,
+                `name` TEXT NOT NULL,
+                `position` INTEGER NOT NULL,
+                `is_default` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent(),
+        )
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `favorite` (
+                `id` TEXT NOT NULL,
+                `group_id` TEXT NOT NULL,
+                `source_id` TEXT NOT NULL,
+                `channel_id` TEXT NOT NULL,
+                `position` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent(),
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_favorite_group_id_position` " +
+                "ON `favorite` (`group_id`, `position`)",
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_favorite_channel_id` ON `favorite` (`channel_id`)",
+        )
     }
 }
