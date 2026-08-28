@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for feature:favorites. The French set lives in values-fr and
+  ships at the same time (AGENTS.md §4); lint fails the build on a missing
+  translation.
+-->
+<resources>
+    <string name="feature_favorites_title">Favourites</string>
+    <string name="feature_favorites_refresh">Refresh</string>
+    <string name="feature_favorites_refresh_failed">Your favourites could not be refreshed. This list is the one on this device.</string>
+
+    <!--
+      Two empty states, and they are two different situations. This one is an
+      account with nothing starred anywhere: it names the gesture that starts.
+    -->
+    <string name="feature_favorites_empty_title">No favourites yet</string>
+    <string name="feature_favorites_empty_body">Press the heart next to a channel to keep it here. You can group them however you like — Documentaries, Cinema, anything.</string>
+
+    <!--
+      And this one is a group that happens to be empty in an account that has
+      favourites elsewhere. Nobody here needs the gesture explained again.
+    -->
+    <string name="feature_favorites_group_empty_title">This group is empty</string>
+    <string name="feature_favorites_group_empty_body">Nothing is filed here yet.</string>
+
+    <!--
+      Shown only when the account has more than one source: under a single
+      subscription the same line on every row is noise.
+    -->
+    <string name="feature_favorites_from_source">From %1$s</string>
+
+    <!--
+      Shown in place of the name the server gives the group it creates on the
+      first add, and only while that name is still the server&apos;s own. Once the
+      user has renamed the group, their name wins.
+    -->
+    <string name="feature_favorites_default_group">Favourites</string>
+</resources>

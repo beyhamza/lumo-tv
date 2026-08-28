@@ -10,6 +10,8 @@ import tv.lumo.android.feature.auth.AuthDestination
 import tv.lumo.android.feature.auth.SignUpDestination
 import tv.lumo.android.feature.auth.navigation.authMobileScreen
 import tv.lumo.android.feature.auth.navigation.signUpMobileScreen
+import tv.lumo.android.feature.favorites.FavoritesDestination
+import tv.lumo.android.feature.favorites.navigation.favoritesMobileScreen
 import tv.lumo.android.feature.live.LiveDestination
 import tv.lumo.android.feature.live.PlayerDestination
 import tv.lumo.android.feature.live.navigation.liveMobileScreen
@@ -68,6 +70,13 @@ fun LumoMobileNavHost(
             },
         )
         livePlayerMobileScreen(onBack = { navController.popBackStack() })
+        // Same player, and the wire is held here rather than in either feature:
+        // favourites has no business knowing that feature:live exists.
+        favoritesMobileScreen(
+            onPlay = { channelId, name ->
+                navController.navigate(PlayerDestination.routeFor(channelId, name))
+            },
+        )
         vodMobileScreen()
         seriesMobileScreen()
         searchMobileScreen()
@@ -105,10 +114,13 @@ fun mobileStartRoute(start: AppStart): String? = when (start) {
 /**
  * What the bottom bar offers, in order.
  *
- * Three, not eight. VOD, series and search are outside the vertical this sprint
- * finishes, and a demo that offers three doors onto placeholder screens explains
- * itself badly — the reviewer remembers the empty rooms, not the journey that
- * works.
+ * Four, not eight. VOD, series and search are still placeholders, and a bar that
+ * offers doors onto empty rooms explains itself badly — the reviewer remembers the
+ * empty rooms, not the journey that works.
+ *
+ * Favourites earns its place beside the catalogue rather than inside it, and that
+ * is the structural point of US-12: a group belongs to the account and can hold
+ * channels from two sources, so there is no source under which it could sit.
  *
  * Onboarding and authentication are absent for a different reason: they are not
  * places one returns to. They are the way in, and a tab that takes a signed-in
@@ -116,6 +128,7 @@ fun mobileStartRoute(start: AppStart): String? = when (start) {
  */
 val MobileDestinations: List<LumoDestination> = listOf(
     LiveDestination,
+    FavoritesDestination,
     SourceDestination,
     SettingsDestination,
 )

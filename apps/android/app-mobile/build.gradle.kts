@@ -29,6 +29,7 @@ dependencies {
     implementation(projects.feature.auth)
     implementation(projects.feature.source)
     implementation(projects.feature.live)
+    implementation(projects.feature.favorites)
     implementation(projects.feature.vod)
     implementation(projects.feature.series)
     implementation(projects.feature.search)

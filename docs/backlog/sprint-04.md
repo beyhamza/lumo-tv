@@ -197,16 +197,17 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S4-01 | `userdata` : les trois opérations, et ce que devient un groupe supprimé | serveur | api | 3 | 100 % |
 | ☑ | S4-02 | `core:data` et Room : favoris et groupes lisibles hors ligne | socle | android | 5 | 100 % |
 | ☑ | S4-03 | Mobile : mettre en favori, choisir le groupe, en créer un à la volée | mobile | mobile | 5 | 100 % |
-| ☐ | S4-04 | Mobile : l'écran Favoris, un onglet par groupe | mobile | mobile | 5 | 0 % |
+| ☑ | S4-04 | Mobile : l'écran Favoris, un onglet par groupe | mobile | mobile | 5 | 100 % |
 | ☐ | S4-05 | Mobile : organiser — renommer, supprimer, déplacer, réordonner | mobile | mobile | 3 | 0 % |
 | ☐ | S4-06 | TV : les groupes dans la bande de puces | tv | tv | 5 | 0 % |
 | ☐ | S4-07 | TV : mettre en favori sans quitter la grille | tv | tv | 3 | 0 % |
 | ☐ | S4-08 | TV : les chaînes récemment regardées, et la divergence M5 tranchée | tv | tv | 3 | 0 % |
 | ☐ | S4-09 | Web : organiser ses groupes | web | web | 3 | 0 % |
 
-**Avancement du sprint : 42 % de 38 points.** Le contrat porte les trois opérations
-qui manquaient, le serveur les sert, Android sait lire et écrire des favoris, et
-**le premier geste est en place** : un cœur sur chaque chaîne du téléphone.
+**Avancement du sprint : 55 % de 38 points.** Le contrat porte les trois opérations
+qui manquaient, le serveur les sert, Android sait lire et écrire des favoris, et le
+téléphone a **le geste et l'écran** : un cœur sur chaque chaîne, et un onglet
+Favoris par groupe. Reste à organiser (S4-05), la télévision, et le web.
 
 ---
 
@@ -396,7 +397,26 @@ appuie deux fois.
 
 ---
 
-### S4-04 — Mobile : l'écran Favoris · **5** · dépend de S4-02
+### S4-04 — Mobile : l'écran Favoris · **5** · dépend de S4-02 · ☑
+
+> **Livré, et le changement structurel a pris la forme d'un module.**
+> `feature:favorites` existe, seizième module, et c'est la conséquence directe du
+> deuxième constat : tout autre écran de catalogue pend d'une source, celui-ci n'en
+> a aucune à nommer. Il ne pouvait pas non plus vivre dans `feature:live` — le
+> `settings.gradle.kts` interdit qu'un feature dépende d'un autre — donc il est à
+> côté du catalogue, quatrième onglet de la barre.
+>
+> **Une correction à la tâche telle qu'elle était écrite.** « Chaque carte dit de
+> quelle source elle vient » supposait que l'appareil connaisse le nom de la
+> source. Il ne le connaît pas : `core:database` cache les chaînes et les
+> catégories, pas les sources. Deux décisions en découlent, et la seconde est un
+> vrai gain : un appel réseau pour tout l'écran, qui a le droit d'échouer — hors
+> ligne, la ligne ne s'affiche pas ; et **la ligne ne s'affiche que si le compte a
+> plus d'une source**. Sous un seul abonnement, « Depuis Ma playlist » sous chaque
+> ligne est du bruit, pas de l'information.
+>
+> 4 cas sur l'état, **117 tests verts** sur Android, `lint` et `assembleDebug`
+> propres.
 
 Le premier écran du catalogue qui n'est pas sous une source, et c'est le point à
 traiter avant de dessiner quoi que ce soit — voir le deuxième constat.

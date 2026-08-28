@@ -75,6 +75,10 @@ include(":feature:onboarding")
 include(":feature:auth")
 include(":feature:source")
 include(":feature:live")
+// Beside the catalogue rather than inside it: a group of favourites belongs to
+// the account and can hold channels from two sources, so it has no source id to
+// hang off (US-12).
+include(":feature:favorites")
 include(":feature:vod")
 include(":feature:series")
 include(":feature:search")

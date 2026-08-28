@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- French strings for feature:favorites. Ships with the English set. -->
+<resources>
+    <string name="feature_favorites_title">Favoris</string>
+    <string name="feature_favorites_refresh">Actualiser</string>
+    <string name="feature_favorites_refresh_failed">Vos favoris n\'ont pas pu être actualisés. Cette liste est celle de cet appareil.</string>
+
+    <string name="feature_favorites_empty_title">Aucun favori pour l\'instant</string>
+    <string name="feature_favorites_empty_body">Appuyez sur le cœur à côté d\'une chaîne pour la garder ici. Vous pouvez les ranger comme vous voulez — Documentaire, Ciné, ce que vous voulez.</string>
+
+    <string name="feature_favorites_group_empty_title">Ce groupe est vide</string>
+    <string name="feature_favorites_group_empty_body">Rien n\'y est encore rangé.</string>
+
+    <string name="feature_favorites_from_source">Depuis %1$s</string>
+
+    <string name="feature_favorites_default_group">Favoris</string>
+</resources>
