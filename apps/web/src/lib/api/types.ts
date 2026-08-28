@@ -26,6 +26,7 @@ export type IngestionErrorCode = components["schemas"]["IngestionErrorCode"];
 export type Category = components["schemas"]["Category"];
 export type Channel = components["schemas"]["Channel"];
 export type Favorite = components["schemas"]["Favorite"];
+export type FavoriteGroup = components["schemas"]["FavoriteGroup"];
 export type Device = components["schemas"]["Device"];
 export type DeviceRegistration = components["schemas"]["DeviceRegistration"];
 export type Platform = components["schemas"]["Platform"];

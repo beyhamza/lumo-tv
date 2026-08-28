@@ -268,7 +268,15 @@
     "playerUnplayable": "The stream was reached but this browser could not decode it.",
     "playerUnsupported": "This browser cannot play this kind of stream.",
     "playerUseApps": "The Android and Android TV applications have no such limit: they open the stream directly.",
-    "playerMaxConnections": "Your subscription allows {count} simultaneous stream(s)."
+    "playerMaxConnections": "Your subscription allows {count} simultaneous stream(s).",
+    "catalogueFavoritesAll": "All favourites",
+    "catalogueFavoritesDefaultGroup": "Favourites",
+    "catalogueFavoriteAddTo": "Add to “{group}”",
+    "catalogueGroupCreate": "New group",
+    "catalogueGroupName": "Group name",
+    "catalogueGroupRename": "Rename",
+    "catalogueGroupDelete": "Delete the group",
+    "catalogueGroupDeleteWarning": "Its {count} channels will move to “{target}”. Nothing is removed from your favourites."
   },
   "Errors": {
     "generic": "Something went wrong. Try again.",

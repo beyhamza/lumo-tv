@@ -268,7 +268,15 @@
     "playerUnplayable": "Le flux a été atteint mais n'a pas pu être décodé par ce navigateur.",
     "playerUnsupported": "Ce navigateur ne sait pas lire ce type de flux.",
     "playerUseApps": "Les applications Android et Android TV n'ont pas cette limite : elles ouvrent le flux directement.",
-    "playerMaxConnections": "Votre abonnement autorise {count} lecture(s) simultanée(s)."
+    "playerMaxConnections": "Votre abonnement autorise {count} lecture(s) simultanée(s).",
+    "catalogueFavoritesAll": "Tous les favoris",
+    "catalogueFavoritesDefaultGroup": "Favoris",
+    "catalogueFavoriteAddTo": "Ajouter à « {group} »",
+    "catalogueGroupCreate": "Nouveau groupe",
+    "catalogueGroupName": "Nom du groupe",
+    "catalogueGroupRename": "Renommer",
+    "catalogueGroupDelete": "Supprimer le groupe",
+    "catalogueGroupDeleteWarning": "Ses {count} chaînes iront dans « {target} ». Rien n’est retiré de vos favoris."
   },
   "Errors": {
     "generic": "Une erreur est survenue. Réessayez.",

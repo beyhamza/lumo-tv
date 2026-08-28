@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
-import { addFavorite, removeFavorite } from "@/actions/favorites";
+import {
+  addFavorite,
+  createFavoriteGroup,
+  deleteFavoriteGroup,
+  removeFavorite,
+  renameFavoriteGroup,
+} from "@/actions/favorites";
 import { ChannelPlayer } from "@/components/app/ChannelPlayer";
 import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api, problemCode } from "@/lib/api/client";
-import type { Category, Channel } from "@/lib/api/types";
+import type { Category, Channel, FavoriteGroup } from "@/lib/api/types";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
 
@@ -79,6 +85,12 @@ const PAGE_SIZE = 50;
  */
 const RAIL_SIZE = 12;
 
+/**
+ * The contract's cap on `?ids=`, and the size of the largest group this page can
+ * show whole. Sending more is a `400`, by contract.
+ */
+const ID_LOOKUP_MAX = 100;
+
 export default async function ChannelsPage({
   params,
   searchParams,
@@ -95,11 +107,15 @@ export default async function ChannelsPage({
   const search = single(query.q);
   const page = Math.max(0, Number.parseInt(single(query.page) ?? "0", 10) || 0);
   const playing = single(query.play);
+  // Which favourite group the rail shows. In the URL like everything else on
+  // this screen, so it survives a reload, can be shared, and comes back with the
+  // back button (S4-09).
+  const group = single(query.group);
 
   // Not through `fetched()`: this screen has to tell three failures apart, and
   // that helper deliberately collapses everything that is not an unrouted 404
   // into "unavailable". A source still importing is not an outage.
-  const [categories, channels, favorites, recents] = await Promise.all([
+  const [categories, channels, favorites, recents, groups] = await Promise.all([
     api(session.accessToken).GET("/sources/{id}/categories", {
       params: { path: { id }, query: { contentType: "LIVE" } },
     }),
@@ -126,6 +142,10 @@ export default async function ChannelsPage({
     api(session.accessToken).GET("/me/recent-channels", {
       params: { query: { limit: RAIL_SIZE } },
     }),
+    // The account's groups. Like the favourites above, a failure here does not
+    // take the catalogue down: the rail loses its group bar, the channel list is
+    // untouched.
+    api(session.accessToken).GET("/me/favorite-groups", {}),
   ]);
 
   const failure = problemCode(channels.error) ?? problemCode(categories.error);
@@ -157,9 +177,25 @@ export default async function ChannelsPage({
   const messages = await getMessages();
 
   // Both lists come back for the whole account; this screen is one source.
-  const starred = (favorites.data?.items ?? [])
+  const allStarred = (favorites.data?.items ?? [])
     .filter((favorite) => favorite.source_id === id)
     .sort((a, b) => a.position - b.position);
+
+  const favoriteGroups = groups.data?.items ?? [];
+  // A group named in the URL that no longer exists — deleted from the phone, or
+  // a stale bookmark — falls back to every favourite rather than to an empty
+  // rail that looks like a bug.
+  const activeGroup = favoriteGroups.find((candidate) => candidate.id === group);
+  const starred = activeGroup
+    ? allStarred.filter((favorite) => favorite.group_id === activeGroup.id)
+    : allStarred;
+
+  // How many favourites a deletion would move, counted across the whole account
+  // and not just this source: the server moves all of them, and a confirmation
+  // that counted only what this page can see would understate what happens.
+  const countInGroup = (groupId: string) =>
+    (favorites.data?.items ?? []).filter((favorite) => favorite.group_id === groupId)
+      .length;
   const watched = (recents.data?.items ?? []).filter(
     (recent) => recent.source_id === id,
   );
@@ -167,20 +203,32 @@ export default async function ChannelsPage({
   // Channel id → favourite id. The favourite's own id is what `DELETE
   // /me/favorites/{id}` takes, so keeping it here is what lets a filled star
   // remove the right row without a second lookup.
+  // Built from every favourite of this source, never from the filtered rail: the
+  // star on a channel row says whether it is starred *at all*, and narrowing the
+  // rail to "Documentaire" must not empty the stars on channels filed elsewhere.
   const favoriteByChannel = new Map(
-    starred.map((favorite) => [favorite.channel_id, favorite.id]),
+    allStarred.map((favorite) => [favorite.channel_id, favorite.id]),
   );
 
   // Everything this page has to name but was not handed by the query above: the
   // two rails, and the channel being played — which since `ids` exists no longer
   // has to be on the current page for its heading to be right.
   const byId = new Map(channels.data.items.map((channel) => [channel.id, channel]));
+  // A chosen group shows all of itself, not a rail's worth: picking
+  // "Documentaire" and getting twelve of its thirty channels would make the
+  // choice look broken. Capped at the contract's `ids` limit, which is also the
+  // point past which a strip stops being readable.
+  const railSize = activeGroup ? ID_LOOKUP_MAX : RAIL_SIZE;
   const wanted = [
-    ...starred.slice(0, RAIL_SIZE).map((favorite) => favorite.channel_id),
+    ...starred.slice(0, railSize).map((favorite) => favorite.channel_id),
     ...watched.slice(0, RAIL_SIZE).map((recent) => recent.channel_id),
     ...(playing ? [playing] : []),
   ];
-  const missing = [...new Set(wanted.filter((channelId) => !byId.has(channelId)))];
+  const missing = [...new Set(wanted.filter((channelId) => !byId.has(channelId)))]
+    // The contract caps `ids` at 100 and answers a longer list with a 400. One
+    // call is enough here by construction — the rails and the group are each
+    // bounded by that same number — so this is a guard rather than a paging loop.
+    .slice(0, ID_LOOKUP_MAX);
 
   if (missing.length > 0) {
     const resolved = await api(session.accessToken).GET("/sources/{id}/channels", {
@@ -193,7 +241,7 @@ export default async function ChannelsPage({
   }
 
   const nowPlaying = playing ? byId.get(playing) : undefined;
-  const railFavorites = railOf(starred.slice(0, RAIL_SIZE), byId);
+  const railFavorites = railOf(starred.slice(0, railSize), byId);
   const railRecents = railOf(watched.slice(0, RAIL_SIZE), byId);
 
   // Where a star sends the user back to: this exact view, category, search, page
@@ -204,6 +252,7 @@ export default async function ChannelsPage({
     q: search,
     page: page > 0 ? String(page) : undefined,
     play: playing,
+    group: activeGroup?.id,
   })}`;
 
   // Playing a channel is a URL like every other state here, and it keeps the
@@ -243,8 +292,33 @@ export default async function ChannelsPage({
         channels={railRecents}
         playHref={playHref}
       />
+      <FavoriteGroups
+        groups={favoriteGroups}
+        activeId={activeGroup?.id}
+        sourceId={id}
+        locale={locale as Locale}
+        categoryId={categoryId}
+        search={search}
+        returnTo={returnTo}
+        countInGroup={countInGroup}
+        defaultGroupName={t("catalogueFavoritesDefaultGroup")}
+        labels={{
+          all: t("catalogueFavoritesAll"),
+          create: t("catalogueGroupCreate"),
+          name: t("catalogueGroupName"),
+          rename: t("catalogueGroupRename"),
+          remove: t("catalogueGroupDelete"),
+        }}
+        deleteWarning={(count) =>
+          t("catalogueGroupDeleteWarning", {
+            count,
+            target: defaultGroupLabel(favoriteGroups, t("catalogueFavoritesDefaultGroup")),
+          })
+        }
+      />
+
       <Rail
-        title={t("catalogueFavoritesTitle")}
+        title={activeGroup ? groupLabel(activeGroup, t("catalogueFavoritesDefaultGroup")) : t("catalogueFavoritesTitle")}
         channels={railFavorites}
         playHref={playHref}
       />
@@ -323,8 +397,9 @@ export default async function ChannelsPage({
                   playing={channel.id === playing}
                   favoriteId={favoriteByChannel.get(channel.id)}
                   returnTo={returnTo}
-                  addLabel={t("catalogueFavoriteAdd")}
+                  addLabel={activeGroup ? t("catalogueFavoriteAddTo", { group: groupLabel(activeGroup, t("catalogueFavoritesDefaultGroup")) }) : t("catalogueFavoriteAdd")}
                   removeLabel={t("catalogueFavoriteRemove")}
+                  groupId={activeGroup?.id}
                   href={playHref(channel.id)}
                 />
               ))}
@@ -391,6 +466,227 @@ function railOf(
  * an empty strip with a heading above it is a promise that something belongs
  * there, and the star on the rows below is where that starts.
  */
+/**
+ * The favourite groups: which one the rail shows, and what can be done to them.
+ *
+ * <h2>Links to filter, forms to change</h2>
+ *
+ * Same split as the rest of the screen. Choosing a group is a link, because it is
+ * a view — it belongs in the URL, it survives a reload, the back button undoes it.
+ * Creating, renaming and deleting are `<form>`s pointed at Server Actions,
+ * because they change something and because the access token is not in the
+ * browser (`AGENTS.md` §4). Neither needs JavaScript.
+ *
+ * <h2>Deleting says what it will do, with the number</h2>
+ *
+ * The server moves a deleted group's favourites into the default group rather
+ * than removing them. "Are you sure?" would tell this person nothing they do not
+ * already know; the count and the destination let them predict the state they
+ * will be in. Same wording as the phone, same number.
+ *
+ * <h2>The default group has no delete control</h2>
+ *
+ * The server refuses it — it is where the others empty into — and a control whose
+ * only possible answer is an error teaches somebody that the application is
+ * broken.
+ *
+ * <h2>Nothing here when there is nothing to organise</h2>
+ *
+ * No groups and no favourites means no bar: an account that has never starred
+ * anything does not need a filter over an empty rail. The creation form appears
+ * with the first group, which is created by the first star.
+ */
+function FavoriteGroups({
+  groups,
+  activeId,
+  sourceId,
+  locale,
+  categoryId,
+  search,
+  returnTo,
+  countInGroup,
+  defaultGroupName,
+  labels,
+  deleteWarning,
+}: {
+  groups: FavoriteGroup[];
+  activeId?: string;
+  sourceId: string;
+  locale: Locale;
+  categoryId?: string;
+  search?: string;
+  returnTo: string;
+  countInGroup: (groupId: string) => number;
+  defaultGroupName: string;
+  labels: {
+    all: string;
+    create: string;
+    name: string;
+    rename: string;
+    remove: string;
+  };
+  deleteWarning: (count: number) => string;
+}) {
+  if (groups.length === 0) return null;
+
+  const hrefForGroup = (groupId?: string) =>
+    hrefFor(
+      locale,
+      `/app/sources/${sourceId}/channels${queryString({
+        categoryId,
+        q: search,
+        group: groupId,
+      })}`,
+    );
+
+  const active = groups.find((group) => group.id === activeId);
+
+  return (
+    <section className="mt-6">
+      <nav aria-label={labels.all} className="flex flex-wrap items-center gap-2">
+        <GroupLink href={hrefForGroup()} active={activeId === undefined}>
+          {labels.all}
+        </GroupLink>
+        {groups.map((group) => (
+          <GroupLink
+            key={group.id}
+            href={hrefForGroup(group.id)}
+            active={group.id === activeId}
+          >
+            {groupLabel(group, defaultGroupName)}
+          </GroupLink>
+        ))}
+      </nav>
+
+      <div className="mt-3 flex flex-wrap items-end gap-4">
+        {/* Renaming and deleting act on the group that is open, so there is one
+            of each rather than a control per chip — a bar that carried three
+            buttons per group would be unreadable at the width a phone gives it. */}
+        {active ? (
+          <>
+            <form action={renameFavoriteGroup} className="flex items-end gap-2">
+              <input type="hidden" name="groupId" value={active.id} />
+              <input type="hidden" name="returnTo" value={returnTo} />
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="group-name"
+                  className="text-muted-foreground text-xs font-medium"
+                >
+                  {labels.name}
+                </label>
+                <input
+                  id="group-name"
+                  name="name"
+                  type="text"
+                  required
+                  maxLength={100}
+                  defaultValue={groupLabel(active, defaultGroupName)}
+                  className="border-input bg-background h-9 rounded-lg border px-3 text-sm"
+                />
+              </div>
+              <button
+                type="submit"
+                className="bg-secondary text-secondary-foreground h-9 rounded-lg px-3 text-sm font-medium"
+              >
+                {labels.rename}
+              </button>
+            </form>
+
+            {active.is_default ? null : (
+              <form action={deleteFavoriteGroup} className="space-y-1.5">
+                <input type="hidden" name="groupId" value={active.id} />
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <p className="text-muted-foreground max-w-md text-xs">
+                  {deleteWarning(countInGroup(active.id))}
+                </p>
+                <button
+                  type="submit"
+                  className="border-destructive text-destructive h-9 rounded-lg border px-3 text-sm font-medium"
+                >
+                  {labels.remove}
+                </button>
+              </form>
+            )}
+          </>
+        ) : null}
+
+        <form action={createFavoriteGroup} className="flex items-end gap-2">
+          <input type="hidden" name="returnTo" value={returnTo} />
+          <div className="space-y-1.5">
+            <label
+              htmlFor="new-group-name"
+              className="text-muted-foreground text-xs font-medium"
+            >
+              {labels.create}
+            </label>
+            <input
+              id="new-group-name"
+              name="name"
+              type="text"
+              required
+              maxLength={100}
+              className="border-input bg-background h-9 rounded-lg border px-3 text-sm"
+            />
+          </div>
+          <button
+            type="submit"
+            className="bg-secondary text-secondary-foreground h-9 rounded-lg px-3 text-sm font-medium"
+          >
+            {labels.create}
+          </button>
+        </form>
+      </div>
+    </section>
+  );
+}
+
+function GroupLink({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      aria-current={active ? "true" : undefined}
+      className={`rounded-lg border px-3 py-1.5 text-sm ${
+        active
+          ? "border-primary bg-primary/10 font-medium"
+          : "border-border text-muted-foreground hover:bg-secondary/60"
+      }`}
+    >
+      {children}
+    </a>
+  );
+}
+
+/**
+ * What to call a group on screen.
+ *
+ * The server names the group it creates on the first add, and names it
+ * `Favorites`, in English. `is_default` is what lets a client translate it; the
+ * second half of the condition is what stops the translation overriding the user
+ * once they have renamed it — here, or on their phone.
+ */
+function groupLabel(group: FavoriteGroup, translated: string): string {
+  return group.is_default && group.name === SERVER_DEFAULT_GROUP_NAME
+    ? translated
+    : group.name;
+}
+
+/** Where a deleted group's channels go, named as the user sees it. */
+function defaultGroupLabel(groups: FavoriteGroup[], translated: string): string {
+  const fallback = groups.find((group) => group.is_default);
+  return fallback ? groupLabel(fallback, translated) : translated;
+}
+
+/** The name the server gives the default group, verbatim. */
+const SERVER_DEFAULT_GROUP_NAME = "Favorites";
+
 function Rail({
   title,
   channels,
@@ -533,6 +829,7 @@ function ChannelRow({
   returnTo,
   addLabel,
   removeLabel,
+  groupId,
 }: {
   channel: Channel;
   href: string;
@@ -541,6 +838,7 @@ function ChannelRow({
   returnTo: string;
   addLabel: string;
   removeLabel: string;
+  groupId?: string;
 }) {
   return (
     <li
@@ -573,6 +871,7 @@ function ChannelRow({
         returnTo={returnTo}
         addLabel={addLabel}
         removeLabel={removeLabel}
+        groupId={groupId}
       />
     </li>
   );
@@ -604,12 +903,15 @@ function FavoriteStar({
   returnTo,
   addLabel,
   removeLabel,
+  groupId,
 }: {
   channelId: string;
   favoriteId?: string;
   returnTo: string;
   addLabel: string;
   removeLabel: string;
+  /** The group open in the bar above, or undefined for the default group. */
+  groupId?: string;
 }) {
   const starred = favoriteId !== undefined;
   const label = starred ? removeLabel : addLabel;
@@ -621,6 +923,14 @@ function FavoriteStar({
       ) : (
         <input type="hidden" name="channelId" value={channelId} />
       )}
+      {/* The group the bar above has open, so starring files where the person is
+          already looking. A `<select>` on every row would have been the other
+          way to send this, and on a list of fifty rows it is fifty controls for
+          a choice that is the same on all of them. Omitted, the server files it
+          in the default group — which is what happens when the bar is on "all". */}
+      {!starred && groupId ? (
+        <input type="hidden" name="groupId" value={groupId} />
+      ) : null}
       <input type="hidden" name="returnTo" value={returnTo} />
       <button
         type="submit"

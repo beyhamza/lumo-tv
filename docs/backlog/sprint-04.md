@@ -202,12 +202,19 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S4-06 | TV : les groupes dans la bande de puces | tv | tv | 5 | 100 % |
 | ☑ | S4-07 | TV : mettre en favori sans quitter la grille | tv | tv | 3 | 100 % |
 | ☑ | S4-08 | TV : les chaînes récemment regardées, et la divergence M5 tranchée | tv | tv | 3 | 100 % |
-| ☐ | S4-09 | Web : organiser ses groupes | web | web | 3 | 0 % |
+| ☑ | S4-09 | Web : organiser ses groupes | web | web | 3 | 100 % |
 
-**Avancement du sprint : 92 % de 38 points.** **Le téléphone est fini** : un cœur sur
-chaque chaîne, un onglet Favoris par groupe, et de quoi renommer, supprimer,
-déplacer et réordonner. La télévision sait afficher les groupes. Restent S4-07,
-S4-08 et le web.
+**Avancement du sprint : 100 % de 38 points, et 0 % de la Definition of Done.**
+Les dix tâches de code sont faites, sur les trois surfaces : le téléphone a le
+cœur, l'écran Favoris et de quoi organiser ; la télévision a les groupes en puces,
+la mise en favori à l'appui long et les chaînes récentes ; le web sait organiser
+ses groupes.
+
+**Rien de tout cela n'a été vu ailleurs que dans un build.** La DoD de ce sprint
+demande une démo sur les trois surfaces **avec les mêmes groupes** — créer
+« Documentaire » sur le téléphone et le voir apparaître sur la télévision est la
+seule preuve que le groupe est sur le compte et pas sur l'appareil, et c'est
+exactement ce qu'aucun test de ce dépôt ne peut établir.
 
 ---
 
@@ -604,7 +611,31 @@ Un document qui décrit un rail qui n'existe pas est pire que pas de document.
 
 ---
 
-### S4-09 — Web : organiser ses groupes · **3** · dépend de S4-00
+### S4-09 — Web : organiser ses groupes · **3** · dépend de S4-00 · ☑
+
+> **Livré**, avec un écart assumé sur la façon dont l'étoile choisit son groupe.
+>
+> **La tâche proposait un `<select>` dans le formulaire de l'étoile.** Sur une
+> liste de cinquante lignes, c'est cinquante contrôles pour un choix qui est le
+> même sur toutes. Livré autrement : **l'étoile dépose dans le groupe que la barre
+> a ouvert**, transmis en champ caché, et son libellé le dit — « Ajouter à
+> "Documentaire" ». Un formulaire, un envoi, toujours pas de JavaScript, et l'état
+> vient de l'URL que la page utilise déjà partout ailleurs. Barre sur « Tous », le
+> champ est absent et le serveur range dans le groupe par défaut — exactement le
+> comportement d'avant ce sprint.
+>
+> **Un piège que la structure de la page rendait facile.** La barre filtre le rail
+> des favoris ; les étoiles des lignes de chaînes, elles, se calculent sur
+> **tous** les favoris de la source. Les brancher sur la liste filtrée aurait vidé
+> l'étoile de toute chaîne rangée ailleurs dès qu'un groupe est ouvert.
+>
+> **Un groupe ouvert montre tout son contenu**, plafonné aux 100 identifiants
+> qu'accepte `?ids=` — choisir « Documentaire » et n'en voir que douze ferait
+> passer le choix pour cassé.
+>
+> `typecheck`, `lint`, 28 tests unitaires et `next build` verts, **et les pages
+> marketing restent en `●`** : la règle de zone d'`apps/web/AGENTS.md` §2 n'a pas
+> bougé.
 
 Le web sait ajouter depuis S3-08. Il lui manque la gestion, et le `group_id` que
 l'étoile n'envoie pas.
