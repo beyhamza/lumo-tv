@@ -46,13 +46,27 @@ s'escalade au lieu de s'inventer. C'est la réserve des 20 % sur G3. Décision �
 prendre : ajouter `POST /billing/webhook` au contrat, ou l'exclure explicitement
 comme surface non publique.
 
-**2. Le groupe de favoris par défaut n'a pas d'identifiant stable.** Créé au
-premier ajout, il faut bien le nommer, et le serveur le nomme `Favorites` — une
-chaîne visible par l'utilisateur, dans une seule langue. Le même problème s'était
-posé pour les entrées M3U sans `group-title` et avait été résolu par une sentinelle
-(`m3u:__unclassified__`) sur laquelle le client traduit. `FavoriteGroup` ne porte
-que `id`, `name` et `position` : aucune sentinelle possible. Décision à prendre :
-ajouter un champ au schéma, ou accepter que le client renomme.
+**2. Le groupe de favoris par défaut n'a pas d'identifiant stable.** ✅ **Tranché,
+porté au contrat et servi** (`S4-00`, `S4-01`). Créé au premier ajout, il faut bien
+le nommer, et le serveur le nommait `Favorites` — une chaîne visible par
+l'utilisateur, dans une seule langue. Le même problème s'était posé pour les entrées
+M3U sans `group-title` et avait été résolu par une sentinelle
+(`m3u:__unclassified__`) sur laquelle le client traduit. `FavoriteGroup` ne portait
+que `id`, `name` et `position` : aucune sentinelle possible.
+
+**Décision : un champ, `is_default: boolean`**, plutôt qu'une sentinelle dans `name`.
+Le nom appartient à l'utilisateur dès qu'il le change, et un client doit continuer de
+savoir quel groupe est le groupe par défaut **après** un renommage — ce qu'une
+sentinelle dans le nom ne permet pas. Un client rend son propre libellé tant que le
+drapeau est vrai et que le nom est encore celui du serveur ; passé un renommage, le
+nom de l'utilisateur gagne.
+
+**Et la décision a exposé un bug.** Le serveur retrouvait ce groupe **par son nom** :
+l'`ON CONFLICT (user_id, name)` de l'upsert et le `SELECT` qui le relisait portaient
+tous les deux sur `'Favorites'`. Renommer le groupe faisait donc en créer un second
+au favori suivant. Le défaut était invisible tant qu'aucun écran ne savait renommer
+un groupe. `is_default`, son index unique partiel `(user_id) WHERE is_default` et la
+migration `0014` le ferment.
 
 **3. `display_name: null` ne peut pas effacer.** Le contrat dit qu'un `null`
 explicite efface le nom affiché. Le modèle généré porte un `String` nu, qui ne

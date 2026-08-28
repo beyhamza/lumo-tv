@@ -1031,12 +1031,62 @@ paths:
               schema: { $ref: '#/components/schemas/Problem' }
 
   /me/favorites/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    patch:
+      tags: [userdata]
+      operationId: updateFavorite
+      summary: Move a favourite, or change its place in its group
+      description: |
+        Omitted properties are left unchanged.
+
+        **Why this exists rather than a remove-then-add.** That pair loses the
+        favourite's `position`, and a connection dropped between the two calls
+        loses the favourite itself. Moving is one operation because it is one
+        intention.
+
+        `position` is the index the favourite takes **within its target group**,
+        counted from zero. The favourites it displaces shift down; a value past
+        the end of the group appends. Positions in a group are always
+        contiguous — a client never has to reason about gaps.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFavoriteRequest'
+      responses:
+        '200':
+          description: The moved favourite.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Favorite'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: |
+            No such favourite on this account, or the target group does not
+            belong to the caller (`FAVORITE_NOT_FOUND`,
+            `FAVORITE_GROUP_NOT_FOUND`).
+
+            A group belonging to somebody else answers `404` and not `403`: a
+            `403` would confirm that the group exists.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: |
+            The channel is already in the target group
+            (`FAVORITE_ALREADY_EXISTS`). Same rule as `POST /me/favorites`: one
+            channel appears at most once per group.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
     delete:
       tags: [userdata]
       operationId: removeFavorite
       summary: Remove a favourite
-      parameters:
-        - $ref: '#/components/parameters/PathId'
       responses:
         '204':
           description: Favourite removed.
@@ -1081,6 +1131,78 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '409':
           description: A group with this name already exists (`FAVORITE_GROUP_ALREADY_EXISTS`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /me/favorite-groups/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    patch:
+      tags: [userdata]
+      operationId: updateFavoriteGroup
+      summary: Rename a favourite group, or move it in the list
+      description: |
+        Omitted properties are left unchanged.
+
+        The default group can be renamed like any other. Renaming it does not
+        clear `is_default`: it stays the group `POST /me/favorites` falls back
+        to, and the group `DELETE` empties others into.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFavoriteGroupRequest'
+      responses:
+        '200':
+          description: The updated group.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteGroup'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such group on this account (`FAVORITE_GROUP_NOT_FOUND`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: Another group already carries this name (`FAVORITE_GROUP_ALREADY_EXISTS`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+    delete:
+      tags: [userdata]
+      operationId: deleteFavoriteGroup
+      summary: Delete a favourite group, keeping its favourites
+      description: |
+        **The favourites are not deleted.** They move to the account's default
+        group, appended in their current order, in the same transaction that
+        removes the group.
+
+        Deleting a shelf and throwing away the books are two different actions,
+        and nothing on screen distinguishes them — so the destructive reading is
+        not the one this operation takes. A client still tells the user what is
+        about to happen, with the count.
+
+        The default group itself cannot be deleted: it is where the others empty
+        into, and removing it would move favourites to a group that has just
+        ceased to exist.
+      responses:
+        '204':
+          description: Group deleted; its favourites are now in the default group.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such group on this account (`FAVORITE_GROUP_NOT_FOUND`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: |
+            This is the default group and it cannot be deleted
+            (`FAVORITE_GROUP_NOT_DELETABLE`).
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
@@ -1560,7 +1682,13 @@ components:
           `IngestionErrorCode`.
         - **Catalogue and user data** — `CHANNEL_NOT_FOUND`,
           `FAVORITE_NOT_FOUND`, `FAVORITE_ALREADY_EXISTS`,
-          `FAVORITE_GROUP_NOT_FOUND`, `FAVORITE_GROUP_ALREADY_EXISTS`.
+          `FAVORITE_GROUP_NOT_FOUND`, `FAVORITE_GROUP_ALREADY_EXISTS`,
+          `FAVORITE_GROUP_NOT_DELETABLE`.
+
+          The last one is only ever the default group. It is separate from a
+          bare `CONFLICT` for the same reason as the quota codes below: a client
+          that cannot tell "this one in particular cannot go" from "something
+          clashed" has nothing useful to say to the person holding the remote.
         - **Plan limits and billing** — `SOURCE_LIMIT_REACHED`,
           `DEVICE_LIMIT_REACHED`, `ALREADY_SUBSCRIBED`,
           `BILLING_CUSTOMER_NOT_FOUND`.
@@ -1612,6 +1740,7 @@ components:
         - FAVORITE_ALREADY_EXISTS
         - FAVORITE_GROUP_NOT_FOUND
         - FAVORITE_GROUP_ALREADY_EXISTS
+        - FAVORITE_GROUP_NOT_DELETABLE
         - SOURCE_LIMIT_REACHED
         - DEVICE_LIMIT_REACHED
         - ALREADY_SUBSCRIBED
@@ -2655,7 +2784,11 @@ components:
       description: |
         A user-defined grouping of favourites. A default group is created on the
         first add.
-      required: [id, name, position]
+
+        A group belongs to the **account**, not to a source: one group holds
+        channels from several subscriptions, and it survives a
+        re-synchronisation whole.
+      required: [id, name, position, is_default]
       properties:
         id:
           type: string
@@ -2665,6 +2798,25 @@ components:
         position:
           type: integer
           format: int32
+        is_default:
+          type: boolean
+          description: |
+            True for the one group created on the first add — where
+            `POST /me/favorites` lands without a `group_id`, and where
+            `DELETE /me/favorite-groups/{id}` empties the others.
+
+            **Why a flag and not a sentinel in `name`.** The server has to call
+            that group something, and it calls it `Favorites`, in English: a
+            user-visible string in one language, which no client could translate
+            because nothing marked it as the default one. The same problem was
+            solved once for M3U entries with no `group-title`, by a sentinel in
+            `external_id` — but `name` here belongs to the user the moment they
+            rename it, and a client must still know which group is the default
+            afterwards. A flag survives the rename; a sentinel would not.
+
+            A client renders its own wording while this is true **and** the name
+            is still the server's; once the user has renamed the group, their
+            name wins.
 
     FavoriteGroupList:
       type: object
@@ -2688,6 +2840,24 @@ components:
           format: int32
           nullable: true
           description: Appended last when omitted.
+
+    UpdateFavoriteGroupRequest:
+      type: object
+      description: |
+        Omitted properties are left unchanged. A body that changes nothing is
+        accepted and returns the group as it stands.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        position:
+          type: integer
+          format: int32
+          description: |
+            The index the group takes in the list, counted from zero. Groups it
+            displaces shift down; a value past the end appends. Positions stay
+            contiguous.
 
     Favorite:
       type: object
@@ -2741,6 +2911,24 @@ components:
           format: int32
           nullable: true
           description: Appended last when omitted.
+
+    UpdateFavoriteRequest:
+      type: object
+      description: |
+        Omitted properties are left unchanged. `channel_id` is not accepted:
+        pointing a favourite at another channel is adding a different favourite,
+        not editing this one.
+      properties:
+        group_id:
+          type: string
+          format: uuid
+          description: The group to move this favourite into.
+        position:
+          type: integer
+          format: int32
+          description: |
+            The index within the target group, counted from zero. Sent alone, it
+            reorders within the group the favourite is already in.
 
     PlaybackProgress:
       type: object

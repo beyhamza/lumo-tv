@@ -73,6 +73,8 @@ src/main/kotlin/tv/lumo/android/network/generated/model/SourceList.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/SourceStatus.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/SyncStep.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/TokenPair.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/UpdateFavoriteGroupRequest.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/UpdateFavoriteRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/UpdateSourceRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/UpdateUserRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/User.kt

@@ -20,6 +20,8 @@ import tv.lumo.android.network.generated.model.RecentChannel
 import tv.lumo.android.network.generated.model.RecentChannelList
 import tv.lumo.android.network.generated.model.RecordRecentChannelRequest
 import tv.lumo.android.network.generated.model.SaveProgressRequest
+import tv.lumo.android.network.generated.model.UpdateFavoriteGroupRequest
+import tv.lumo.android.network.generated.model.UpdateFavoriteRequest
 
 interface UserdataApi {
     /**
@@ -54,6 +56,22 @@ interface UserdataApi {
      */
     @POST("me/favorite-groups")
     suspend fun createFavoriteGroup(@Body createFavoriteGroupRequest: CreateFavoriteGroupRequest): Response<FavoriteGroup>
+
+    /**
+     * DELETE me/favorite-groups/{id}
+     * Delete a favourite group, keeping its favourites
+     * **The favourites are not deleted.** They move to the account&#39;s default group, appended in their current order, in the same transaction that removes the group.  Deleting a shelf and throwing away the books are two different actions, and nothing on screen distinguishes them — so the destructive reading is not the one this operation takes. A client still tells the user what is about to happen, with the count.  The default group itself cannot be deleted: it is where the others empty into, and removing it would move favourites to a group that has just ceased to exist. 
+     * Responses:
+     *  - 204: Group deleted; its favourites are now in the default group.
+     *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
+     *  - 404: No such group on this account (`FAVORITE_GROUP_NOT_FOUND`).
+     *  - 409: This is the default group and it cannot be deleted (`FAVORITE_GROUP_NOT_DELETABLE`). 
+     *
+     * @param id Resource identifier.
+     * @return [Unit]
+     */
+    @DELETE("me/favorite-groups/{id}")
+    suspend fun deleteFavoriteGroup(@Path("id") id: java.util.UUID): Response<Unit>
 
     /**
      * GET me/favorite-groups
@@ -160,5 +178,41 @@ interface UserdataApi {
      */
     @PUT("me/progress")
     suspend fun saveProgress(@Body saveProgressRequest: SaveProgressRequest): Response<PlaybackProgress>
+
+    /**
+     * PATCH me/favorites/{id}
+     * Move a favourite, or change its place in its group
+     * Omitted properties are left unchanged.  **Why this exists rather than a remove-then-add.** That pair loses the favourite&#39;s &#x60;position&#x60;, and a connection dropped between the two calls loses the favourite itself. Moving is one operation because it is one intention.  &#x60;position&#x60; is the index the favourite takes **within its target group**, counted from zero. The favourites it displaces shift down; a value past the end of the group appends. Positions in a group are always contiguous — a client never has to reason about gaps. 
+     * Responses:
+     *  - 200: The moved favourite.
+     *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
+     *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
+     *  - 404: No such favourite on this account, or the target group does not belong to the caller (`FAVORITE_NOT_FOUND`, `FAVORITE_GROUP_NOT_FOUND`).  A group belonging to somebody else answers `404` and not `403`: a `403` would confirm that the group exists. 
+     *  - 409: The channel is already in the target group (`FAVORITE_ALREADY_EXISTS`). Same rule as `POST /me/favorites`: one channel appears at most once per group. 
+     *
+     * @param id Resource identifier.
+     * @param updateFavoriteRequest 
+     * @return [Favorite]
+     */
+    @PATCH("me/favorites/{id}")
+    suspend fun updateFavorite(@Path("id") id: java.util.UUID, @Body updateFavoriteRequest: UpdateFavoriteRequest): Response<Favorite>
+
+    /**
+     * PATCH me/favorite-groups/{id}
+     * Rename a favourite group, or move it in the list
+     * Omitted properties are left unchanged.  The default group can be renamed like any other. Renaming it does not clear &#x60;is_default&#x60;: it stays the group &#x60;POST /me/favorites&#x60; falls back to, and the group &#x60;DELETE&#x60; empties others into. 
+     * Responses:
+     *  - 200: The updated group.
+     *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
+     *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
+     *  - 404: No such group on this account (`FAVORITE_GROUP_NOT_FOUND`).
+     *  - 409: Another group already carries this name (`FAVORITE_GROUP_ALREADY_EXISTS`).
+     *
+     * @param id Resource identifier.
+     * @param updateFavoriteGroupRequest 
+     * @return [FavoriteGroup]
+     */
+    @PATCH("me/favorite-groups/{id}")
+    suspend fun updateFavoriteGroup(@Path("id") id: java.util.UUID, @Body updateFavoriteGroupRequest: UpdateFavoriteGroupRequest): Response<FavoriteGroup>
 
 }

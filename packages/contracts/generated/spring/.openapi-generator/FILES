@@ -62,6 +62,8 @@ src/main/java/tv/lumo/api/generated/model/SourceList.java
 src/main/java/tv/lumo/api/generated/model/SourceStatus.java
 src/main/java/tv/lumo/api/generated/model/SyncStep.java
 src/main/java/tv/lumo/api/generated/model/TokenPair.java
+src/main/java/tv/lumo/api/generated/model/UpdateFavoriteGroupRequest.java
+src/main/java/tv/lumo/api/generated/model/UpdateFavoriteRequest.java
 src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java
 src/main/java/tv/lumo/api/generated/model/UpdateUserRequest.java
 src/main/java/tv/lumo/api/generated/model/User.java

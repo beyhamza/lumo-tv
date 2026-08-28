@@ -24,6 +24,8 @@ import tv.lumo.api.generated.model.ProgressItemType;
 import tv.lumo.api.generated.model.RecentChannel;
 import tv.lumo.api.generated.model.SaveProgressRequest;
 import tv.lumo.api.generated.model.SourceKind;
+import tv.lumo.api.generated.model.UpdateFavoriteGroupRequest;
+import tv.lumo.api.generated.model.UpdateFavoriteRequest;
 import tv.lumo.api.shared.error.ApiException;
 import tv.lumo.api.source.SourceRepository;
 import tv.lumo.api.support.PostgresContainerInitializer;
@@ -155,6 +157,187 @@ class UserdataIntegrationTest extends PostgresIntegrationTest {
                 .isEqualTo(ErrorCode.FAVORITE_NOT_FOUND);
 
         assertThat(userdata.listFavorites(user.id(), null)).hasSize(1);
+    }
+
+    // ---- groups: rename, move, delete ---------------------------------------
+
+    @Test
+    @DisplayName("renaming the default group does not produce a second one on the next add")
+    void renamingTheDefaultGroupKeepsItDefault() {
+        Favorite first = userdata.addFavorite(user.id(), new AddFavoriteRequest(channelId));
+        UUID defaultGroupId = first.getGroupId();
+
+        userdata.updateGroup(user.id(), defaultGroupId,
+                new UpdateFavoriteGroupRequest().name("Mes chaînes"));
+
+        // The bug this flag exists for: looked up by name, the next add finds
+        // nothing called "Favorites" and creates a second default group.
+        Favorite second = userdata.addFavorite(user.id(), new AddFavoriteRequest(otherChannelId));
+
+        assertThat(second.getGroupId()).isEqualTo(defaultGroupId);
+        assertThat(userdata.listGroups(user.id())).hasSize(1);
+        assertThat(userdata.listGroups(user.id()).getFirst().getName()).isEqualTo("Mes chaînes");
+        assertThat(userdata.listGroups(user.id()).getFirst().getIsDefault()).isTrue();
+    }
+
+    @Test
+    @DisplayName("renaming onto a name another group already carries is a conflict")
+    void renamingOntoATakenNameIsAConflict() {
+        userdata.createGroup(user.id(), new CreateFavoriteGroupRequest("Documentaire"));
+        FavoriteGroup cinema = userdata.createGroup(user.id(), new CreateFavoriteGroupRequest("Ciné"));
+
+        assertThatThrownBy(() -> userdata.updateGroup(user.id(), cinema.getId(),
+                new UpdateFavoriteGroupRequest().name("Documentaire")))
+                .isInstanceOf(ApiException.class)
+                .extracting(e -> ((ApiException) e).code())
+                .isEqualTo(ErrorCode.FAVORITE_GROUP_ALREADY_EXISTS);
+    }
+
+    @Test
+    @DisplayName("moving a group leaves the list contiguous from zero")
+    void movingAGroupRenumbersTheList() {
+        userdata.createGroup(user.id(), new CreateFavoriteGroupRequest("Documentaire"));
+        userdata.createGroup(user.id(), new CreateFavoriteGroupRequest("Ciné"));
+        FavoriteGroup sport = userdata.createGroup(user.id(), new CreateFavoriteGroupRequest("Sport"));
+
+        userdata.updateGroup(user.id(), sport.getId(), new UpdateFavoriteGroupRequest().position(0));
+
+        List<FavoriteGroup> groups = userdata.listGroups(user.id());
+        assertThat(groups).extracting(FavoriteGroup::getName)
+                .containsExactly("Sport", "Documentaire", "Ciné");
+        assertThat(groups).extracting(FavoriteGroup::getPosition).containsExactly(0, 1, 2);
+    }
+
+    @Test
+    @DisplayName("deleting a group keeps its favourites: they move to the default group")
+    void deletingAGroupKeepsItsFavorites() {
+        Favorite kept = userdata.addFavorite(user.id(), new AddFavoriteRequest(channelId));
+        FavoriteGroup docs = userdata.createGroup(user.id(),
+                new CreateFavoriteGroupRequest("Documentaire"));
+        userdata.addFavorite(user.id(),
+                new AddFavoriteRequest(otherChannelId).groupId(docs.getId()));
+
+        userdata.deleteGroup(user.id(), docs.getId());
+
+        assertThat(userdata.listGroups(user.id())).hasSize(1);
+        List<Favorite> remaining = userdata.listFavorites(user.id(), kept.getGroupId());
+        assertThat(remaining).extracting(Favorite::getChannelId)
+                .containsExactly(channelId, otherChannelId);
+        // Appended after what was already there, and contiguous.
+        assertThat(remaining).extracting(Favorite::getPosition).containsExactly(0, 1);
+    }
+
+    @Test
+    @DisplayName("a favourite already in the default group is not duplicated by the move")
+    void deletingAGroupDropsFavoritesAlreadyInTheDefault() {
+        Favorite kept = userdata.addFavorite(user.id(), new AddFavoriteRequest(channelId));
+        FavoriteGroup docs = userdata.createGroup(user.id(),
+                new CreateFavoriteGroupRequest("Documentaire"));
+        // The same channel, starred in both groups — which the model allows.
+        userdata.addFavorite(user.id(), new AddFavoriteRequest(channelId).groupId(docs.getId()));
+
+        userdata.deleteGroup(user.id(), docs.getId());
+
+        List<Favorite> remaining = userdata.listFavorites(user.id(), kept.getGroupId());
+        assertThat(remaining).extracting(Favorite::getChannelId).containsExactly(channelId);
+    }
+
+    @Test
+    @DisplayName("the default group cannot be deleted: it is where the others empty into")
+    void theDefaultGroupCannotBeDeleted() {
+        Favorite favorite = userdata.addFavorite(user.id(), new AddFavoriteRequest(channelId));
+
+        assertThatThrownBy(() -> userdata.deleteGroup(user.id(), favorite.getGroupId()))
+                .isInstanceOf(ApiException.class)
+                .extracting(e -> ((ApiException) e).code())
+                .isEqualTo(ErrorCode.FAVORITE_GROUP_NOT_DELETABLE);
+    }
+
+    @Test
+    @DisplayName("deleting somebody else's group is a 404, not a 403")
+    void deletingSomebodyElsesGroupIsNotFound() {
+        FavoriteGroup group = userdata.createGroup(user.id(), new CreateFavoriteGroupRequest("Sport"));
+        UserRow stranger = users.insert(UUID.randomUUID(),
+                "stranger-" + UUID.randomUUID() + "@test.example",
+                "$argon2id$irrelevant", "Stranger", "en");
+
+        assertThatThrownBy(() -> userdata.deleteGroup(stranger.id(), group.getId()))
+                .isInstanceOf(ApiException.class)
+                .extracting(e -> ((ApiException) e).code())
+                .isEqualTo(ErrorCode.FAVORITE_GROUP_NOT_FOUND);
+
+        assertThat(userdata.listGroups(user.id())).hasSize(1);
+    }
+
+    // ---- moving a favourite -------------------------------------------------
+
+    @Test
+    @DisplayName("moving a favourite between groups leaves one row, not two")
+    void movingAFavoriteBetweenGroupsLeavesOneRow() {
+        Favorite favorite = userdata.addFavorite(user.id(), new AddFavoriteRequest(channelId));
+        UUID defaultGroupId = favorite.getGroupId();
+        userdata.addFavorite(user.id(), new AddFavoriteRequest(otherChannelId));
+        FavoriteGroup docs = userdata.createGroup(user.id(),
+                new CreateFavoriteGroupRequest("Documentaire"));
+
+        Favorite moved = userdata.updateFavorite(user.id(), favorite.getId(),
+                new UpdateFavoriteRequest().groupId(docs.getId()));
+
+        assertThat(moved.getId()).isEqualTo(favorite.getId());
+        assertThat(moved.getGroupId()).isEqualTo(docs.getId());
+        assertThat(userdata.listFavorites(user.id(), docs.getId())).hasSize(1);
+        // The group it left is renumbered, so the survivor is back at zero.
+        assertThat(userdata.listFavorites(user.id(), defaultGroupId))
+                .extracting(Favorite::getPosition).containsExactly(0);
+    }
+
+    @Test
+    @DisplayName("moving a favourite onto a group that already has the channel is a conflict")
+    void movingOntoADuplicateIsAConflict() {
+        Favorite favorite = userdata.addFavorite(user.id(), new AddFavoriteRequest(channelId));
+        FavoriteGroup docs = userdata.createGroup(user.id(),
+                new CreateFavoriteGroupRequest("Documentaire"));
+        userdata.addFavorite(user.id(), new AddFavoriteRequest(channelId).groupId(docs.getId()));
+
+        assertThatThrownBy(() -> userdata.updateFavorite(user.id(), favorite.getId(),
+                new UpdateFavoriteRequest().groupId(docs.getId())))
+                .isInstanceOf(ApiException.class)
+                .extracting(e -> ((ApiException) e).code())
+                .isEqualTo(ErrorCode.FAVORITE_ALREADY_EXISTS);
+    }
+
+    @Test
+    @DisplayName("reordering within a group leaves the positions contiguous from zero")
+    void reorderingWithinAGroupIsContiguous() {
+        UUID thirdChannelId = insertChannel(sourceId, "Chaîne 03");
+        userdata.addFavorite(user.id(), new AddFavoriteRequest(channelId));
+        userdata.addFavorite(user.id(), new AddFavoriteRequest(otherChannelId));
+        Favorite third = userdata.addFavorite(user.id(), new AddFavoriteRequest(thirdChannelId));
+
+        userdata.updateFavorite(user.id(), third.getId(), new UpdateFavoriteRequest().position(0));
+
+        List<Favorite> favorites = userdata.listFavorites(user.id(), third.getGroupId());
+        assertThat(favorites).extracting(Favorite::getChannelId)
+                .containsExactly(thirdChannelId, channelId, otherChannelId);
+        assertThat(favorites).extracting(Favorite::getPosition).containsExactly(0, 1, 2);
+    }
+
+    @Test
+    @DisplayName("moving a favourite into somebody else's group is a 404, not a 403")
+    void movingIntoSomebodyElsesGroupIsNotFound() {
+        Favorite favorite = userdata.addFavorite(user.id(), new AddFavoriteRequest(channelId));
+        UserRow stranger = users.insert(UUID.randomUUID(),
+                "stranger-" + UUID.randomUUID() + "@test.example",
+                "$argon2id$irrelevant", "Stranger", "en");
+        FavoriteGroup theirs = userdata.createGroup(stranger.id(),
+                new CreateFavoriteGroupRequest("Leur groupe"));
+
+        // A 403 here would confirm that the group exists.
+        assertThatThrownBy(() -> userdata.updateFavorite(user.id(), favorite.getId(),
+                new UpdateFavoriteRequest().groupId(theirs.getId())))
+                .isInstanceOf(ApiException.class)
+                .extracting(e -> ((ApiException) e).code())
+                .isEqualTo(ErrorCode.FAVORITE_GROUP_NOT_FOUND);
     }
 
     // ---- progress -----------------------------------------------------------

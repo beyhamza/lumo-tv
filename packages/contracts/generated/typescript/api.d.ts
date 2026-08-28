@@ -584,7 +584,10 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
             cookie?: never;
         };
         get?: never;
@@ -594,7 +597,21 @@ export interface paths {
         delete: operations["removeFavorite"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Move a favourite, or change its place in its group
+         * @description Omitted properties are left unchanged.
+         *
+         *     **Why this exists rather than a remove-then-add.** That pair loses the
+         *     favourite's `position`, and a connection dropped between the two calls
+         *     loses the favourite itself. Moving is one operation because it is one
+         *     intention.
+         *
+         *     `position` is the index the favourite takes **within its target group**,
+         *     counted from zero. The favourites it displaces shift down; a value past
+         *     the end of the group appends. Positions in a group are always
+         *     contiguous — a client never has to reason about gaps.
+         */
+        patch: operations["updateFavorite"];
         trace?: never;
     };
     "/me/favorite-groups": {
@@ -613,6 +630,48 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/me/favorite-groups/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a favourite group, keeping its favourites
+         * @description **The favourites are not deleted.** They move to the account's default
+         *     group, appended in their current order, in the same transaction that
+         *     removes the group.
+         *
+         *     Deleting a shelf and throwing away the books are two different actions,
+         *     and nothing on screen distinguishes them — so the destructive reading is
+         *     not the one this operation takes. A client still tells the user what is
+         *     about to happen, with the count.
+         *
+         *     The default group itself cannot be deleted: it is where the others empty
+         *     into, and removing it would move favourites to a group that has just
+         *     ceased to exist.
+         */
+        delete: operations["deleteFavoriteGroup"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename a favourite group, or move it in the list
+         * @description Omitted properties are left unchanged.
+         *
+         *     The default group can be renamed like any other. Renaming it does not
+         *     clear `is_default`: it stays the group `POST /me/favorites` falls back
+         *     to, and the group `DELETE` empties others into.
+         */
+        patch: operations["updateFavoriteGroup"];
         trace?: never;
     };
     "/me/progress": {
@@ -861,7 +920,13 @@ export interface components {
          *       `IngestionErrorCode`.
          *     - **Catalogue and user data** — `CHANNEL_NOT_FOUND`,
          *       `FAVORITE_NOT_FOUND`, `FAVORITE_ALREADY_EXISTS`,
-         *       `FAVORITE_GROUP_NOT_FOUND`, `FAVORITE_GROUP_ALREADY_EXISTS`.
+         *       `FAVORITE_GROUP_NOT_FOUND`, `FAVORITE_GROUP_ALREADY_EXISTS`,
+         *       `FAVORITE_GROUP_NOT_DELETABLE`.
+         *
+         *       The last one is only ever the default group. It is separate from a
+         *       bare `CONFLICT` for the same reason as the quota codes below: a client
+         *       that cannot tell "this one in particular cannot go" from "something
+         *       clashed" has nothing useful to say to the person holding the remote.
          *     - **Plan limits and billing** — `SOURCE_LIMIT_REACHED`,
          *       `DEVICE_LIMIT_REACHED`, `ALREADY_SUBSCRIBED`,
          *       `BILLING_CUSTOMER_NOT_FOUND`.
@@ -872,7 +937,7 @@ export interface components {
          *       second: removing something, or upgrading.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS" | "SOURCE_LIMIT_REACHED" | "DEVICE_LIMIT_REACHED" | "ALREADY_SUBSCRIBED" | "BILLING_CUSTOMER_NOT_FOUND";
+        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_DELETABLE" | "SOURCE_LIMIT_REACHED" | "DEVICE_LIMIT_REACHED" | "ALREADY_SUBSCRIBED" | "BILLING_CUSTOMER_NOT_FOUND";
         /**
          * @description UI language. FR and EN are supported from the first screen.
          * @enum {string}
@@ -1624,6 +1689,10 @@ export interface components {
         /**
          * @description A user-defined grouping of favourites. A default group is created on the
          *     first add.
+         *
+         *     A group belongs to the **account**, not to a source: one group holds
+         *     channels from several subscriptions, and it survives a
+         *     re-synchronisation whole.
          */
         FavoriteGroup: {
             /** Format: uuid */
@@ -1631,6 +1700,25 @@ export interface components {
             name: string;
             /** Format: int32 */
             position: number;
+            /**
+             * @description True for the one group created on the first add — where
+             *     `POST /me/favorites` lands without a `group_id`, and where
+             *     `DELETE /me/favorite-groups/{id}` empties the others.
+             *
+             *     **Why a flag and not a sentinel in `name`.** The server has to call
+             *     that group something, and it calls it `Favorites`, in English: a
+             *     user-visible string in one language, which no client could translate
+             *     because nothing marked it as the default one. The same problem was
+             *     solved once for M3U entries with no `group-title`, by a sentinel in
+             *     `external_id` — but `name` here belongs to the user the moment they
+             *     rename it, and a client must still know which group is the default
+             *     afterwards. A flag survives the rename; a sentinel would not.
+             *
+             *     A client renders its own wording while this is true **and** the name
+             *     is still the server's; once the user has renamed the group, their
+             *     name wins.
+             */
+            is_default: boolean;
         };
         FavoriteGroupList: {
             items: components["schemas"]["FavoriteGroup"][];
@@ -1642,6 +1730,20 @@ export interface components {
              * @description Appended last when omitted.
              */
             position?: number | null;
+        };
+        /**
+         * @description Omitted properties are left unchanged. A body that changes nothing is
+         *     accepted and returns the group as it stands.
+         */
+        UpdateFavoriteGroupRequest: {
+            name?: string;
+            /**
+             * Format: int32
+             * @description The index the group takes in the list, counted from zero. Groups it
+             *     displaces shift down; a value past the end appends. Positions stay
+             *     contiguous.
+             */
+            position?: number;
         };
         /**
          * @description A channel bookmarked by the user. Survives a re-synchronisation as long
@@ -1679,6 +1781,24 @@ export interface components {
              * @description Appended last when omitted.
              */
             position?: number | null;
+        };
+        /**
+         * @description Omitted properties are left unchanged. `channel_id` is not accepted:
+         *     pointing a favourite at another channel is adding a different favourite,
+         *     not editing this one.
+         */
+        UpdateFavoriteRequest: {
+            /**
+             * Format: uuid
+             * @description The group to move this favourite into.
+             */
+            group_id?: string;
+            /**
+             * Format: int32
+             * @description The index within the target group, counted from zero. Sent alone, it
+             *     reorders within the group the favourite is already in.
+             */
+            position?: number;
         };
         /** @description Where the user stopped watching a VOD item or an episode. */
         PlaybackProgress: {
@@ -2975,6 +3095,64 @@ export interface operations {
             };
         };
     };
+    updateFavorite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateFavoriteRequest"];
+            };
+        };
+        responses: {
+            /** @description The moved favourite. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Favorite"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /**
+             * @description No such favourite on this account, or the target group does not
+             *     belong to the caller (`FAVORITE_NOT_FOUND`,
+             *     `FAVORITE_GROUP_NOT_FOUND`).
+             *
+             *     A group belonging to somebody else answers `404` and not `403`: a
+             *     `403` would confirm that the group exists.
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /**
+             * @description The channel is already in the target group
+             *     (`FAVORITE_ALREADY_EXISTS`). Same rule as `POST /me/favorites`: one
+             *     channel appears at most once per group.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     listFavoriteGroups: {
         parameters: {
             query?: never;
@@ -3021,6 +3199,96 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             /** @description A group with this name already exists (`FAVORITE_GROUP_ALREADY_EXISTS`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    deleteFavoriteGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Group deleted; its favourites are now in the default group. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description No such group on this account (`FAVORITE_GROUP_NOT_FOUND`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /**
+             * @description This is the default group and it cannot be deleted
+             *     (`FAVORITE_GROUP_NOT_DELETABLE`).
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateFavoriteGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateFavoriteGroupRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated group. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoriteGroup"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description No such group on this account (`FAVORITE_GROUP_NOT_FOUND`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Another group already carries this name (`FAVORITE_GROUP_ALREADY_EXISTS`). */
             409: {
                 headers: {
                     [name: string]: unknown;

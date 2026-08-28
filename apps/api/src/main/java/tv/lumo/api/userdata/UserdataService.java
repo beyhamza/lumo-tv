@@ -16,6 +16,8 @@ import tv.lumo.api.generated.model.PlaybackProgressPage;
 import tv.lumo.api.generated.model.ProgressItemType;
 import tv.lumo.api.generated.model.RecentChannel;
 import tv.lumo.api.generated.model.SaveProgressRequest;
+import tv.lumo.api.generated.model.UpdateFavoriteGroupRequest;
+import tv.lumo.api.generated.model.UpdateFavoriteRequest;
 import tv.lumo.api.shared.error.ApiException;
 
 /**
@@ -43,10 +45,10 @@ public class UserdataService {
      * <p>A <b>fallback label</b>, in the same sense as the M3U "Unclassified"
      * bucket: the server has no business authoring user-facing copy in one
      * language. Unlike that bucket, though, {@code FavoriteGroup} carries no
-     * stable identifier a client could translate from — it has {@code id},
-     * {@code name} and {@code position} and nothing else — so a client that wants
-     * a French default has to rename it. That is a gap in the contract, recorded
-     * in docs/design/api-gaps.md rather than papered over here.
+     * stable identifier a client could translate from. It carries
+     * {@code is_default} now, which is exactly that identifier: a client renders
+     * its own wording while the flag is true and the name is still this one, and
+     * defers to the user's wording the moment they rename the group.
      */
     static final String DEFAULT_GROUP_NAME = "Favorites";
 
@@ -121,6 +123,114 @@ public class UserdataService {
             throw ApiException.conflict(ErrorCode.FAVORITE_GROUP_ALREADY_EXISTS,
                     "A group with this name already exists");
         }
+    }
+
+    /**
+     * Renames a group, moves it in the list, or both.
+     *
+     * <p>The default group is renamed like any other and keeps its flag: it stays
+     * where an add without a {@code group_id} lands, and where a deleted group
+     * empties into. That is the whole point of the flag being separate from the
+     * name.
+     */
+    @Transactional
+    public FavoriteGroup updateGroup(UUID userId, UUID groupId, UpdateFavoriteGroupRequest request) {
+        FavoriteGroup current = favorites.findGroup(groupId, userId)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.FAVORITE_GROUP_NOT_FOUND,
+                        "No such favourite group on this account"));
+
+        String name = request.getName() == null ? null : request.getName().trim();
+        Integer position = request.getPosition();
+
+        if (position != null) {
+            favorites.shiftGroupsFrom(userId, groupId, Math.max(0, position));
+        }
+
+        try {
+            favorites.updateGroup(groupId, userId, name, position == null ? null : Math.max(0, position));
+        } catch (DuplicateKeyException e) {
+            throw ApiException.conflict(ErrorCode.FAVORITE_GROUP_ALREADY_EXISTS,
+                    "Another group already carries this name");
+        }
+
+        favorites.renumberGroups(userId);
+
+        return favorites.findGroup(groupId, userId).orElse(current);
+    }
+
+    /**
+     * Deletes a group and keeps its favourites, which move to the default group.
+     *
+     * <p>Deleting a shelf and throwing away the books are two different actions,
+     * and the destructive reading is not the one this takes. The whole move is one
+     * transaction: a group that disappears while its favourites are half-moved
+     * would leave rows pointing at nothing.
+     */
+    @Transactional
+    public void deleteGroup(UUID userId, UUID groupId) {
+        FavoriteGroup group = favorites.findGroup(groupId, userId)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.FAVORITE_GROUP_NOT_FOUND,
+                        "No such favourite group on this account"));
+
+        if (Boolean.TRUE.equals(group.getIsDefault())) {
+            throw ApiException.conflict(ErrorCode.FAVORITE_GROUP_NOT_DELETABLE,
+                    "The default group is where the others empty into and cannot be deleted");
+        }
+
+        if (favorites.countFavorites(groupId) > 0) {
+            UUID defaultGroupId = favorites.findOrCreateDefaultGroup(userId, DEFAULT_GROUP_NAME);
+            favorites.deleteFavoritesAlreadyIn(groupId, defaultGroupId);
+            favorites.moveFavoritesToGroup(groupId, defaultGroupId);
+            favorites.renumberFavorites(defaultGroupId);
+        }
+
+        favorites.deleteGroup(groupId, userId);
+        favorites.renumberGroups(userId);
+    }
+
+    /**
+     * Moves a favourite to another group, reorders it within its own, or both.
+     *
+     * <p>A remove followed by an add would do the same thing on a good day. It
+     * loses the position, and a connection dropped between the two calls loses the
+     * favourite — so moving is one operation, in one transaction, because it is
+     * one intention.
+     */
+    @Transactional
+    public Favorite updateFavorite(UUID userId, UUID favoriteId, UpdateFavoriteRequest request) {
+        Favorite current = favorites.findFavorite(favoriteId, userId)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.FAVORITE_NOT_FOUND,
+                        "No such favourite on this account"));
+
+        UUID targetGroupId = current.getGroupId();
+        if (request.getGroupId() != null && !request.getGroupId().equals(targetGroupId)) {
+            targetGroupId = favorites.findOwnedGroupId(request.getGroupId(), userId)
+                    .orElseThrow(() -> ApiException.notFound(ErrorCode.FAVORITE_GROUP_NOT_FOUND,
+                            "No such favourite group on this account"));
+        }
+
+        UUID sourceGroupId = current.getGroupId();
+        boolean changesGroup = !targetGroupId.equals(sourceGroupId);
+
+        int position = request.getPosition() == null
+                ? (changesGroup ? favorites.countFavorites(targetGroupId) : current.getPosition())
+                : Math.max(0, request.getPosition());
+
+        favorites.shiftFavoritesFrom(targetGroupId, favoriteId, position);
+
+        try {
+            favorites.moveFavorite(favoriteId, targetGroupId, position);
+        } catch (DuplicateKeyException e) {
+            throw ApiException.conflict(ErrorCode.FAVORITE_ALREADY_EXISTS,
+                    "This channel is already in that group");
+        }
+
+        favorites.renumberFavorites(targetGroupId);
+        if (changesGroup) {
+            favorites.renumberFavorites(sourceGroupId);
+        }
+
+        return favorites.findFavorite(favoriteId, userId).orElse(current);
     }
 
     // ---- progress -----------------------------------------------------------

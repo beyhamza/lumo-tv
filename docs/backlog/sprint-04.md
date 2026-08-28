@@ -193,8 +193,8 @@ met à jour **dans le commit qui livre le travail**, pas après.
 
 | | Id | Tâche | Lot | Cible | Points | Avancement |
 |---|---|---|---|---|---|---|
-| ☐ | S4-00 | Contrat : renommer, supprimer, déplacer — et le nom du groupe par défaut | contrat | contrat | 3 | 0 % |
-| ☐ | S4-01 | `userdata` : les trois opérations, et ce que devient un groupe supprimé | serveur | api | 3 | 0 % |
+| ☑ | S4-00 | Contrat : renommer, supprimer, déplacer — et le nom du groupe par défaut | contrat | contrat | 3 | 100 % |
+| ☑ | S4-01 | `userdata` : les trois opérations, et ce que devient un groupe supprimé | serveur | api | 3 | 100 % |
 | ☐ | S4-02 | `core:data` et Room : favoris et groupes lisibles hors ligne | socle | android | 5 | 0 % |
 | ☐ | S4-03 | Mobile : mettre en favori, choisir le groupe, en créer un à la volée | mobile | mobile | 5 | 0 % |
 | ☐ | S4-04 | Mobile : l'écran Favoris, un onglet par groupe | mobile | mobile | 5 | 0 % |
@@ -204,11 +204,18 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S4-08 | TV : les chaînes récemment regardées, et la divergence M5 tranchée | tv | tv | 3 | 0 % |
 | ☐ | S4-09 | Web : organiser ses groupes | web | web | 3 | 0 % |
 
-**Avancement du sprint : 0 % de 38 points.**
+**Avancement du sprint : 16 % de 38 points.** Le contrat porte les trois opérations
+qui manquaient et le serveur les sert. Rien n'est visible d'un utilisateur : ce qui
+suit est du socle Android, puis des écrans.
 
 ---
 
-### S4-00 — Contrat : renommer, supprimer, déplacer · **3**
+### S4-00 — Contrat : renommer, supprimer, déplacer · **3** · ☑
+
+> **Livré.** `PATCH`/`DELETE /me/favorite-groups/{id}`, `PATCH /me/favorites/{id}`,
+> `FavoriteGroup.is_default`, et `FAVORITE_GROUP_NOT_DELETABLE` dans `ErrorCode`.
+> Les trois clients régénérés, la vérification de non-dérive verte, et aucun
+> avertissement `redocly` ajouté — onze avant, onze après.
 
 Trois opérations, et une décision qui traîne depuis le sprint 2.
 
@@ -249,7 +256,17 @@ non-dérive verte, `api-gaps.md` décision 2 marquée tranchée.
 
 ---
 
-### S4-01 — `userdata` : les trois opérations · **3** · dépend de S4-00
+### S4-01 — `userdata` : les trois opérations · **3** · dépend de S4-00 · ☑
+
+> **Livré**, et la tâche a trouvé un bug qu'elle ne cherchait pas. Le groupe par
+> défaut était identifié **par son nom** — l'`ON CONFLICT (user_id, name)` de
+> l'upsert et le `SELECT` qui le relisait portaient tous les deux sur
+> `'Favorites'`. Renommer ce groupe suffisait donc à en faire créer un second au
+> favori suivant. Personne ne l'avait vu parce qu'aucun écran ne savait renommer
+> un groupe : la fonction livrée ici est exactement celle qui l'exposait.
+> `is_default` le corrige, et `renamingTheDefaultGroupKeepsItDefault` le prouve.
+>
+> Migration `0014`, onze cas d'intégration, **191 tests verts** sur l'API.
 
 Le côté serveur des trois opérations ci-dessus, plus la mécanique de position.
 

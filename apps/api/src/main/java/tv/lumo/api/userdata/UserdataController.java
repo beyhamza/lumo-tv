@@ -19,6 +19,8 @@ import tv.lumo.api.generated.model.RecentChannel;
 import tv.lumo.api.generated.model.RecentChannelList;
 import tv.lumo.api.generated.model.RecordRecentChannelRequest;
 import tv.lumo.api.generated.model.SaveProgressRequest;
+import tv.lumo.api.generated.model.UpdateFavoriteGroupRequest;
+import tv.lumo.api.generated.model.UpdateFavoriteRequest;
 
 /**
  * Implements the generated {@code UserdataApi}.
@@ -66,6 +68,22 @@ public class UserdataController implements UserdataApi {
         FavoriteGroup created = userdata.createGroup(CurrentUser.requireUserId(), request);
         return ResponseEntity.created(URI.create("/v1/me/favorite-groups/" + created.getId()))
                 .body(created);
+    }
+
+    @Override
+    public ResponseEntity<FavoriteGroup> updateFavoriteGroup(UUID id, UpdateFavoriteGroupRequest request) {
+        return ResponseEntity.ok(userdata.updateGroup(CurrentUser.requireUserId(), id, request));
+    }
+
+    @Override
+    public ResponseEntity<Void> deleteFavoriteGroup(UUID id) {
+        userdata.deleteGroup(CurrentUser.requireUserId(), id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<Favorite> updateFavorite(UUID id, UpdateFavoriteRequest request) {
+        return ResponseEntity.ok(userdata.updateFavorite(CurrentUser.requireUserId(), id, request));
     }
 
     @Override

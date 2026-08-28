@@ -20,11 +20,12 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * A user-defined grouping of favourites. A default group is created on the first add. 
+ * A user-defined grouping of favourites. A default group is created on the first add.  A group belongs to the **account**, not to a source: one group holds channels from several subscriptions, and it survives a re-synchronisation whole. 
  *
  * @param id 
  * @param name 
  * @param position 
+ * @param isDefault True for the one group created on the first add — where `POST /me/favorites` lands without a `group_id`, and where `DELETE /me/favorite-groups/{id}` empties the others.  **Why a flag and not a sentinel in `name`.** The server has to call that group something, and it calls it `Favorites`, in English: a user-visible string in one language, which no client could translate because nothing marked it as the default one. The same problem was solved once for M3U entries with no `group-title`, by a sentinel in `external_id` — but `name` here belongs to the user the moment they rename it, and a client must still know which group is the default afterwards. A flag survives the rename; a sentinel would not.  A client renders its own wording while this is true **and** the name is still the server's; once the user has renamed the group, their name wins. 
  */
 
 
@@ -37,7 +38,11 @@ data class FavoriteGroup (
     val name: kotlin.String,
 
     @Json(name = "position")
-    val position: kotlin.Int
+    val position: kotlin.Int,
+
+    /* True for the one group created on the first add — where `POST /me/favorites` lands without a `group_id`, and where `DELETE /me/favorite-groups/{id}` empties the others.  **Why a flag and not a sentinel in `name`.** The server has to call that group something, and it calls it `Favorites`, in English: a user-visible string in one language, which no client could translate because nothing marked it as the default one. The same problem was solved once for M3U entries with no `group-title`, by a sentinel in `external_id` — but `name` here belongs to the user the moment they rename it, and a client must still know which group is the default afterwards. A flag survives the rename; a sentinel would not.  A client renders its own wording while this is true **and** the name is still the server's; once the user has renamed the group, their name wins.  */
+    @Json(name = "is_default")
+    val isDefault: kotlin.Boolean
 
 ) {
 

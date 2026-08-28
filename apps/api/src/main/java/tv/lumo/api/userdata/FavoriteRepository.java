@@ -30,17 +30,26 @@ public class FavoriteRepository {
 
     public List<FavoriteGroup> findGroups(UUID userId) {
         return jdbc.sql("""
-                SELECT id, name, position
+                SELECT id, name, position, is_default
                   FROM favorite_group
                  WHERE user_id = :userId
                  ORDER BY position, name
                 """)
                 .param("userId", userId)
-                .query((rs, n) -> new FavoriteGroup(
-                        rs.getObject("id", UUID.class),
-                        rs.getString("name"),
-                        rs.getInt("position")))
+                .query(FavoriteRepository::readGroup)
                 .list();
+    }
+
+    public Optional<FavoriteGroup> findGroup(UUID groupId, UUID userId) {
+        return jdbc.sql("""
+                SELECT id, name, position, is_default
+                  FROM favorite_group
+                 WHERE id = :id AND user_id = :userId
+                """)
+                .param("id", groupId)
+                .param("userId", userId)
+                .query(FavoriteRepository::readGroup)
+                .optional();
     }
 
     public Optional<UUID> findOwnedGroupId(UUID groupId, UUID userId) {
@@ -56,15 +65,75 @@ public class FavoriteRepository {
         UUID id = UUID.randomUUID();
         int resolved = position == null ? nextGroupPosition(userId) : position;
         jdbc.sql("""
-                INSERT INTO favorite_group (id, user_id, name, position)
-                VALUES (:id, :userId, :name, :position)
+                INSERT INTO favorite_group (id, user_id, name, position, is_default)
+                VALUES (:id, :userId, :name, :position, false)
                 """)
                 .param("id", id)
                 .param("userId", userId)
                 .param("name", name)
                 .param("position", resolved)
                 .update();
-        return new FavoriteGroup(id, name, resolved);
+        return new FavoriteGroup(id, name, resolved, false);
+    }
+
+    /**
+     * Renames a group, moves it, or both. Absent values leave the column alone.
+     *
+     * @return the number of rows touched — zero means no such group on this account
+     * @throws org.springframework.dao.DuplicateKeyException on a name already used
+     */
+    public int updateGroup(UUID groupId, UUID userId, String name, Integer position) {
+        return jdbc.sql("""
+                UPDATE favorite_group
+                   SET name     = COALESCE(:name, name),
+                       position = COALESCE(:position, position)
+                 WHERE id = :id AND user_id = :userId
+                """)
+                .param("id", groupId)
+                .param("userId", userId)
+                .param("name", name)
+                .param("position", position)
+                .update();
+    }
+
+    public int deleteGroup(UUID groupId, UUID userId) {
+        return jdbc.sql("DELETE FROM favorite_group WHERE id = :id AND user_id = :userId")
+                .param("id", groupId)
+                .param("userId", userId)
+                .update();
+    }
+
+    /**
+     * Renumbers an account's groups from zero, in their current order.
+     *
+     * <p>Called after every move so that {@code position} stays contiguous, which
+     * is what the contract promises and what lets a client send an index instead
+     * of reasoning about the gaps a shift leaves behind.
+     */
+    public void renumberGroups(UUID userId) {
+        jdbc.sql("""
+                UPDATE favorite_group g
+                   SET position = ordered.rank - 1
+                  FROM (SELECT id, row_number() OVER (ORDER BY position, name) AS rank
+                          FROM favorite_group
+                         WHERE user_id = :userId) ordered
+                 WHERE g.id = ordered.id AND g.position <> ordered.rank - 1
+                """)
+                .param("userId", userId)
+                .update();
+    }
+
+    /** Opens a gap at {@code position} so the moved group can take that index. */
+    public void shiftGroupsFrom(UUID userId, UUID excludedId, int position) {
+        jdbc.sql("""
+                UPDATE favorite_group
+                   SET position = position + 1
+                 WHERE user_id = :userId AND id <> :excludedId AND position >= :position
+                """)
+                .param("userId", userId)
+                .param("excludedId", excludedId)
+                .param("position", position)
+                .update();
     }
 
     /**
@@ -74,27 +143,49 @@ public class FavoriteRepository {
      * favourites anything never gets a row, and the group appears the moment it
      * has something in it.
      *
-     * <p>{@code ON CONFLICT DO NOTHING} on {@code (user_id, name)} makes this safe
-     * against two simultaneous first adds — the phone and the television both
-     * starring something at once — which would otherwise be a unique-violation
-     * 500 on whichever lost.
+     * <p><b>Found by its flag, not by its name.</b> The name is the user's the
+     * moment they change it, and looking the group up by the label the server
+     * happened to give it meant that renaming it produced a second one on the
+     * next add. {@code is_default} is what the partial unique index constrains
+     * and what this reads.
+     *
+     * <p>Two adds racing on a fresh account — a phone and a television starring
+     * something at the same instant — meet on the {@code (user_id, name)} index,
+     * and {@code DO UPDATE} makes the loser adopt the row the winner inserted
+     * instead of failing on a duplicate. The same clause covers the odd case of
+     * an account that already has a group it named {@code Favorites} itself: that
+     * group is promoted rather than duplicated.
      */
     public UUID findOrCreateDefaultGroup(UUID userId, String name) {
-        jdbc.sql("""
-                INSERT INTO favorite_group (id, user_id, name, position)
-                VALUES (:id, :userId, :name, 0)
-                ON CONFLICT (user_id, name) DO NOTHING
+        Optional<UUID> existing = jdbc.sql("""
+                SELECT id FROM favorite_group WHERE user_id = :userId AND is_default
+                """)
+                .param("userId", userId)
+                .query(UUID.class)
+                .optional();
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        return jdbc.sql("""
+                INSERT INTO favorite_group (id, user_id, name, position, is_default)
+                VALUES (:id, :userId, :name, 0, true)
+                ON CONFLICT (user_id, name) DO UPDATE SET is_default = true
+                RETURNING id
                 """)
                 .param("id", UUID.randomUUID())
                 .param("userId", userId)
                 .param("name", name)
-                .update();
-
-        return jdbc.sql("SELECT id FROM favorite_group WHERE user_id = :userId AND name = :name")
-                .param("userId", userId)
-                .param("name", name)
                 .query(UUID.class)
                 .single();
+    }
+
+    private static FavoriteGroup readGroup(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new FavoriteGroup(
+                rs.getObject("id", UUID.class),
+                rs.getString("name"),
+                rs.getInt("position"),
+                rs.getBoolean("is_default"));
     }
 
     private int nextGroupPosition(UUID userId) {
@@ -151,6 +242,105 @@ public class FavoriteRepository {
         return jdbc.sql("DELETE FROM favorite WHERE id = :id AND user_id = :userId")
                 .param("id", favoriteId)
                 .param("userId", userId)
+                .update();
+    }
+
+    public Optional<Favorite> findFavorite(UUID favoriteId, UUID userId) {
+        return jdbc.sql("""
+                SELECT id, group_id, source_id, channel_id, position
+                  FROM favorite
+                 WHERE id = :id AND user_id = :userId
+                """)
+                .param("id", favoriteId)
+                .param("userId", userId)
+                .query((rs, n) -> new Favorite(
+                        rs.getObject("id", UUID.class),
+                        rs.getObject("group_id", UUID.class),
+                        rs.getObject("source_id", UUID.class),
+                        rs.getObject("channel_id", UUID.class),
+                        rs.getInt("position")))
+                .optional();
+    }
+
+    /** @throws org.springframework.dao.DuplicateKeyException when the channel is already in the target group */
+    public void moveFavorite(UUID favoriteId, UUID groupId, int position) {
+        jdbc.sql("UPDATE favorite SET group_id = :groupId, position = :position WHERE id = :id")
+                .param("id", favoriteId)
+                .param("groupId", groupId)
+                .param("position", position)
+                .update();
+    }
+
+    /** Opens a gap at {@code position} so the moved favourite can take that index. */
+    public void shiftFavoritesFrom(UUID groupId, UUID excludedId, int position) {
+        jdbc.sql("""
+                UPDATE favorite
+                   SET position = position + 1
+                 WHERE group_id = :groupId AND id <> :excludedId AND position >= :position
+                """)
+                .param("groupId", groupId)
+                .param("excludedId", excludedId)
+                .param("position", position)
+                .update();
+    }
+
+    /** Renumbers a group's favourites from zero, in their current order. */
+    public void renumberFavorites(UUID groupId) {
+        jdbc.sql("""
+                UPDATE favorite f
+                   SET position = ordered.rank - 1
+                  FROM (SELECT id, row_number() OVER (ORDER BY position, id) AS rank
+                          FROM favorite
+                         WHERE group_id = :groupId) ordered
+                 WHERE f.id = ordered.id AND f.position <> ordered.rank - 1
+                """)
+                .param("groupId", groupId)
+                .update();
+    }
+
+    public int countFavorites(UUID groupId) {
+        return jdbc.sql("SELECT count(*) FROM favorite WHERE group_id = :groupId")
+                .param("groupId", groupId)
+                .query(Integer.class)
+                .single();
+    }
+
+    /**
+     * Drops the favourites of {@code groupId} whose channel is already starred in
+     * {@code targetGroupId}.
+     *
+     * <p>Called just before emptying one group into another. Without it the move
+     * would hit {@code favorite_group_channel_key} and fail a deletion the user
+     * has already confirmed. Dropping the row loses nothing: the channel stays a
+     * favourite, in the group it was already in.
+     */
+    public int deleteFavoritesAlreadyIn(UUID groupId, UUID targetGroupId) {
+        return jdbc.sql("""
+                DELETE FROM favorite f
+                 WHERE f.group_id = :groupId
+                   AND EXISTS (SELECT 1 FROM favorite t
+                                WHERE t.group_id = :targetGroupId
+                                  AND t.channel_id = f.channel_id)
+                """)
+                .param("groupId", groupId)
+                .param("targetGroupId", targetGroupId)
+                .update();
+    }
+
+    /** Moves every favourite of a group into another, appended after what is already there. */
+    public int moveFavoritesToGroup(UUID groupId, UUID targetGroupId) {
+        return jdbc.sql("""
+                UPDATE favorite f
+                   SET group_id = :targetGroupId,
+                       position = :offset + ordered.rank - 1
+                  FROM (SELECT id, row_number() OVER (ORDER BY position, id) AS rank
+                          FROM favorite
+                         WHERE group_id = :groupId) ordered
+                 WHERE f.id = ordered.id
+                """)
+                .param("groupId", groupId)
+                .param("targetGroupId", targetGroupId)
+                .param("offset", nextFavoritePosition(targetGroupId))
                 .update();
     }
 
