@@ -14,4 +14,28 @@
     <string name="feature_favorites_from_source">Depuis %1$s</string>
 
     <string name="feature_favorites_default_group">Favoris</string>
+
+    <!-- Organiser (S4-05). -->
+    <string name="feature_favorites_group_actions">Options du groupe</string>
+    <string name="feature_favorites_channel_actions">Options de la chaîne</string>
+    <string name="feature_favorites_rename">Renommer</string>
+    <string name="feature_favorites_rename_title">Renommer ce groupe</string>
+    <string name="feature_favorites_rename_confirm">Renommer</string>
+    <string name="feature_favorites_group_name">Nom du groupe</string>
+    <string name="feature_favorites_delete">Supprimer</string>
+    <string name="feature_favorites_cancel">Annuler</string>
+    <string name="feature_favorites_move_left">Déplacer à gauche</string>
+    <string name="feature_favorites_move_right">Déplacer à droite</string>
+    <string name="feature_favorites_move_up">Monter</string>
+    <string name="feature_favorites_move_down">Descendre</string>
+    <string name="feature_favorites_move_to_group">Déplacer vers un autre groupe…</string>
+    <string name="feature_favorites_move_title">Vers quel groupe ?</string>
+    <string name="feature_favorites_remove">Retirer des favoris</string>
+
+    <string name="feature_favorites_delete_title">Supprimer « %1$s » ?</string>
+    <string name="feature_favorites_delete_confirm">Supprimer le groupe</string>
+    <plurals name="feature_favorites_delete_body">
+        <item quantity="one">Sa %1$d chaîne ira dans « %2$s ». Rien n\'est retiré de vos favoris.</item>
+        <item quantity="other">Ses %1$d chaînes iront dans « %2$s ». Rien n\'est retiré de vos favoris.</item>
+    </plurals>
 </resources>

@@ -88,6 +88,66 @@ class FavoritesStateTest {
         assertThat(offline.sourceLabel(favorite)).isNull()
     }
 
+    // ---- organising (S4-05) ------------------------------------------------
+
+    @Test
+    fun `a move is offered only where there is somewhere to go`() {
+        val sport = group("sport", "Sport")
+        val state = FavoritesState(
+            loading = false,
+            groups = listOf(documentaire, cine, sport),
+        )
+
+        // The ends offer one direction, not two. An entry that does nothing is an
+        // entry somebody presses once to find out that it does nothing.
+        assertThat(state.canMoveGroup(documentaire, -1)).isFalse()
+        assertThat(state.canMoveGroup(documentaire, 1)).isTrue()
+        assertThat(state.canMoveGroup(sport, 1)).isFalse()
+        assertThat(state.canMoveGroup(cine, -1)).isTrue()
+    }
+
+    @Test
+    fun `moving a favourite is bounded by its own tab, not by the whole list`() {
+        val only = favorite("f1", "cine", channel("c1", "Ciné+"))
+        val state = FavoritesState(
+            loading = false,
+            groups = listOf(documentaire, cine),
+            selectedGroupId = "cine",
+            favorites = listOf(
+                only,
+                // Three more favourites, in the other group. They must not make
+                // this one look movable: the visible list is one tab.
+                favorite("f2", "documentaire", channel("c2", "Arte"), position = 0),
+                favorite("f3", "documentaire", channel("c3", "RMC"), position = 1),
+            ),
+        )
+
+        assertThat(state.canMoveFavorite(only, -1)).isFalse()
+        assertThat(state.canMoveFavorite(only, 1)).isFalse()
+    }
+
+    @Test
+    fun `the deletion count is the group's own, and the targets exclude it`() {
+        val favorite = favorite("f1", "documentaire", channel("c1", "Arte"))
+        val state = FavoritesState(
+            loading = false,
+            groups = listOf(documentaire, cine),
+            favorites = listOf(
+                favorite,
+                favorite("f2", "documentaire", channel("c2", "RMC")),
+                favorite("f3", "cine", channel("c3", "Ciné+")),
+            ),
+        )
+
+        // The number is the whole point of the confirmation: it lets somebody
+        // predict the state they will be in.
+        assertThat(state.countIn(documentaire)).isEqualTo(2)
+        assertThat(state.countIn(cine)).isEqualTo(1)
+        // A favourite cannot be moved into the group it is already in — the entry
+        // is absent rather than disabled.
+        assertThat(state.moveTargets(favorite).map { it.id }).containsExactly("cine")
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private fun group(id: String, name: String) = FavoriteGroup(

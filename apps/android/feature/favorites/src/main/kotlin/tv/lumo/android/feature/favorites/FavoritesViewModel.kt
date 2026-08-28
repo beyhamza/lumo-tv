@@ -110,6 +110,95 @@ class FavoritesViewModel @Inject constructor(
         _state.update { it.copy(selectedGroupId = groupId) }
 
     fun onErrorShown() = _state.update { it.copy(error = null) }
+
+    // ---- organising (S4-05) -------------------------------------------------
+
+    fun onRenameRequested(group: FavoriteGroup) =
+        _state.update { it.copy(renaming = group) }
+
+    fun onRenameConfirmed(name: String) {
+        val group = _state.value.renaming ?: return
+        _state.update { it.copy(renaming = null) }
+        write { favorites.renameGroup(group.id, name.trim()) }
+    }
+
+    /**
+     * Opens the confirmation, which is where the count comes from.
+     *
+     * Asked before the deletion rather than after, and with the number in it: the
+     * server moves the group's favourites into the default group, and somebody has
+     * to be able to predict that. "Are you sure?" tells them nothing they did not
+     * already know.
+     */
+    fun onDeleteRequested(group: FavoriteGroup) =
+        _state.update { it.copy(deleting = group) }
+
+    fun onDeleteConfirmed() {
+        val group = _state.value.deleting ?: return
+        _state.update { it.copy(deleting = null) }
+        write { favorites.deleteGroup(group.id) }
+    }
+
+    fun onDialogDismissed() =
+        _state.update { it.copy(renaming = null, deleting = null, moving = null) }
+
+    /**
+     * Moves a group one place, in the list's own order.
+     *
+     * `delta` rather than a target index, because that is the gesture: the menu
+     * offers "move up" and "move down". Out of range is a no-op rather than a
+     * clamp — the menu entry is not offered at the ends, and a silent clamp would
+     * make a mis-fired call look like it worked.
+     */
+    fun onGroupMoved(group: FavoriteGroup, delta: Int) {
+        val ordered = _state.value.groups
+        val target = ordered.indexOfFirst { it.id == group.id } + delta
+        if (target !in ordered.indices) return
+        write { favorites.moveGroup(group.id, target) }
+    }
+
+    /** The same, for one favourite inside its group. */
+    fun onFavoriteMoved(favorite: FavoriteChannel, delta: Int) {
+        val ordered = _state.value.visible
+        val target = ordered.indexOfFirst { it.favoriteId == favorite.favoriteId } + delta
+        if (target !in ordered.indices) return
+        write { favorites.move(favorite.favoriteId, position = target) }
+    }
+
+    fun onMoveRequested(favorite: FavoriteChannel) =
+        _state.update { it.copy(moving = favorite) }
+
+    fun onMoveConfirmed(groupId: String) {
+        val favorite = _state.value.moving ?: return
+        _state.update { it.copy(moving = null) }
+        // One call, not a remove then an add: that pair loses the position, and a
+        // connection dropped between the two loses the favourite.
+        write { favorites.move(favorite.favoriteId, groupId = groupId) }
+    }
+
+    fun onFavoriteRemoved(favorite: FavoriteChannel) =
+        write { favorites.remove(favorite.favoriteId) }
+
+    /**
+     * Runs one write and reports what it did.
+     *
+     * No optimistic state here, unlike the heart in the channel list. The
+     * difference is the gesture: starring is frequent and wants an instant answer,
+     * while renaming a group happens once and its result is a word changing on
+     * screen. Guessing at it would mean predicting a renumbering the server owns —
+     * which is the very thing `FavoriteRepository` refuses to do.
+     */
+    private fun write(block: suspend () -> LumoResult<*>) {
+        if (_state.value.busy) return
+        _state.update { it.copy(busy = true) }
+
+        viewModelScope.launch {
+            val result = block()
+            _state.update {
+                it.copy(busy = false, error = (result as? LumoResult.Failure)?.error)
+            }
+        }
+    }
 }
 
 data class FavoritesState(
@@ -122,6 +211,14 @@ data class FavoritesState(
     val error: LumoError? = null,
     /** Source id to name. Empty offline, and that is a supported state. */
     val sourceNames: Map<String, String> = emptyMap(),
+
+    // ---- organising (S4-05) ------------------------------------------------
+
+    /** One write at a time. Two reorders in flight would race on the server. */
+    val busy: Boolean = false,
+    val renaming: FavoriteGroup? = null,
+    val deleting: FavoriteGroup? = null,
+    val moving: FavoriteChannel? = null,
 ) {
 
     /**
@@ -155,4 +252,30 @@ data class FavoritesState(
      */
     fun sourceLabel(favorite: FavoriteChannel): String? =
         if (sourceNames.size > 1) sourceNames[favorite.channel.sourceId] else null
+
+    /**
+     * How many favourites a deletion is about to move, for the confirmation.
+     *
+     * The number is the whole point of asking: it lets somebody predict the state
+     * they will be in. Without it the dialog says "are you sure" about something
+     * they cannot picture.
+     */
+    fun countIn(group: FavoriteGroup): Int = favorites.count { it.groupId == group.id }
+
+    /** Where a group can go, so the menu offers only moves that exist. */
+    fun canMoveGroup(group: FavoriteGroup, delta: Int): Boolean =
+        groups.indexOfFirst { it.id == group.id } + delta in groups.indices
+
+    /** The same for a favourite, within the open tab. */
+    fun canMoveFavorite(favorite: FavoriteChannel, delta: Int): Boolean =
+        visible.indexOfFirst { it.favoriteId == favorite.favoriteId } + delta in visible.indices
+
+    /**
+     * The groups a favourite could be moved into: every group but its own.
+     *
+     * Its own is absent rather than disabled — an entry that does nothing is an
+     * entry somebody presses once to find out.
+     */
+    fun moveTargets(favorite: FavoriteChannel): List<FavoriteGroup> =
+        groups.filter { it.id != favorite.groupId }
 }

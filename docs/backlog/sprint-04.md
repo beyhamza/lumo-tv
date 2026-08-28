@@ -198,16 +198,15 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S4-02 | `core:data` et Room : favoris et groupes lisibles hors ligne | socle | android | 5 | 100 % |
 | ☑ | S4-03 | Mobile : mettre en favori, choisir le groupe, en créer un à la volée | mobile | mobile | 5 | 100 % |
 | ☑ | S4-04 | Mobile : l'écran Favoris, un onglet par groupe | mobile | mobile | 5 | 100 % |
-| ☐ | S4-05 | Mobile : organiser — renommer, supprimer, déplacer, réordonner | mobile | mobile | 3 | 0 % |
+| ☑ | S4-05 | Mobile : organiser — renommer, supprimer, déplacer, réordonner | mobile | mobile | 3 | 100 % |
 | ☐ | S4-06 | TV : les groupes dans la bande de puces | tv | tv | 5 | 0 % |
 | ☐ | S4-07 | TV : mettre en favori sans quitter la grille | tv | tv | 3 | 0 % |
 | ☐ | S4-08 | TV : les chaînes récemment regardées, et la divergence M5 tranchée | tv | tv | 3 | 0 % |
 | ☐ | S4-09 | Web : organiser ses groupes | web | web | 3 | 0 % |
 
-**Avancement du sprint : 55 % de 38 points.** Le contrat porte les trois opérations
-qui manquaient, le serveur les sert, Android sait lire et écrire des favoris, et le
-téléphone a **le geste et l'écran** : un cœur sur chaque chaîne, et un onglet
-Favoris par groupe. Reste à organiser (S4-05), la télévision, et le web.
+**Avancement du sprint : 63 % de 38 points.** **Le téléphone est fini** : un cœur sur
+chaque chaîne, un onglet Favoris par groupe, et de quoi renommer, supprimer,
+déplacer et réordonner. Restent la télévision (S4-06 → S4-08) et le web (S4-09).
 
 ---
 
@@ -439,7 +438,27 @@ l'utilisateur ne l'a pas renommé. C'est ce que S4-00 rend possible.
 
 ---
 
-### S4-05 — Mobile : organiser · **3** · dépend de S4-04
+### S4-05 — Mobile : organiser · **3** · dépend de S4-04 · ☑
+
+> **Livré.** Menus à l'appui long — sur une puce de groupe et sur une ligne de
+> favori — et trois dialogues : renommer, supprimer, déplacer vers un autre groupe.
+> L'appui court continue de faire la chose fréquente : changer d'onglet, ou lancer
+> la chaîne.
+>
+> **L'appui long plutôt qu'un bouton visible**, et c'est un choix de largeur : une
+> rangée de puces est déjà étroite sur un téléphone, et un point de débordement sur
+> chacune prendrait la moitié de la place qu'ont les noms.
+>
+> **Les entrées qui ne feraient rien ne sont pas affichées.** « Déplacer à gauche »
+> disparaît sur la première puce, « Descendre » sur le dernier favori, « Supprimer »
+> sur le groupe par défaut — que le serveur refuse de toute façon
+> (`FAVORITE_GROUP_NOT_DELETABLE`), et une entrée qui ne répond jamais qu'une erreur
+> apprend à quelqu'un que l'application est cassée.
+>
+> **Une écriture à la fois.** Deux réorganisations en vol se courraient après sur le
+> serveur, qui renumérote à chaque fois.
+>
+> 3 cas de plus, **120 tests verts** sur Android, `lint` et `assembleDebug` propres.
 
 Renommer, supprimer, déplacer, réordonner. Rien de subtil sauf deux choses.
 

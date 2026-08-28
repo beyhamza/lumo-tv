@@ -35,4 +35,37 @@
       user has renamed the group, their name wins.
     -->
     <string name="feature_favorites_default_group">Favourites</string>
+
+    <!--
+      Organising (S4-05). The menus are behind a long press: a phone row of chips
+      is narrow, and an overflow button on each would halve the space the names
+      have.
+    -->
+    <string name="feature_favorites_group_actions">Group options</string>
+    <string name="feature_favorites_channel_actions">Channel options</string>
+    <string name="feature_favorites_rename">Rename</string>
+    <string name="feature_favorites_rename_title">Rename this group</string>
+    <string name="feature_favorites_rename_confirm">Rename</string>
+    <string name="feature_favorites_group_name">Group name</string>
+    <string name="feature_favorites_delete">Delete</string>
+    <string name="feature_favorites_cancel">Cancel</string>
+    <string name="feature_favorites_move_left">Move left</string>
+    <string name="feature_favorites_move_right">Move right</string>
+    <string name="feature_favorites_move_up">Move up</string>
+    <string name="feature_favorites_move_down">Move down</string>
+    <string name="feature_favorites_move_to_group">Move to another group…</string>
+    <string name="feature_favorites_move_title">Move to which group?</string>
+    <string name="feature_favorites_remove">Remove from favourites</string>
+
+    <string name="feature_favorites_delete_title">Delete “%1$s”?</string>
+    <string name="feature_favorites_delete_confirm">Delete the group</string>
+    <!--
+      Says what will happen, with the number, rather than asking whether the user
+      is sure. Deleting a shelf and throwing away the books are different actions
+      and nothing on screen tells them apart — so the message does.
+    -->
+    <plurals name="feature_favorites_delete_body">
+        <item quantity="one">Its %1$d channel will move to “%2$s”. Nothing is removed from your favourites.</item>
+        <item quantity="other">Its %1$d channels will move to “%2$s”. Nothing is removed from your favourites.</item>
+    </plurals>
 </resources>
