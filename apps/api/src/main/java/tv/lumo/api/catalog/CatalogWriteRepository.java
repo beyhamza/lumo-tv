@@ -112,6 +112,64 @@ public class CatalogWriteRepository {
         });
     }
 
+    /**
+     * Upserts one batch of films.
+     *
+     * <p>Same shape as {@link #upsertChannels} and the same reason for it: on
+     * conflict the existing id is kept, which is what lets a favourite or a saved
+     * position survive a re-synchronisation.
+     *
+     * <p><b>{@code plot} and {@code plot_fetched_at} are not touched.</b> A
+     * listing has no synopsis to write — it costs one call per film to the user's
+     * own panel — so overwriting them here would erase, at every synchronisation,
+     * exactly the thing that was fetched to avoid calling again.
+     */
+    public void upsertVodItems(UUID sourceId, List<VodUpsert> items) {
+        if (items.isEmpty()) {
+            return;
+        }
+        jdbcTemplate.batchUpdate("""
+                INSERT INTO vod_item (id, source_id, category_id, external_id, name,
+                                      poster_url, year, duration_seconds, rating,
+                                      stream_url, container_extension, position, is_adult)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (source_id, external_id) WHERE external_id IS NOT NULL
+                DO UPDATE SET category_id         = EXCLUDED.category_id,
+                              name                = EXCLUDED.name,
+                              poster_url          = EXCLUDED.poster_url,
+                              year                = EXCLUDED.year,
+                              duration_seconds    = EXCLUDED.duration_seconds,
+                              rating              = EXCLUDED.rating,
+                              stream_url          = EXCLUDED.stream_url,
+                              container_extension = EXCLUDED.container_extension,
+                              position            = EXCLUDED.position,
+                              is_adult            = EXCLUDED.is_adult
+                """, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                VodUpsert item = items.get(i);
+                ps.setObject(1, item.id());
+                ps.setObject(2, sourceId);
+                ps.setObject(3, item.categoryId());
+                ps.setString(4, item.externalId());
+                ps.setString(5, item.name());
+                ps.setString(6, item.posterUrl());
+                ps.setObject(7, item.year());
+                ps.setObject(8, item.durationSeconds());
+                ps.setString(9, item.rating());
+                ps.setString(10, item.streamUrl());
+                ps.setString(11, item.containerExtension());
+                ps.setInt(12, item.position());
+                ps.setBoolean(13, item.adult());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return items.size();
+            }
+        });
+    }
+
     public void upsertProgrammes(UUID sourceId, List<ProgrammeUpsert> programmes) {
         if (programmes.isEmpty()) {
             return;
@@ -159,6 +217,24 @@ public class CatalogWriteRepository {
         }
         return jdbcTemplate.update(
                 "DELETE FROM channel WHERE source_id = ? AND external_id IS NOT NULL "
+                        + "AND NOT (external_id = ANY (?))",
+                sourceId, seenExternalIds.toArray(String[]::new));
+    }
+
+    /**
+     * Removes films this sync did not see.
+     *
+     * <p>Same rule as {@link #deleteChannelsNotIn}: after a successful full
+     * ingestion only, because "not seen" would otherwise mean "the sync stopped
+     * early". An empty list is therefore a no-op rather than a wipe — a source
+     * whose film catalogue could not be read keeps the one it had.
+     */
+    public int deleteVodNotIn(UUID sourceId, List<String> seenExternalIds) {
+        if (seenExternalIds.isEmpty()) {
+            return 0;
+        }
+        return jdbcTemplate.update(
+                "DELETE FROM vod_item WHERE source_id = ? AND external_id IS NOT NULL "
                         + "AND NOT (external_id = ANY (?))",
                 sourceId, seenExternalIds.toArray(String[]::new));
     }
@@ -215,6 +291,17 @@ public class CatalogWriteRepository {
     public record ChannelUpsert(UUID id, UUID categoryId, String externalId, String name,
                                 String logoUrl, String tvgId, String streamUrl,
                                 int position, boolean adult, Integer number, String quality) {
+    }
+
+    /**
+     * @param containerExtension null for an M3U film, whose playlist carries the
+     *                           complete URL already (ADR 0009, ruling 4)
+     * @param position           display index, reassigned at every ingestion
+     */
+    public record VodUpsert(UUID id, UUID categoryId, String externalId, String name,
+                            String posterUrl, Integer year, Integer durationSeconds,
+                            String rating, String streamUrl, String containerExtension,
+                            int position, boolean adult) {
     }
 
     public record ProgrammeUpsert(UUID id, String tvgId, java.time.OffsetDateTime startsAt,

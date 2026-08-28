@@ -249,7 +249,7 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S5-00 | ADR 0009 — reconnaître un film dans une playlist M3U | décision | décision | 2 | 100 % |
 | ☑ | S5-01 | Contrat : `VodItem`, ses deux lectures, et la phrase à corriger | contrat | contrat | 5 | 100 % |
 | ☑ | S5-02 | Base : `vod_item`, et l'upsert qui survit à une resynchronisation | serveur | api | 3 | 100 % |
-| ☐ | S5-03 | Ingestion Xtream : catégories et films, en flux | serveur | api | 5 | 0 % |
+| ☑ | S5-03 | Ingestion Xtream : catégories et films, en flux | serveur | api | 5 | 100 % |
 | ☐ | S5-04 | La fiche d'un film, à la demande et jamais à l'ingestion | serveur | api | 3 | 0 % |
 | ☐ | S5-05 | Ingestion M3U : appliquer la règle de S5-00 | serveur | api | 3 | 0 % |
 | ☐ | S5-06 | Le plafond de volume, et ce que l'écran en dit | serveur | api + recette | 5 | 0 % |
@@ -259,7 +259,7 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S5-10 | Web : grille et fiche | web | web | 5 | 0 % |
 | ☐ | S5-11 | Reprise de lecture, et le rail qui la rend visible | 3 clients | mobile + tv + web | 8 | 0 % |
 
-**Avancement du sprint : 17 % de 60 points.** La seule vraie inconnue est tranchée
+**Avancement du sprint : 25 % de 60 points.** La seule vraie inconnue est tranchée
 ([`adr/0009`](../adr/0009-m3u-film-detection.md)), ce qui débloque le contrat.
 
 ---
@@ -431,7 +431,32 @@ un `ILIKE '%q%'` sur trente mille lignes sans index est un balayage complet.
 
 ---
 
-### S5-03 — Ingestion Xtream : catégories et films · **5** · dépend de S5-02
+### S5-03 — Ingestion Xtream : catégories et films · **5** · dépend de S5-02 · ☑
+
+> **Livré.** `get_vod_categories` et `get_vod_streams` sur le patron du direct,
+> `buildVodStreamUrl` en méthode à part, et le `"LIVE"` en dur remplacé par
+> `ContentType` aux trois endroits qui créent une catégorie.
+>
+> **Le film sans `container_extension` n'est pas émis du tout**, et le filtre est
+> dans le client plutôt que dans le service : un film dont l'URL ne peut pas être
+> construite n'est pas un film que la couche du dessus doit avoir à écarter.
+> Le test le prouve sur une fixture de trois films dont un sans extension.
+>
+> **Une décision que la tâche ne prévoyait pas, et c'est la plus importante :
+> l'échec du catalogue de films ne fait pas échouer la source.** Un panel qui sert
+> la télévision et refuse `get_vod_streams` — ou n'a simplement aucun film, ce qui
+> est courant — doit rester `READY` avec ses chaînes. Laisser remonter
+> l'exception transformerait une source qui marche en source cassée, pour un
+> catalogue que l'utilisateur n'ouvrira peut-être jamais. La suppression des films
+> non revus est gardée par la même logique : une liste vide après une lecture
+> échouée veut dire « la lecture a échoué », pas « le panel les a tous retirés ».
+>
+> **Trois lectures tolérantes plutôt qu'exactes**, parce que les panels réels le
+> sont : `year` accepte `1998`, `1998-03-12` et `N/A` ; `episode_run_time` est en
+> minutes et devient des secondes, jamais un zéro ; l'affiche se lit sur
+> `stream_icon` **ou** `cover`, que les panels servent indifféremment.
+>
+> **202 tests API**, dont 4 nouveaux sur le client Xtream.
 
 `get_vod_categories` et `get_vod_streams`, sur le patron de `streamLiveCategories` et
 `streamLiveStreams` — même `streamArray`, même consommation une ligne à la fois, même

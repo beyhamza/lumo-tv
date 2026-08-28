@@ -136,6 +136,58 @@ public class XtreamClient {
         });
     }
 
+    /** Streams the film categories, one at a time. */
+    public void streamVodCategories(String host, String username, String password,
+                                    Consumer<XtreamCategory> consumer) {
+        streamArray(host, username, password, "get_vod_categories", node -> {
+            String id = readText(node.path("category_id"));
+            String name = readText(node.path("category_name"));
+            if (id != null && name != null) {
+                consumer.accept(new XtreamCategory(id, name));
+            }
+        });
+    }
+
+    /**
+     * Streams the films, one at a time.
+     *
+     * <p><b>A film with no container extension is not emitted.</b> Its playback URL
+     * cannot be built — that fragment is the only part the panel does not put in a
+     * path — so importing it would produce a catalogue entry that opens onto a
+     * failure. A catalogue announcing twelve thousand films of which three hundred
+     * will never start is worse than one announcing eleven thousand seven hundred.
+     *
+     * <p>The caller counts what this drops: {@link IngestionService} reports it,
+     * because a silent skip is indistinguishable from a panel with fewer films.
+     */
+    public void streamVodStreams(String host, String username, String password,
+                                 Consumer<XtreamVodStream> consumer) {
+        streamArray(host, username, password, "get_vod_streams", node -> {
+            String streamId = readText(node.path("stream_id"));
+            String name = readText(node.path("name"));
+            String extension = readText(node.path("container_extension"));
+            if (streamId == null || name == null || extension == null) {
+                return;
+            }
+            consumer.accept(new XtreamVodStream(
+                    streamId,
+                    name,
+                    // Panels disagree on the key and often serve both.
+                    firstNonBlank(readText(node.path("stream_icon")),
+                            readText(node.path("cover"))),
+                    readText(node.path("category_id")),
+                    "1".equals(readText(node.path("is_adult"))),
+                    buildVodStreamUrl(host, username, password, streamId, extension),
+                    extension,
+                    parseYear(readText(node.path("year"))),
+                    parseSeconds(readText(node.path("episode_run_time"))),
+                    // Echoed verbatim: `7.4`, `PG-13` and `★★★★` all occur, and
+                    // deciding which is meant would be this layer inventing a
+                    // meaning the provider did not give.
+                    readText(node.path("rating"))));
+        });
+    }
+
     /**
      * Builds the playback URL for one channel.
      *
@@ -145,6 +197,56 @@ public class XtreamClient {
      */
     public static String buildStreamUrl(String host, String username, String password, String streamId) {
         return host + "/live/" + encode(username) + "/" + encode(password) + "/" + encode(streamId) + ".m3u8";
+    }
+
+    /**
+     * The same, for a film.
+     *
+     * <p>A separate method rather than a boolean on the one above. The two differ
+     * in the path segment <em>and</em> in where the extension comes from — a
+     * channel's is always {@code .m3u8}, a film's is whatever the panel says — and
+     * a flag would have hidden that second difference behind a name that only
+     * mentioned the first.
+     */
+    public static String buildVodStreamUrl(String host, String username, String password,
+                                           String streamId, String containerExtension) {
+        return host + "/movie/" + encode(username) + "/" + encode(password) + "/"
+                + encode(streamId) + "." + encode(containerExtension);
+    }
+
+    /** A four-digit year, or null. Panels send `1998`, `1998-03-12`, `` and `N/A`. */
+    private static Integer parseYear(String value) {
+        if (value == null || value.length() < 4) {
+            return null;
+        }
+        try {
+            int year = Integer.parseInt(value.substring(0, 4));
+            // A plausibility window rather than a parse check: `N/A` fails above,
+            // but a panel echoing a duration into this field would not.
+            return year >= 1870 && year <= 2200 ? year : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** Xtream reports a run time in minutes. Null when it reports nothing usable. */
+    private static Integer parseSeconds(String minutes) {
+        if (minutes == null || minutes.isBlank()) {
+            return null;
+        }
+        try {
+            int value = Integer.parseInt(minutes.trim());
+            return value > 0 ? value * 60 : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static String firstNonBlank(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first;
+        }
+        return (second != null && !second.isBlank()) ? second : null;
     }
 
     private void streamArray(String host, String username, String password,
@@ -264,5 +366,26 @@ public class XtreamClient {
     public record XtreamStream(String externalId, String name, String logoUrl, String tvgId,
                                String categoryExternalId, boolean adult, String streamUrl,
                                Integer number, String quality) {
+    }
+
+    /**
+     * One film, as the panel lists it.
+     *
+     * <p>No synopsis: it comes from {@code get_vod_info}, which is one HTTP call
+     * per film, and this listing walks the whole catalogue.
+     *
+     * @param streamUrl          sensitive: it carries the user's credentials
+     * @param containerExtension never null — a film without one is not emitted at
+     *                           all, because its URL could not be built
+     * @param year               four digits, or null for the panels that send
+     *                           `N/A`, an empty string or a full date
+     * @param durationSeconds    converted from the minutes Xtream reports, null
+     *                           when it reports nothing usable
+     * @param rating             echoed verbatim and never reinterpreted
+     */
+    public record XtreamVodStream(String externalId, String name, String posterUrl,
+                                  String categoryExternalId, boolean adult, String streamUrl,
+                                  String containerExtension, Integer year,
+                                  Integer durationSeconds, String rating) {
     }
 }

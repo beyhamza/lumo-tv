@@ -54,11 +54,12 @@ class XtreamClientTest {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/player_api.php", exchange -> {
             String query = exchange.getRequestURI().getQuery();
-            String body = query != null && query.contains("action=get_live_categories")
-                    ? CATEGORIES
-                    : query != null && query.contains("action=get_live_streams")
-                            ? STREAMS
-                            : ACCOUNT;
+            String body = query == null ? ACCOUNT
+                    : query.contains("action=get_live_categories") ? CATEGORIES
+                    : query.contains("action=get_live_streams") ? STREAMS
+                    : query.contains("action=get_vod_categories") ? VOD_CATEGORIES
+                    : query.contains("action=get_vod_streams") ? VOD_STREAMS
+                    : ACCOUNT;
             respondGzipped(exchange, body);
         });
         server.start();
@@ -118,6 +119,78 @@ class XtreamClientTest {
         assertThat(account.expiresAt()).isNotNull();
     }
 
+    @Test
+    @DisplayName("un film sans container_extension est ignoré, pas importé injouable")
+    void skipsFilmsWithNoContainerExtension() {
+        List<XtreamClient.XtreamVodStream> films = new ArrayList<>();
+
+        client.streamVodStreams(host, "user", "secret", films::add);
+
+        // Three entries in the fixture, one of them without an extension. Its
+        // playback URL cannot be built at all — that fragment is the only part the
+        // panel does not put in a path — so importing it would produce a catalogue
+        // row that opens onto a failure. A catalogue of twelve thousand films of
+        // which three hundred never start is worse than one of eleven thousand
+        // seven hundred.
+        assertThat(films).hasSize(2);
+        assertThat(films).extracting(XtreamClient.XtreamVodStream::name)
+                .containsExactly("Le Voyage", "La Traversée");
+    }
+
+    @Test
+    @DisplayName("l'URL d'un film porte /movie/ et l'extension que le panel donne")
+    void buildsTheFilmUrl() {
+        List<XtreamClient.XtreamVodStream> films = new ArrayList<>();
+
+        client.streamVodStreams(host, "user", "secret", films::add);
+
+        // Not `/live/…/{id}.m3u8`: a different path segment *and* an extension the
+        // panel chooses. Two differences, which is why this is a second method
+        // rather than a boolean on the first.
+        assertThat(films.getFirst().streamUrl())
+                .isEqualTo(host + "/movie/user/secret/501.mkv");
+        assertThat(films.get(1).streamUrl())
+                .isEqualTo(host + "/movie/user/secret/502.mp4");
+    }
+
+    @Test
+    @DisplayName("l'année, la durée et la note sont lues telles que les panels les envoient")
+    void readsFilmMetadata() {
+        List<XtreamClient.XtreamVodStream> films = new ArrayList<>();
+
+        client.streamVodStreams(host, "user", "secret", films::add);
+
+        XtreamClient.XtreamVodStream first = films.getFirst();
+        assertThat(first.year()).isEqualTo(1998);
+        // Xtream reports a run time in minutes; this layer stores seconds.
+        assertThat(first.durationSeconds()).isEqualTo(94 * 60);
+        // Echoed verbatim: deciding that `7.4` is a number and `PG-13` is not
+        // would be this layer inventing a meaning the provider did not give.
+        assertThat(first.rating()).isEqualTo("7.4");
+        assertThat(first.posterUrl()).isEqualTo("https://poster.example/1.jpg");
+
+        XtreamClient.XtreamVodStream second = films.get(1);
+        // `N/A` is not a year, an empty run time is not a duration, and neither
+        // becomes a zero.
+        assertThat(second.year()).isNull();
+        assertThat(second.durationSeconds()).isNull();
+        // No `stream_icon`, but a `cover`: panels disagree on the key and often
+        // serve both.
+        assertThat(second.posterUrl()).isEqualTo("https://poster.example/2.jpg");
+        assertThat(second.adult()).isTrue();
+    }
+
+    @Test
+    @DisplayName("les catégories de films sont lues comme celles du direct")
+    void readsFilmCategories() {
+        List<XtreamClient.XtreamCategory> categories = new ArrayList<>();
+
+        client.streamVodCategories(host, "user", "secret", categories::add);
+
+        assertThat(categories).hasSize(2);
+        assertThat(categories.getFirst().name()).isEqualTo("Action");
+    }
+
     // ---- fixture ------------------------------------------------------------
 
     private static final String ACCOUNT = """
@@ -138,6 +211,30 @@ class XtreamClientTest {
               "epg_channel_id":"c1","category_id":"1","is_adult":"0"},
              {"num":"","name":"Chaîne 02","stream_id":"102","stream_icon":null,
               "epg_channel_id":null,"category_id":"2","is_adult":"1"}]
+            """;
+
+    private static final String VOD_CATEGORIES = """
+            [{"category_id":"10","category_name":"Action","parent_id":0},
+             {"category_id":"11","category_name":"Documentaire","parent_id":0}]
+            """;
+
+    /**
+     * Three films, and the third is the one that matters.
+     *
+     * <p>It has no {@code container_extension}, which happens on real panels and
+     * makes the film unplayable: the URL cannot be built. The first two also cover
+     * the two spellings of a poster key and the `N/A` a panel sends where a year
+     * should be.
+     */
+    private static final String VOD_STREAMS = """
+            [{"stream_id":501,"name":"Le Voyage","container_extension":"mkv",
+              "stream_icon":"https://poster.example/1.jpg","category_id":"10",
+              "year":"1998","episode_run_time":"94","rating":"7.4","is_adult":"0"},
+             {"stream_id":"502","name":"La Traversée","container_extension":"mp4",
+              "stream_icon":null,"cover":"https://poster.example/2.jpg","category_id":"11",
+              "year":"N/A","episode_run_time":"","rating":"PG-13","is_adult":"1"},
+             {"stream_id":"503","name":"Sans extension","stream_icon":null,
+              "category_id":"10","year":"2001"}]
             """;
 
     private static void respondGzipped(com.sun.net.httpserver.HttpExchange exchange, String body)

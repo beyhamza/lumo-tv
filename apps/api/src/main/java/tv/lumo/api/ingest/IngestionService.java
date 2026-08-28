@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import tv.lumo.api.catalog.CatalogWriteRepository;
+import tv.lumo.api.generated.model.ContentType;
 import tv.lumo.api.generated.model.IngestionErrorCode;
 import tv.lumo.api.generated.model.SourceKind;
 import tv.lumo.api.generated.model.SyncStep;
@@ -180,7 +181,7 @@ public class IngestionService {
         xtream.streamLiveCategories(host, source.username(), password, category ->
                 categoryIds.put(category.externalId(), catalogWrites.upsertCategoryReturningId(
                         source.id(), category.externalId(), category.name(),
-                        "LIVE", categoryPosition[0]++)));
+                        ContentType.LIVE.getValue(), categoryPosition[0]++)));
 
         List<String> seenExternalIds = new ArrayList<>();
         int[] position = {0};
@@ -211,8 +212,72 @@ public class IngestionService {
                     "The panel returned no live channel");
         }
         catalogWrites.deleteChannelsNotIn(source.id(), seenExternalIds);
+
+        ingestXtreamVod(source, host, password);
+
         log.info("Source {}: ingested {} channel(s)", source.id(), seenExternalIds.size());
         return account;
+    }
+
+    /**
+     * The film catalogue, after the channels.
+     *
+     * <p><b>Its failure does not fail the source.</b> A panel that serves live
+     * television and refuses {@code get_vod_streams} — or has no film catalogue at
+     * all, which is common — must still end up {@code READY} with its channels.
+     * Letting this throw would turn a source that works into a source that is
+     * broken, over a catalogue the user may never open.
+     *
+     * <p>That is also why the deletion below is guarded by a non-empty list: an
+     * empty answer means "no films seen", which after a failed read means "the
+     * read failed", not "the panel dropped them all".
+     */
+    private void ingestXtreamVod(SourceRepository.SourceRow source, String host, String password) {
+        sources.markSyncStep(source.id(), SyncStep.PARSING_VOD);
+
+        Map<String, UUID> categoryIds = new HashMap<>();
+        int[] categoryPosition = {0};
+        List<String> seenExternalIds = new ArrayList<>();
+        int[] position = {0};
+        CatalogWriteRepository.Batcher<CatalogWriteRepository.VodUpsert> batcher =
+                CatalogWriteRepository.batcher(batch -> catalogWrites.upsertVodItems(source.id(), batch));
+
+        try {
+            xtream.streamVodCategories(host, source.username(), password, category ->
+                    categoryIds.put(category.externalId(), catalogWrites.upsertCategoryReturningId(
+                            source.id(), category.externalId(), category.name(),
+                            ContentType.VOD.getValue(), categoryPosition[0]++)));
+
+            xtream.streamVodStreams(host, source.username(), password, film -> {
+                seenExternalIds.add(film.externalId());
+                batcher.add(new CatalogWriteRepository.VodUpsert(
+                        UUID.randomUUID(),
+                        categoryIds.get(film.categoryExternalId()),
+                        film.externalId(),
+                        film.name(),
+                        film.posterUrl(),
+                        film.year(),
+                        film.durationSeconds(),
+                        film.rating(),
+                        film.streamUrl(),
+                        film.containerExtension(),
+                        position[0]++,
+                        film.adult()));
+            });
+            batcher.flushNow();
+        } catch (IngestionException e) {
+            // Named, not swallowed: the channels are in and the source is usable,
+            // and the next synchronisation will try the films again.
+            log.info("Source {}: no film catalogue ingested ({})", source.id(), e.code());
+            return;
+        }
+
+        if (!seenExternalIds.isEmpty()) {
+            catalogWrites.deleteVodNotIn(source.id(), seenExternalIds);
+        }
+        // Counted apart from the channels on purpose: one total would hide the case
+        // where either of the two is zero.
+        log.info("Source {}: ingested {} film(s)", source.id(), seenExternalIds.size());
     }
 
     // ---- M3U ----------------------------------------------------------------
@@ -242,7 +307,8 @@ public class IngestionService {
         http.get(host, uri, stream -> m3uParser.parse(stream, channel -> {
             UUID categoryId = categoryIds.computeIfAbsent(channel.categoryName(), name ->
                     catalogWrites.upsertCategoryReturningId(
-                            source.id(), externalIdFor(name), name, "LIVE", categoryIds.size()));
+                            source.id(), externalIdFor(name), name,
+                            ContentType.LIVE.getValue(), categoryIds.size()));
 
             // An M3U carries no stable per-channel id, so one is derived from the
             // entry itself. The stream URL is hashed rather than used directly:
