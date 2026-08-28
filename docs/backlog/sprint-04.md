@@ -196,7 +196,7 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S4-00 | Contrat : renommer, supprimer, déplacer — et le nom du groupe par défaut | contrat | contrat | 3 | 100 % |
 | ☑ | S4-01 | `userdata` : les trois opérations, et ce que devient un groupe supprimé | serveur | api | 3 | 100 % |
 | ☑ | S4-02 | `core:data` et Room : favoris et groupes lisibles hors ligne | socle | android | 5 | 100 % |
-| ☐ | S4-03 | Mobile : mettre en favori, choisir le groupe, en créer un à la volée | mobile | mobile | 5 | 0 % |
+| ☑ | S4-03 | Mobile : mettre en favori, choisir le groupe, en créer un à la volée | mobile | mobile | 5 | 100 % |
 | ☐ | S4-04 | Mobile : l'écran Favoris, un onglet par groupe | mobile | mobile | 5 | 0 % |
 | ☐ | S4-05 | Mobile : organiser — renommer, supprimer, déplacer, réordonner | mobile | mobile | 3 | 0 % |
 | ☐ | S4-06 | TV : les groupes dans la bande de puces | tv | tv | 5 | 0 % |
@@ -204,9 +204,9 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S4-08 | TV : les chaînes récemment regardées, et la divergence M5 tranchée | tv | tv | 3 | 0 % |
 | ☐ | S4-09 | Web : organiser ses groupes | web | web | 3 | 0 % |
 
-**Avancement du sprint : 29 % de 38 points.** Le contrat porte les trois opérations
-qui manquaient, le serveur les sert, et Android sait lire et écrire des favoris.
-Rien n'est encore visible d'un utilisateur : ce qui suit, ce sont les écrans.
+**Avancement du sprint : 42 % de 38 points.** Le contrat porte les trois opérations
+qui manquaient, le serveur les sert, Android sait lire et écrire des favoris, et
+**le premier geste est en place** : un cœur sur chaque chaîne du téléphone.
 
 ---
 
@@ -343,7 +343,36 @@ refusée, ordre stable après rafraîchissement.
 
 ---
 
-### S4-03 — Mobile : mettre en favori · **5** · dépend de S4-02
+### S4-03 — Mobile : mettre en favori · **5** · dépend de S4-02 · ☑
+
+> **Livré**, avec une correction de la tâche telle qu'elle était écrite et un
+> arbitrage de module.
+>
+> **La feuille est dans `core:designsystem`, pas dans un feature.** Le
+> `settings.gradle.kts` l'impose noir sur blanc : *un feature ne dépend jamais d'un
+> autre — le partagé descend dans `core/`*. Or la même feuille servira à l'écran
+> Favoris (S4-04) et à la télévision (S4-07). Elle est donc un composant **sans
+> état**, `LumoFavoriteGroupSheet`, qui reçoit des `LumoFavoriteGroupChoice` et ne
+> sait pas ce qu'est un repository. Le libellé est résolu par l'appelant, exprès :
+> décider s'il faut traduire le nom du groupe par défaut demande `is_default`
+> **et** de savoir si le nom est encore celui du serveur, ce que le feature sait et
+> qu'un composant de dessin n'a pas à savoir.
+>
+> **La tâche disait « appui court sur une chaîne déjà favorite ouvre la feuille ».
+> Livré ainsi, et voici pourquoi c'est le bon comportement** plutôt qu'un
+> dé-favori : une chaîne rangée dans deux groupes n'a pas de chose unique qu'un
+> appui pourrait défaire, et deviner la retirerait d'un groupe que personne n'a
+> nommé.
+>
+> **Un cas que le document ne prévoyait pas.** Retirer une chaîne d'un groupe ne la
+> dé-favorise pas — elle est peut-être dans un autre. Vider le cœur serait un
+> mensonge que la prochaine émission de Room corrige aussitôt : un clignotement sur
+> une liste que quelqu'un regarde. `stillFavoritedWithout` répond à ça, et c'est le
+> seul endroit du geste qui se trompe silencieusement sur un compte à plusieurs
+> groupes.
+>
+> 5 cas sur l'état, **113 tests verts** sur Android, `lint` et `assembleDebug`
+> propres.
 
 Un cœur sur chaque carte de chaîne, dans la liste et dans le lecteur.
 

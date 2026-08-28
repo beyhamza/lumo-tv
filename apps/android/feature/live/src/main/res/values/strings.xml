@@ -48,4 +48,22 @@
     <string name="feature_live_player_channel_gone">This channel is no longer in your playlist. Refresh the list to see what is.</string>
     <string name="feature_live_player_unplayable">This device cannot decode this stream.</string>
     <string name="feature_live_player_unexpected">Playback stopped. Please try again.</string>
+
+    <!--
+      Favourites (US-12). The heart is described by what a tap does, not by what
+      is drawn: TalkBack reading "heart" says nothing about whether the channel is
+      starred.
+    -->
+    <string name="feature_live_favorite_add">Add to favourites</string>
+    <string name="feature_live_favorite_remove">Choose favourite groups</string>
+    <string name="feature_live_favorite_new_group">New group</string>
+    <string name="feature_live_favorite_group_name">Group name</string>
+    <string name="feature_live_favorite_group_create">Create</string>
+    <!--
+      Shown in place of the name the server gives the group it creates on the first
+      add, and only while that name is still the server&apos;s own. Once the user has
+      renamed the group, their name wins.
+    -->
+    <string name="feature_live_favorite_default_group">Favourites</string>
+    <string name="feature_live_favorite_failed">That change could not be saved. Check your connection and try again.</string>
 </resources>

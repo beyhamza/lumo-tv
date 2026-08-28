@@ -29,4 +29,13 @@
     <string name="feature_live_player_channel_gone">Cette chaîne n\'est plus dans votre playlist. Actualisez la liste pour voir ce qui y est.</string>
     <string name="feature_live_player_unplayable">Cet appareil ne sait pas décoder ce flux.</string>
     <string name="feature_live_player_unexpected">La lecture s\'est arrêtée. Réessayez.</string>
+
+    <!-- Favoris (US-12). -->
+    <string name="feature_live_favorite_add">Ajouter aux favoris</string>
+    <string name="feature_live_favorite_remove">Choisir les groupes de favoris</string>
+    <string name="feature_live_favorite_new_group">Nouveau groupe</string>
+    <string name="feature_live_favorite_group_name">Nom du groupe</string>
+    <string name="feature_live_favorite_group_create">Créer</string>
+    <string name="feature_live_favorite_default_group">Favoris</string>
+    <string name="feature_live_favorite_failed">Cette modification n\'a pas pu être enregistrée. Vérifiez votre connexion et réessayez.</string>
 </resources>

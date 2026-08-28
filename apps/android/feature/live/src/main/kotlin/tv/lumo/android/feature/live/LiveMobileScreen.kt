@@ -1,8 +1,10 @@
 package tv.lumo.android.feature.live
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -27,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -38,6 +44,9 @@ import coil3.compose.SubcomposeAsyncImage
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
+import tv.lumo.android.core.data.model.FavoriteGroup
+import tv.lumo.android.core.designsystem.component.LumoFavoriteGroupChoice
+import tv.lumo.android.core.designsystem.component.LumoFavoriteGroupSheet
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 
@@ -102,6 +111,22 @@ fun LiveMobileScreen(
                     onSelect = viewModel::onCategorySelected,
                 )
 
+                // A favourite write needs the network, and nothing is queued for
+                // later: US-12 asks for an offline change to be refused out loud
+                // rather than silently lost. Said here, next to the list the
+                // change was meant for, and dismissed by tapping it.
+                state.favoriteError?.let {
+                    Text(
+                        text = stringResource(R.string.feature_live_favorite_failed),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = viewModel::onFavoriteErrorShown)
+                            .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.xs),
+                    )
+                }
+
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(
                         count = channels.itemCount,
@@ -110,13 +135,61 @@ fun LiveMobileScreen(
                         // Null is a placeholder Paging has not loaded yet. It is
                         // drawn as a row of the right height so the scrollbar
                         // keeps its size on a fifteen-thousand-channel list.
-                        ChannelRow(channels[index], onPlay)
+                        val channel = channels[index]
+                        ChannelRow(
+                            channel = channel,
+                            favorited = channel != null && state.isFavorited(channel.id),
+                            onPlay = onPlay,
+                            onFavorite = viewModel::onFavoriteClicked,
+                            onFavoriteLongPress = viewModel::onFavoriteLongPressed,
+                        )
                     }
                 }
             }
         }
     }
+
+    state.sheetChannel?.let { channel ->
+        val inGroups = state.groupsOf(channel.id)
+        LumoFavoriteGroupSheet(
+            groups = state.groups.map { group ->
+                LumoFavoriteGroupChoice(
+                    id = group.id,
+                    label = group.displayName(),
+                    checked = group.id in inGroups,
+                )
+            },
+            createLabel = stringResource(R.string.feature_live_favorite_new_group),
+            createPlaceholder = stringResource(R.string.feature_live_favorite_group_name),
+            confirmLabel = stringResource(R.string.feature_live_favorite_group_create),
+            onToggle = { groupId, checked ->
+                viewModel.onGroupToggled(channel.id, groupId, checked)
+            },
+            onCreate = { name -> viewModel.onGroupCreated(channel.id, name) },
+            onDismiss = viewModel::onGroupSheetDismissed,
+        )
+    }
 }
+
+/**
+ * What to call a group on screen.
+ *
+ * The server has to name the group it creates on the first add, and names it
+ * `Favorites`, in English — a user-visible string in one language. `is_default`
+ * is what lets a client translate it, and the second half of the condition is
+ * what stops the translation overriding the user: once they have renamed the
+ * group, their name wins, flag or no flag.
+ */
+@Composable
+private fun FavoriteGroup.displayName(): String =
+    if (isDefault && name == SERVER_DEFAULT_GROUP_NAME) {
+        stringResource(R.string.feature_live_favorite_default_group)
+    } else {
+        name
+    }
+
+/** The name the server gives the default group, verbatim. */
+private const val SERVER_DEFAULT_GROUP_NAME = "Favorites"
 
 @Composable
 private fun Header(state: LiveState, onRefresh: () -> Unit) {
@@ -245,10 +318,14 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
  * lower case is a source that wrote `fhd`; normalising it here would be this layer
  * deciding what the provider meant.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChannelRow(
     channel: Channel?,
+    favorited: Boolean,
     onPlay: (channelId: String, name: String?) -> Unit,
+    onFavorite: (Channel) -> Unit,
+    onFavoriteLongPress: (Channel) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -290,7 +367,67 @@ private fun ChannelRow(
                     .padding(horizontal = LumoSpacing.xs, vertical = LumoSpacing.xxs),
             )
         }
+
+        if (channel != null) {
+            Heart(
+                favorited = favorited,
+                onClick = { onFavorite(channel) },
+                onLongClick = { onFavoriteLongPress(channel) },
+            )
+        }
     }
+}
+
+/**
+ * The favourite control (US-12).
+ *
+ * <h2>A glyph, because the product has no icon set</h2>
+ *
+ * The same reason `LumoMobileNavBar` is a row of labels rather than a Material
+ * bar: a placeholder icon is a design decision made by accident. A filled and an
+ * outlined heart are two characters that carry the state honestly until there is
+ * a real icon to replace them with.
+ *
+ * <h2>Its own target, and its own gestures</h2>
+ *
+ * The row opens the player; this opens nothing. Long-pressing it opens the group
+ * picker — the row's own long press is free, and a person aiming at a heart to
+ * choose a group should not have to find a different part of the row to do it.
+ *
+ * `contentDescription` says what a tap *does*, not what is drawn: TalkBack
+ * reading "heart" tells somebody nothing about whether the channel is starred.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun Heart(favorited: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val description = if (favorited) {
+        stringResource(R.string.feature_live_favorite_remove)
+    } else {
+        stringResource(R.string.feature_live_favorite_add)
+    }
+
+    Text(
+        text = if (favorited) "♥" else "♡",
+        style = MaterialTheme.typography.titleMedium,
+        color = if (favorited) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        modifier = Modifier
+            .clip(LumoShapes.small)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+                onClickLabel = description,
+            )
+            // A 48dp target: the glyph is small and the row it sits in is a
+            // scrolling list, which is where a near-miss becomes a channel
+            // launching instead.
+            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+            .wrapContentSize()
+            .semantics { contentDescription = description },
+    )
 }
 
 /**
