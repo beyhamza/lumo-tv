@@ -1,0 +1,47 @@
+#EXTM3U
+# =============================================================================
+# A playlist that holds channels AND films (S5-06, ADR 0009).
+#
+# The seventh path of the bench, and the one the film work needs: without it
+# there is no way to provoke the classifier's decisions by typing a real address,
+# and no way to do it twice the same way.
+#
+# NOT IN HERE, and it must stay that way: any real film, any real poster, any
+# real stream URL (AGENTS.md §1). The titles are inventions and every URL points
+# back at this container.
+#
+# Every entry below exists to exercise one ruling of ADR 0009. The last two are
+# the ones that matter: they are the cases where the rule is WRONG, on purpose,
+# and a qualification run has to see them land where the ADR says they will.
+# =============================================================================
+
+# ---- Channels: nothing structural in the URL, so LIVE -----------------------
+#EXTINF:-1 tvg-id="bench.1" tvg-chno="1" group-title="Généralistes",Chaîne 01 FHD
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.2" tvg-chno="2" group-title="Sport",Chaîne 02
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+
+# ---- Films: a file extension is the strong signal ---------------------------
+#EXTINF:-1 group-title="Films",Le Voyage
+__BENCH_PUBLIC_URL__/film/le-voyage.mp4
+#EXTINF:-1 group-title="Films",La Traversée
+__BENCH_PUBLIC_URL__/film/la-traversee.mkv
+
+# ---- A film by its path segment, with a token after it ----------------------
+# The query string is cut before the extension is read: a token that ended in
+# something else must not decide this.
+#EXTINF:-1 group-title="Documentaire",Les Falaises
+__BENCH_PUBLIC_URL__/movie/user/pass/9001.mp4?token=abc123
+
+# ---- Wrong, on purpose (1): a live channel served as a progressive file ------
+# ADR 0009 accepts this. It will be filed under the films, and the way out is the
+# per-category override the ADR prices at three points — not a cleverer rule.
+#EXTINF:-1 tvg-id="bench.6" group-title="Généralistes",Chaîne 06 en continu
+__BENCH_PUBLIC_URL__/film/le-voyage.mp4
+
+# ---- Wrong, on purpose (2): a film in a group named Films, served as HLS -----
+# Doubt falls towards LIVE, so this stays among the channels. It plays and search
+# finds it; it is merely in the wrong list. The group title classifies nothing —
+# which is the whole ruling, and this entry is what shows it.
+#EXTINF:-1 group-title="Films",Le Dernier Quai
+__BENCH_PUBLIC_URL__/stream/index.m3u8

@@ -155,7 +155,7 @@ services:
   # It exists for one reason: without it the qualification of US-06 and US-07 is
   # not executable. There is no way to provoke a refused credential, an empty
   # playlist or an oversized response by typing a real address — and no way to
-  # do it twice the same way. The six paths are in apps/web/e2e/bench/nginx.conf.
+  # do it twice the same way. The paths are in apps/web/e2e/bench/nginx.conf.
   #
   # Behind a profile because it is qualification tooling, not part of the
   # product: `docker compose up -d` on an ordinary day starts Postgres and the

@@ -33,6 +33,7 @@
     <string name="feature_source_step_connecting">Connexion à votre serveur…</string>
     <string name="feature_source_step_authenticated">Connecté. Lecture du catalogue…</string>
     <string name="feature_source_step_parsing">Lecture des chaînes…</string>
+    <string name="feature_source_step_parsing_vod">Lecture du catalogue de films…</string>
     <string name="feature_source_step_epg">Récupération du guide des programmes…</string>
 
     <string name="feature_source_ready_title">Source prête</string>

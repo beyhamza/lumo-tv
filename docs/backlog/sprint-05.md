@@ -252,14 +252,14 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S5-03 | Ingestion Xtream : catégories et films, en flux | serveur | api | 5 | 100 % |
 | ☑ | S5-04 | La fiche d'un film, à la demande et jamais à l'ingestion | serveur | api | 3 | 100 % |
 | ☑ | S5-05 | Ingestion M3U : appliquer la règle de S5-00 | serveur | api | 3 | 100 % |
-| ☐ | S5-06 | Le plafond de volume, et ce que l'écran en dit | serveur | api + recette | 5 | 0 % |
+| ☑ | S5-06 | Le plafond de volume, et ce que l'écran en dit | serveur | api + recette | 5 | 100 % |
 | ☐ | S5-07 | `core:data` et Room : les films hors ligne | socle | android | 5 | 0 % |
 | ☐ | S5-08 | Mobile : grille d'affiches, fiche, lecture | mobile | mobile | 8 | 0 % |
 | ☐ | S5-09 | TV : la même au D-pad, et la carte du parcours | tv | tv | 8 | 0 % |
 | ☐ | S5-10 | Web : grille et fiche | web | web | 5 | 0 % |
 | ☐ | S5-11 | Reprise de lecture, et le rail qui la rend visible | 3 clients | mobile + tv + web | 8 | 0 % |
 
-**Avancement du sprint : 35 % de 60 points.** La seule vraie inconnue est tranchée
+**Avancement du sprint : 43 % de 60 points.** La seule vraie inconnue est tranchée
 ([`adr/0009`](../adr/0009-m3u-film-detection.md)), ce qui débloque le contrat.
 
 ---
@@ -576,7 +576,50 @@ Le comptage de fin d'ingestion distingue les deux, comme pour Xtream.
 
 ---
 
-### S5-06 — Le plafond de volume · **5** · dépend de S5-03
+### S5-06 — Le plafond de volume · **5** · dépend de S5-03 · ☑
+
+> **Livré, et deux des trois volets étaient déjà là — ce qui se dit plutôt que
+> se recompte.**
+>
+> **Le plafond.** `SizeCappedInputStream` compte les octets **lus**, dans
+> `IngestionHttpClient`, par lequel passent toutes les lectures sortantes. Le
+> catalogue de films emprunte donc exactement le même chemin que `/oversized.m3u`
+> et hérite du même `SOURCE_TOO_LARGE` sans une ligne de plus. Et
+> **l'isolement était déjà écrit en S5-03** : un catalogue hors plafond ne fait
+> pas échouer la source, ses chaînes restent, elle finit `READY`.
+>
+> **L'écran mentait, et c'est ce que cette tâche a vraiment corrigé.** Les deux
+> clients avaient un repli sûr, donc rien n'a cassé quand `PARSING_VOD` est
+> arrivé — mais le web l'étiquetait *« récupération du guide »* par son `default`,
+> et le téléphone *« démarrage »*. Un repli sûr qui affiche une phrase fausse est
+> pire qu'une erreur. Le `switch` du web est désormais **exhaustif, sans
+> `default`** : la sixième phase, le jour où elle existera, sera une erreur de type
+> plutôt qu'un mot faux sur l'écran de quelqu'un.
+>
+> **`PARSING_VOD` est sur la liste Xtream seulement**, et ce n'est pas un oubli :
+> une playlist se lit une fois, donc une source M3U ne rapporte jamais cette
+> phase. La règle de l'énumération vaut dans les deux sens.
+>
+> **Le banc gagne son septième chemin, et pas celui qui était prévu.** Le document
+> demandait `/xtream-vod-huge/` ; or **le banc n'a aucun panel Xtream qui
+> fonctionne** — seulement `/xtream-401/` et `/xtream-garbage/`. Un chemin VOD
+> Xtream demanderait d'abord d'écrire un faux panel entier. Ce qui est livré à la
+> place est ce dont la recette a besoin en premier : **`/mixed.m3u`**, une playlist
+> qui mêle chaînes et films, dont **chaque entrée exerce une règle de l'ADR 0009 —
+> y compris les deux cas où la règle se trompe exprès**. C'est le seul endroit où
+> ces deux-là sont écrits comme quelque chose à regarder plutôt qu'à corriger.
+>
+> **Une limite dite plutôt que masquée** : les fichiers de film du banc sont des
+> octets MPEG-TS sous un nom de film. Assez pour la classification et
+> l'ingestion — ADR 0009 classe sur l'URL — pas assez pour une vraie lecture dans
+> un navigateur. La recette le dira ; une fixture qui ferait semblant serait pire.
+>
+> **Et un manque de couverture, signalé et non comblé** : *rien dans ce dépôt
+> n'exerce `IngestionService`*. C'était déjà vrai avant ce sprint — l'ingestion est
+> testée au niveau des parseurs et du client — donc la décision de S5-03 (un
+> catalogue de films en échec laisse la source `READY`) n'a pas de test. La
+> construire ici sortirait du périmètre ; elle est à chiffrer, et en attendant
+> c'est un cas de recette.
 
 Ce qui protège le serveur, et ce que l'utilisateur en voit.
 

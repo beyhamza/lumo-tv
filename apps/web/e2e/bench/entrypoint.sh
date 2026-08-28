@@ -43,9 +43,27 @@ echo "bench: public URL is ${BENCH_PUBLIC_URL}"
 mkdir -p "$WEB"
 cp -R "$SRC"/. "$WEB"/
 
-# The template is the only file that is rewritten. Everything else is copied as
-# committed, so what a qualification run reads is what review saw.
+# The templates are the only files that are rewritten. Everything else is copied
+# as committed, so what a qualification run reads is what review saw.
 sed -i "s|__BENCH_PUBLIC_URL__|${BENCH_PUBLIC_URL}|g" "$WEB/playlist.m3u"
+sed -i "s|__BENCH_PUBLIC_URL__|${BENCH_PUBLIC_URL}|g" "$WEB/mixed.m3u"
+
+# ---- The two films of /mixed.m3u --------------------------------------------
+#
+# Concatenated from the stream segments, which is enough for what this path is
+# for: ADR 0009 classifies on the URL, so what matters is that `.mp4` and `.mkv`
+# answer 200 and that the ingestion files them as films.
+#
+# **These are MPEG-TS bytes under a film's name, and that is stated rather than
+# hidden.** A player that sniffs its input will decode them; a browser's `<video>`
+# will not. Real film playback against this bench needs a real container and is
+# not covered here — the recette says so instead of a fixture pretending
+# otherwise.
+mkdir -p "$WEB/film"
+cat "$WEB"/stream/seg*.ts > "$WEB/film/le-voyage.mp4"
+cp "$WEB/film/le-voyage.mp4" "$WEB/film/la-traversee.mkv"
+
+echo "bench: two film fixtures generated ($(wc -c < "$WEB/film/le-voyage.mp4") bytes each, MPEG-TS)"
 
 # ---- The payload past the cap -----------------------------------------------
 #

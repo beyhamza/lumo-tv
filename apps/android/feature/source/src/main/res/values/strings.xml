@@ -51,6 +51,8 @@
     <string name="feature_source_step_connecting">Connecting to your server…</string>
     <string name="feature_source_step_authenticated">Signed in. Reading the catalogue…</string>
     <string name="feature_source_step_parsing">Reading the channels…</string>
+    <!-- Xtream only: a playlist is read once, films and channels in the same pass. -->
+    <string name="feature_source_step_parsing_vod">Reading the film catalogue…</string>
     <string name="feature_source_step_epg">Retrieving the programme guide…</string>
 
     <string name="feature_source_ready_title">Source ready</string>

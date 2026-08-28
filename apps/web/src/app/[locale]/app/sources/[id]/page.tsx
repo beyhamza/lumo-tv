@@ -154,9 +154,14 @@ function SyncProgress({
   kind: Source["kind"];
   t: Translate;
 }) {
+  // PARSING_VOD is on the Xtream list only, and that is not an omission: a
+  // playlist is read once and its films come off the same pass as its channels,
+  // so an M3U source never reports that phase. The contract's own rule — these
+  // are the server's real phases, and a step the implementation does not
+  // distinguish is a reassuring fiction — cuts both ways.
   const steps: SyncStep[] =
     kind === "XTREAM"
-      ? ["CONNECTING", "AUTHENTICATED", "PARSING_CHANNELS", "FETCHING_EPG"]
+      ? ["CONNECTING", "AUTHENTICATED", "PARSING_CHANNELS", "PARSING_VOD", "FETCHING_EPG"]
       : ["CONNECTING", "PARSING_CHANNELS", "FETCHING_EPG"];
 
   // Null while PENDING: claimed, not started. Everything shows as still to come,
@@ -189,8 +194,17 @@ type SyncStepKey =
   | "syncStepConnecting"
   | "syncStepAuthenticated"
   | "syncStepParsingChannels"
+  | "syncStepParsingVod"
   | "syncStepFetchingEpg";
 
+/**
+ * One case per value, and no `default`.
+ *
+ * The previous version fell through to "fetching the guide", which was harmless
+ * until the contract grew a fifth phase — and then it labelled the film catalogue
+ * as the EPG. Exhaustive, `PARSING_VOD` was a type error the moment it was
+ * generated rather than a wrong word on somebody's screen.
+ */
 function stepKey(step: SyncStep): SyncStepKey {
   switch (step) {
     case "CONNECTING":
@@ -199,7 +213,9 @@ function stepKey(step: SyncStep): SyncStepKey {
       return "syncStepAuthenticated";
     case "PARSING_CHANNELS":
       return "syncStepParsingChannels";
-    default:
+    case "PARSING_VOD":
+      return "syncStepParsingVod";
+    case "FETCHING_EPG":
       return "syncStepFetchingEpg";
   }
 }

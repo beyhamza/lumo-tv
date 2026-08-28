@@ -276,7 +276,8 @@
     "catalogueGroupName": "Nom du groupe",
     "catalogueGroupRename": "Renommer",
     "catalogueGroupDelete": "Supprimer le groupe",
-    "catalogueGroupDeleteWarning": "Ses {count} chaînes iront dans « {target} ». Rien n’est retiré de vos favoris."
+    "catalogueGroupDeleteWarning": "Ses {count} chaînes iront dans « {target} ». Rien n’est retiré de vos favoris.",
+    "syncStepParsingVod": "Lecture du catalogue de films"
   },
   "Errors": {
     "generic": "Une erreur est survenue. Réessayez.",

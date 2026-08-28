@@ -526,6 +526,7 @@ private fun SyncStep?.labelRes(): Int = when (this) {
     SyncStep.CONNECTING -> R.string.feature_source_step_connecting
     SyncStep.AUTHENTICATED -> R.string.feature_source_step_authenticated
     SyncStep.PARSING_CHANNELS -> R.string.feature_source_step_parsing
+    SyncStep.PARSING_VOD -> R.string.feature_source_step_parsing_vod
     SyncStep.FETCHING_EPG -> R.string.feature_source_step_epg
     // Includes a phase newer than this build: the honest answer is that it
     // started, which is true of every phase there could be.

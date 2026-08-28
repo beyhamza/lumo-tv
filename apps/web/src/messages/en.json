@@ -276,7 +276,8 @@
     "catalogueGroupName": "Group name",
     "catalogueGroupRename": "Rename",
     "catalogueGroupDelete": "Delete the group",
-    "catalogueGroupDeleteWarning": "Its {count} channels will move to “{target}”. Nothing is removed from your favourites."
+    "catalogueGroupDeleteWarning": "Its {count} channels will move to “{target}”. Nothing is removed from your favourites.",
+    "syncStepParsingVod": "Reading the film catalogue"
   },
   "Errors": {
     "generic": "Something went wrong. Try again.",
