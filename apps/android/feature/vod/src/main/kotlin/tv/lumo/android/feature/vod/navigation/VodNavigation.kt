@@ -7,9 +7,11 @@ import androidx.navigation.navArgument
 import tv.lumo.android.feature.vod.VodDestination
 import tv.lumo.android.feature.vod.VodDetailDestination
 import tv.lumo.android.feature.vod.VodDetailMobileScreen
+import tv.lumo.android.feature.vod.VodDetailTvScreen
 import tv.lumo.android.feature.vod.VodMobileScreen
 import tv.lumo.android.feature.vod.VodPlayerDestination
 import tv.lumo.android.feature.vod.VodPlayerMobileScreen
+import tv.lumo.android.feature.vod.VodPlayerTvScreen
 import tv.lumo.android.feature.vod.VodTvScreen
 
 /**
@@ -63,7 +65,93 @@ fun NavGraphBuilder.vodPlayerMobileScreen(onBack: () -> Unit) {
     }
 }
 
-/** The television's grid. Still the placeholder — it is S5-09's task. */
-fun NavGraphBuilder.vodTvScreen() {
-    composable(route = VodDestination.route) { VodTvScreen() }
+/**
+ * Where the television's detail screen leaves the film it was showing, for the
+ * grid.
+ *
+ * Public because the application writes it and this module reads it — a string
+ * literal spelled out twice in two modules is a string literal that will be
+ * misspelled once. The channel side has its own, and the two are separate on
+ * purpose: a film id left where a channel id is expected would scroll the wrong
+ * grid to nothing.
+ */
+const val KEY_RETURNED_FILM: String = "returnedFilmId"
+
+/**
+ * The television's grid (S5-09).
+ *
+ * `onOpenFilm` opens the film's own screen rather than playing it, which is the
+ * one place this differs from `liveTvScreen`: a channel is played, a film is
+ * chosen, and choosing needs a year, a running time and a synopsis no card holds.
+ */
+fun NavGraphBuilder.vodTvScreen(onOpenFilm: (filmId: String) -> Unit) {
+    composable(route = VodDestination.route) { entry ->
+        // Written by the detail screen on its way out, read here on the way back
+        // in. The saved state handle rather than a shared view model: the two
+        // screens are different back stack entries, and this is the channel
+        // Navigation itself provides for exactly this.
+        val handle = entry.savedStateHandle
+
+        VodTvScreen(
+            onOpenFilm = onOpenFilm,
+            returnedFilmId = handle.get<String>(KEY_RETURNED_FILM),
+            // Cleared once used, so leaving and coming back to this tab later
+            // does not re-focus a film from a previous visit.
+            onReturnHandled = { handle.remove<String>(KEY_RETURNED_FILM) },
+        )
+    }
+}
+
+/**
+ * The television's film screen (S5-09).
+ *
+ * `onBack` carries the film id rather than taking none, because returning to the
+ * grid is not enough: US-10's rule is that the list comes back **positioned on
+ * what was being looked at**, and thirty thousand posters returning to the head
+ * have lost the viewer's place.
+ */
+fun NavGraphBuilder.vodDetailTvScreen(
+    onPlay: (filmId: String, title: String?) -> Unit,
+    onBack: (filmId: String) -> Unit,
+) {
+    composable(
+        route = VodDetailDestination.route,
+        arguments = listOf(
+            navArgument(VodDetailDestination.ARG_FILM_ID) { type = NavType.StringType },
+        ),
+    ) { entry ->
+        VodDetailTvScreen(
+            filmId = entry.arguments?.getString(VodDetailDestination.ARG_FILM_ID).orEmpty(),
+            onPlay = onPlay,
+            onBack = onBack,
+        )
+    }
+}
+
+/**
+ * The television's film player (S5-09).
+ *
+ * `onBack` takes nothing: it returns to the film's own screen, which is the entry
+ * underneath, and that screen is what tells the grid where to put the focus. The
+ * channel player has to carry an id because there is no screen between it and the
+ * grid.
+ */
+fun NavGraphBuilder.vodPlayerTvScreen(onBack: () -> Unit) {
+    composable(
+        route = VodPlayerDestination.route,
+        arguments = listOf(
+            navArgument(VodPlayerDestination.ARG_FILM_ID) { type = NavType.StringType },
+            navArgument(VodPlayerDestination.ARG_TITLE) {
+                type = NavType.StringType
+                defaultValue = ""
+            },
+        ),
+    ) { entry ->
+        VodPlayerTvScreen(
+            filmId = entry.arguments?.getString(VodPlayerDestination.ARG_FILM_ID).orEmpty(),
+            title = entry.arguments?.getString(VodPlayerDestination.ARG_TITLE)
+                ?.takeIf { it.isNotEmpty() },
+            onBack = onBack,
+        )
+    }
 }

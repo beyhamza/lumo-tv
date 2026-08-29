@@ -44,4 +44,8 @@
     <string name="feature_vod_player_film_gone">Ce film n\'est plus dans votre catalogue. Actualisez la liste.</string>
     <string name="feature_vod_player_unplayable">Ce film ne peut pas être lu sur cet appareil.</string>
     <string name="feature_vod_player_unexpected">Ce film n\'a pas pu être lu.</string>
+
+    <!-- ==== La télévision ==== -->
+    <string name="feature_vod_tv_loading">Chargement des films…</string>
+    <string name="feature_vod_tv_back_hint">Appuyez sur RETOUR pour revenir au film.</string>
 </resources>

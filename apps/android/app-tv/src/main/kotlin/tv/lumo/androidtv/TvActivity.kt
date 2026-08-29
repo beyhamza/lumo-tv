@@ -9,6 +9,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.core.data.AppStartDecision
+import tv.lumo.android.core.data.CatalogueSections
 import tv.lumo.android.core.designsystem.theme.LumoTvTheme
 import tv.lumo.androidtv.ui.LumoTvApp
 
@@ -30,14 +31,21 @@ class TvActivity : ComponentActivity() {
     @Inject
     lateinit var appStart: AppStartDecision
 
+    /** Whether to offer a films entry in the rail (US-13). The phone reads the same one. */
+    @Inject
+    lateinit var sections: CatalogueSections
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContent {
             val startState by appStart.stream.collectAsStateWithLifecycle(AppStart.Loading)
+            // False until something says otherwise: a rail that gains an entry is
+            // a better first frame than one that loses a stop under the D-pad.
+            val hasFilms by sections.hasFilms.collectAsStateWithLifecycle(false)
 
             LumoTvTheme {
-                LumoTvApp(startState = startState)
+                LumoTvApp(startState = startState, hasFilms = hasFilms)
             }
         }
     }

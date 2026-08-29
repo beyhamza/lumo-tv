@@ -1,6 +1,8 @@
 # Carte du parcours de focus — Android TV
 
-Livrable de la tâche `S2-13`, au même titre que les écrans.
+Livrable de `S2-13`, au même titre que les écrans, et tenu à jour par chaque tâche
+qui ouvre une surface de focus — `S4-07` pour la couche modale, `S5-09` pour les
+trois surfaces des films.
 
 ## À quoi ça sert
 
@@ -50,10 +52,17 @@ et sur une TV il est le premier endroit où la D-pad atterrit.
 |---|---|---|---|---|---|---|
 | Un élément du rail | élément précédent | élément suivant | — (bord) | entre dans le contenu | ouvre la destination | quitte l'application |
 
-Trois éléments seulement : **Chaînes, Source, Réglages**. VOD, séries et recherche
-sont hors du périmètre de la verticale et retirés du rail — sur une TV chaque
-entrée de plus est un `DOWN` de plus entre le spectateur et ce qu'il vient
-chercher.
+Trois éléments, quatre quand la source propose des films : **Chaînes · [Films] ·
+Source · Réglages**. Séries et recherche restent des placeholders et restent hors du
+rail — sur une TV chaque entrée de plus est un `DOWN` de plus entre le spectateur et
+ce qu'il vient chercher.
+
+**Films n'apparaît que si la source en a** (US-13, `S5-09`). L'argument du téléphone
+pèse davantage ici : une entrée de rail est un arrêt obligatoire en descendant, donc
+une porte sur une pièce vide coûte un appui à chaque spectateur, à chaque trajet.
+La réponse vient de `CatalogueSections`, qui la tient d'une seule requête, et elle
+est `false` tant que rien n'a dit le contraire — un rail qui gagne une entrée vaut
+mieux qu'un rail qui retire un arrêt sous la D-pad.
 
 ---
 
@@ -80,7 +89,7 @@ reste ce qu'il est toujours sur une TV — la sortie de l'application.
 ## Chaînes (`LiveTvScreen`) — l'écran principal
 
 **Focus à l'arrivée : la première carte de la grille — sauf au retour du lecteur,
-où c'est la chaîne qu'on regardait (US-10, voir *Lecteur TV* plus bas).**
+où c'est la chaîne qu'on regardait (US-10, voir *Lecteur de chaîne* plus bas).**
 
 Pas la bande de catégories : quelqu'un qui allume sa télévision veut une chaîne, et
 l'étagère où il se trouve déjà est la bonne. Atteindre les catégories coûte un
@@ -167,6 +176,148 @@ jamais focalisable.
 
 ---
 
+## Films (`VodTvScreen`) — la grille d'affiches
+
+Livrée par `S5-09`. **N'existe dans le rail que si la source propose des films**
+(US-13) : une entrée de rail est un arrêt obligatoire en descendant, donc une porte
+sur une pièce vide coûte un appui à chaque spectateur, à chaque trajet, pour une
+pièce que la plupart des playlists M3U n'ont pas.
+
+**Focus à l'arrivée : la première affiche — sauf au retour de la fiche, où c'est le
+film qu'on regardait.**
+
+C'est le raisonnement de *Chaînes*, mot pour mot : celui qui ouvre les films veut un
+film, et l'étagère où il se trouve déjà est la bonne.
+
+| Depuis | UP | DOWN | LEFT | RIGHT | OK |
+|---|---|---|---|---|---|
+| Affiche, 1re colonne | bande de catégories | — (bord bas) | **rail** | affiche suivante | ouvre la **fiche** |
+| Affiche, ailleurs | bande de catégories | — (bord bas) | affiche précédente | affiche suivante | ouvre la **fiche** |
+| Puce de la bande | — (bord haut) | grille | puce précédente | puce suivante | filtre la grille |
+
+`BACK` depuis n'importe où sur cet écran revient aux chaînes, qui sont la
+destination de départ.
+
+**`OK` ouvre la fiche, il ne lance pas le film.** C'est le seul endroit où cet écran
+s'écarte de la grille des chaînes, et c'est ce qu'est un film : une chaîne se lance,
+un film se **choisit**, et choisir demande une année, une durée et un synopsis
+qu'aucune carte n'a la place de porter.
+
+**Pas d'appui long.** La grille des chaînes s'en sert pour classer un favori ; un
+film n'a pas de favori en v1, et un geste qui ne fait rien est pire que pas de geste.
+
+**Une ligne, pas deux, et c'est de l'arithmétique.** Une carte de chaîne est une
+bande large et basse ; une affiche est un portrait 2:3. Après overscan il reste
+environ 480 dp de hauteur utile sur une dalle 1080p, dont 150 pris par le titre et
+la bande. Deux lignes d'affiches dans ce qui reste mettent chacune autour de 100 dp
+de large — sous la taille à laquelle on reconnaît un film à trois mètres, et une
+affiche qu'on ne reconnaît pas est une carte qui a cessé de faire son travail.
+
+C'est exactement l'arbitrage que la tâche nomme : **le nombre de colonnes se fixe
+sur la lisibilité à trois mètres, pas sur ce qui rentre.**
+
+**La bande ne porte pas les groupes de favoris**, contrairement à celle des
+chaînes : un groupe contient des chaînes (US-12), donc sa puce filtrerait cette
+grille sur rien — l'étagère vide que les règles de l'écran des chaînes refusent
+déjà.
+
+**Une carte de remplacement n'est pas focalisable**, comme dans la grille des
+chaînes : Paging dessine les fenêtres non chargées à la bonne taille pour que la
+grille garde sa forme, et une carte sans film derrière serait un cul-de-sac qui
+apparaît et disparaît au défilement.
+
+---
+
+## Fiche d'un film (`VodDetailTvScreen`)
+
+Livrée par `S5-09`, et **c'est une nouvelle surface de focus** : d'où cette section.
+
+**Focus à l'arrivée : le bouton *Lire*.**
+
+**Une seule cible focalisable, exprès.** Celui qui a appuyé sur `OK` depuis une
+affiche a déjà décidé ; l'écran est là pour confirmer ce qu'il a choisi, pas pour le
+faire voyager. Tout le reste est du texte, et du texte qui prend le focus sur une
+télévision est du texte qu'il faut dépasser en appuyant.
+
+Il n'y a pas de bouton *Retour* dessiné : `BACK` est une touche physique, et en
+dessiner un serait une seconde cible pour ce que la télécommande fait déjà.
+
+| Depuis | UP | DOWN | LEFT | RIGHT | OK | BACK |
+|---|---|---|---|---|---|---|
+| Bouton *Lire* | — (seule cible) | — (seule cible) | rail | — | lance le film | **grille, sur ce film** |
+
+**`BACK` revient sur le film qu'on regardait dans la grille**, pas en tête. C'est la
+règle d'US-10 et elle vaut ici pour la raison qui l'a fait écrire : un catalogue de
+trente mille affiches qui revient en haut a perdu la place du spectateur, et le film
+qu'il vient de quitter est le plus difficile de tous à retrouver. La fiche écrit son
+`filmId` dans le `SavedStateHandle` de l'entrée du dessous avant de dépiler ; la
+grille le lit, y place le focus et l'efface.
+
+**Le synopsis est plafonné à dix lignes, et c'est une limite écrite plutôt qu'un
+oubli.** Presque tous les synopsis qu'un panel IPTV porte sont plus courts. La
+solution complète serait un bloc défilant, ce qui sur une télévision veut dire **une
+seconde zone de focus dont le seul rôle est de faire défiler du texte** — une zone
+que ce tableau devrait décrire comme un endroit où `OK` ne fait rien. Un synopsis
+très long est donc tronqué ici et complet sur le téléphone.
+
+---
+
+## Lecteur de film (`VodPlayerTvScreen`)
+
+Livré par `S5-09`. C'est le lecteur de `S2-14` avec **la seule chose qu'un film
+demande et qu'une chaîne ne peut pas avoir** : le déplacement. Tout le reste est
+délibérément identique — rien sur l'image au repos, la surface focalisable pour que
+`OK` arrive quelque part, cinq secondes d'*inactivité* avant qu'une couche parte.
+
+**Focus à l'arrivée : la surface vidéo elle-même**, pour la raison écrite sur le
+lecteur de chaînes : un écran plein sans cible focalisable est un écran où seul
+`BACK` répond.
+
+| Depuis | UP/DOWN | LEFT | RIGHT | OK | BACK |
+|---|---|---|---|---|---|
+| La surface, au repos | — | recule de 10 s, ouvre **la barre seule** | avance de 10 s, ouvre **la barre seule** | ouvre la **barre d'information** | retour à la fiche |
+| La surface, une couche visible | — | recule de 10 s, relance les 5 s | avance de 10 s, relance les 5 s | relance les 5 s | retour à la fiche |
+| Bouton *Réessayer* (échec) | — (seule cible) | — | — | relance la lecture | retour à la fiche |
+
+**Deux couches, et c'est tout le contenu de cette tâche côté lecteur.** La consigne
+est explicite : `LEFT` et `RIGHT` déplacent et **ne doivent pas ouvrir l'overlay
+d'information par accident**. Or les deux touches sont à un geste l'une de l'autre
+sur toutes les télécommandes du monde. Donc :
+
+- **`OK` ouvre la barre d'information** — le titre du film, comme le nom de la
+  chaîne sur l'autre lecteur, avec la barre de progression dessous ;
+- **`LEFT`/`RIGHT` ouvrent la barre de progression seule.** Pas de titre, pas de
+  panneau. Quelqu'un qui saute une scène n'a pas demandé qu'on lui rappelle ce qu'il
+  regarde.
+
+**Les deux touches sont interceptées en `onPreviewKeyEvent`**, et ce n'est pas un
+détail d'implémentation : sans ça Compose les traite comme une recherche de focus,
+ne trouve rien sur une image plein écran, et les laisse tomber en silence.
+
+**La barre est dessinée, jamais focalisable.** C'est un **affichage**, pas un
+contrôle : `LEFT` et `RIGHT` sont liés à l'écran et fonctionnent que la barre soit
+là ou non, donc un curseur focalisable serait une seconde cible pour des touches qui
+font déjà le travail — et il disputerait la D-pad à une image qui ne doit écouter
+que ces deux touches, `OK` et `BACK`.
+
+**Quand le serveur refuse de se déplacer, les touches le disent au lieu de ne rien
+faire.** Se déplacer dans un fichier progressif exige que le serveur de
+l'utilisateur réponde aux requêtes `Range`, et beaucoup de panels ne le font pas.
+`LEFT` et `RIGHT` ouvrent alors quand même la barre, dessinée là, inerte, **avec la
+phrase à côté**. Une touche qui a l'air morte est une télécommande dont on croit
+qu'elle a cessé de fonctionner.
+
+**Dix secondes par appui.** Le pas sur lequel tous les lecteurs TV se sont arrêtés,
+et la raison est qu'une télécommande n'a pas de curseur : l'unité doit être assez
+petite pour tomber sur une réplique et assez grande pour qu'une coupure publicitaire
+se franchisse en une poignée d'appuis plutôt qu'en une minute.
+
+**Ce qui ne se vérifie qu'à la télécommande, sur cet écran :** qu'un appui sur
+`RIGHT` n'a **jamais** fait apparaître le titre, et que sur un serveur sans `Range`
+la phrase apparaît au premier appui plutôt qu'au bout de plusieurs.
+
+---
+
 ## Source (`SourceTvScreen`) — placeholder
 
 La carte entière est la cible focalisable, et son texte dit ce que fait OK. Un
@@ -195,7 +346,7 @@ vidée : `BACK` ne doit pas ramener dans un compte qui n'existe plus.
 
 ---
 
-## Lecteur TV (`PlayerTvScreen`)
+## Lecteur de chaîne (`PlayerTvScreen`)
 
 **Focus à l'arrivée : la surface vidéo elle-même.**
 

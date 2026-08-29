@@ -20,6 +20,12 @@ import tv.lumo.android.feature.settings.SettingsDestination
 import tv.lumo.android.feature.settings.navigation.settingsTvScreen
 import tv.lumo.android.feature.source.SourceDestination
 import tv.lumo.android.feature.source.navigation.sourceTvScreen
+import tv.lumo.android.feature.vod.VodDestination
+import tv.lumo.android.feature.vod.VodDetailDestination
+import tv.lumo.android.feature.vod.VodPlayerDestination
+import tv.lumo.android.feature.vod.navigation.KEY_RETURNED_FILM
+import tv.lumo.android.feature.vod.navigation.vodDetailTvScreen
+import tv.lumo.android.feature.vod.navigation.vodPlayerTvScreen
 import tv.lumo.android.feature.vod.navigation.vodTvScreen
 
 /**
@@ -60,7 +66,27 @@ fun LumoTvNavHost(
                 navController.popBackStack()
             },
         )
-        vodTvScreen()
+        vodTvScreen(
+            onOpenFilm = { filmId ->
+                navController.navigate(VodDetailDestination.routeFor(filmId))
+            },
+        )
+        vodDetailTvScreen(
+            onPlay = { filmId, title ->
+                navController.navigate(VodPlayerDestination.routeFor(filmId, title))
+            },
+            onBack = { filmId ->
+                // The same rule as the channel player, one screen further out:
+                // the grid comes back on the film that was being looked at. The
+                // id is left on the entry underneath before popping, which is the
+                // one moment both entries exist.
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set(KEY_RETURNED_FILM, filmId)
+                navController.popBackStack()
+            },
+        )
+        vodPlayerTvScreen(onBack = { navController.popBackStack() })
         seriesTvScreen()
         searchTvScreen()
         settingsTvScreen()
@@ -96,17 +122,23 @@ fun tvStartRoute(start: AppStart): String? = when (start) {
  * The rail's contents, in D-pad order.
  *
  * Live first: it is what the television is for, and it should be the shortest
- * journey from the rail. VOD, series and search are outside the vertical this
- * sprint finishes and are gone from the rail — on a television that matters more
- * than on a phone, because every extra rail item is another `DOWN` press between
- * the viewer and the one thing they came for.
+ * journey from the rail. Series and search are still placeholders and stay out of
+ * it — on a television that matters more than on a phone, because every extra
+ * rail item is another `DOWN` press between the viewer and the one thing they
+ * came for.
  *
- * Three items also keeps the rail's own rule easy to hold: `RIGHT` enters the
- * content, `LEFT` comes back, and nothing here is reachable only by travelling
- * through everything else (US-10).
+ * **Films are second, and only when the source has any** (US-13). The argument is
+ * the phone's, and it weighs more here: a rail entry is a mandatory stop on the
+ * way down, so a door onto an empty room costs every viewer a press, on every
+ * journey, for a room most M3U playlists do not have.
+ *
+ * Three or four items also keeps the rail's own rule easy to hold: `RIGHT` enters
+ * the content, `LEFT` comes back, and nothing here is reachable only by
+ * travelling through everything else (US-10).
  */
-val TvDestinations: List<LumoDestination> = listOf(
-    LiveDestination,
-    SourceDestination,
-    SettingsDestination,
-)
+fun tvDestinations(hasFilms: Boolean): List<LumoDestination> = buildList {
+    add(LiveDestination)
+    if (hasFilms) add(VodDestination)
+    add(SourceDestination)
+    add(SettingsDestination)
+}

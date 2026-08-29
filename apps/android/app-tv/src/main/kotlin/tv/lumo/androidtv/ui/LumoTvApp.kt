@@ -18,8 +18,9 @@ import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.core.designsystem.component.LumoTvNavRail
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.feature.live.PlayerDestination
+import tv.lumo.android.feature.vod.VodPlayerDestination
 import tv.lumo.androidtv.navigation.LumoTvNavHost
-import tv.lumo.androidtv.navigation.TvDestinations
+import tv.lumo.androidtv.navigation.tvDestinations
 import tv.lumo.androidtv.navigation.tvStartRoute
 
 /**
@@ -39,6 +40,8 @@ import tv.lumo.androidtv.navigation.tvStartRoute
 @Composable
 fun LumoTvApp(
     startState: AppStart,
+    /** Whether the account's source offers films at all (US-13). See `CatalogueSections`. */
+    hasFilms: Boolean = false,
     navController: NavHostController = rememberNavController(),
 ) {
     val startRoute = tvStartRoute(startState)
@@ -73,9 +76,9 @@ fun LumoTvApp(
         // rest, and a rail down the left is both — plus a focus target competing
         // with the picture for a D-pad that should only be listening for OK and
         // BACK.
-        if (startState != AppStart.SignedOut && currentRoute != PlayerDestination.route) {
+        if (startState != AppStart.SignedOut && currentRoute !in PLAYER_ROUTES) {
             LumoTvNavRail(
-                destinations = TvDestinations,
+                destinations = tvDestinations(hasFilms),
                 selectedRoute = currentRoute,
                 onSelect = { navController.switchTopLevelTo(it) },
             )
@@ -90,6 +93,15 @@ fun LumoTvApp(
         }
     }
 }
+
+/**
+ * The two full-screen players.
+ *
+ * A set rather than a second `||`: the list grows with every surface that fills
+ * the panel, and what it feeds is the decision of whether a rail of focus targets
+ * sits down the left of somebody's film.
+ */
+private val PLAYER_ROUTES = setOf(PlayerDestination.route, VodPlayerDestination.route)
 
 /**
  * Same top-level behaviour as the phone, for the same reason: BACK from any

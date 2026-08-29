@@ -255,13 +255,13 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S5-06 | Le plafond de volume, et ce que l'écran en dit | serveur | api + recette | 5 | 100 % |
 | ☑ | S5-07 | `core:data` et Room : les films hors ligne | socle | android | 5 | 100 % |
 | ☑ | S5-08 | Mobile : grille d'affiches, fiche, lecture | mobile | mobile | 8 | 100 % |
-| ☐ | S5-09 | TV : la même au D-pad, et la carte du parcours | tv | tv | 8 | 0 % |
+| ☑ | S5-09 | TV : la même au D-pad, et la carte du parcours | tv | tv | 8 | 100 % |
 | ☐ | S5-10 | Web : grille et fiche | web | web | 5 | 0 % |
 | ☐ | S5-11 | Reprise de lecture, et le rail qui la rend visible | 3 clients | mobile + tv + web | 8 | 0 % |
 
-**Avancement du sprint : 65 % de 60 points.** Le serveur, le socle Android et le
-premier des trois clients sont faits. La seule vraie inconnue était tranchée dès le
-départ ([`adr/0009`](../adr/0009-m3u-film-detection.md)).
+**Avancement du sprint : 78 % de 60 points.** Les deux clients Android sont faits.
+Il reste le web et la reprise de lecture. La seule vraie inconnue était tranchée dès
+le départ ([`adr/0009`](../adr/0009-m3u-film-detection.md)).
 
 ---
 
@@ -693,7 +693,7 @@ pire qu'une absence.
 
 ---
 
-### S5-09 — TV : la même, au D-pad · **8** · dépend de S5-07
+### S5-09 — TV : la même, au D-pad · **8** · dépend de S5-07 · ☑
 
 La grille d'affiches sur `VodTvScreen`, et la bande de catégories `VOD` en haut :
 c'est la structure de `LiveTvScreen`, et elle est reprise telle quelle. La divergence
