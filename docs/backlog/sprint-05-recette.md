@@ -48,9 +48,18 @@ télévision.
 
 **Deux sources : une avec des films, une sans.** Le banc d'essai sert les deux —
 `/mixed.m3u` porte des chaînes **et** des films, `/playlist.m3u` ne porte que des
-chaînes. C'est le seul moyen de jouer R-210 et R-211, qui vérifient une **absence** :
-l'onglet et l'entrée de rail ne doivent pas exister sur une source sans films. Avec
-une seule source, ces deux cas sont « non joué », pas « vert ».
+chaînes. C'est le seul moyen de jouer R-210, R-211, R-250 et R-278, qui vérifient
+une **absence** : l'onglet, l'entrée de rail et le lien web ne doivent pas exister
+sur une source sans films. Avec une seule source, ces quatre cas sont « non joué »,
+pas « vert ».
+
+**Et la manière de basculer diffère selon la surface.** Le web a une page par
+source, donc les deux se regardent côte à côte, sans rien changer. **Les
+applications Android lisent la première source du compte et n'ont pas de
+sélecteur** : R-210 et R-250 demandent donc soit deux comptes, soit de supprimer et
+réenregistrer la source entre les deux passes. C'est plus lourd, ce n'est pas une
+excuse pour les sauter, et c'est écrit ici pour que la lourdeur ne soit pas une
+surprise.
 
 **Un fichier de film qui se lit vraiment**, et le banc n'en fournit pas. Les
 fixtures `/film/*.mp4` et `/film/*.mkv` sont **des octets MPEG-TS sous un nom de
@@ -140,13 +149,14 @@ rouge.
 ## 4. La grille — téléphone
 
 **R-210 · Une source sans films ne montre pas d'onglet** · S5-08 · téléphone
-Compte n'ayant que `/playlist.m3u`.
+Compte dont la **première** source est `/playlist.m3u` (voir §1 : deux comptes, ou
+suppression et réenregistrement).
 → **Il n'y a pas d'onglet Films.** Quatre entrées dans la barre. Une porte sur une
 pièce vide est rouge : c'est une exigence *négative*, et le genre qui se défait
 sans que rien ne casse.
 
 **R-211 · Une source avec des films le montre** · S5-08 · téléphone
-Compte ayant `/mixed.m3u`.
+Compte dont la **première** source est `/mixed.m3u`.
 → L'onglet Films est là, **en deuxième position**, après les chaînes et avant les
 favoris.
 
@@ -241,6 +251,7 @@ de ses tableaux est un défaut**. Une souris produit du survol, pas du focus, et
 survol masque exactement ce que cette section cherche.
 
 **R-250 · L'entrée Films n'existe que s'il y a des films** · S5-09 · TV
+Même préparation que R-210 (§1).
 → Trois entrées de rail sur une source sans films, quatre sinon, Films en seconde
 position. Sur une télévision une entrée de rail est un arrêt obligatoire en
 descendant : une porte sur une pièce vide coûte un appui à chaque trajet.
@@ -508,6 +519,10 @@ recevables et traçables. « Probablement bon » ne l'est pas.
   `Range`.** Six cas en dépendent (§1). Les ajouter au banc est un chiffrage à
   faire ; en attendant, ils se jouent avec un serveur improvisé ou ne se jouent
   pas.
+- **Aucun sélecteur de source sur Android.** Les deux applications lisent la
+  première source du compte. C'est ce qui rend R-210 et R-250 lourds à jouer, et
+  c'est une limite du produit plutôt que de cette recette — antérieure à ce sprint,
+  et pas chiffrée.
 - **La lecture web reste directe ou refusée** (ADR 0007). Elle ne marche pas chez
   tous les fournisseurs, et cette recette vérifie que l'échec est **nommé** — pas
   qu'il n'arrive pas.

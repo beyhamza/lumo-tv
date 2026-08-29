@@ -882,7 +882,8 @@ pour ce sprint sans changement.
 
 ## Documents associés
 
-`sprint-05-recette.md` et `sprint-05-demo.md`, une fois les tâches acceptées. La
+[`sprint-05-recette.md`](./sprint-05-recette.md) et
+[`sprint-05-demo.md`](./sprint-05-demo.md), une fois les tâches acceptées. La
 recette de ce sprint a un prérequis de plus que celle du sprint 2 : le septième
 chemin du banc d'essai livré en S5-06, sans lequel la moitié « volume » ne s'exécute
 pas.
