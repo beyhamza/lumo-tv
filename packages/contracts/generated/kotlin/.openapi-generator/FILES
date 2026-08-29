@@ -42,6 +42,9 @@ src/main/kotlin/tv/lumo/android/network/generated/model/EntitlementProvider.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/EntitlementStatus.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/EpgProgramme.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/EpgProgrammeList.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/Episode.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/EpisodePage.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/EpisodePlaybackInfo.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/ErrorCode.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Favorite.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/FavoriteGroup.kt
@@ -67,6 +70,10 @@ src/main/kotlin/tv/lumo/android/network/generated/model/RefreshRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/RegisterRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/ResetPasswordRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/SaveProgressRequest.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/Season.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/Series.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/SeriesDetail.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/SeriesPage.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Source.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/SourceKind.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/SourceList.kt

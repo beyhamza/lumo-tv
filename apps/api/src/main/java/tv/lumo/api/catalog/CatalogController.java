@@ -17,6 +17,12 @@ import tv.lumo.api.generated.model.EpgProgrammeList;
 import tv.lumo.api.generated.model.ErrorCode;
 import tv.lumo.api.generated.model.PlaybackInfo;
 import tv.lumo.api.generated.model.SourceStatus;
+import tv.lumo.api.generated.model.Episode;
+import tv.lumo.api.generated.model.EpisodePage;
+import tv.lumo.api.generated.model.EpisodePlaybackInfo;
+import tv.lumo.api.generated.model.Series;
+import tv.lumo.api.generated.model.SeriesDetail;
+import tv.lumo.api.generated.model.SeriesPage;
 import tv.lumo.api.generated.model.VodItem;
 import tv.lumo.api.generated.model.VodItemPage;
 import tv.lumo.api.generated.model.VodPlaybackInfo;
@@ -145,6 +151,121 @@ public class CatalogController implements CatalogApi {
         }
 
         return ResponseEntity.ok(item);
+    }
+
+    /**
+     * One page of series.
+     *
+     * <p>The film listing again, and deliberately so: same parameters, same caps,
+     * same treatment of an empty {@code ids}.
+     *
+     * <p><b>An M3U source answers an empty page</b>, and that is not a special
+     * case in this method — it is simply that nothing ever wrote a series row for
+     * one. Series are an Xtream feature (ADR 0010), and a client explains the
+     * absence on the source's own page rather than as an empty tab.
+     */
+    @Override
+    public ResponseEntity<SeriesPage> listSeries(UUID id, UUID categoryId, String q,
+                                                 List<UUID> ids, Integer page, Integer size) {
+        UUID userId = CurrentUser.requireUserId();
+        requireReadableSource(id, userId);
+
+        int pageIndex = page == null ? 0 : Math.max(0, page);
+        int pageSize = size == null ? DEFAULT_PAGE_SIZE : Math.clamp(size, 1, MAX_PAGE_SIZE);
+        String search = (q == null || q.isBlank()) ? null : q.trim();
+        List<UUID> wanted = (ids == null || ids.isEmpty()) ? null : ids;
+
+        List<Series> items =
+                catalog.findSeries(id, userId, categoryId, search, wanted, pageIndex, pageSize);
+        long total = catalog.countSeries(id, userId, categoryId, search, wanted);
+
+        return ResponseEntity.ok(new SeriesPage(items, pageIndex, pageSize, total,
+                (int) Math.ceil((double) total / pageSize)));
+    }
+
+    /**
+     * Episodes by identifier — a resolver, and the one operation here where
+     * {@code ids} is required.
+     *
+     * <p>It exists for a "continue watching" rail: {@code GET /me/progress} returns
+     * identifiers, and something has to turn them back into something a screen can
+     * draw, in one request rather than one per row.
+     *
+     * <p><b>Required rather than optional</b>, unlike every other {@code ids} in
+     * this controller, because without it this would list every episode of every
+     * series of a source. Nobody has a use for that page, and a resolver that
+     * cannot be used as a crawler is one fewer thing to rate-limit.
+     */
+    @Override
+    public ResponseEntity<EpisodePage> resolveEpisodes(UUID id, List<UUID> ids,
+                                                       Integer page, Integer size) {
+        UUID userId = CurrentUser.requireUserId();
+        requireReadableSource(id, userId);
+
+        int pageIndex = page == null ? 0 : Math.max(0, page);
+        int pageSize = size == null ? DEFAULT_PAGE_SIZE : Math.clamp(size, 1, MAX_PAGE_SIZE);
+
+        List<Episode> items = catalog.findEpisodes(id, userId, ids, pageIndex, pageSize);
+        long total = catalog.countEpisodes(id, userId, ids);
+
+        return ResponseEntity.ok(new EpisodePage(items, pageIndex, pageSize, total,
+                (int) Math.ceil((double) total / pageSize)));
+    }
+
+    /**
+     * One series and its tree.
+     *
+     * <p><b>The only operation in this API that can be slow on its first call.</b>
+     * The tree comes from {@code get_series_info}, one call to the user's own
+     * server per series, made when somebody opens one and cached afterwards.
+     *
+     * <p><b>The cache expires, unlike a film's synopsis.</b> A plot never changes;
+     * a series in production gains an episode a week. So the stamp is compared
+     * against a validity window rather than merely checked for presence — which is
+     * why {@code series} carries {@code tree_fetched_at} and no boolean beside it.
+     *
+     * <p><b>What this method does not do yet.</b> Fetching the tree from the panel
+     * is {@code S6-03}: this returns what the database holds, which after this
+     * task and before that one is a series with no seasons. That is a real state
+     * and not a placeholder — a panel that lists a series and answers nothing for
+     * it produces exactly the same thing — so the empty tree is served rather than
+     * faked, and the screens built on top of it are built against the truth.
+     */
+    @Override
+    public ResponseEntity<SeriesDetail> getSeries(UUID id) {
+        UUID userId = CurrentUser.requireUserId();
+
+        CatalogReadRepository.SeriesDetailRow row = catalog.findSeriesOwnedBy(id, userId)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.SERIES_NOT_FOUND,
+                        "No such series on a source owned by the caller"));
+
+        Series series = row.series();
+        series.setPlot(row.plot());
+
+        return ResponseEntity.ok(new SeriesDetail(series, catalog.findTree(id)));
+    }
+
+    /**
+     * The third and last operation that emits a stream URL.
+     *
+     * <p>The film's, one level deeper. The three refusals are the same three and
+     * mean the same things: an episode counts against a subscription's
+     * simultaneous-stream ceiling exactly as a channel and a film do.
+     */
+    @Override
+    public ResponseEntity<EpisodePlaybackInfo> getEpisodePlayback(UUID id) {
+        UUID userId = CurrentUser.requireUserId();
+
+        CatalogReadRepository.PlaybackRow row = catalog.findEpisodeStreamUrlOwnedBy(id, userId)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.EPISODE_NOT_FOUND,
+                        "No such episode on a source owned by the caller"));
+
+        requirePlayableSource(row);
+
+        EpisodePlaybackInfo playback = new EpisodePlaybackInfo(id, row.streamUrl());
+        playback.setMaxConnections(row.maxConnections());
+        // Nothing is logged here, exactly as for a channel and a film (AGENTS.md §5).
+        return ResponseEntity.ok(playback);
     }
 
     /**

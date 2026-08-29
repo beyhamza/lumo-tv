@@ -516,10 +516,17 @@ private fun AddSourceFailure.message(): String = when (this) {
 
 
 /**
- * The four phases, as the server actually distinguishes them.
+ * The phases, as the server actually distinguishes them.
  *
  * Null is a source the server has accepted but not started, which is a real state
  * and gets its own line rather than an empty one.
+ *
+ * **The `else` is not laziness, and it is not the web's choice.** The web makes
+ * its own mapping exhaustive so a new phase fails the build; here the branch is
+ * kept, because a `when` over a generated enum can also meet a value from a
+ * *server* newer than the installed application, which no compiler can catch. Two
+ * different risks, two different answers — and every phase this build knows about
+ * still gets its own line above.
  */
 @StringRes
 private fun SyncStep?.labelRes(): Int = when (this) {
@@ -527,6 +534,7 @@ private fun SyncStep?.labelRes(): Int = when (this) {
     SyncStep.AUTHENTICATED -> R.string.feature_source_step_authenticated
     SyncStep.PARSING_CHANNELS -> R.string.feature_source_step_parsing
     SyncStep.PARSING_VOD -> R.string.feature_source_step_parsing_vod
+    SyncStep.PARSING_SERIES -> R.string.feature_source_step_parsing_series
     SyncStep.FETCHING_EPG -> R.string.feature_source_step_epg
     // Includes a phase newer than this build: the honest answer is that it
     // started, which is true of every phase there could be.

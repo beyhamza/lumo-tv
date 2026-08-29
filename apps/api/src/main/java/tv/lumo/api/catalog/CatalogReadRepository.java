@@ -1,7 +1,10 @@
 package tv.lumo.api.catalog;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -11,6 +14,9 @@ import tv.lumo.api.generated.model.Channel;
 import tv.lumo.api.generated.model.ContentType;
 import tv.lumo.api.generated.model.EpgProgramme;
 import tv.lumo.api.generated.model.SourceKind;
+import tv.lumo.api.generated.model.Episode;
+import tv.lumo.api.generated.model.Season;
+import tv.lumo.api.generated.model.Series;
 import tv.lumo.api.generated.model.VodItem;
 
 /**
@@ -377,6 +383,247 @@ public class CatalogReadRepository {
     /** @param streamUrl sensitive; must not be logged or cached anywhere shared */
     public record PlaybackRow(String streamUrl, Integer maxConnections,
                               String sourceStatus, OffsetDateTime sourceExpiresAt) {
+    }
+
+    // ---- series -------------------------------------------------------------
+    //
+    // The film queries again, one level deeper. Same reasoning as above for not
+    // parameterising them over a table name, and one more that is particular to
+    // this level: a series carries a tree, and the tree is read by a second query
+    // rather than joined into the first — see {@link #findTree}.
+
+    /** One page of series. No {@code plot}, and no tree. */
+    public List<Series> findSeries(UUID sourceId, UUID userId, UUID categoryId,
+                                   String search, List<UUID> ids, int page, int size) {
+        return jdbc.sql("""
+                SELECT sr.id, sr.source_id, sr.category_id, sr.external_id, sr.name,
+                       sr.poster_url, sr.year, sr.episode_run_time, sr.rating,
+                       sr.position, sr.is_adult
+                  FROM series sr
+                  JOIN source s ON s.id = sr.source_id
+                 WHERE sr.source_id = :sourceId
+                   AND s.user_id = :userId
+                   AND (:categoryId::uuid IS NULL OR sr.category_id = :categoryId)
+                   AND (:search::text IS NULL OR sr.name ILIKE '%' || :search || '%')
+                   AND (:ids::text IS NULL OR sr.id = ANY(string_to_array(:ids, ',')::uuid[]))
+                 ORDER BY sr.category_id NULLS LAST, sr.position, sr.name
+                 LIMIT :size OFFSET :offset
+                """)
+                .param("sourceId", sourceId)
+                .param("userId", userId)
+                .param("categoryId", categoryId)
+                .param("search", search)
+                .param("ids", idArray(ids))
+                .param("size", size)
+                .param("offset", (long) page * size)
+                .query(CatalogReadRepository::mapSeries)
+                .list();
+    }
+
+    public long countSeries(UUID sourceId, UUID userId, UUID categoryId, String search,
+                            List<UUID> ids) {
+        return jdbc.sql("""
+                SELECT count(*)
+                  FROM series sr
+                  JOIN source s ON s.id = sr.source_id
+                 WHERE sr.source_id = :sourceId
+                   AND s.user_id = :userId
+                   AND (:categoryId::uuid IS NULL OR sr.category_id = :categoryId)
+                   AND (:search::text IS NULL OR sr.name ILIKE '%' || :search || '%')
+                   AND (:ids::text IS NULL OR sr.id = ANY(string_to_array(:ids, ',')::uuid[]))
+                """)
+                .param("sourceId", sourceId)
+                .param("userId", userId)
+                .param("categoryId", categoryId)
+                .param("search", search)
+                .param("ids", idArray(ids))
+                .query(Long.class)
+                .single();
+    }
+
+    /**
+     * One series, with what the cache stamp says about its tree.
+     *
+     * <p>The stamp comes back with the row rather than being read separately,
+     * because the caller's next decision depends on it: an absent tree and a stale
+     * tree both mean "call the provider", and a fresh one means "do not". One
+     * query answers all three.
+     */
+    public Optional<SeriesDetailRow> findSeriesOwnedBy(UUID seriesId, UUID userId) {
+        return jdbc.sql("""
+                SELECT sr.id, sr.source_id, sr.category_id, sr.external_id, sr.name,
+                       sr.poster_url, sr.year, sr.episode_run_time, sr.rating,
+                       sr.position, sr.is_adult,
+                       sr.plot, sr.tree_fetched_at, s.kind AS source_kind
+                  FROM series sr
+                  JOIN source s ON s.id = sr.source_id
+                 WHERE sr.id = :seriesId
+                   AND s.user_id = :userId
+                """)
+                .param("seriesId", seriesId)
+                .param("userId", userId)
+                .query((rs, n) -> new SeriesDetailRow(
+                        mapSeries(rs, n),
+                        rs.getString("plot"),
+                        rs.getObject("tree_fetched_at", OffsetDateTime.class),
+                        rs.getObject("source_id", UUID.class),
+                        rs.getString("external_id"),
+                        SourceKind.fromValue(rs.getString("source_kind"))))
+                .optional();
+    }
+
+    public record SeriesDetailRow(Series series, String plot, OffsetDateTime treeFetchedAt,
+                                  UUID sourceId, String externalId, SourceKind sourceKind) {
+    }
+
+    /**
+     * The tree of one series, in one pass.
+     *
+     * <p>Seasons and episodes come back as a single ordered result set and are
+     * grouped in Java rather than in two queries: the tree of a series is tens of
+     * rows, and a second round trip to fetch the seasons of a series whose
+     * episodes are already in hand buys nothing.
+     *
+     * <p><b>A season with no episodes is still a season.</b> The left join keeps
+     * it, because a panel that lists a season and returns nothing for it is
+     * describing something a viewer should see as empty rather than as absent.
+     */
+    public List<Season> findTree(UUID seriesId) {
+        List<Season> seasons = new ArrayList<>();
+        Map<Integer, Season> bySeasonNumber = new LinkedHashMap<>();
+
+        jdbc.sql("""
+                SELECT se.season_number, se.episode_count, se.poster_url,
+                       e.id AS episode_id, e.series_id, e.source_id, e.external_id,
+                       e.season_number AS episode_season_number, e.episode_number,
+                       e.name AS episode_name, e.duration_seconds, e.plot AS episode_plot
+                  FROM season se
+                  LEFT JOIN episode e ON e.season_id = se.id
+                 WHERE se.series_id = :seriesId
+                 ORDER BY se.season_number, e.episode_number
+                """)
+                .param("seriesId", seriesId)
+                .query((rs, n) -> {
+                    int seasonNumber = rs.getInt("season_number");
+                    Season season = bySeasonNumber.get(seasonNumber);
+                    if (season == null) {
+                        season = new Season(seasonNumber, new ArrayList<>());
+                        season.setEpisodeCount(rs.getObject("episode_count", Integer.class));
+                        season.setPosterUrl(rs.getString("poster_url"));
+                        bySeasonNumber.put(seasonNumber, season);
+                        seasons.add(season);
+                    }
+                    UUID episodeId = rs.getObject("episode_id", UUID.class);
+                    // Null on the left join's empty side: the season exists and
+                    // holds nothing, which is a state a panel really produces.
+                    if (episodeId != null) {
+                        season.getEpisodes().add(mapEpisode(rs));
+                    }
+                    return season;
+                })
+                .list();
+
+        return seasons;
+    }
+
+    /** Episodes by identifier, scoped to a source the caller owns. */
+    public List<Episode> findEpisodes(UUID sourceId, UUID userId, List<UUID> ids,
+                                      int page, int size) {
+        return jdbc.sql("""
+                SELECT e.id AS episode_id, e.series_id, e.source_id, e.external_id,
+                       e.season_number AS episode_season_number, e.episode_number,
+                       e.name AS episode_name, e.duration_seconds, e.plot AS episode_plot
+                  FROM episode e
+                  JOIN source s ON s.id = e.source_id
+                 WHERE e.source_id = :sourceId
+                   AND s.user_id = :userId
+                   AND e.id = ANY(string_to_array(:ids, ',')::uuid[])
+                 ORDER BY e.series_id, e.season_number, e.episode_number
+                 LIMIT :size OFFSET :offset
+                """)
+                .param("sourceId", sourceId)
+                .param("userId", userId)
+                .param("ids", idArray(ids))
+                .param("size", size)
+                .param("offset", (long) page * size)
+                .query((rs, n) -> mapEpisode(rs))
+                .list();
+    }
+
+    public long countEpisodes(UUID sourceId, UUID userId, List<UUID> ids) {
+        return jdbc.sql("""
+                SELECT count(*)
+                  FROM episode e
+                  JOIN source s ON s.id = e.source_id
+                 WHERE e.source_id = :sourceId
+                   AND s.user_id = :userId
+                   AND e.id = ANY(string_to_array(:ids, ',')::uuid[])
+                """)
+                .param("sourceId", sourceId)
+                .param("userId", userId)
+                .param("ids", idArray(ids))
+                .query(Long.class)
+                .single();
+    }
+
+    /**
+     * The third and last query in this application that reads a stream URL.
+     *
+     * <p>Scoped to the owner in the same statement, for the reason written on
+     * {@link #findStreamUrlOwnedBy}.
+     */
+    public Optional<PlaybackRow> findEpisodeStreamUrlOwnedBy(UUID episodeId, UUID userId) {
+        return jdbc.sql("""
+                SELECT e.stream_url, s.max_connections, s.status, s.expires_at
+                  FROM episode e
+                  JOIN source s ON s.id = e.source_id
+                 WHERE e.id = :episodeId
+                   AND s.user_id = :userId
+                """)
+                .param("episodeId", episodeId)
+                .param("userId", userId)
+                .query((rs, n) -> new PlaybackRow(
+                        rs.getString("stream_url"),
+                        rs.getObject("max_connections", Integer.class),
+                        rs.getString("status"),
+                        rs.getObject("expires_at", OffsetDateTime.class)))
+                .optional();
+    }
+
+    static Series mapSeries(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        Series series = new Series(
+                rs.getObject("id", UUID.class),
+                rs.getObject("source_id", UUID.class),
+                rs.getString("name"),
+                rs.getInt("position"),
+                rs.getBoolean("is_adult"));
+        series.setCategoryId(rs.getObject("category_id", UUID.class));
+        series.setExternalId(rs.getString("external_id"));
+        series.setPosterUrl(rs.getString("poster_url"));
+        series.setYear(rs.getObject("year", Integer.class));
+        series.setEpisodeRunTime(rs.getObject("episode_run_time", Integer.class));
+        series.setRating(rs.getString("rating"));
+        return series;
+    }
+
+    /**
+     * Maps an episode row.
+     *
+     * <p>The column aliases are the tree query's, so one mapper serves both it and
+     * the resolver. {@code stream_url} is in neither projection.
+     */
+    static Episode mapEpisode(java.sql.ResultSet rs) throws java.sql.SQLException {
+        Episode episode = new Episode(
+                rs.getObject("episode_id", UUID.class),
+                rs.getObject("series_id", UUID.class),
+                rs.getObject("source_id", UUID.class),
+                rs.getInt("episode_season_number"),
+                rs.getInt("episode_number"));
+        episode.setExternalId(rs.getString("external_id"));
+        episode.setName(rs.getString("episode_name"));
+        episode.setDurationSeconds(rs.getObject("duration_seconds", Long.class));
+        episode.setPlot(rs.getString("episode_plot"));
+        return episode;
     }
 
     /**

@@ -296,7 +296,8 @@
     "sourceOpenFilms": "Browse the films",
     "filmsResumeAt": "Resume at {at}",
     "filmsStartOver": "Start over",
-    "filmsContinueWatching": "Continue watching"
+    "filmsContinueWatching": "Continue watching",
+    "syncStepParsingSeries": "Reading the series list"
   },
   "Errors": {
     "generic": "Something went wrong. Try again.",

@@ -296,7 +296,8 @@
     "sourceOpenFilms": "Parcourir les films",
     "filmsResumeAt": "Reprendre à {at}",
     "filmsStartOver": "Recommencer",
-    "filmsContinueWatching": "Reprendre"
+    "filmsContinueWatching": "Reprendre",
+    "syncStepParsingSeries": "Lecture de la liste des séries"
   },
   "Errors": {
     "generic": "Une erreur est survenue. Réessayez.",

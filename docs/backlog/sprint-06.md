@@ -198,8 +198,8 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | | Id | Tâche | Lot | Cible | Points | Avancement |
 |---|---|---|---|---|---|---|
 | ☑ | S6-00 | Décision : les séries en M3U | décision | décision | 2 | 100 % |
-| ☐ | S6-01 | Contrat : `Series`, `Season`, `Episode`, et leurs trois lectures | contrat | contrat | 5 | 0 % |
-| ☐ | S6-02 | Base : l'arbre, et son unicité qui survit à une resynchronisation | serveur | api | 3 | 0 % |
+| ☑ | S6-01 | Contrat : `Series`, `Season`, `Episode`, et leurs **quatre** lectures | contrat | contrat | 5 | 100 % |
+| ☑ | S6-02 | Base : l'arbre, et son unicité qui survit à une resynchronisation | serveur | api | 3 | 100 % |
 | ☐ | S6-03 | Ingestion : la liste à la synchro, l'arbre à la demande, le cache qui expire | serveur | api | 8 | 0 % |
 | ☐ | S6-04 | `core:data` et Room : l'arbre hors ligne | socle | android | 5 | 0 % |
 | ☐ | S6-05 | Mobile : fiche série, saisons, épisodes | mobile | mobile | 8 | 0 % |
@@ -208,8 +208,14 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S6-08 | Reprendre une série, pas un épisode | 3 clients | mobile + tv + web | 5 | 0 % |
 | ☐ | S6-09 | Web : l'écran Favoris, à l'échelle du compte | web | web | 5 | 0 % |
 
-**Avancement du sprint : 4 % de 54 points.** La seule inconnue est tranchée
-([`adr/0010`](../adr/0010-series-are-xtream-only.md)), ce qui débloque le contrat.
+**Avancement du sprint : 19 % de 54 points.** La décision, le contrat et les trois
+tables sont livrés. Il reste l'ingestion, le socle Android et les écrans.
+
+**S6-01 et S6-02 sont partis dans le même commit**, comme S5-01 et S5-02 au sprint
+précédent, et pour la même raison mécanique : `ADR 0001` génère les interfaces avec
+`interfaceOnly` et `skipDefaultInterface`, donc une opération ajoutée au contrat est
+une **erreur de compilation** tant que le contrôleur ne l'implémente pas. Le contrat
+ne peut pas être livré seul, et c'est voulu.
 
 S6-09 ne porte pas sur les séries et n'a aucune dépendance dans ce sprint : c'est un
 retard du web sur US-12, mesuré après le sprint 5, et il est ici parce que c'est le
@@ -265,7 +271,7 @@ c'est maintenant ; il n'y en aura pas un second.
 
 ---
 
-### S6-01 — Contrat : `Series`, `Season`, `Episode` · **5** · dépend de S6-00
+### S6-01 — Contrat : `Series`, `Season`, `Episode` · **5** · dépend de S6-00 · ☑
 
 Trois schémas, trois lectures, et la moitié est déjà écrite au sprint 5.
 
@@ -300,12 +306,29 @@ phases réelles : récupérer la liste des séries en est une, et sur un gros pa
 n'est pas instantanée. Le sprint 5 a ajouté `PARSING_VOD` sur le même raisonnement.
 
 **`ProgressItemType.EPISODE` n'a rien à changer** — elle attend depuis le sprint 2.
-`item_ref` porte l'identifiant externe de l'épisode, et `source_id` l'accompagne
-depuis la décision prise en S5-01.
+
+> **Deux écarts avec ce qui était écrit ci-dessus, tranchés à la livraison.**
+>
+> **Il y a quatre lectures, pas trois.** `GET /sources/{id}/episodes?ids=` a été
+> ajoutée, et elle existe pour une seule chose : un rail « Reprendre ».
+> `GET /me/progress` rend des identifiants et des positions — pas des titres, pas
+> d'affiches, et pas la série à laquelle un épisode appartient. Sans ce résolveur,
+> S6-08 découvrait le problème une fois les écrans écrits. **C'est exactement ce qui
+> s'est passé au sprint 5** avec le rail des films, et cette fois c'est vu avant
+> plutôt qu'après. `ids` y est **obligatoire** : sans ça l'opération listerait tous
+> les épisodes de toutes les séries d'une source, ce dont personne n'a l'usage.
+>
+> **`item_ref` ne porte pas l'identifiant externe de l'épisode mais `Episode.id`.**
+> Le paragraphe ci-dessus disait le contraire ; c'est le même arbitrage qu'en S5-11,
+> et il tombe du même côté. Un rail doit remonter de la ligne de progression à une
+> série avec son affiche, et les opérations qui font cette conversion prennent nos
+> identifiants. La stabilité est acquise autrement : `episode` est upserté sur
+> `(series_id, external_id)` — l'identifiant du panel, qui contrairement à celui
+> d'une saison existe toujours puisqu'il construit l'URL de lecture.
 
 ---
 
-### S6-02 — Base : l'arbre · **3** · dépend de S6-01
+### S6-02 — Base : l'arbre · **3** · dépend de S6-01 · ☑
 
 Trois tables : `series`, `season`, `episode`, en cascade depuis `source`.
 
@@ -325,6 +348,19 @@ absent et un arbre périmé se distinguent par une comparaison de date, pas par 
 booléen qu'il faudrait remettre à zéro quelque part.
 
 Index trigram sur `series.name`, comme sur les deux autres catalogues.
+
+**Livré tel quel**, avec une colonne de plus que le tableau ne laissait attendre :
+`episode.source_id`, dénormalisée depuis `series`. Chaque contrôle de propriété et
+chaque résolution par identifiant filtre sur la source, et remonter deux niveaux à
+chaque fois ne rapporte rien. Elle ne peut pas diverger : un épisode ne change jamais
+de série.
+
+Treize cas d'intégration, dont trois portent sur des choses qu'un arbre rate et
+qu'une ligne ne peut pas rater : **une saison vide reste une saison** (une jointure
+interne l'aurait fait disparaître en silence), **le compte annoncé par le panel peut
+contredire la liste** et c'est la liste qui compte, et **supprimer une série emporte
+ses saisons et ses épisodes** — sans quoi une URL de flux resterait lisible sur une
+ligne que plus aucune opération n'atteint.
 
 ---
 

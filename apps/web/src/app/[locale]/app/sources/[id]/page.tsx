@@ -171,14 +171,22 @@ function SyncProgress({
   kind: Source["kind"];
   t: Translate;
 }) {
-  // PARSING_VOD is on the Xtream list only, and that is not an omission: a
-  // playlist is read once and its films come off the same pass as its channels,
-  // so an M3U source never reports that phase. The contract's own rule — these
-  // are the server's real phases, and a step the implementation does not
-  // distinguish is a reassuring fiction — cuts both ways.
+  // PARSING_VOD and PARSING_SERIES are on the Xtream list only, and that is not
+  // an omission. A playlist is read once and its films come off the same pass as
+  // its channels; and a playlist has no series at all (`adr/0010`), so there is
+  // no phase to report. The contract's own rule — these are the server's real
+  // phases, and a step the implementation does not distinguish is a reassuring
+  // fiction — cuts both ways.
   const steps: SyncStep[] =
     kind === "XTREAM"
-      ? ["CONNECTING", "AUTHENTICATED", "PARSING_CHANNELS", "PARSING_VOD", "FETCHING_EPG"]
+      ? [
+          "CONNECTING",
+          "AUTHENTICATED",
+          "PARSING_CHANNELS",
+          "PARSING_VOD",
+          "PARSING_SERIES",
+          "FETCHING_EPG",
+        ]
       : ["CONNECTING", "PARSING_CHANNELS", "FETCHING_EPG"];
 
   // Null while PENDING: claimed, not started. Everything shows as still to come,
@@ -212,15 +220,20 @@ type SyncStepKey =
   | "syncStepAuthenticated"
   | "syncStepParsingChannels"
   | "syncStepParsingVod"
+  | "syncStepParsingSeries"
   | "syncStepFetchingEpg";
 
 /**
  * One case per value, and no `default`.
  *
- * The previous version fell through to "fetching the guide", which was harmless
- * until the contract grew a fifth phase — and then it labelled the film catalogue
- * as the EPG. Exhaustive, `PARSING_VOD` was a type error the moment it was
+ * The original fell through to "fetching the guide", which was harmless until the
+ * contract grew a fifth phase — and then it labelled the film catalogue as the
+ * EPG. Made exhaustive, `PARSING_VOD` became a type error the moment it was
  * generated rather than a wrong word on somebody's screen.
+ *
+ * It has now paid for itself a second time: `PARSING_SERIES` failed the build in
+ * the same commit that added it to the contract. A `default` here would have
+ * shipped "fetching the programme guide" over the series list instead.
  */
 function stepKey(step: SyncStep): SyncStepKey {
   switch (step) {
@@ -232,6 +245,8 @@ function stepKey(step: SyncStep): SyncStepKey {
       return "syncStepParsingChannels";
     case "PARSING_VOD":
       return "syncStepParsingVod";
+    case "PARSING_SERIES":
+      return "syncStepParsingSeries";
     case "FETCHING_EPG":
       return "syncStepFetchingEpg";
   }

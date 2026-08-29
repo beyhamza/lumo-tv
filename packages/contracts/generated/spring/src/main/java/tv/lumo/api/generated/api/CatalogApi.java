@@ -10,9 +10,13 @@ import tv.lumo.api.generated.model.ChannelPage;
 import tv.lumo.api.generated.model.ContentType;
 import org.springframework.format.annotation.DateTimeFormat;
 import tv.lumo.api.generated.model.EpgProgrammeList;
+import tv.lumo.api.generated.model.EpisodePage;
+import tv.lumo.api.generated.model.EpisodePlaybackInfo;
 import java.time.OffsetDateTime;
 import tv.lumo.api.generated.model.PlaybackInfo;
 import tv.lumo.api.generated.model.Problem;
+import tv.lumo.api.generated.model.SeriesDetail;
+import tv.lumo.api.generated.model.SeriesPage;
 import java.util.UUID;
 import tv.lumo.api.generated.model.VodItem;
 import tv.lumo.api.generated.model.VodItemPage;
@@ -79,6 +83,49 @@ public interface CatalogApi {
     )
     
     ResponseEntity<PlaybackInfo> getChannelPlayback(
+         @PathVariable("id") UUID id
+    );
+
+
+    /**
+     * GET /episodes/{id}/playback : Obtain the stream URL for one episode, on demand
+     * The third of the family, and everything written on &#x60;GET /channels/{id}/playback&#x60; and &#x60;GET /vod/{id}/playback&#x60; applies here unchanged: issued at the moment of playback after checking ownership, never logged, never cached in a shared store, and opened by the player directly against the user&#39;s own server.  A third operation rather than a shared one for the reason there are already two: three id spaces, and an identifier that could not be resolved without being told which one it belongs to.  **An episode&#39;s URL is built like a film&#39;s**, from the panel&#39;s identifier and container extension: &#x60;/series/{user}/{pass}/{id}.{ext}&#x60;. The path segment differs from a film&#39;s &#x60;/movie/&#x60;, and that is the only difference a client never sees. 
+     *
+     * @param id Resource identifier. (required)
+     * @return Playback details for this episode. (status code 200)
+     *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
+     *         or No such episode, or it does not belong to a source owned by the caller (&#x60;EPISODE_NOT_FOUND&#x60;). A &#x60;404&#x60; and not a &#x60;403&#x60;, so the endpoint cannot be used to probe for identifiers.  (status code 404)
+     *         or The source cannot serve playback right now — &#x60;SOURCE_NOT_READY&#x60;, &#x60;SOURCE_EXPIRED&#x60;, &#x60;SOURCE_MAX_CONNECTIONS&#x60;. The same three as for a channel and a film, meaning the same things: an episode counts against a subscription&#39;s simultaneous-stream ceiling exactly as they do.  (status code 409)
+     */
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = "/episodes/{id}/playback",
+        produces = { "application/json", "application/problem+json" }
+    )
+    
+    ResponseEntity<EpisodePlaybackInfo> getEpisodePlayback(
+         @PathVariable("id") UUID id
+    );
+
+
+    /**
+     * GET /series/{id} : One series, with its seasons and episodes
+     * The tree, and **the only operation in this API that can be slow on its first call**.  On an Xtream panel the whole tree comes from &#x60;get_series_info&#x60;, which takes one series identifier and answers with every season and every episode. It is one call to the *user&#39;s own server*, made when somebody opens a series, and cached afterwards.  **The cache expires, unlike a film&#39;s synopsis.** A film&#39;s plot never changes; a series in production gains an episode a week. So this cache has a validity period — short and uniform, a few hours — rather than a clever one. Nothing in the data distinguishes a series that ended in 2011 from one airing tonight, and a rule that pretended otherwise would be wrong in the direction nobody notices: a viewer who cannot see the episode that came out this morning.  &lt;h3&gt;What a client must plan for&lt;/h3&gt;  A series opened before answers from the cache, immediately. A series never opened costs a round trip to somebody&#39;s provider, which can take seconds and can fail — which is why the listing already carries the poster, the title and the year. A detail screen draws from what it has and fills the tree in when it arrives.  &lt;h3&gt;The failure that must not be collapsed&lt;/h3&gt;  &#x60;404&#x60; means **this series does not exist**, and it is final. &#x60;503&#x60; means **the panel did not answer**, and it is worth retrying.  A client that showed \&quot;series not found\&quot; on a network fault would send somebody looking for a series their provider still has. These are two different sentences and the codes keep them apart: &#x60;SERIES_NOT_FOUND&#x60; against &#x60;SOURCE_UNREACHABLE&#x60;. 
+     *
+     * @param id Resource identifier. (required)
+     * @return The series and its tree. &#x60;plot&#x60; is null when the source supplied none.  (status code 200)
+     *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
+     *         or No such series on a source owned by the caller (&#x60;SERIES_NOT_FOUND&#x60;), reported as &#x60;404&#x60; and not &#x60;403&#x60; so the endpoint cannot be used to probe for identifiers.  (status code 404)
+     *         or The source has not finished ingesting (&#x60;SOURCE_NOT_READY&#x60;). The client keeps polling &#x60;GET /sources/{id}&#x60;.  (status code 409)
+     *         or The user&#39;s panel could not be reached or refused (&#x60;SOURCE_UNREACHABLE&#x60;, &#x60;SOURCE_AUTH_FAILED&#x60;, &#x60;SOURCE_EXPIRED&#x60;), and no cached tree is available to serve instead.  **Distinct from &#x60;404&#x60; by design.** The series exists; what failed is the call that fills in its seasons. Retrying is the right advice, and a client that said \&quot;not found\&quot; here would give the wrong one.  (status code 503)
+     */
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = "/series/{id}",
+        produces = { "application/json", "application/problem+json" }
+    )
+    
+    ResponseEntity<SeriesDetail> getSeries(
          @PathVariable("id") UUID id
     );
 
@@ -179,6 +226,38 @@ public interface CatalogApi {
 
 
     /**
+     * GET /sources/{id}/series : Series of a source, paginated
+     * The same shape as &#x60;GET /sources/{id}/channels&#x60; and &#x60;GET /sources/{id}/vod&#x60;, down to the parameter names. A client reuses the pagination, the search and the identifier lookup it already wrote.  **Flat, and that is the whole point of separating it from the tree.** This answers from what the synchronisation stored — &#x60;get_series&#x60; on an Xtream panel, one call for the whole catalogue. Seasons and episodes are not here and must not be: fetching them would mean one call to the user&#39;s own server *per series*, and a panel with eight hundred series turns a synchronisation into eight hundred requests against somebody&#39;s provider. That is &#x60;GET /series/{id}&#x60;, on demand.  **No &#x60;plot&#x60; here**, for the reason it is absent from the film listing.  **An M3U source always answers an empty page.** Series are an Xtream feature (&#x60;adr/0010&#x60;): a playlist declares no season and no episode, and this API does not reconstruct a tree from titles. The empty page is the honest answer, and the client explains the absence on the source&#39;s own page rather than as an empty tab. 
+     *
+     * @param id Resource identifier. (required)
+     * @param categoryId Restrict to one category. Its &#x60;content_type&#x60; is &#x60;SERIES&#x60;. (optional)
+     * @param q Free-text search on the title. Case-insensitive substring, as on the other two listings.  (optional)
+     * @param ids Resolve these series, and only these. Repeatable, bounded at 100, same semantics as &#x60;ids&#x60; everywhere else — unknown identifiers are absent from the answer rather than an error.  **Send &#x60;size&#x60; with it.** The default page is 50, so a hundred identifiers asked for without it come back half answered, with a &#x60;200&#x60; and nothing to say the rest was dropped.  (optional)
+     * @param page Zero-based page index. (optional, default to 0)
+     * @param size Page size. Capped server-side so a large catalogue cannot be pulled in one call. (optional, default to 50)
+     * @return A page of series, ordered by category then &#x60;position&#x60;. (status code 200)
+     *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
+     *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
+     *         or No such source on this account (&#x60;SOURCE_NOT_FOUND&#x60;). (status code 404)
+     *         or The source has not finished ingesting (&#x60;SOURCE_NOT_READY&#x60;). The client keeps polling &#x60;GET /sources/{id}&#x60;.  (status code 409)
+     */
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = "/sources/{id}/series",
+        produces = { "application/json", "application/problem+json" }
+    )
+    
+    ResponseEntity<SeriesPage> listSeries(
+         @PathVariable("id") UUID id,
+         @Valid @RequestParam(value = "categoryId", required = false) @Nullable UUID categoryId,
+        @Size(min = 1, max = 100)  @Valid @RequestParam(value = "q", required = false) @Nullable String q,
+        @Size(max = 100)  @Valid @RequestParam(value = "ids", required = false) @Nullable List<UUID> ids,
+        @Min(0)  @Valid @RequestParam(value = "page", required = false, defaultValue = "0") Integer page,
+        @Min(1) @Max(200)  @Valid @RequestParam(value = "size", required = false, defaultValue = "50") Integer size
+    );
+
+
+    /**
      * GET /sources/{id}/vod : Films of a source, paginated
      * The same shape as &#x60;GET /sources/{id}/channels&#x60;, down to the parameter names, and that is the point: a client reuses the pagination, the search and the identifier lookup it already wrote instead of growing a second set that drifts from the first.  **No &#x60;stream_url&#x60; here either**, for the reason given on the channel listing: a page of films does not carry a page of credential-bearing URLs. Playback URLs come from &#x60;GET /vod/{id}/playback&#x60;, one at a time.  **No &#x60;plot&#x60; here.** It is loaded when somebody opens a film, not when they scroll past it — see &#x60;VodItem.plot&#x60;. 
      *
@@ -205,6 +284,33 @@ public interface CatalogApi {
          @Valid @RequestParam(value = "categoryId", required = false) @Nullable UUID categoryId,
         @Size(min = 1, max = 100)  @Valid @RequestParam(value = "q", required = false) @Nullable String q,
         @Size(max = 100)  @Valid @RequestParam(value = "ids", required = false) @Nullable List<UUID> ids,
+        @Min(0)  @Valid @RequestParam(value = "page", required = false, defaultValue = "0") Integer page,
+        @Min(1) @Max(200)  @Valid @RequestParam(value = "size", required = false, defaultValue = "50") Integer size
+    );
+
+
+    /**
+     * GET /sources/{id}/episodes : Resolve episodes by identifier
+     * **A resolver, not a listing, and &#x60;ids&#x60; is required.**  It exists for one caller: a \&quot;continue watching\&quot; rail. &#x60;GET /me/progress&#x60; returns identifiers and positions — not titles, not posters, and not the series an episode belongs to. Something has to turn those rows back into something a screen can draw, and this is it, in one request rather than one per row.  That lesson was learnt the expensive way. Sprint 5 shipped the film resume rail and only then discovered that a saved position could not be resolved back to a film; the fix was to settle what &#x60;item_ref&#x60; holds (&#x60;SaveProgressRequest.item_ref&#x60;). This operation is the same problem, seen before it cost a sprint.  **&#x60;ids&#x60; is required on purpose.** Without it this would be a listing over every episode of every series of a source — tens of thousands of rows nobody has a use for, and a page of them is not a screen anybody would build. A resolver that can only resolve cannot be misused as a crawler.  Each &#x60;Episode&#x60; carries its &#x60;series_id&#x60;, which is what lets a rail group rows by series and then resolve those with &#x60;GET /sources/{id}/series?ids&#x3D;&#x60;. 
+     *
+     * @param id Resource identifier. (required)
+     * @param ids The episodes to resolve. Repeatable, bounded at 100, unknown identifiers absent from the answer rather than an error.  **Send &#x60;size&#x60; with it**, for the reason repeated on every &#x60;ids&#x60; parameter in this document.  (required)
+     * @param page Zero-based page index. (optional, default to 0)
+     * @param size Page size. Capped server-side so a large catalogue cannot be pulled in one call. (optional, default to 50)
+     * @return The episodes that exist and belong to a source owned by the caller. Order is not guaranteed to match &#x60;ids&#x60;: the caller holds the order it wants, and re-sorting here would be guessing which one.  (status code 200)
+     *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
+     *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
+     *         or No such source on this account (&#x60;SOURCE_NOT_FOUND&#x60;). (status code 404)
+     */
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = "/sources/{id}/episodes",
+        produces = { "application/json", "application/problem+json" }
+    )
+    
+    ResponseEntity<EpisodePage> resolveEpisodes(
+         @PathVariable("id") UUID id,
+        @NotNull @Size(min = 1, max = 100)  @Valid @RequestParam(value = "ids", required = true) List<UUID> ids,
         @Min(0)  @Valid @RequestParam(value = "page", required = false, defaultValue = "0") Integer page,
         @Min(1) @Max(200)  @Valid @RequestParam(value = "size", required = false, defaultValue = "50") Integer size
     );

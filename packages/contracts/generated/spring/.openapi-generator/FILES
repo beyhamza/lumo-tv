@@ -31,6 +31,9 @@ src/main/java/tv/lumo/api/generated/model/EntitlementProvider.java
 src/main/java/tv/lumo/api/generated/model/EntitlementStatus.java
 src/main/java/tv/lumo/api/generated/model/EpgProgramme.java
 src/main/java/tv/lumo/api/generated/model/EpgProgrammeList.java
+src/main/java/tv/lumo/api/generated/model/Episode.java
+src/main/java/tv/lumo/api/generated/model/EpisodePage.java
+src/main/java/tv/lumo/api/generated/model/EpisodePlaybackInfo.java
 src/main/java/tv/lumo/api/generated/model/ErrorCode.java
 src/main/java/tv/lumo/api/generated/model/Favorite.java
 src/main/java/tv/lumo/api/generated/model/FavoriteGroup.java
@@ -56,6 +59,10 @@ src/main/java/tv/lumo/api/generated/model/RefreshRequest.java
 src/main/java/tv/lumo/api/generated/model/RegisterRequest.java
 src/main/java/tv/lumo/api/generated/model/ResetPasswordRequest.java
 src/main/java/tv/lumo/api/generated/model/SaveProgressRequest.java
+src/main/java/tv/lumo/api/generated/model/Season.java
+src/main/java/tv/lumo/api/generated/model/Series.java
+src/main/java/tv/lumo/api/generated/model/SeriesDetail.java
+src/main/java/tv/lumo/api/generated/model/SeriesPage.java
 src/main/java/tv/lumo/api/generated/model/Source.java
 src/main/java/tv/lumo/api/generated/model/SourceKind.java
 src/main/java/tv/lumo/api/generated/model/SourceList.java

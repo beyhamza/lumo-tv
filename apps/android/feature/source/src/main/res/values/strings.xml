@@ -93,4 +93,5 @@
     <string name="feature_source_error_rate_limited_seconds">Too many attempts. Try again in %1$d seconds.</string>
     <string name="feature_source_error_offline">No connection. Nothing was sent.</string>
     <string name="feature_source_error_unexpected">Something went wrong. Please try again.</string>
+    <string name="feature_source_step_parsing_series">Reading the series list</string>
 </resources>

@@ -662,6 +662,170 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sources/{id}/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Series of a source, paginated
+         * @description The same shape as `GET /sources/{id}/channels` and `GET /sources/{id}/vod`,
+         *     down to the parameter names. A client reuses the pagination, the search
+         *     and the identifier lookup it already wrote.
+         *
+         *     **Flat, and that is the whole point of separating it from the tree.** This
+         *     answers from what the synchronisation stored — `get_series` on an Xtream
+         *     panel, one call for the whole catalogue. Seasons and episodes are not here
+         *     and must not be: fetching them would mean one call to the user's own server
+         *     *per series*, and a panel with eight hundred series turns a synchronisation
+         *     into eight hundred requests against somebody's provider. That is
+         *     `GET /series/{id}`, on demand.
+         *
+         *     **No `plot` here**, for the reason it is absent from the film listing.
+         *
+         *     **An M3U source always answers an empty page.** Series are an Xtream
+         *     feature (`adr/0010`):
+         *     a playlist declares no season and no episode, and this API does not
+         *     reconstruct a tree from titles. The empty page is the honest answer, and
+         *     the client explains the absence on the source's own page rather than as an
+         *     empty tab.
+         */
+        get: operations["listSeries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sources/{id}/episodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolve episodes by identifier
+         * @description **A resolver, not a listing, and `ids` is required.**
+         *
+         *     It exists for one caller: a "continue watching" rail. `GET /me/progress`
+         *     returns identifiers and positions — not titles, not posters, and not the
+         *     series an episode belongs to. Something has to turn those rows back into
+         *     something a screen can draw, and this is it, in one request rather than one
+         *     per row.
+         *
+         *     That lesson was learnt the expensive way. Sprint 5 shipped the film resume
+         *     rail and only then discovered that a saved position could not be resolved
+         *     back to a film; the fix was to settle what `item_ref` holds
+         *     (`SaveProgressRequest.item_ref`). This operation is the same problem, seen
+         *     before it cost a sprint.
+         *
+         *     **`ids` is required on purpose.** Without it this would be a listing over
+         *     every episode of every series of a source — tens of thousands of rows
+         *     nobody has a use for, and a page of them is not a screen anybody would
+         *     build. A resolver that can only resolve cannot be misused as a crawler.
+         *
+         *     Each `Episode` carries its `series_id`, which is what lets a rail group
+         *     rows by series and then resolve those with `GET /sources/{id}/series?ids=`.
+         */
+        get: operations["resolveEpisodes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/series/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One series, with its seasons and episodes
+         * @description The tree, and **the only operation in this API that can be slow on its
+         *     first call**.
+         *
+         *     On an Xtream panel the whole tree comes from `get_series_info`, which takes
+         *     one series identifier and answers with every season and every episode. It
+         *     is one call to the *user's own server*, made when somebody opens a series,
+         *     and cached afterwards.
+         *
+         *     **The cache expires, unlike a film's synopsis.** A film's plot never
+         *     changes; a series in production gains an episode a week. So this cache has
+         *     a validity period — short and uniform, a few hours — rather than a clever
+         *     one. Nothing in the data distinguishes a series that ended in 2011 from one
+         *     airing tonight, and a rule that pretended otherwise would be wrong in the
+         *     direction nobody notices: a viewer who cannot see the episode that came out
+         *     this morning.
+         *
+         *     <h3>What a client must plan for</h3>
+         *
+         *     A series opened before answers from the cache, immediately. A series never
+         *     opened costs a round trip to somebody's provider, which can take seconds
+         *     and can fail — which is why the listing already carries the poster, the
+         *     title and the year. A detail screen draws from what it has and fills the
+         *     tree in when it arrives.
+         *
+         *     <h3>The failure that must not be collapsed</h3>
+         *
+         *     `404` means **this series does not exist**, and it is final. `503` means
+         *     **the panel did not answer**, and it is worth retrying.
+         *
+         *     A client that showed "series not found" on a network fault would send
+         *     somebody looking for a series their provider still has. These are two
+         *     different sentences and the codes keep them apart:
+         *     `SERIES_NOT_FOUND` against `SOURCE_UNREACHABLE`.
+         */
+        get: operations["getSeries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/episodes/{id}/playback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtain the stream URL for one episode, on demand
+         * @description The third of the family, and everything written on
+         *     `GET /channels/{id}/playback` and `GET /vod/{id}/playback` applies here
+         *     unchanged: issued at the moment of playback after checking ownership, never
+         *     logged, never cached in a shared store, and opened by the player directly
+         *     against the user's own server.
+         *
+         *     A third operation rather than a shared one for the reason there are already
+         *     two: three id spaces, and an identifier that could not be resolved without
+         *     being told which one it belongs to.
+         *
+         *     **An episode's URL is built like a film's**, from the panel's identifier
+         *     and container extension: `/series/{user}/{pass}/{id}.{ext}`. The path
+         *     segment differs from a film's `/movie/`, and that is the only difference a
+         *     client never sees.
+         */
+        get: operations["getEpisodePlayback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/favorites": {
         parameters: {
             query?: never;
@@ -1029,7 +1193,8 @@ export interface components {
          *       `SOURCE_SYNC_IN_PROGRESS`, `SOURCE_SYNC_RATE_LIMITED`, plus every
          *       `IngestionErrorCode`.
          *     - **Catalogue and user data** — `CHANNEL_NOT_FOUND`,
-         *       `VOD_ITEM_NOT_FOUND`, `FAVORITE_NOT_FOUND`, `FAVORITE_ALREADY_EXISTS`,
+         *       `VOD_ITEM_NOT_FOUND`, `SERIES_NOT_FOUND`, `EPISODE_NOT_FOUND`,
+         *       `FAVORITE_NOT_FOUND`, `FAVORITE_ALREADY_EXISTS`,
          *       `FAVORITE_GROUP_NOT_FOUND`, `FAVORITE_GROUP_ALREADY_EXISTS`,
          *       `FAVORITE_GROUP_NOT_DELETABLE`.
          *
@@ -1047,7 +1212,7 @@ export interface components {
          *       second: removing something, or upgrading.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "VOD_ITEM_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_DELETABLE" | "SOURCE_LIMIT_REACHED" | "DEVICE_LIMIT_REACHED" | "ALREADY_SUBSCRIBED" | "BILLING_CUSTOMER_NOT_FOUND";
+        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "VOD_ITEM_NOT_FOUND" | "SERIES_NOT_FOUND" | "EPISODE_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_DELETABLE" | "SOURCE_LIMIT_REACHED" | "DEVICE_LIMIT_REACHED" | "ALREADY_SUBSCRIBED" | "BILLING_CUSTOMER_NOT_FOUND";
         /**
          * @description UI language. FR and EN are supported from the first screen.
          * @enum {string}
@@ -1094,6 +1259,7 @@ export interface components {
          *     | `AUTHENTICATED` | Credentials accepted; nothing parsed yet. |
          *     | `PARSING_CHANNELS` | Reading the live channels. |
          *     | `PARSING_VOD` | Reading the film catalogue, when the source has one. |
+         *     | `PARSING_SERIES` | Reading the series list, on an Xtream source. |
          *     | `FETCHING_EPG` | Retrieving the XMLTV guide, when the source has one. |
          *
          *     These are the server's real phases and must stay so. A step the
@@ -1105,20 +1271,37 @@ export interface components {
          *     an ingestion that stayed on `PARSING_CHANNELS` throughout would leave the
          *     waiting screen still and silent for the longest minute of the import —
          *     which is where somebody decides the application is broken and closes it.
+         *
+         *     `PARSING_SERIES` earns it the same way and no more: it is `get_series`,
+         *     one call for the flat list, which on a panel with eight hundred series is
+         *     a real pause. It is **not** the tree — `get_series_info` is per series and
+         *     happens when somebody opens one, long after any ingestion has finished.
+         *
+         *     An M3U source never reports it. A playlist declares no series
+         *     (`adr/0010`), so there is no phase to report, and a step shown for a
+         *     source that never runs it would be exactly the reassuring fiction this
+         *     enumeration refuses.
          * @enum {string}
          */
-        SyncStep: "CONNECTING" | "AUTHENTICATED" | "PARSING_CHANNELS" | "PARSING_VOD" | "FETCHING_EPG";
+        SyncStep: "CONNECTING" | "AUTHENTICATED" | "PARSING_CHANNELS" | "PARSING_VOD" | "PARSING_SERIES" | "FETCHING_EPG";
         /**
          * @description Kind of catalogue a `category` groups.
          *
-         *     `LIVE` and `VOD` are ingested and served, each with its own listing and
-         *     its own playback operation. `SERIES` is **accepted by this enumeration
-         *     and produced by nothing**: the column and the value exist so the schema
-         *     is complete, and the ingestion that would fill them is sprint 6.
+         *     All three are now ingested and served, each with its own listing and its
+         *     own playback operation. `SERIES` was the last to arrive; until sprint 6
+         *     the value existed so the schema was complete and nothing produced it.
          *
-         *     An earlier version of this description claimed all three were ingested.
-         *     They were not — only `LIVE` was — and a false sentence in the document
-         *     that decides what the server does costs more than an absent one.
+         *     An earlier version of this description claimed all three were ingested
+         *     when only `LIVE` was. That was corrected rather than left standing: a
+         *     false sentence in the document that decides what the server does costs
+         *     more than an absent one — and the sentence above is written the day the
+         *     third one became true, not the day it was planned.
+         *
+         *     **`SERIES` is only ever produced by an Xtream source** (`adr/0010`). A
+         *     playlist declares no season and no episode, and this API does not
+         *     reconstruct a tree from titles: an M3U entry that looks like an episode
+         *     is classified by `adr/0009` like anything else, and stays a film or a
+         *     channel.
          *
          *     How an entry becomes `VOD` differs by source, and only one of the two
          *     cases is a judgement call. An Xtream panel answers it itself, through
@@ -1858,6 +2041,259 @@ export interface components {
             total_pages: number;
         };
         /**
+         * @description A series, as a listing carries one.
+         *
+         *     **A `VodItem` minus one field and plus one.** No `container_extension`,
+         *     because a series is not played — its episodes are. And an
+         *     `episode_run_time`, which is indicative rather than authoritative: it is
+         *     what the panel says a typical episode lasts, not the length of any
+         *     particular one.
+         *
+         *     Everything else is a film's, deliberately: `poster_url` nullable, `plot`
+         *     absent from listings and filled by `GET /series/{id}`, `rating` echoed
+         *     verbatim. A client that wrote a film card can draw this one.
+         *
+         *     **No season and no episode here.** They cost a call to the user's own
+         *     server, per series — see `GET /sources/{id}/series`.
+         */
+        Series: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            source_id: string;
+            /** Format: uuid */
+            category_id?: string | null;
+            /** @description Identifier used by the origin panel. */
+            external_id?: string | null;
+            name: string;
+            /**
+             * @description Artwork advertised by the user's own source. Lumo ships no bundled
+             *     poster and no fallback of its own; null means a client renders the
+             *     title, never a picture of ours standing in for one of theirs.
+             */
+            poster_url?: string | null;
+            /** @description First-broadcast year, when the source states one. */
+            year?: number | null;
+            /**
+             * @description Typical episode length in minutes, as the panel states it.
+             *
+             *     **Indicative, and never used as a duration.** A saved position needs
+             *     the length of the episode being watched, which is
+             *     `Episode.duration_seconds`; using this in its place would compute
+             *     "finished" against a number that belongs to no episode in particular.
+             */
+            episode_run_time?: number | null;
+            /**
+             * @description Whatever the source calls a rating, echoed verbatim and never
+             *     reinterpreted — the same ruling as `VodItem.rating`.
+             */
+            rating?: string | null;
+            /**
+             * @description Synopsis, and **absent from the listing on purpose**, exactly as on
+             *     `VodItem`: it arrives with the tree, from the single call that
+             *     `GET /series/{id}` makes.
+             */
+            plot?: string | null;
+            /**
+             * Format: int32
+             * @description Display order within the source.
+             */
+            position: number;
+            /**
+             * @description As the source flags it. Exposed and **not acted on**: filtering it is
+             *     a parental control, parental control needs profiles, and profiles are
+             *     v2.
+             */
+            is_adult: boolean;
+        };
+        /** @description One page of series. The envelope of every other listing. */
+        SeriesPage: {
+            items: components["schemas"]["Series"][];
+            /**
+             * Format: int32
+             * @description Zero-based index of this page.
+             */
+            page: number;
+            /**
+             * Format: int32
+             * @description Requested page size, after the server-side cap.
+             */
+            size: number;
+            /**
+             * Format: int64
+             * @description Total series matching the filters.
+             */
+            total_elements: number;
+            /** Format: int32 */
+            total_pages: number;
+        };
+        /**
+         * @description One series and its whole tree, as `GET /series/{id}` returns it.
+         *
+         *     A separate schema from `Series` rather than `Series` with a nullable
+         *     `seasons`: a listing never carries the tree and a detail read always does,
+         *     so a shared schema would make every client check for a field that is
+         *     absent by construction in one case and present by construction in the
+         *     other.
+         */
+        SeriesDetail: {
+            series: components["schemas"]["Series"];
+            /**
+             * @description Ordered by `season_number`. **May be empty**, and that is not an
+             *     error: some panels list a series and answer `get_series_info` with
+             *     nothing. A client shows the series with no episodes rather than a
+             *     failure — the series exists, its tree does not.
+             */
+            seasons: components["schemas"]["Season"][];
+        };
+        /**
+         * @description A season, which is an intercalary level and not an object anybody opens
+         *     for itself.
+         *
+         *     Hence the four fields and no more: a number, a count, artwork when the
+         *     panel has some, and the episodes. There is no `GET /seasons/{id}` and
+         *     there should not be — a season is reached through its series and has no
+         *     life of its own.
+         */
+        Season: {
+            /**
+             * Format: int32
+             * @description As the panel numbers it. **Zero occurs** and means specials on many
+             *     panels; it is passed through rather than renamed, because deciding it
+             *     means "specials" would be this layer interpreting a provider's
+             *     convention.
+             */
+            season_number: number;
+            /**
+             * Format: int32
+             * @description How many episodes the panel claims this season has.
+             *
+             *     **It can disagree with `episodes`, and the list wins.** A panel that
+             *     announces twenty-four and returns twenty-two has twenty-two episodes
+             *     somebody can watch. The claim is carried because it is occasionally
+             *     the only hint that a season is incomplete; it is never what a client
+             *     counts.
+             */
+            episode_count?: number | null;
+            /**
+             * @description Season artwork when the panel has some, which is uncommon. Null falls
+             *     back to the series poster — never to a picture of ours.
+             */
+            poster_url?: string | null;
+            /** @description Ordered by `episode_number`. */
+            episodes: components["schemas"]["Episode"][];
+        };
+        /**
+         * @description One episode. The thing that is actually played, and the thing a saved
+         *     position points at.
+         *
+         *     **`container_extension` is absent**, for the reason it is absent from
+         *     `VodItem`: it is a fragment the server uses to build a playback URL, and
+         *     no client has anything to do with it.
+         *
+         *     **`series_id` is present**, and it is the field that makes a resume rail
+         *     possible: `GET /me/progress` returns episode identifiers, and something
+         *     has to group them back into series before anything can be drawn. See
+         *     `GET /sources/{id}/episodes`.
+         */
+        Episode: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The series this episode belongs to. See the schema note.
+             */
+            series_id: string;
+            /**
+             * Format: uuid
+             * @description Carried for the same reason `PlaybackProgress` carries one: a client
+             *     resolving a rail has to know which source to ask, and deriving it from
+             *     the series would mean a lookup it does not have.
+             */
+            source_id: string;
+            /** @description Identifier used by the origin panel. */
+            external_id?: string | null;
+            /** Format: int32 */
+            season_number: number;
+            /** Format: int32 */
+            episode_number: number;
+            /**
+             * @description Episode title, when the panel has one. **Null far more often than
+             *     for a film**, and a client shows "Episode 4" rather than an empty line
+             *     — the number is always there, the title is not.
+             */
+            name?: string | null;
+            /**
+             * Format: int64
+             * @description Length of *this* episode, when the source states one. This is what a
+             *     client uses to decide an episode is finished, never
+             *     `Series.episode_run_time`.
+             */
+            duration_seconds?: number | null;
+            /**
+             * @description Episode synopsis, when the panel supplies one. It arrives with the
+             *     tree, so unlike a film's it costs no extra call — one
+             *     `get_series_info` returns every episode's.
+             */
+            plot?: string | null;
+        };
+        /**
+         * @description Episodes resolved by identifier. The envelope of every other listing,
+         *     used here so a client reuses what it already parses.
+         */
+        EpisodePage: {
+            items: components["schemas"]["Episode"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            size: number;
+            /** Format: int64 */
+            total_elements: number;
+            /** Format: int32 */
+            total_pages: number;
+        };
+        /**
+         * @description Everything the player needs to open one episode. Issued on demand, scoped
+         *     to the owner.
+         *
+         *     A third schema rather than a generic one with a renamed identifier: the
+         *     three point at three different tables, and a player handed "an id" it
+         *     cannot name is how an episode gets looked up among the films. The rules on
+         *     `stream_url` are the ones written on `PlaybackInfo` and are not repeated
+         *     — there is exactly one place they are stated.
+         *
+         *     **An episode plays like a film**: a progressive file, not an HLS manifest,
+         *     so seeking works only if the user's server answers `Range` requests. A
+         *     player finds that out on the first attempt and says so.
+         */
+        EpisodePlaybackInfo: {
+            /** Format: uuid */
+            episode_id: string;
+            /**
+             * Format: password
+             * @description **Sensitive**, and typed `format: password` for the reason given on
+             *     `PlaybackInfo.stream_url`: it must never reach a log line at any
+             *     level, `DEBUG` included.
+             */
+            stream_url: string;
+            /**
+             * @description User-Agent the player should send, when the source requires a
+             *     specific one. Null means the client's default.
+             */
+            user_agent?: string | null;
+            /**
+             * @description Simultaneous streams the user's subscription allows. An episode counts
+             *     against that ceiling exactly as a channel or a film does.
+             */
+            max_connections?: number | null;
+            /**
+             * Format: date-time
+             * @description When this URL stops being valid, when the panel issues time-limited
+             *     links. Null means no known expiry.
+             */
+            expires_at?: string | null;
+        };
+        /**
          * @description Everything the player needs to open one channel. Issued on demand,
          *     scoped to the owner.
          */
@@ -2091,9 +2527,10 @@ export interface components {
             item_type: components["schemas"]["ProgressItemType"];
             /**
              * @description Identifier of the item, opaque to this API. For `VOD` it is
-             *     `VodItem.id` — see `SaveProgressRequest.item_ref`, where that is
-             *     argued — which is what lets a "continue watching" rail resolve these
-             *     rows through `GET /sources/{id}/vod?ids=`.
+             *     `VodItem.id` and for `EPISODE` it is `Episode.id` — see
+             *     `SaveProgressRequest.item_ref`, where both are argued — which is what
+             *     lets a "continue watching" rail resolve these rows through
+             *     `GET /sources/{id}/vod?ids=` and `GET /sources/{id}/episodes?ids=`.
              */
             item_ref: string;
             /**
@@ -2178,11 +2615,12 @@ export interface components {
              *     would otherwise collide. The bug would look like a film mysteriously
              *     resuming twenty minutes in.
              *
-             *     **What clients actually send for `VOD` is `VodItem.id`** — see
-             *     `item_ref` below — which makes this field redundant *for that type*
-             *     and not for the schema. It stays required rather than being narrowed
-             *     to a case: a required field that is sometimes ignored is cheaper than
-             *     a key that changes shape when `EPISODE` arrives.
+             *     **What clients actually send is one of our own identifiers** — see
+             *     `item_ref` below — which makes this field redundant for both types
+             *     and not for the schema. It stays required: a required field that is
+             *     sometimes redundant is cheaper than a key that changes shape, and it
+             *     is what lets a client filter a page of progress down to one source
+             *     without resolving every row first.
              *
              *     The alternative was a convention — prefix `item_ref` with the source
              *     id — and it was refused: a convention is a rule three clients have to
@@ -2208,8 +2646,26 @@ export interface components {
              *     re-synchronisations — which is the property a panel-minted reference
              *     would have been chosen for.
              *
-             *     `EPISODE` decides its own when series arrive. The field stays opaque
-             *     precisely so that decision is not pre-empted here.
+             *     **For `EPISODE`, send `Episode.id`** — decided in `S6-01`, on the
+             *     same argument and with one more step to resolve.
+             *
+             *     A "continue watching" rail for series shows **series**, not episodes:
+             *     nobody remembers an episode identifier, they remember having got to
+             *     episode four. So a saved position has to resolve to a series *and* to
+             *     a place in it. `GET /sources/{id}/episodes?ids=` turns these rows into
+             *     episodes carrying `series_id`, `season_number` and
+             *     `episode_number`; `GET /sources/{id}/series?ids=` turns those into
+             *     posters and titles. Two requests for a whole rail, not two per row.
+             *
+             *     That resolver exists **because of this field**, and it was added when
+             *     this decision was taken rather than discovered when the rail was
+             *     built — which is what happened for films in sprint 5.
+             *
+             *     The stability argument is the film one: `episode` is upserted on
+             *     `(series_id, external_id)` — the panel's own episode identifier, which
+             *     unlike a season's always exists because it is what the playback URL is
+             *     built from. A row therefore keeps its id across re-synchronisations
+             *     and across the tree being refetched when its cache expires.
              */
             item_ref: string;
             /** Format: int64 */
@@ -3462,6 +3918,204 @@ export interface operations {
              *     channel, and they mean the same things: a subscription's
              *     simultaneous-stream limit counts a film exactly as it counts a
              *     channel.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listSeries: {
+        parameters: {
+            query?: {
+                /** @description Restrict to one category. Its `content_type` is `SERIES`. */
+                categoryId?: string;
+                /**
+                 * @description Free-text search on the title. Case-insensitive substring, as on the
+                 *     other two listings.
+                 */
+                q?: string;
+                /**
+                 * @description Resolve these series, and only these. Repeatable, bounded at 100, same
+                 *     semantics as `ids` everywhere else — unknown identifiers are absent
+                 *     from the answer rather than an error.
+                 *
+                 *     **Send `size` with it.** The default page is 50, so a hundred
+                 *     identifiers asked for without it come back half answered, with a `200`
+                 *     and nothing to say the rest was dropped.
+                 */
+                ids?: string[];
+                /** @description Zero-based page index. */
+                page?: components["parameters"]["Page"];
+                /** @description Page size. Capped server-side so a large catalogue cannot be pulled in one call. */
+                size?: components["parameters"]["Size"];
+            };
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of series, ordered by category then `position`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeriesPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["SourceNotFound"];
+            409: components["responses"]["SourceNotReady"];
+        };
+    };
+    resolveEpisodes: {
+        parameters: {
+            query: {
+                /**
+                 * @description The episodes to resolve. Repeatable, bounded at 100, unknown
+                 *     identifiers absent from the answer rather than an error.
+                 *
+                 *     **Send `size` with it**, for the reason repeated on every `ids`
+                 *     parameter in this document.
+                 */
+                ids: string[];
+                /** @description Zero-based page index. */
+                page?: components["parameters"]["Page"];
+                /** @description Page size. Capped server-side so a large catalogue cannot be pulled in one call. */
+                size?: components["parameters"]["Size"];
+            };
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /**
+             * @description The episodes that exist and belong to a source owned by the caller.
+             *     Order is not guaranteed to match `ids`: the caller holds the order it
+             *     wants, and re-sorting here would be guessing which one.
+             */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EpisodePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["SourceNotFound"];
+        };
+    };
+    getSeries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The series and its tree. `plot` is null when the source supplied none. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeriesDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /**
+             * @description No such series on a source owned by the caller (`SERIES_NOT_FOUND`),
+             *     reported as `404` and not `403` so the endpoint cannot be used to
+             *     probe for identifiers.
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: components["responses"]["SourceNotReady"];
+            /**
+             * @description The user's panel could not be reached or refused
+             *     (`SOURCE_UNREACHABLE`, `SOURCE_AUTH_FAILED`, `SOURCE_EXPIRED`), and
+             *     no cached tree is available to serve instead.
+             *
+             *     **Distinct from `404` by design.** The series exists; what failed is
+             *     the call that fills in its seasons. Retrying is the right advice, and
+             *     a client that said "not found" here would give the wrong one.
+             */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getEpisodePlayback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Playback details for this episode. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EpisodePlaybackInfo"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /**
+             * @description No such episode, or it does not belong to a source owned by the caller
+             *     (`EPISODE_NOT_FOUND`). A `404` and not a `403`, so the endpoint
+             *     cannot be used to probe for identifiers.
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /**
+             * @description The source cannot serve playback right now — `SOURCE_NOT_READY`,
+             *     `SOURCE_EXPIRED`, `SOURCE_MAX_CONNECTIONS`. The same three as for a
+             *     channel and a film, meaning the same things: an episode counts against
+             *     a subscription's simultaneous-stream ceiling exactly as they do.
              */
             409: {
                 headers: {

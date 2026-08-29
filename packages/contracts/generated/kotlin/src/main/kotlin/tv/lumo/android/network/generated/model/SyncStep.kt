@@ -20,9 +20,9 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * Where a running ingestion has got to.  `SourceStatus` says whether ingestion is running; this says how far it is. Onboarding waits here — a large playlist takes up to a minute — and a minute of silence is where a user concludes it is broken and closes the application. A named step says two things an indeterminate spinner cannot: that it is moving, and how far it got when it fails.  | Value | Cause | |---|---| | `CONNECTING` | Opening the connection to the user's server. | | `AUTHENTICATED` | Credentials accepted; nothing parsed yet. | | `PARSING_CHANNELS` | Reading the live channels. | | `PARSING_VOD` | Reading the film catalogue, when the source has one. | | `FETCHING_EPG` | Retrieving the XMLTV guide, when the source has one. |  These are the server's real phases and must stay so. A step the implementation does not actually distinguish is a reassuring fiction, and three true steps beat four invented ones.  `PARSING_VOD` earns its place by that rule rather than in spite of it: a film catalogue is commonly three times the size of the channel list, so an ingestion that stayed on `PARSING_CHANNELS` throughout would leave the waiting screen still and silent for the longest minute of the import — which is where somebody decides the application is broken and closes it. 
+ * Where a running ingestion has got to.  `SourceStatus` says whether ingestion is running; this says how far it is. Onboarding waits here — a large playlist takes up to a minute — and a minute of silence is where a user concludes it is broken and closes the application. A named step says two things an indeterminate spinner cannot: that it is moving, and how far it got when it fails.  | Value | Cause | |---|---| | `CONNECTING` | Opening the connection to the user's server. | | `AUTHENTICATED` | Credentials accepted; nothing parsed yet. | | `PARSING_CHANNELS` | Reading the live channels. | | `PARSING_VOD` | Reading the film catalogue, when the source has one. | | `PARSING_SERIES` | Reading the series list, on an Xtream source. | | `FETCHING_EPG` | Retrieving the XMLTV guide, when the source has one. |  These are the server's real phases and must stay so. A step the implementation does not actually distinguish is a reassuring fiction, and three true steps beat four invented ones.  `PARSING_VOD` earns its place by that rule rather than in spite of it: a film catalogue is commonly three times the size of the channel list, so an ingestion that stayed on `PARSING_CHANNELS` throughout would leave the waiting screen still and silent for the longest minute of the import — which is where somebody decides the application is broken and closes it.  `PARSING_SERIES` earns it the same way and no more: it is `get_series`, one call for the flat list, which on a panel with eight hundred series is a real pause. It is **not** the tree — `get_series_info` is per series and happens when somebody opens one, long after any ingestion has finished.  An M3U source never reports it. A playlist declares no series (`adr/0010`), so there is no phase to report, and a step shown for a source that never runs it would be exactly the reassuring fiction this enumeration refuses. 
  *
- * Values: CONNECTING,AUTHENTICATED,PARSING_CHANNELS,PARSING_VOD,FETCHING_EPG
+ * Values: CONNECTING,AUTHENTICATED,PARSING_CHANNELS,PARSING_VOD,PARSING_SERIES,FETCHING_EPG
  */
 
 @JsonClass(generateAdapter = false)
@@ -39,6 +39,9 @@ enum class SyncStep(val value: kotlin.String) {
 
     @Json(name = "PARSING_VOD")
     PARSING_VOD("PARSING_VOD"),
+
+    @Json(name = "PARSING_SERIES")
+    PARSING_SERIES("PARSING_SERIES"),
 
     @Json(name = "FETCHING_EPG")
     FETCHING_EPG("FETCHING_EPG");

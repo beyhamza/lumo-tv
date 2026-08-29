@@ -64,4 +64,5 @@
     <string name="feature_source_error_rate_limited_seconds">Trop de tentatives. Réessayez dans %1$d secondes.</string>
     <string name="feature_source_error_offline">Pas de connexion. Rien n\'a été envoyé.</string>
     <string name="feature_source_error_unexpected">Une erreur est survenue. Réessayez.</string>
+    <string name="feature_source_step_parsing_series">Lecture de la liste des séries</string>
 </resources>
