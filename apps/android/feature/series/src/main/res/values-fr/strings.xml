@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="feature_series_title">Séries</string>
-    <string name="feature_series_placeholder">Cet écran arrive dans un prochain sprint. Vos séries sont déjà synchronisées.</string>
     <string name="feature_series_search">Rechercher une série</string>
     <string name="feature_series_all_categories">Toutes</string>
     <string name="feature_series_category_count">%1$s (%2$d)</string>
@@ -43,4 +42,9 @@
     <string name="feature_series_player_episode_gone">Cet épisode n\'est plus listé. Rouvrez la série.</string>
     <string name="feature_series_player_unplayable">Cet épisode ne peut pas être lu sur cet appareil.</string>
     <string name="feature_series_player_unexpected">Cet épisode n\'a pas pu être lu.</string>
+    <string name="feature_series_up_next">À suivre</string>
+    <string name="feature_series_up_next_in">À suivre dans %1$d s</string>
+    <string name="feature_series_play_next">Lire</string>
+    <string name="feature_series_tv_loading">Chargement des séries…</string>
+    <string name="feature_series_tv_back_hint">Appuyez sur RETOUR pour revenir à la série.</string>
 </resources>

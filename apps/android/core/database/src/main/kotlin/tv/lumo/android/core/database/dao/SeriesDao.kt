@@ -78,6 +78,26 @@ interface SeriesDao {
     )
     fun observeEpisodes(seriesId: String): Flow<List<EpisodeEntity>>
 
+    /**
+     * The same two reads as [observeSeasons] and [observeEpisodes], asked once.
+     *
+     * A flow is what a screen wants: it redraws when the tree changes underneath.
+     * Deciding which episode comes next is a question asked once, at the end of
+     * one episode, and a subscription opened to answer it would have to be closed
+     * again immediately.
+     */
+    @Query("SELECT * FROM season WHERE series_id = :seriesId ORDER BY season_number")
+    suspend fun seasonsOf(seriesId: String): List<SeasonEntity>
+
+    @Query(
+        """
+        SELECT * FROM episode
+        WHERE series_id = :seriesId
+        ORDER BY season_number, episode_number
+        """,
+    )
+    suspend fun episodesOf(seriesId: String): List<EpisodeEntity>
+
     @Query("SELECT * FROM episode WHERE id IN (:ids)")
     suspend fun episodesByIds(ids: List<String>): List<EpisodeEntity>
 

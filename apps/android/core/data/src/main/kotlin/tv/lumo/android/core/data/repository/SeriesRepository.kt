@@ -25,6 +25,7 @@ import tv.lumo.android.core.data.model.Episode
 import tv.lumo.android.core.data.model.Season
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
+import tv.lumo.android.core.data.model.episodeAfter
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.SeriesDao
 import tv.lumo.android.core.database.model.CategoryEntity
@@ -275,6 +276,32 @@ class SeriesRepository @Inject internal constructor(
         if (ids.isEmpty()) emptyList() else seriesDao.episodesByIds(ids).map { it.asEpisode() }
     }
 
+    /**
+     * The episode that follows this one, or null (S6-06).
+     *
+     * **Answered from the cache and nothing else.** An episode ending is the worst
+     * possible moment to make a request: the network is exactly where it was a
+     * moment ago, the panel is slow, and the countdown would be spent watching a
+     * spinner rather than deciding. The tree is in Room because the viewer opened
+     * this series to reach this episode — if it were not, they could not have.
+     *
+     * A tree that is *not* held returns null, which is the honest answer: nothing
+     * is offered rather than something guessed. That happens after a process death
+     * mid-episode, and offering nothing there is what the last episode of a series
+     * already does — one behaviour, not two.
+     *
+     * The rule itself is `List<Season>.episodeAfter`, which is where it is
+     * documented and where it is tested.
+     */
+    suspend fun nextEpisode(episodeId: String): Episode? = withContext(io) {
+        val current = seriesDao.episodesByIds(listOf(episodeId)).firstOrNull()
+            ?: return@withContext null
+
+        assemble(
+            seasons = seriesDao.seasonsOf(current.seriesId),
+            episodes = seriesDao.episodesOf(current.seriesId),
+        ).episodeAfter(episodeId)
+    }
     /** Drops one source's series, for a source the user just deleted. */
     suspend fun forget(sourceId: String) = withContext(io) {
         // Seasons and episodes cascade with their series.

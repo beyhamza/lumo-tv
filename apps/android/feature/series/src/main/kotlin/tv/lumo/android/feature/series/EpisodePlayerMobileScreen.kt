@@ -25,15 +25,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.player.PlaybackProgress
 import tv.lumo.android.core.player.PlaybackState
@@ -51,6 +55,20 @@ import tv.lumo.android.core.player.ui.LumoVideoSurface
  *
  * A copy rather than a shared screen because a feature module never depends on
  * another (`settings.gradle.kts`); the argument is on `EpisodePlayerViewModel`.
+ *
+ * <h2>The next episode, with a shorter countdown than the television (S6-06)</h2>
+ *
+ * The behaviour is written for the television, where it matters — somebody three
+ * metres away with a remote in their lap — and it is the same behaviour here
+ * because a viewer who owns both should not have to learn it twice.
+ *
+ * **The count is shorter**, and the reason is the distance: a phone is held, the
+ * card is a thumb away, and ten seconds of looking at it is nine seconds of
+ * waiting. Five is the number, and it is the only difference — the offer, the
+ * cancellation and the end of a series are the view model's and are shared.
+ *
+ * **Any touch stops the count.** On a television that is a key press; here it is a
+ * touch anywhere on the picture, which is the same gesture in the same spirit.
  */
 @Composable
 fun EpisodePlayerMobileScreen(
@@ -65,7 +83,13 @@ fun EpisodePlayerMobileScreen(
     // Keyed on the episode: opening a different one restarts, turning the phone
     // does not — the Activity declares `configChanges` and the player is a
     // singleton.
-    LaunchedEffect(episodeId) { viewModel.start(episodeId, title) }
+    LaunchedEffect(episodeId) {
+        viewModel.start(episodeId, title, autoAdvanceSeconds = AUTO_ADVANCE_SECONDS)
+    }
+
+    // The last episode of the series has finished. Nothing is offered, so the
+    // screen leaves rather than holding a frozen last frame.
+    LaunchedEffect(state.finished) { if (state.finished) onBack() }
 
     ImmersiveWhileVisible()
 
@@ -78,7 +102,19 @@ fun EpisodePlayerMobileScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(Color.Black)
+            // Every touch, in the initial pass, before the slider or a button
+            // consumes it. Somebody touching the screen is somebody watching, and
+            // an episode starting under their thumb is what this prevents — the
+            // television does the same with a key press.
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent(PointerEventPass.Initial)
+                        viewModel.keepWatching()
+                    }
+                }
+            },
         contentAlignment = Alignment.Center,
     ) {
         LumoVideoSurface(player = viewModel.player, modifier = Modifier.fillMaxSize())
@@ -107,6 +143,77 @@ fun EpisodePlayerMobileScreen(
                 onTogglePlay = viewModel::togglePlayPause,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
+        }
+
+        state.upNext?.let { offer ->
+            UpNextCard(
+                offer = offer,
+                onPlay = viewModel::playNext,
+                onDismiss = onBack,
+                modifier = Modifier.align(Alignment.BottomEnd),
+            )
+        }
+    }
+}
+
+/**
+ * The offer at the end of an episode.
+ *
+ * Over the picture rather than replacing it: the credits are part of what
+ * somebody is watching, and a card that blacked them out would answer a question
+ * nobody asked.
+ *
+ * **The count is shown, always**, and not only as a shrinking bar. A number is
+ * what tells somebody how long they have to decide; an animation tells them
+ * something is happening.
+ *
+ * Two controls, and the second is not a decoration: without a way to say no, the
+ * only way out of an automatic advance is the back key, and on a phone that means
+ * leaving the player entirely.
+ */
+@Composable
+private fun UpNextCard(
+    offer: UpNext,
+    onPlay: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val label = offer.episode.name
+        ?: stringResource(R.string.feature_series_episode, offer.episode.episodeNumber)
+
+    Column(
+        modifier = modifier
+            .padding(LumoSpacing.md)
+            .background(
+                color = MaterialTheme.colorScheme.surface,
+                shape = LumoShapes.medium,
+            )
+            .padding(LumoSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+    ) {
+        Text(
+            text = offer.secondsLeft
+                ?.let { stringResource(R.string.feature_series_up_next_in, it) }
+                ?: stringResource(R.string.feature_series_up_next),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
+            Button(onClick = onPlay) {
+                Text(stringResource(R.string.feature_series_play_next))
+            }
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.feature_series_player_back))
+            }
         }
     }
 }
@@ -300,3 +407,13 @@ private const val MILLIS_PER_SECOND = 1_000L
 private const val SECONDS_PER_MINUTE = 60L
 private const val MINUTES_PER_HOUR = 60L
 private const val SECONDS_PER_HOUR = 3_600L
+
+/**
+ * Five seconds, against the television's ten.
+ *
+ * A phone is held: the card is a thumb away and the decision is instant. Ten
+ * seconds at arm's length is nine seconds of waiting for something already
+ * decided — and the same ten seconds across a room is barely enough to find the
+ * remote.
+ */
+private const val AUTO_ADVANCE_SECONDS = 5

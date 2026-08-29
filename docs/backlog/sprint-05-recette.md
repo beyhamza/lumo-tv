@@ -274,8 +274,9 @@ source sans films elle ouvre sur la grille qui explique.
 > écran, pas de barre d'adresse. Un appui pour atteindre une grille qui s'explique
 > vaut mieux qu'une fonction introuvable.
 >
-> **Pas d'entrée Séries** tant que `S6-06` n'a pas livré son écran, pour la raison
-de R-212.
+> **L'entrée Séries est là depuis `S6-06`**, à la suite des films, et pour la même
+> raison : l'écran derrière elle existe. Ce que R-212 tient encore à distance sur
+> les deux surfaces est la recherche.
 
 **R-251 · Le focus arrive sur la première affiche** · S5-09 · TV
 → Pas sur la bande de catégories.

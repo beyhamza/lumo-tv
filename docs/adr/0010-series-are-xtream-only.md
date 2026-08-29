@@ -137,9 +137,9 @@ can.
 > gaining a screen rather than by gaining a catalogue — which is the rule stated
 > the right way round. `MobileDestinations` carries the tab unconditionally, and
 > the last `doesNotContain` in `MobileDestinationsTest` now guards *search*, the
-> one destination still standing on a placeholder. The television follows with
-> `S6-06`; until then `TvDestinations` keeps series out for the same reason, and
-> its own test says so.
+> one destination still standing on a placeholder. **The television followed with
+> `S6-06`**, and `TvDestinationsTest` moved the same way — search is the last
+> destination either rule keeps out, on either surface.
 >
 > A source with no series opens onto a grid that says so, and an M3U playlist
 > gets a sentence of its own: the format declares neither season nor episode.

@@ -178,10 +178,18 @@ jamais focalisable.
 
 ## Films (`VodTvScreen`) — la grille d'affiches
 
-Livrée par `S5-09`. **N'existe dans le rail que si la source propose des films**
-(US-13) : une entrée de rail est un arrêt obligatoire en descendant, donc une porte
-sur une pièce vide coûte un appui à chaque spectateur, à chaque trajet, pour une
-pièce que la plupart des playlists M3U n'ont pas.
+Livrée par `S5-09`. **Toujours présente dans le rail**, que la source propose des
+films ou non.
+
+> **Cette section disait le contraire.** L'entrée était conditionnelle, au nom d'un
+> argument qui reste vrai : une entrée de rail est un arrêt obligatoire en
+> descendant, donc une porte sur une pièce vide coûte un appui à chaque spectateur,
+> à chaque trajet. Un usage réel a montré que ce coût est le plus petit des deux —
+> le propriétaire d'un panel de cent quarante et un mille films ne les a pas trouvés
+> et a conclu que la fonction n'existait pas. **Sur une télévision il n'y a nulle
+> part ailleurs où aller vérifier** : pas de second écran, pas de barre d'adresse.
+> Une source sans films ouvre sur une grille qui le dit, ce qui est un appui dépensé
+> pour une réponse plutôt que pour rien.
 
 **Focus à l'arrivée : la première affiche — sauf au retour de la fiche, où c'est le
 film qu'on regardait.**
@@ -336,6 +344,160 @@ se franchisse en une poignée d'appuis plutôt qu'en une minute.
 **Ce qui ne se vérifie qu'à la télécommande, sur cet écran :** qu'un appui sur
 `RIGHT` n'a **jamais** fait apparaître le titre, et que sur un serveur sans `Range`
 la phrase apparaît au premier appui plutôt qu'au bout de plusieurs.
+
+---
+
+## Séries (`SeriesTvScreen`) — la grille d'affiches
+
+Livrée par `S6-06`. **C'est la grille des films, sans une ligne de différence de
+forme**, et cette section existe pour le dire plutôt que pour la redécrire : même
+bande de catégories en haut, même ligne unique d'affiches, même arrivée sur la
+première carte, même arithmétique des 2:3 à trois mètres.
+
+**Focus à l'arrivée : la première affiche — sauf au retour de la fiche, où c'est la
+série qu'on regardait.**
+
+| Depuis | UP | DOWN | LEFT | RIGHT | OK |
+|---|---|---|---|---|---|
+| Affiche, 1re colonne | bande de catégories | — (bord bas) | **rail** | affiche suivante | ouvre la **fiche** |
+| Affiche, ailleurs | bande de catégories | — (bord bas) | affiche précédente | affiche suivante | ouvre la **fiche** |
+| Puce de la bande | — (bord haut) | grille | puce précédente | puce suivante | filtre la grille |
+
+`BACK` revient aux chaînes, destination de départ.
+
+**Deux choses que la bande n'a pas, et les deux sont des décisions.**
+
+- **Pas de puce « Reprendre ».** Celle des films en a une ; rien ne sauvegarde
+  encore la position d'un épisode, donc une puce ici filtrerait sur une étagère
+  vide — ce qui à trois mètres se lit comme une panne. Elle arrive avec `S6-08`, et
+  ce sera une puce de **séries**, pas d'épisodes.
+- **Pas de recherche.** Le téléphone a un champ parce qu'il a un clavier ; une
+  télévision a une D-pad, et un clavier à l'écran est le problème de
+  `feature:search`, pas une seconde solution construite ici.
+
+**Une grille vide dit de quelle sorte de vide il s'agit** — et ici plus qu'ailleurs,
+parce qu'un spectateur devant sa télévision n'a pas de second écran pour aller
+vérifier. Une playlist M3U **ne peut pas** porter de séries (`adr/0010`) ; un panel
+Xtream qui n'en propose pas n'en propose simplement pas. Deux phrases distinctes,
+parce que ce sont deux faits distincts.
+
+---
+
+## Fiche d'une série (`SeriesDetailTvScreen`) — **deux zones de focus**
+
+Livrée par `S6-06`, et **c'est le premier écran de l'application à avoir deux zones
+de focus**. Toutes les surfaces TV précédentes en ont une seule : une grille, une
+bande, un ou deux boutons. Celle-ci a un **sélecteur de saison** et une **liste
+d'épisodes**, et c'est exactement le genre d'écran où une application de télévision
+acquiert le défaut que personne ne voit sur un simulateur.
+
+**Focus à l'arrivée : le premier épisode de la saison ouverte.** Jamais le
+sélecteur de saison : celui qui ouvre une série veut la regarder, et l'étagère où il
+se trouve est la bonne. C'est le raisonnement de `S2-13` sur la bande de catégories,
+appliqué ici.
+
+| Depuis | UP | DOWN | LEFT | RIGHT | OK | BACK |
+|---|---|---|---|---|---|---|
+| Épisode, le premier | **sélecteur de saison** (s'il existe) | épisode suivant | rail | — | **lance l'épisode** | grille, sur cette série |
+| Épisode, ailleurs | épisode précédent | épisode suivant | rail | — | **lance l'épisode** | grille, sur cette série |
+| Épisode, le dernier | épisode précédent | — (bord bas) | rail | — | **lance l'épisode** | grille, sur cette série |
+| Puce de saison | — (bord haut) | liste d'épisodes | puce précédente | puce suivante | ouvre la saison, **et le focus descend sur son premier épisode** | grille, sur cette série |
+| Bouton *Réessayer* (arbre indisponible) | — (seule cible) | — | rail | — | redemande l'arbre | grille, sur cette série |
+
+**`OK` sur une puce de saison descend le focus dans la liste.** Rester sur la puce
+laisserait quelqu'un devant une liste qu'il ne peut atteindre qu'en appuyant sur
+`DOWN` — ça marche, et c'est un appui dépensé à découvrir que ce qu'il a demandé a
+bien eu lieu.
+
+**Le sélecteur disparaît sous deux saisons**, et ce n'est pas de la propreté : ça
+supprime la zone. Une puce seule au-dessus de ses propres épisodes ne dit rien, et
+sur une télécommande le coût est un `UP` que quelqu'un fait avant de savoir qu'il
+était inutile. Avec une saison, `UP` depuis le premier épisode est un bord.
+
+**Le focus arrive sur le premier épisode et pas sur celui à reprendre**, ce que
+l'énoncé de `S6-06` demandait — l'épisode à reprendre, sinon le premier non
+regardé, sinon le premier. Les deux premiers exigent une position sauvegardée, et
+`S6-08` ne l'a pas encore écrite. **Rien ne devine en attendant** : le repli est la
+réponse, et il redeviendra l'exception le jour où il y aura quelque chose à
+préférer.
+
+**L'écran n'est jamais vide pendant que l'arbre charge.** Affiche, titre et
+informations viennent de la liste et sont dessinés à la première image ; seule la
+zone des épisodes attend. Ce sont les quatre états de `S6-04` qui font le travail
+pour lequel on les a séparés, et sur une télévision ça compte plus que sur un
+téléphone : un écran noir à trois mètres est indiscernable d'un téléviseur qui a
+perdu le signal.
+
+**Le synopsis est plafonné**, pour la raison écrite sur la fiche d'un film : la
+réponse complète est un bloc défilant, donc une **troisième** zone de focus dont le
+seul rôle serait de faire bouger du texte — une zone que ce tableau devrait décrire
+comme un endroit où `OK` ne fait rien.
+
+**Ce qui ne se vérifie qu'à la télécommande, sur cet écran :** que `UP` depuis le
+premier épisode atteigne le sélecteur quand il existe **et ne fasse rien quand il
+n'existe pas** — c'est la seule zone conditionnelle de toute l'application, et le
+seul endroit où une carte de focus peut être juste sur le papier et fausse en main.
+
+---
+
+## Lecteur d'épisode (`EpisodePlayerTvScreen`)
+
+Livré par `S6-06`. C'est le lecteur de film avec **une chose en plus**, et cette
+chose est ce qui fait d'une application une application de séries. Tout le reste est
+identique : rien sur l'image au repos, `OK` ouvre la barre d'information, `LEFT` et
+`RIGHT` déplacent et ouvrent **la barre seule**, cinq secondes d'inactivité avant
+qu'une couche parte, et la phrase à côté de la barre quand le serveur refuse `Range`.
+
+**Focus à l'arrivée : la surface vidéo** — sauf quand la carte « À suivre » est là,
+et alors c'est elle.
+
+| Depuis | UP/DOWN | LEFT | RIGHT | OK | BACK |
+|---|---|---|---|---|---|
+| La surface, au repos | — | recule de 10 s, ouvre **la barre seule** | avance de 10 s, ouvre **la barre seule** | ouvre la **barre d'information** | retour à la fiche |
+| La surface, une couche visible | — | recule de 10 s, relance les 5 s | avance de 10 s, relance les 5 s | relance les 5 s | retour à la fiche |
+| Carte *À suivre* | — (seule cible) | — | — | **lance l'épisode suivant** | retour à la fiche |
+| Bouton *Réessayer* (échec) | — (seule cible) | — | — | relance la lecture | retour à la fiche |
+
+**« Épisode suivant », et le comportement par défaut est tout l'enjeu.** À la fin
+d'un épisode une carte propose le suivant et **décompte dix secondes**. `OK` le lance
+tout de suite, `BACK` revient à la fiche.
+
+**Le décompte s'arrête au premier appui, et la carte reste.** Quelqu'un qui appuie
+sur une touche est quelqu'un qui regarde — il a pris la télécommande *parce que* le
+générique a commencé — et lancer un épisode sous son doigt est le genre de chose
+qu'on ne pardonne pas. Ce qu'il perd est la partie automatique ; la proposition est
+toujours là et `OK` la prend.
+
+**N'importe quelle touche**, pas seulement les quatre que cet écran utilise. Le
+décompte est annulé en `onPreviewKeyEvent`, avant tout le reste : une touche que
+l'écran ignore reste une main sur la télécommande.
+
+**La carte prend le focus quand elle apparaît et le rend quand elle part.** C'est la
+moitié qu'une carte de focus existe pour attraper : une carte qui s'en irait avec le
+focus dessus laisserait un écran où `OK` ne fait rien.
+
+**Avancer ne navigue pas.** L'épisode est remplacé dans cet écran, donc six épisodes
+enchaînés laissent **une** entrée de pile et `BACK` est à un appui de la fiche au
+lieu de six. L'enchaînement d'une saison à la suivante et l'arrêt à la fin d'une
+série sont dans `EpisodePlayerViewModel`, partagés avec le téléphone, et la règle
+elle-même est testée dans `core:data`.
+
+**Le dernier épisode d'une série ne propose rien et revient à la fiche.** Une image
+figée sur la dernière image d'une série est, à trois mètres, une application qui a
+cessé de répondre.
+
+**Pas de bouton *Annuler* sur la carte**, contrairement au téléphone : `BACK` est une
+touche physique qui revient déjà à la fiche, et en dessiner un serait une cible que
+ce tableau devrait décrire comme le chemin long vers un appui. Le téléphone en a un
+parce que son geste de retour quitte le lecteur entièrement.
+
+**Dix secondes ici, cinq sur le téléphone.** Une télécommande peut être sur
+l'accoudoir ou sous un coussin ; un téléphone est déjà dans la main. C'est la seule
+différence entre les deux surfaces.
+
+**Ce qui ne se vérifie qu'à la télécommande, sur cet écran :** que le décompte
+s'arrête au premier appui **quelle que soit la touche**, et qu'après cet appui la
+carte est toujours là avec `OK` qui fonctionne.
 
 ---
 

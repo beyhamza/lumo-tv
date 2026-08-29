@@ -141,3 +141,43 @@ data class EpisodePlaybackTarget(
             "userAgent=$userAgent, maxConnections=$maxConnections, " +
             "expiresAtMillis=$expiresAtMillis)"
 }
+
+/**
+ * The episode after this one, across the whole series (S6-06).
+ *
+ * <h2>Why it is one function in `core:data` and not two in two screens</h2>
+ *
+ * "Next episode" is the behaviour that makes an application a series application,
+ * and the television and the phone must not disagree about what "next" means. It
+ * is also the only part of that feature with a right and a wrong answer, so it is
+ * the part worth holding in a test — the countdown, the card and the focus are
+ * Compose, and Compose is not what breaks here.
+ *
+ * <h2>The rules, and each one is a case somebody hits</h2>
+ *
+ * - Inside a season, the next **listed** episode. Not `episodeNumber + 1`: a
+ *   panel that skips a number — and they do, for specials, for a missing file, for
+ *   a numbering that starts at zero — would end a series early on a lookup that
+ *   found nothing.
+ * - At the end of a season, the **first listed episode of the next season**. Again
+ *   the next season *present*, not `seasonNumber + 1`: a panel carrying seasons 1
+ *   and 3 is a panel whose season 2 was never uploaded, and stopping there would
+ *   hide half a series.
+ * - At the end of the last season, **null**. Nothing is offered, and the screen
+ *   goes back to where the viewer was.
+ * - An episode this tree does not contain is **null** as well, not an exception:
+ *   the tree can be refetched under a player that is still running, and a series
+ *   whose provider dropped an episode is not a crash.
+ *
+ * <h2>The tree is read in the order it is given</h2>
+ *
+ * Seasons come from `ORDER BY season_number` and episodes from
+ * `ORDER BY season_number, episode_number`, so this walks a flat list rather than
+ * sorting one. Re-sorting here would be a second opinion about order, and the two
+ * would drift the day one of the queries changes.
+ */
+fun List<Season>.episodeAfter(episodeId: String): Episode? {
+    val flat = flatMap { it.episodes }
+    val index = flat.indexOfFirst { it.id == episodeId }
+    return if (index < 0) null else flat.getOrNull(index + 1)
+}

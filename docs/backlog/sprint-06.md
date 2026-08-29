@@ -203,23 +203,33 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S6-03 | Ingestion : la liste à la synchro, l'arbre à la demande, le cache qui expire | serveur | api | 8 | 100 % |
 | ☑ | S6-04 | `core:data` et Room : l'arbre hors ligne | socle | android | 5 | 100 % |
 | ☐ | S6-05 | Mobile : fiche série, saisons, épisodes | mobile | mobile | 8 | **90 %** |
-| ☐ | S6-06 | TV : la même au D-pad, et « Épisode suivant » | tv | tv | 8 | 0 % |
+| ☐ | S6-06 | TV : la même au D-pad, et « Épisode suivant » | tv | tv | 8 | **90 %** |
 | ☑ | S6-07 | Web : fiche série | web | web | 5 | 100 % |
 | ☐ | S6-08 | Reprendre une série, pas un épisode | 3 clients | mobile + tv + web | 5 | 0 % |
 | ☐ | S6-09 | Web : l'écran Favoris, à l'échelle du compte | web | web | 5 | 0 % |
 
-**Avancement du sprint : 65 % de 54 points.** Le serveur, le socle Android, le web et
-l'écran du téléphone sont livrés. Il reste la télévision, la reprise, et le
-rattrapage web.
+**Avancement du sprint : 79 % de 54 points.** Le serveur, le socle Android, le web et
+les deux surfaces Android sont livrés. Il reste la reprise et le rattrapage web.
 
-**S6-05 est à 90 % et pas à 100 % pour une seule ligne de son énoncé** : la barre de
-progression sur chaque épisode. Elle ne peut pas exister avant S6-08, parce qu'aucune
-position d'épisode n'est enregistrée nulle part — `ProgressRepository.save` n'accepte
-que `VOD`, et le contrat lui-même ne connaît `EPISODE` comme `item_ref` que depuis
-S6-01, sans écriture derrière. **La dépendance de l'énoncé est inversée** : S6-05 ne
-précède pas S6-08, il en attend la moitié. Les dix pour cent restants se ferment le
-jour où la reprise écrit, et rien à réécrire ici — la ligne où la barre se dessine est
-marquée dans `EpisodeRow`.
+**S6-05 et S6-06 sont à 90 %, et les deux buttent sur la même absence** — une
+position d'épisode enregistrée. Ce qui manque à S6-05 est la barre de progression sur
+chaque épisode ; ce qui manque à S6-06 est le focus qui devait arriver sur l'épisode
+à reprendre, sinon sur le premier non regardé.
+
+Aucun des deux ne peut exister avant S6-08 : aucune position d'épisode n'est
+enregistrée nulle part — `ProgressRepository.save` n'accepte que `VOD`, et le
+contrat lui-même ne connaît `EPISODE` comme `item_ref` que depuis S6-01, sans
+écriture derrière. **La dépendance de l'énoncé est inversée** : les deux
+écrans ne précèdent pas S6-08, ils en attendent la moitié. Les dix pour cent
+restants se ferment le jour où la reprise écrit, et il n'y a rien à réécrire ici —
+l'emplacement de la barre est marqué dans les deux `EpisodeRow`, et le repli du
+focus TV est écrit comme un repli plutôt que comme une règle.
+
+**Rien ne devine en attendant**, et c'est la décision qui compte : un écran qui
+aurait choisi « le premier épisode de la dernière saison » ou dessiné une barre à
+zéro aurait produit une réponse fausse plutôt qu'un manque visible. Un repli honnête
+redevient une exception le jour où il y a quelque chose à préférer ; une devinette,
+elle, reste.
 
 **S6-07 est passé avant S6-05 et S6-06**, hors de l'ordre prévu : un signalement
 d'usage a montré que les films et les séries étaient introuvables sur le web, et un
@@ -549,7 +559,7 @@ panel qui ne propose rien.
 
 ---
 
-### S6-06 — TV : la fiche au D-pad, et l'épisode suivant · **8** · dépend de S6-04
+### S6-06 — TV : la fiche au D-pad, et l'épisode suivant · **8** · dépend de S6-04 · ☐ 90 %
 
 La grille reprend `VodTvScreen`. La fiche, elle, est **une nouvelle surface de focus à
 deux zones** — le sélecteur de saison et la liste d'épisodes — donc une nouvelle
@@ -560,6 +570,14 @@ l'arrivée et les quatre directions depuis chaque zone.
 ou à défaut sur le premier épisode. Pas sur le sélecteur de saison : quelqu'un qui
 ouvre une série veut la regarder, et l'étagère où il se trouve est la bonne. C'est
 exactement le raisonnement de `S2-13` sur la bande de catégories, appliqué ici.
+
+> **Les deux premières branches ne sont pas livrées, et c'est le seul manque de la
+> tâche.** Elles exigent une position d'épisode enregistrée, que `S6-08` écrira ;
+> aujourd'hui il n'en existe aucune. Le focus arrive donc sur le premier épisode de
+> la saison ouverte, **et rien ne devine en attendant** : un écran qui aurait choisi
+> « la dernière saison » ou « le dernier épisode listé » aurait donné une réponse
+> fausse au lieu d'un repli visible. La troisième branche est la réponse pour
+> l'instant ; elle redevient le repli le jour où il y a quelque chose à préférer.
 
 **« Épisode suivant » est ce qui fait une application de séries**, et c'est le seul
 endroit du sprint où le comportement par défaut se discute :
@@ -576,6 +594,44 @@ endroit du sprint où le comportement par défaut se discute :
 Ce comportement vaut aussi sur le téléphone, avec un décompte plus court. Il est écrit
 ici parce que c'est sur une télévision qu'il compte, et qu'il se recette télécommande
 en main.
+
+**Où il a été écrit, et pourquoi une seule fois.** Tout — la proposition, le
+décompte, son annulation, l'enchaînement d'une saison à la suivante et l'arrêt à la
+fin d'une série — est dans `EpisodePlayerViewModel`, partagé par les deux surfaces.
+La **seule** différence entre elles est un nombre passé en argument : dix secondes
+sur la télévision, cinq sur le téléphone. Une télécommande peut être sur
+l'accoudoir ; un téléphone est déjà dans la main.
+
+**La règle « quel épisode vient après » est descendue dans `core:data`** —
+`List<Season>.episodeAfter` — et elle est la seule partie de cette fonction qui a une
+bonne et une mauvaise réponse. Le reste est du Compose, et ce n'est pas le Compose
+qui se trompe ici : ce sont les panels. `NextEpisodeTest` tient neuf cas, tous réels —
+un numéro sauté parce que le fichier manque, une saison 2 jamais ingérée entre la 1 et
+la 3, une saison déclarée et vide, un épisode numéroté 0 pour un hors-série, un
+épisode disparu de l'arbre sous un lecteur en train de tourner. Chacun d'eux
+terminerait une série trop tôt sous une implémentation qui ajoute 1 à un numéro.
+
+**Avancer ne navigue pas.** Le suivant remplace le courant dans le même écran : six
+épisodes enchaînés laissent **une** entrée de pile, et `BACK` est à un appui de la
+fiche au lieu de six. C'est la différence entre une soirée et un labyrinthe.
+
+**Le suivant est cherché dans le cache, jamais sur le réseau.** La fin d'un épisode
+est le pire moment possible pour faire une requête : le décompte se passerait à
+regarder un spinner plutôt qu'à décider. L'arbre est dans Room parce que le
+spectateur a ouvert cette série pour arriver à cet épisode — s'il n'y était pas, il
+n'aurait pas pu.
+
+**La carte de focus a gagné trois sections** — la grille, la fiche à deux zones et le
+lecteur — dans [`tv-focus-map.md`](../design/tv-focus-map.md). Celle de la fiche est
+la première de tout le document à décrire **deux zones**, et c'est là que se trouve
+la seule zone conditionnelle de l'application : le sélecteur de saison disparaît sous
+deux saisons, donc `UP` depuis le premier épisode est tantôt un déplacement tantôt un
+bord. Cette ligne-là ne se vérifie que télécommande en main.
+
+> **Au passage, la section *Films* du même document disait encore que l'entrée de
+> rail est conditionnelle.** Elle ne l'est plus depuis le renversement du sprint 5 ;
+> la correction est dans le même commit, parce qu'une carte de focus qui décrit un
+> écran qui n'existe plus est pire qu'une section manquante — on la recette.
 
 ---
 

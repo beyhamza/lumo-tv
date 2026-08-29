@@ -5,7 +5,6 @@
 -->
 <resources>
     <string name="feature_series_title">Series</string>
-    <string name="feature_series_placeholder">This screen arrives in a later sprint. Your series are already synchronised.</string>
     <string name="feature_series_search">Search the series</string>
     <string name="feature_series_all_categories">All</string>
     <string name="feature_series_category_count">%1$s (%2$d)</string>
@@ -47,4 +46,9 @@
     <string name="feature_series_player_episode_gone">This episode is no longer listed. Reopen the series.</string>
     <string name="feature_series_player_unplayable">This episode cannot be played on this device.</string>
     <string name="feature_series_player_unexpected">This episode could not be played.</string>
+    <string name="feature_series_up_next">Up next</string>
+    <string name="feature_series_up_next_in">Up next in %1$d s</string>
+    <string name="feature_series_play_next">Play</string>
+    <string name="feature_series_tv_loading">Loading the series…</string>
+    <string name="feature_series_tv_back_hint">Press BACK to return to the series.</string>
 </resources>

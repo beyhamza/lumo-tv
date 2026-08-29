@@ -302,6 +302,12 @@ private class FakeSeriesDao : SeriesDao {
                 .sortedWith(compareBy({ it.seasonNumber }, { it.episodeNumber }))
         }
 
+    override suspend fun seasonsOf(seriesId: String): List<SeasonEntity> =
+        seasons.filter { it.seriesId == seriesId }.sortedBy { it.seasonNumber }
+
+    override suspend fun episodesOf(seriesId: String): List<EpisodeEntity> =
+        episodes.filter { it.seriesId == seriesId }
+            .sortedWith(compareBy({ it.seasonNumber }, { it.episodeNumber }))
     override suspend fun episodesByIds(ids: List<String>): List<EpisodeEntity> =
         episodes.filter { it.id in ids }
 

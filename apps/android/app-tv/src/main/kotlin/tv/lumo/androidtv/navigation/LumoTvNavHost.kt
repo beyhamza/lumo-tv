@@ -15,6 +15,12 @@ import tv.lumo.android.feature.live.navigation.livePlayerTvScreen
 import tv.lumo.android.feature.live.navigation.liveTvScreen
 import tv.lumo.android.feature.onboarding.navigation.onboardingTvScreen
 import tv.lumo.android.feature.search.navigation.searchTvScreen
+import tv.lumo.android.feature.series.EpisodePlayerDestination
+import tv.lumo.android.feature.series.SeriesDestination
+import tv.lumo.android.feature.series.SeriesDetailDestination
+import tv.lumo.android.feature.series.navigation.KEY_RETURNED_SERIES
+import tv.lumo.android.feature.series.navigation.episodePlayerTvScreen
+import tv.lumo.android.feature.series.navigation.seriesDetailTvScreen
 import tv.lumo.android.feature.series.navigation.seriesTvScreen
 import tv.lumo.android.feature.settings.SettingsDestination
 import tv.lumo.android.feature.settings.navigation.settingsTvScreen
@@ -89,7 +95,27 @@ fun LumoTvNavHost(
             },
         )
         vodPlayerTvScreen(onBack = { navController.popBackStack() })
-        seriesTvScreen()
+        seriesTvScreen(
+            onOpenSeries = { seriesId ->
+                navController.navigate(SeriesDetailDestination.routeFor(seriesId))
+            },
+        )
+        seriesDetailTvScreen(
+            onPlay = { episodeId, title ->
+                navController.navigate(EpisodePlayerDestination.routeFor(episodeId, title))
+            },
+            onBack = { seriesId ->
+                // The rule the film screen already follows, one catalogue over:
+                // the grid comes back on the series that was being looked at. The
+                // id is left on the entry underneath before popping, which is the
+                // one moment both entries exist.
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set(KEY_RETURNED_SERIES, seriesId)
+                navController.popBackStack()
+            },
+        )
+        episodePlayerTvScreen(onBack = { navController.popBackStack() })
         searchTvScreen()
         settingsTvScreen()
     }
@@ -124,10 +150,9 @@ fun tvStartRoute(start: AppStart): String? = when (start) {
  * The rail's contents, in D-pad order.
  *
  * Live first: it is what the television is for, and it should be the shortest
- * journey from the rail. Series and search are still placeholders and stay out of
- * it — on a television that matters more than on a phone, because every extra
- * rail item is another `DOWN` press between the viewer and the one thing they
- * came for.
+ * journey from the rail. Search is still a placeholder and stays out of it — on a
+ * television that matters more than on a phone, because every extra rail item is
+ * another `DOWN` press between the viewer and the one thing they came for.
  *
  * **Films are second, and always there** — which reverses what this comment used
  * to say. The entry was conditional on the source having films, on the argument
@@ -140,16 +165,23 @@ fun tvStartRoute(start: AppStart): String? = when (start) {
  * is nowhere else to go and look. A source with no films opens onto a grid that
  * says so, which is a press spent on an answer rather than on nothing.
  *
- * Series stay out until `S6-06` builds their screen. An *empty* catalogue is a
- * reply; an *unbuilt* one is a promise, and only the first belongs in a rail.
+ * **Series joined with `S6-06`**, and they joined by gaining a screen rather than
+ * by gaining a catalogue. That is the rule stated the right way round: an *empty*
+ * catalogue is a reply, an *unbuilt* one is a promise, and only the first belongs
+ * in a rail. A source with no series opens onto a grid that says which kind of
+ * empty it is — an M3U playlist cannot carry them at all, and an Xtream panel that
+ * has none simply does not offer them (`adr/0010`).
  *
- * Four items also keeps the rail's own rule easy to hold: `RIGHT` enters the
+ * Search is what the rule keeps out now, and it is the last one.
+ *
+ * Five items still keeps the rail's own rule easy to hold: `RIGHT` enters the
  * content, `LEFT` comes back, and nothing here is reachable only by travelling
  * through everything else (US-10).
  */
 val TvDestinations: List<LumoDestination> = listOf(
     LiveDestination,
     VodDestination,
+    SeriesDestination,
     SourceDestination,
     SettingsDestination,
 )
