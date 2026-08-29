@@ -12,6 +12,10 @@ Les critères d'acceptation sont ceux d'**US-12**, en Gherkin, dans
 [`sprint-02-recette.md`](./sprint-02-recette.md), qui restent à jouer et gardent
 R-10 → R-73.
 
+**R-187 à R-189 ont été ajoutés après coup**, quand un usage réel a montré que le
+geste des groupes ne marchait pas sur le web alors que tous les cas de la section 8
+passaient. Le trou est décrit sous R-182.
+
 ---
 
 ## 1. Prérequis
@@ -351,6 +355,36 @@ le clic.
 → **Les deux chaînes gardent leur étoile pleine** dans la liste. Une étoile qui se
 vide parce qu'on regarde un autre groupe est rouge — l'étoile dit si la chaîne est
 en favori, pas si elle est dans ce groupe-ci.
+
+> **Ce cas était vert et le geste était cassé.** Il vérifie l'*affichage*, et il a
+> raison ; mais tant que l'étoile n'avait qu'une action, ce même affichage rendait
+> cette action ambiguë — et elle se résolvait en « retirer ». **Une chaîne déjà en
+> favori ne pouvait donc pas être mise dans un second groupe depuis le web**, ce
+> qui est pourtant le point structurel d'US-12. Corrigé après un signalement
+> d'usage ; R-187 ci-dessous est le cas qui manquait.
+
+**R-187 · Mettre une chaîne déjà en favori dans un second groupe** · S4-09 ·
+navigateur
+Étoiler une chaîne (elle part dans « Favoris »), puis cliquer à nouveau son étoile.
+→ **La liste des groupes s'ouvre**, elle ne retire rien. Une coche marque « Favoris »
+; presser « Documentaire » l'y ajoute **sans la retirer de « Favoris »**. Les deux
+coches sont là ensuite.
+
+> C'est le geste du téléphone, à l'identique : appui court sur une chaîne non
+> favorite = classement direct, appui sur une chaîne déjà favorite = la feuille
+> s'ouvre. Deux surfaces qui ne s'accordent pas sur ce que fait une étoile est pire
+> que l'une des deux imparfaite.
+
+**R-188 · Le premier clic reste un seul clic** · S4-09 · navigateur
+Sur une chaîne **non** favorite, cliquer l'étoile.
+→ Elle est classée immédiatement, sans liste intermédiaire — dans le groupe ouvert
+dans la barre, ou dans le groupe par défaut si la barre est sur « tous ». Une liste
+qui s'ouvrirait ici ajouterait un clic au geste le plus fréquent.
+
+**R-189 · La liste des groupes marche sans JavaScript** · S4-09 · navigateur
+JavaScript désactivé, cliquer l'étoile d'une chaîne déjà favorite.
+→ La liste s'ouvre — c'est un `<details>` natif — et chaque ligne est un formulaire
+qui fonctionne. La règle de la zone ne se suspend pas pour un contrôle nouveau.
 
 **R-183 · Un groupe ouvert se montre en entier** · S4-09 · navigateur
 Ouvrir un groupe de plus de douze chaînes.

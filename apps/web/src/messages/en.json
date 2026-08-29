@@ -297,7 +297,9 @@
     "filmsResumeAt": "Resume at {at}",
     "filmsStartOver": "Start over",
     "filmsContinueWatching": "Continue watching",
-    "syncStepParsingSeries": "Reading the series list"
+    "syncStepParsingSeries": "Reading the series list",
+    "catalogueFavoriteGroupsOf": "Groups for {channel}",
+    "catalogueFavoriteRemoveFrom": "Remove from “{group}”"
   },
   "Errors": {
     "generic": "Something went wrong. Try again.",

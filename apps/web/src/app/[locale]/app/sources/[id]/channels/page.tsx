@@ -200,15 +200,27 @@ export default async function ChannelsPage({
     (recent) => recent.source_id === id,
   );
 
-  // Channel id → favourite id. The favourite's own id is what `DELETE
-  // /me/favorites/{id}` takes, so keeping it here is what lets a filled star
-  // remove the right row without a second lookup.
-  // Built from every favourite of this source, never from the filtered rail: the
-  // star on a channel row says whether it is starred *at all*, and narrowing the
-  // rail to "Documentaire" must not empty the stars on channels filed elsewhere.
-  const favoriteByChannel = new Map(
-    allStarred.map((favorite) => [favorite.channel_id, favorite.id]),
-  );
+  // Channel id → (group id → favourite id).
+  //
+  // Not "is this channel starred", which is what this used to be, and the
+  // difference was a defect rather than a refinement. A channel can be in several
+  // groups — that is the structural point of US-12 — so a control that only knew
+  // *whether* it was starred had one action available, and that action was
+  // "remove". There was no way, from the web, to put an already-starred channel
+  // into a second group.
+  //
+  // The favourite's own id is the value because `DELETE /me/favorites/{id}` takes
+  // it: removing from one group has to name the row in that group and no other.
+  //
+  // Built from every favourite of this source, never from the filtered rail:
+  // narrowing the rail to "Documentaire" must not empty the stars on channels
+  // filed elsewhere.
+  const groupsByChannel = new Map<string, Map<string, string>>();
+  for (const favorite of allStarred) {
+    const memberships = groupsByChannel.get(favorite.channel_id) ?? new Map();
+    memberships.set(favorite.group_id, favorite.id);
+    groupsByChannel.set(favorite.channel_id, memberships);
+  }
 
   // Everything this page has to name but was not handed by the query above: the
   // two rails, and the channel being played — which since `ids` exists no longer
@@ -395,10 +407,15 @@ export default async function ChannelsPage({
                   key={channel.id}
                   channel={channel}
                   playing={channel.id === playing}
-                  favoriteId={favoriteByChannel.get(channel.id)}
+                  memberships={groupsByChannel.get(channel.id)}
+                  groups={favoriteGroups}
+                  defaultGroupName={t("catalogueFavoritesDefaultGroup")}
                   returnTo={returnTo}
                   addLabel={activeGroup ? t("catalogueFavoriteAddTo", { group: groupLabel(activeGroup, t("catalogueFavoritesDefaultGroup")) }) : t("catalogueFavoriteAdd")}
                   removeLabel={t("catalogueFavoriteRemove")}
+                  groupsLabel={t("catalogueFavoriteGroupsOf", { channel: channel.name })}
+                  addToLabel={(group) => t("catalogueFavoriteAddTo", { group })}
+                  removeFromLabel={(group) => t("catalogueFavoriteRemoveFrom", { group })}
                   groupId={activeGroup?.id}
                   href={playHref(channel.id)}
                 />
@@ -825,19 +842,29 @@ function ChannelRow({
   channel,
   href,
   playing,
-  favoriteId,
+  memberships,
+  groups,
+  defaultGroupName,
   returnTo,
   addLabel,
   removeLabel,
+  groupsLabel,
+  addToLabel,
+  removeFromLabel,
   groupId,
 }: {
   channel: Channel;
   href: string;
   playing: boolean;
-  favoriteId?: string;
+  memberships?: Map<string, string>;
+  groups: FavoriteGroup[];
+  defaultGroupName: string;
   returnTo: string;
   addLabel: string;
   removeLabel: string;
+  groupsLabel: string;
+  addToLabel: (group: string) => string;
+  removeFromLabel: (group: string) => string;
   groupId?: string;
 }) {
   return (
@@ -865,12 +892,17 @@ function ChannelRow({
         </span>
       ) : null}
 
-      <FavoriteStar
+      <FavoriteControl
         channelId={channel.id}
-        favoriteId={favoriteId}
+        memberships={memberships}
+        groups={groups}
+        defaultGroupName={defaultGroupName}
         returnTo={returnTo}
         addLabel={addLabel}
         removeLabel={removeLabel}
+        groupsLabel={groupsLabel}
+        addToLabel={addToLabel}
+        removeFromLabel={removeFromLabel}
         groupId={groupId}
       />
     </li>
@@ -878,91 +910,204 @@ function ChannelRow({
 }
 
 /**
- * The star that adds this channel to the account's favourites, or takes it out.
+ * The control that puts this channel into the account's favourites, and into
+ * which groups.
  *
- * <h2>A form, because the token is not in the browser</h2>
+ * <h2>The gesture this replaces, and why it was wrong</h2>
  *
- * Not a client component with an `onClick`: the access token lives in an
- * httpOnly cookie, so the call has to leave from the server (`AGENTS.md` §4).
- * The consequence is one this screen already lives with everywhere else — the
- * control is a `<form>` and a submit button, and it works with JavaScript
- * disabled. The page that comes back is the page that was left, star flipped.
+ * It used to be one toggle: filled meant "starred somewhere", and pressing it
+ * removed. That made an already-starred channel impossible to put into a second
+ * group from the web — and a channel belonging to several groups is the whole
+ * structural point of US-12, the reason a group belongs to the account rather
+ * than to a source.
  *
- * <h2>One toggle, two operations</h2>
+ * Nothing failed when it was wrong. The star was in the right state, the page
+ * came back, and the channel was simply not where the person had tried to put
+ * it. `sprint-04-recette.md` R-182 even passes: it checks that stars stay filled
+ * when a group is open, which is right about the *display* and is exactly what
+ * made the *action* ambiguous.
  *
- * Adding takes the channel's id, removing takes the *favourite's* id — they are
- * different values and different endpoints, which is why the hidden field is
- * named by the state rather than reused. `aria-pressed` is what tells assistive
- * technology this is a toggle and which way it currently sits; the glyph alone
- * says nothing to a screen reader, hence the accessible name that changes with
- * it.
+ * <h2>The phone's rule, applied here</h2>
+ *
+ * <ul>
+ *   <li><b>Not starred</b> — one press, no question. It goes into the group the
+ *       bar has open, or into the default group when the bar is on "all". This
+ *       is the frequent gesture and it stays one click.
+ *   <li><b>Already starred</b> — the group list opens instead of removing. A
+ *       channel filed in two groups has no single thing a press could undo, and
+ *       guessing would take it out of a group nobody mentioned.
+ * </ul>
+ *
+ * That is `LiveViewModel.onFavoriteClicked` word for word. The two surfaces
+ * disagreeing about what a star does would be worse than either of them being
+ * imperfect.
+ *
+ * <h2>`<details>`, because this zone has no JavaScript</h2>
+ *
+ * The list is a native disclosure element and each row inside it is its own
+ * `<form>` and submit. No client component, no popover library, and it works
+ * with scripting disabled — which is the rule of this zone (`AGENTS.md` §3) and
+ * not a nicety: the access token is in an httpOnly cookie, so every one of these
+ * calls has to leave from the server anyway.
+ *
+ * Adding takes the channel's id and a group; removing takes the *favourite's*
+ * id, which names the row in one group and no other. They are different values
+ * and different endpoints, which is why the hidden field is named by the
+ * operation rather than reused.
  */
-function FavoriteStar({
+function FavoriteControl({
   channelId,
-  favoriteId,
+  memberships,
+  groups,
+  defaultGroupName,
   returnTo,
   addLabel,
   removeLabel,
+  groupsLabel,
+  addToLabel,
+  removeFromLabel,
   groupId,
 }: {
   channelId: string;
-  favoriteId?: string;
+  /** Group id → favourite id, for the groups this channel is in. */
+  memberships?: Map<string, string>;
+  groups: FavoriteGroup[];
+  defaultGroupName: string;
   returnTo: string;
   addLabel: string;
   removeLabel: string;
+  groupsLabel: string;
+  addToLabel: (group: string) => string;
+  removeFromLabel: (group: string) => string;
   /** The group open in the bar above, or undefined for the default group. */
   groupId?: string;
 }) {
-  const starred = favoriteId !== undefined;
-  const label = starred ? removeLabel : addLabel;
+  const starred = memberships !== undefined && memberships.size > 0;
+
+  // Not starred, or no group list to offer — the second happens when
+  // `GET /me/favorite-groups` failed, and a control that opened onto an empty
+  // list would be worse than the plain toggle it replaced.
+  if (!starred || groups.length === 0) {
+    return (
+      <form action={starred ? removeFavorite : addFavorite} className="shrink-0">
+        {starred ? (
+          <input
+            type="hidden"
+            name="favoriteId"
+            value={[...(memberships?.values() ?? [])][0]}
+          />
+        ) : (
+          <input type="hidden" name="channelId" value={channelId} />
+        )}
+        {/* The group the bar has open, so starring files where the person is
+            already looking. Omitted, the server files it in the default group. */}
+        {!starred && groupId ? (
+          <input type="hidden" name="groupId" value={groupId} />
+        ) : null}
+        <input type="hidden" name="returnTo" value={returnTo} />
+        <button
+          type="submit"
+          aria-pressed={starred}
+          aria-label={starred ? removeLabel : addLabel}
+          title={starred ? removeLabel : addLabel}
+          className={buttonClass(starred)}
+        >
+          <Star filled={starred} />
+        </button>
+      </form>
+    );
+  }
 
   return (
-    <form action={starred ? removeFavorite : addFavorite} className="shrink-0">
-      {starred ? (
-        <input type="hidden" name="favoriteId" value={favoriteId} />
-      ) : (
-        <input type="hidden" name="channelId" value={channelId} />
-      )}
-      {/* The group the bar above has open, so starring files where the person is
-          already looking. A `<select>` on every row would have been the other
-          way to send this, and on a list of fifty rows it is fifty controls for
-          a choice that is the same on all of them. Omitted, the server files it
-          in the default group — which is what happens when the bar is on "all". */}
-      {!starred && groupId ? (
-        <input type="hidden" name="groupId" value={groupId} />
-      ) : null}
-      <input type="hidden" name="returnTo" value={returnTo} />
-      <button
-        type="submit"
-        aria-pressed={starred}
-        aria-label={label}
-        title={label}
-        className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-          starred
-            ? "text-primary"
-            : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-        }`}
+    <details className="relative shrink-0">
+      {/* `list-none` on both selectors: browsers disagree about which one draws
+          the disclosure triangle, and a triangle beside a star is two affordances
+          for one control. */}
+      <summary
+        aria-label={groupsLabel}
+        title={groupsLabel}
+        className={`${buttonClass(true)} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
       >
-        {/* Inline rather than an icon package: the whole difference between the
-            two states is `fill`, and a dependency for one path is a dependency
-            too many. */}
-        <svg
-          viewBox="0 0 24 24"
-          width={18}
-          height={18}
-          aria-hidden="true"
-          fill={starred ? "currentColor" : "none"}
-          stroke="currentColor"
-          strokeWidth={1.75}
-          strokeLinejoin="round"
-        >
-          <path d="M12 3.5l2.6 5.3 5.9.85-4.25 4.15 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.65l5.9-.85z" />
-        </svg>
-      </button>
-    </form>
+        <Star filled />
+      </summary>
+
+      <div className="border-border bg-background absolute right-0 z-20 mt-1 w-56 rounded-xl border p-1 shadow-lg">
+        <ul>
+          {groups.map((group) => {
+            const favoriteId = memberships.get(group.id);
+            const name = groupLabel(group, defaultGroupName);
+            const label = favoriteId ? removeFromLabel(name) : addToLabel(name);
+
+            return (
+              <li key={group.id}>
+                <form action={favoriteId ? removeFavorite : addFavorite}>
+                  {favoriteId ? (
+                    <input type="hidden" name="favoriteId" value={favoriteId} />
+                  ) : (
+                    <>
+                      <input type="hidden" name="channelId" value={channelId} />
+                      <input type="hidden" name="groupId" value={group.id} />
+                    </>
+                  )}
+                  <input type="hidden" name="returnTo" value={returnTo} />
+                  <button
+                    type="submit"
+                    aria-pressed={favoriteId !== undefined}
+                    aria-label={label}
+                    className="hover:bg-secondary/60 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm"
+                  >
+                    {/* The tick is state, not a second target: the whole row is
+                        the button, exactly as on the television, where a
+                        focusable checkbox would double the length of the
+                        journey through a list somebody is trying to leave. */}
+                    <span
+                      aria-hidden="true"
+                      className={favoriteId ? "text-primary" : "text-transparent"}
+                    >
+                      ✓
+                    </span>
+                    <span className="truncate">{name}</span>
+                  </button>
+                </form>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </details>
   );
 }
 
+function buttonClass(filled: boolean): string {
+  return `flex h-8 w-8 items-center justify-center rounded-lg ${
+    filled
+      ? "text-primary"
+      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+  }`;
+}
+
+/**
+ * The star itself.
+ *
+ * Inline rather than an icon package: the whole difference between the two states
+ * is `fill`, and a dependency for one path is a dependency too many.
+ */
+function Star({ filled = false }: { filled?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={18}
+      height={18}
+      aria-hidden="true"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinejoin="round"
+    >
+      <path d="M12 3.5l2.6 5.3 5.9.85-4.25 4.15 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.65l5.9-.85z" />
+    </svg>
+  );
+}
 /**
  * The logo the user's own playlist advertises, or nothing.
  *

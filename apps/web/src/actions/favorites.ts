@@ -27,10 +27,16 @@ import { requireSession } from "@/lib/session/session";
  * a question the phone and the television also had to answer
  * (`docs/design/api-gaps.md`, decision 2).
  *
- * That decision is taken — `FavoriteGroup.is_default` — so the star carries a
- * `<select>` and this action passes what it was given. Omitted, the field still
- * means the same thing it always did: the server files it in the default group,
- * creating it on the first add.
+ * That decision is taken — `FavoriteGroup.is_default` — so a group is chosen on
+ * the page and this action passes what it was given. Omitted, the field still
+ * means what it always did: the server files it in the default group, creating
+ * it on the first add.
+ *
+ * **Not a `<select>`, which an earlier version of this comment claimed.** A
+ * dropdown on every row is fifty controls for a choice that is the same on all
+ * of them. What the page draws instead is the phone's gesture: one press files
+ * an unstarred channel, and a starred one opens the group list — see
+ * `FavoriteControl`.
  *
  * <h2>Why nothing is reported back</h2>
  *
