@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { CatalogueTabs } from "@/components/app/CatalogueTabs";
 import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
@@ -187,6 +188,20 @@ export default async function VodPage({
       <p className="text-muted-foreground mt-2">
         {t("filmsCount", { total: films.data.total_elements })}
       </p>
+
+      {/* Always drawn here, and no extra request for it: reaching this page at
+          all means the source has films — the tab that led here is only shown
+          when it does, and a direct link that did not would land on the empty
+          state below rather than on a lie. */}
+      <CatalogueTabs
+        sourceId={id}
+        locale={locale as Locale}
+        active="vod"
+        hasFilms
+        label={t("catalogueTabsLabel")}
+        channelsLabel={t("catalogueTitle")}
+        filmsLabel={t("filmsTitle")}
+      />
 
       <ContinueWatching
         entries={rail}

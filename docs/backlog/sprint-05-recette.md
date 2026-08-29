@@ -369,6 +369,27 @@ besoin d'être expliqué.
 **R-278 · L'entrée Films n'apparaît que s'il y a des films** · S5-10 · navigateur
 → Le lien « Parcourir les films » est absent de la page d'une source sans films.
 
+**R-279 · On traverse entre les deux catalogues, et seulement quand il y en a deux**
+· S5-10 · navigateur
+
+Sur `/mixed.m3u` : ouvrir les chaînes, puis la bande **Chaînes · Films**.
+→ Les deux onglets sont là, celui de la page courante marqué (`aria-current`), et
+chacun mène à l'autre catalogue de **cette** source.
+
+Sur `/playlist.m3u` : ouvrir les chaînes.
+→ **Aucune bande.** Un onglet seul n'est pas un choix : il dessinerait « Chaînes »
+au-dessus d'une liste de chaînes, ce qui ne dit rien et prend une ligne.
+
+> **Ce cas a été ajouté après un signalement d'usage**, et c'est le trou qui
+> compte : les films étaient atteignables uniquement depuis la page de la source,
+> par un lien en bas de celle-ci. Une fois dans les chaînes, **aucun chemin** ne
+> menait aux films — il fallait remonter de deux niveaux et savoir que le lien
+> existait.
+>
+> La fonction était livrée et invisible, et **aucun cas de cette recette ne le
+> voyait** : ils vérifient tous les films une fois qu'on y est. Une recette qui
+> commence chaque cas à la bonne page ne teste jamais le chemin pour y arriver.
+
 ---
 
 ## 8. La reprise, entre les appareils

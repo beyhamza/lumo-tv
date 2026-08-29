@@ -299,7 +299,8 @@
     "filmsContinueWatching": "Continue watching",
     "syncStepParsingSeries": "Reading the series list",
     "catalogueFavoriteGroupsOf": "Groups for {channel}",
-    "catalogueFavoriteRemoveFrom": "Remove from “{group}”"
+    "catalogueFavoriteRemoveFrom": "Remove from “{group}”",
+    "catalogueTabsLabel": "This source"
   },
   "Errors": {
     "generic": "Something went wrong. Try again.",
