@@ -127,6 +127,19 @@ public class IngestionService {
         } catch (Exception e) {
             // Never let a background thread die with the source stuck in SYNCING:
             // markSyncing would refuse to reclaim it and the user could never retry.
+            //
+            // **`SOURCE_UNREACHABLE` is a lie here and it is a deliberate one**,
+            // which is worth stating rather than leaving to be discovered. This
+            // branch is reached by faults on *our* side — a constraint we had
+            // outgrown put every Xtream source into ERROR for two sprints under
+            // this exact code, and it named the user's provider for it.
+            //
+            // It stays, because `IngestionErrorCode` has no value for "our
+            // fault": every one of them describes something about the user's
+            // server, and a client that met an unknown code would fall back to a
+            // generic message anyway. Adding one is a contract change and belongs
+            // in a task; until then the log line above is the truthful record and
+            // this is the closest available word.
             log.error("Unexpected failure ingesting source {}", sourceId, e);
             sources.markError(sourceId, IngestionErrorCode.SOURCE_UNREACHABLE);
         }
@@ -272,6 +285,22 @@ public class IngestionService {
             // and the next synchronisation will try the films again.
             log.info("Source {}: no film catalogue ingested ({})", source.id(), e.code());
             return;
+        } catch (RuntimeException e) {
+            // **The promise this method makes is that its failure does not fail
+            // the source, and until this catch existed it only kept that promise
+            // for one exception type.**
+            //
+            // A `CHECK` constraint this code had outgrown threw a
+            // `DataIntegrityViolationException` on the very first line — the
+            // step marker — which went straight past the handler above and killed
+            // the whole ingestion. Every Xtream source lost its channels along
+            // with its films, and the user was told their provider was
+            // unreachable. See `0017-sync-step-values.sql`.
+            //
+            // Warn rather than info: an `IngestionException` is somebody else's
+            // server having a bad day, and this is a fault on our side.
+            log.warn("Source {}: film catalogue ingestion failed unexpectedly",
+                    source.id(), e);
         }
 
         if (!seenExternalIds.isEmpty()) {
@@ -337,6 +366,10 @@ public class IngestionService {
         } catch (IngestionException e) {
             log.info("Source {}: no series catalogue ingested ({})", source.id(), e.code());
             return;
+        } catch (RuntimeException e) {
+            // The films' guard, for the same reason and with the same history.
+            log.warn("Source {}: series catalogue ingestion failed unexpectedly",
+                    source.id(), e);
         }
 
         if (!seenExternalIds.isEmpty()) {
