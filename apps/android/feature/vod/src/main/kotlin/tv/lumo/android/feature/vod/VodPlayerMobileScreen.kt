@@ -68,7 +68,9 @@ import tv.lumo.android.core.player.ui.LumoVideoSurface
 @Composable
 fun VodPlayerMobileScreen(
     filmId: String,
+    sourceId: String,
     title: String?,
+    resumeFromMs: Long,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: VodPlayerViewModel = hiltViewModel(),
@@ -77,7 +79,7 @@ fun VodPlayerMobileScreen(
 
     // Keyed on the film: opening a different one restarts, turning the phone does
     // not — the Activity declares `configChanges` and the player is a singleton.
-    LaunchedEffect(filmId) { viewModel.start(filmId, title) }
+    LaunchedEffect(filmId) { viewModel.start(filmId, sourceId, title, resumeFromMs) }
 
     ImmersiveWhileVisible()
 

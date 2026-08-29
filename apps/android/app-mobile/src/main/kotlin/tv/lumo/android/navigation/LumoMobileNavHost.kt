@@ -92,8 +92,10 @@ fun LumoMobileNavHost(
             },
         )
         vodDetailMobileScreen(
-            onPlay = { filmId, title ->
-                navController.navigate(VodPlayerDestination.routeFor(filmId, title))
+            onPlay = { filmId, sourceId, title, atMs ->
+                navController.navigate(
+                    VodPlayerDestination.routeFor(filmId, sourceId, title, atMs),
+                )
             },
             onBack = { navController.popBackStack() },
         )

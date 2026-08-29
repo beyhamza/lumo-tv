@@ -4,6 +4,7 @@ import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api, problemCode } from "@/lib/api/client";
+import { isFinished } from "@/lib/playback/progress";
 import type { Category, VodItem } from "@/lib/api/types";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
@@ -56,6 +57,9 @@ export async function generateMetadata({
 /** The contract's cap for this listing. */
 const PAGE_SIZE = 48;
 
+/** How many films the resume rail holds. A shortcut, not a second catalogue. */
+const RAIL_SIZE = 12;
+
 export default async function VodPage({
   params,
   searchParams,
@@ -72,7 +76,7 @@ export default async function VodPage({
   const search = single(query.q);
   const page = Math.max(0, Number.parseInt(single(query.page) ?? "0", 10) || 0);
 
-  const [categories, films] = await Promise.all([
+  const [categories, films, progress] = await Promise.all([
     api(session.accessToken).GET("/sources/{id}/categories", {
       params: { path: { id }, query: { contentType: "VOD" } },
     }),
@@ -86,6 +90,14 @@ export default async function VodPage({
           size: PAGE_SIZE,
         },
       },
+    }),
+    // The "continue watching" rail (S5-11). Already ordered most recently
+    // updated first — the contract says so, and says it is the order this rail
+    // wants — so nothing here re-sorts it. Its failure is deliberately not part
+    // of `failure` below: a catalogue that refused to render because a rail
+    // could not be read would trade the whole screen for its smallest part.
+    api(session.accessToken).GET("/me/progress", {
+      params: { query: { itemType: "VOD", size: RAIL_SIZE * 2 } },
     }),
   ]);
 
@@ -121,6 +133,39 @@ export default async function VodPage({
 
   const totalPages = films.data.total_pages;
 
+  // Started, not finished, this source. Asked for twice over because the
+  // finished ones are dropped here rather than by the server, and a page of
+  // exactly RAIL_SIZE rows can come back half empty for no visible reason.
+  const resumable = (progress.data?.items ?? [])
+    .filter((row) => row.source_id === id)
+    .filter((row) => !isFinished(row.position_ms, row.duration_ms ?? null))
+    .slice(0, RAIL_SIZE);
+
+  // `/me/progress` carries identifiers and positions, not posters and titles —
+  // which is why `item_ref` holds a `VodItem.id`: this is the lookup it exists
+  // for. One request, capped by the contract's own `ids` limit, and the order is
+  // taken from the progress list rather than from the answer.
+  const railFilms = new Map(films.data.items.map((item) => [item.id, item]));
+  const unresolved = resumable
+    .map((row) => row.item_ref)
+    .filter((ref) => !railFilms.has(ref));
+
+  if (unresolved.length > 0) {
+    const resolved = await api(session.accessToken).GET("/sources/{id}/vod", {
+      params: { path: { id }, query: { ids: unresolved, size: unresolved.length } },
+    });
+    // A film the last re-synchronisation dropped is simply absent from the
+    // answer, by contract. It falls out of the rail rather than rendering as a
+    // gap, which is the honest outcome: the film is gone.
+    for (const item of resolved.data?.items ?? []) railFilms.set(item.id, item);
+  }
+
+  const rail = resumable
+    .map((row) => ({ film: railFilms.get(row.item_ref), row }))
+    .filter((entry): entry is { film: VodItem; row: typeof resumable[number] } =>
+      entry.film != null,
+    );
+
   // Carried into each film's own page so its "back to the films" link returns to
   // the exact view it was opened from — this category, this page, this search.
   // They are filter values and nothing else: no path, no host, nothing that
@@ -142,6 +187,17 @@ export default async function VodPage({
       <p className="text-muted-foreground mt-2">
         {t("filmsCount", { total: films.data.total_elements })}
       </p>
+
+      <ContinueWatching
+        entries={rail}
+        title={t("filmsContinueWatching")}
+        href={(film) =>
+          hrefFor(
+            locale as Locale,
+            `/app/sources/${id}/vod/${film.id}${queryString(context)}`,
+          )
+        }
+      />
 
       {/* A plain GET form, like the channel page's. Submitting it changes the
           URL, which is what every other control here does. `page` is absent on
@@ -230,6 +286,76 @@ export default async function VodPage({
           ) : null}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The "continue watching" rail (S5-11), at the head of the catalogue.
+ *
+ * Absent when empty rather than drawn with a "nothing yet" placeholder: a
+ * heading over an empty row on a first visit is a promise about a feature nobody
+ * has used, taking space from the catalogue they came for.
+ *
+ * A horizontal scroller and not a grid, because it is a shortcut rather than a
+ * second catalogue — and it is a `<ul>` with its own name, because the grid
+ * below is a list too and assistive technology has to be able to say which is
+ * which.
+ */
+function ContinueWatching({
+  entries,
+  title,
+  href,
+}: {
+  entries: { film: VodItem; row: { position_ms: number; duration_ms?: number | null } }[];
+  title: string;
+  href: (film: VodItem) => string;
+}) {
+  if (entries.length === 0) return null;
+
+  return (
+    <section className="mt-8">
+      <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+      <ul aria-label={title} className="mt-3 flex gap-4 overflow-x-auto pb-2">
+        {entries.map(({ film, row }) => (
+          <li key={film.id} className="w-28 shrink-0">
+            <a
+              href={href(film)}
+              className="focus-visible:ring-ring block rounded-lg focus-visible:ring-2 focus-visible:outline-none"
+            >
+              <div className="relative">
+                <Poster film={film} />
+                <PositionBar positionMs={row.position_ms} durationMs={row.duration_ms ?? null} />
+              </div>
+              <p className="mt-2 truncate text-xs font-medium">{film.name}</p>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * How far in, across the foot of the poster.
+ *
+ * **Nothing at all when the length is unknown**, which is most films on most
+ * panels: a bar with no denominator would be a fraction of nothing, and drawing
+ * it near-empty would say the viewer had barely started.
+ */
+function PositionBar({
+  positionMs,
+  durationMs,
+}: {
+  positionMs: number;
+  durationMs: number | null;
+}) {
+  if (durationMs == null || durationMs <= 0) return null;
+  const percent = Math.min(100, Math.max(0, (positionMs / durationMs) * 100));
+
+  return (
+    <div className="bg-muted absolute inset-x-0 bottom-0 h-1 rounded-b-lg">
+      <div className="bg-primary h-full rounded-bl-lg" style={{ width: `${percent}%` }} />
     </div>
   );
 }

@@ -121,6 +121,7 @@ fun VodTvScreen(
                 state = state,
                 films = films,
                 onSelectCategory = viewModel::onCategorySelected,
+                onSelectResume = viewModel::onResumeSelected,
                 onOpenFilm = onOpenFilm,
                 returnedFilmId = returnedFilmId,
                 onReturnHandled = onReturnHandled,
@@ -134,6 +135,7 @@ private fun Browsing(
     state: VodState,
     films: LazyPagingItems<VodItem>,
     onSelectCategory: (String?) -> Unit,
+    onSelectResume: () -> Unit,
     onOpenFilm: (String) -> Unit,
     returnedFilmId: String?,
     onReturnHandled: () -> Unit,
@@ -197,7 +199,13 @@ private fun Browsing(
         Categories(
             categories = state.categories,
             selectedId = state.selectedCategoryId,
+            // Only when there is something in it. A chip that filters onto
+            // nothing leaves a blank grid after an OK, which at three metres
+            // reads as a breakage rather than as an empty shelf.
+            hasResumable = state.continueWatching.isNotEmpty(),
+            resumeSelected = state.resumeSelected,
             onSelect = onSelectCategory,
+            onSelectResume = onSelectResume,
         )
 
         if (films.itemCount == 0 && !state.refreshing) {
@@ -246,12 +254,20 @@ private fun Browsing(
  * strip with the favourite groups taken out — a group holds channels (US-12), and
  * offering a chip here that filtered onto nothing would be the empty shelf that
  * screen's own rules already refuse.
+ *
+ * **"Continue watching" is a chip and not a rail** (S5-11), in second position,
+ * and that is `S4-08`'s ruling applied unchanged: this strip has no height for a
+ * second mechanism, and a chip costs no new focus zone. The phone, which has the
+ * room, gets the rail instead.
  */
 @Composable
 private fun Categories(
     categories: List<Category>,
     selectedId: String?,
+    hasResumable: Boolean,
+    resumeSelected: Boolean,
     onSelect: (String?) -> Unit,
+    onSelectResume: () -> Unit,
 ) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
@@ -260,9 +276,22 @@ private fun Categories(
         item {
             TvCategoryChip(
                 label = stringResource(R.string.feature_vod_all_categories),
-                selected = selectedId == null,
+                selected = selectedId == null && !resumeSelected,
                 onClick = { onSelect(null) },
             )
+        }
+        // Second, and only when there is something in it — the position "Repris"
+        // holds on the channel strip, for the same reason: it is what somebody
+        // turning the television on reaches for most often, and the one shelf
+        // they did not have to build.
+        if (hasResumable) {
+            item {
+                TvCategoryChip(
+                    label = stringResource(R.string.feature_vod_continue_watching),
+                    selected = resumeSelected,
+                    onClick = onSelectResume,
+                )
+            }
         }
         items(categories, key = { it.id }) { category ->
             TvCategoryChip(

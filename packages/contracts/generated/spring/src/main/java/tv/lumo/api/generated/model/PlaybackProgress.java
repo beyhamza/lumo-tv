@@ -119,7 +119,7 @@ public class PlaybackProgress {
   }
 
   /**
-   * Identifier of the item within its source, opaque and minted by the user's panel. Unique only in combination with `source_id`. 
+   * Identifier of the item, opaque to this API. For `VOD` it is `VodItem.id` — see `SaveProgressRequest.item_ref`, where that is argued — which is what lets a \"continue watching\" rail resolve these rows through `GET /sources/{id}/vod?ids=`. 
    * @return itemRef
    */
   @NotNull 

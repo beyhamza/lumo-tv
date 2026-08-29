@@ -48,4 +48,9 @@
     <!-- ==== La télévision ==== -->
     <string name="feature_vod_tv_loading">Chargement des films…</string>
     <string name="feature_vod_tv_back_hint">Appuyez sur RETOUR pour revenir au film.</string>
+
+    <!-- ==== La reprise (S5-11) ==== -->
+    <string name="feature_vod_resume_at">Reprendre à %1$s</string>
+    <string name="feature_vod_start_over">Recommencer</string>
+    <string name="feature_vod_continue_watching">Reprendre</string>
 </resources>

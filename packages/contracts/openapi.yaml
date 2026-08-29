@@ -1388,9 +1388,8 @@ paths:
 
         Passing `sourceId`, `itemType` and `itemRef` together narrows the page to
         the single matching row, which is how a player looks up one item before
-        opening it. All three, because the key is all three: `item_ref` is minted
-        by the user's own panel and two subscriptions can use the same value for
-        two different films.
+        opening it. All three, because the key is all three: `item_ref` is opaque
+        and nothing here constrains what a client puts in it.
 
         There is deliberately no `/me/progress/{itemType}/{itemRef}` variant:
         `item_ref` is opaque and nothing stops it containing a slash or a percent
@@ -3320,8 +3319,10 @@ components:
         item_ref:
           type: string
           description: |
-            Identifier of the item within its source, opaque and minted by the
-            user's panel. Unique only in combination with `source_id`.
+            Identifier of the item, opaque to this API. For `VOD` it is
+            `VodItem.id` — see `SaveProgressRequest.item_ref`, where that is
+            argued — which is what lets a "continue watching" rail resolve these
+            rows through `GET /sources/{id}/vod?ids=`.
         position_ms:
           type: integer
           format: int64
@@ -3418,15 +3419,17 @@ components:
           description: |
             The source the item belongs to, and **part of the key**.
 
-            `item_ref` is minted by the user's own panel and is opaque to us —
-            two subscriptions can perfectly well use `1042` for two different
-            films, and without this field the progress of one would be served for
-            the other. The bug would look like a film mysteriously resuming
-            twenty minutes in.
+            The key is `(source_id, item_type, item_ref)` because `item_ref` is
+            declared opaque: nothing in this API constrains what a client puts
+            there, and two subscriptions using `1042` for two different films
+            would otherwise collide. The bug would look like a film mysteriously
+            resuming twenty minutes in.
 
-            Sent by the client rather than derived here because the client is
-            what holds the item: `item_ref` is not one of our identifiers, so
-            there is nothing to look it up in.
+            **What clients actually send for `VOD` is `VodItem.id`** — see
+            `item_ref` below — which makes this field redundant *for that type*
+            and not for the schema. It stays required rather than being narrowed
+            to a case: a required field that is sometimes ignored is cheaper than
+            a key that changes shape when `EPISODE` arrives.
 
             The alternative was a convention — prefix `item_ref` with the source
             id — and it was refused: a convention is a rule three clients have to
@@ -3438,6 +3441,25 @@ components:
           type: string
           minLength: 1
           maxLength: 200
+          description: |
+            Identifier of the item, opaque to this endpoint — it is stored and
+            compared, never joined on.
+
+            **For `VOD`, send `VodItem.id`.** That was decided when the resume
+            rail was built (`S5-11`) and it is worth stating rather than leaving
+            to each client: a "continue watching" rail has to turn these rows
+            back into films with posters and titles, and
+            `GET /sources/{id}/vod?ids=` is the only operation that does. A
+            panel-minted reference would have needed a lookup operation of its
+            own, for no difference anybody could see.
+
+            It costs nothing in stability: `vod_item` is upserted on
+            `(source_id, external_id)`, so a row keeps its id across
+            re-synchronisations — which is the property a panel-minted reference
+            would have been chosen for.
+
+            `EPISODE` decides its own when series arrive. The field stays opaque
+            precisely so that decision is not pre-empted here.
         position_ms:
           type: integer
           format: int64
@@ -3447,6 +3469,15 @@ components:
           format: int64
           nullable: true
           minimum: 0
+          description: |
+            Total duration, when the source states one. Sent so a client can
+            decide an item is finished without a second lookup.
+
+            **Finished is a threshold, not an event**: past 95 % of the duration
+            an item leaves the "continue watching" rail. With no duration — and
+            many panels give none — it never leaves, which is the right default:
+            a film that lingers in the rail is an annoyance, a film that vanishes
+            before the end is a loss.
 
     # ---- billing -----------------------------------------------------------
 

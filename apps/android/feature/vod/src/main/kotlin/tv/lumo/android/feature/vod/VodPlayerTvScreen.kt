@@ -86,14 +86,16 @@ import tv.lumo.android.core.player.ui.LumoVideoSurface
 @Composable
 fun VodPlayerTvScreen(
     filmId: String,
+    sourceId: String,
     title: String?,
+    resumeFromMs: Long,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: VodPlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    LaunchedEffect(filmId) { viewModel.start(filmId, title) }
+    LaunchedEffect(filmId) { viewModel.start(filmId, sourceId, title, resumeFromMs) }
 
     DisposableEffect(Unit) {
         // Stop, not release: the player is the process's one codec, and stopping

@@ -6,6 +6,7 @@ import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api, problemCode } from "@/lib/api/client";
+import { asClock, isFinished } from "@/lib/playback/progress";
 import type { VodItem } from "@/lib/api/types";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
@@ -28,6 +29,17 @@ import { requireSession } from "@/lib/session/session";
  * call **per film** against the user's own server, so a listing never carries
  * one and this page is the only thing that asks. The server remembers the answer,
  * so opening the same film twice costs one request, not two.
+ *
+ * <h2>Resuming is offered, never imposed (S5-11)</h2>
+ *
+ * A film with a saved position shows **two** buttons — "Resume at 20:14" and
+ * "Start over" — and neither is pressed on anybody's behalf. Automatic resume is
+ * a good idea right up until the day somebody wants to see the beginning again,
+ * and then it is a feature with no way out.
+ *
+ * The position is read here, server-side, in the same round trip as the film. A
+ * client-side lookup would put the two buttons on screen a moment after the page,
+ * moving a target under a cursor that is already going for it.
  *
  * <h2>Back goes where the visitor came from</h2>
  *
@@ -66,9 +78,18 @@ export default async function FilmPage({
   const t = await getTranslations("App");
   const tErrors = await getTranslations("Errors");
 
-  const film = await api(session.accessToken).GET("/vod/{id}", {
-    params: { path: { id: filmId } },
-  });
+  const [film, saved] = await Promise.all([
+    api(session.accessToken).GET("/vod/{id}", { params: { path: { id: filmId } } }),
+    // The three filters together, because the contract says that combination
+    // yields at most one row — and it is exactly why it exists. Asked once, when
+    // the page renders, so the buttons below are right on the first paint rather
+    // than appearing a moment later under somebody's cursor.
+    api(session.accessToken).GET("/me/progress", {
+      params: {
+        query: { sourceId: id, itemType: "VOD", itemRef: filmId, size: 1 },
+      },
+    }),
+  ]);
 
   const failure = problemCode(film.error);
   if (failure) {
@@ -84,6 +105,16 @@ export default async function FilmPage({
 
   const messages = await getMessages();
   const row = film.data;
+
+  // Null both when nothing was ever watched and when the film is finished. Both
+  // mean one button rather than two: offering to carry on from the credits is
+  // not an offer. A failed lookup is also null — the page still plays the film,
+  // which is what somebody came for.
+  const progress = saved.data?.items?.[0];
+  const resumeFromMs =
+    progress && !isFinished(progress.position_ms, progress.duration_ms ?? null)
+      ? progress.position_ms
+      : 0;
 
   // The grid's own state, carried in and handed straight back. Filter values
   // only — no path and no host, so there is nothing here that could turn into a
@@ -121,7 +152,15 @@ export default async function FilmPage({
           <NextIntlClientProvider
             messages={{ App: messages.App, Errors: messages.Errors }}
           >
-            <FilmPlayer filmId={row.id} name={row.name} />
+            <FilmPlayer
+              filmId={row.id}
+              sourceId={row.source_id}
+              name={row.name}
+              resumeFromMs={resumeFromMs}
+              resumeLabel={
+                resumeFromMs > 0 ? t("filmsResumeAt", { at: asClock(resumeFromMs) }) : null
+              }
+            />
           </NextIntlClientProvider>
         </div>
       </div>

@@ -53,7 +53,7 @@ public class SaveProgressRequest {
   }
 
   /**
-   * The source the item belongs to, and **part of the key**.  `item_ref` is minted by the user's own panel and is opaque to us — two subscriptions can perfectly well use `1042` for two different films, and without this field the progress of one would be served for the other. The bug would look like a film mysteriously resuming twenty minutes in.  Sent by the client rather than derived here because the client is what holds the item: `item_ref` is not one of our identifiers, so there is nothing to look it up in.  The alternative was a convention — prefix `item_ref` with the source id — and it was refused: a convention is a rule three clients have to apply identically, and one of them getting it wrong produces exactly the collision this field prevents, silently. 
+   * The source the item belongs to, and **part of the key**.  The key is `(source_id, item_type, item_ref)` because `item_ref` is declared opaque: nothing in this API constrains what a client puts there, and two subscriptions using `1042` for two different films would otherwise collide. The bug would look like a film mysteriously resuming twenty minutes in.  **What clients actually send for `VOD` is `VodItem.id`** — see `item_ref` below — which makes this field redundant *for that type* and not for the schema. It stays required rather than being narrowed to a case: a required field that is sometimes ignored is cheaper than a key that changes shape when `EPISODE` arrives.  The alternative was a convention — prefix `item_ref` with the source id — and it was refused: a convention is a rule three clients have to apply identically, and one of them getting it wrong produces exactly the collision this field prevents, silently. 
    * @return sourceId
    */
   @NotNull @Valid 
@@ -91,7 +91,7 @@ public class SaveProgressRequest {
   }
 
   /**
-   * Get itemRef
+   * Identifier of the item, opaque to this endpoint — it is stored and compared, never joined on.  **For `VOD`, send `VodItem.id`.** That was decided when the resume rail was built (`S5-11`) and it is worth stating rather than leaving to each client: a \"continue watching\" rail has to turn these rows back into films with posters and titles, and `GET /sources/{id}/vod?ids=` is the only operation that does. A panel-minted reference would have needed a lookup operation of its own, for no difference anybody could see.  It costs nothing in stability: `vod_item` is upserted on `(source_id, external_id)`, so a row keeps its id across re-synchronisations — which is the property a panel-minted reference would have been chosen for.  `EPISODE` decides its own when series arrive. The field stays opaque precisely so that decision is not pre-empted here. 
    * @return itemRef
    */
   @NotNull @Size(min = 1, max = 200) 
@@ -130,7 +130,7 @@ public class SaveProgressRequest {
   }
 
   /**
-   * Get durationMs
+   * Total duration, when the source states one. Sent so a client can decide an item is finished without a second lookup.  **Finished is a threshold, not an event**: past 95 % of the duration an item leaves the \"continue watching\" rail. With no duration — and many panels give none — it never leaves, which is the right default: a film that lingers in the rail is an annoyance, a film that vanishes before the end is a loss. 
    * minimum: 0
    * @return durationMs
    */

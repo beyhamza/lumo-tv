@@ -221,6 +221,13 @@ chaînes : un groupe contient des chaînes (US-12), donc sa puce filtrerait cett
 grille sur rien — l'étagère vide que les règles de l'écran des chaînes refusent
 déjà.
 
+**Elle porte « Reprendre »**, en deuxième position et seulement s'il y a quelque
+chose dedans (`S5-11`). Ordre de la bande : **Tous · [Reprendre] · [catégories de
+la source]**. C'est une **puce et pas un rail**, et c'est la décision de `S4-08`
+appliquée telle quelle : cette bande n'a pas la hauteur d'un second mécanisme, et
+une puce ne coûte aucune zone de focus nouvelle. Le téléphone, qui a la place, a
+le rail à la place.
+
 **Une carte de remplacement n'est pas focalisable**, comme dans la grille des
 chaînes : Paging dessine les fenêtres non chargées à la bonne taille pour que la
 grille garde sa forme, et une carte sans film derrière serait un cul-de-sac qui
@@ -232,19 +239,33 @@ apparaît et disparaît au défilement.
 
 Livrée par `S5-09`, et **c'est une nouvelle surface de focus** : d'où cette section.
 
-**Focus à l'arrivée : le bouton *Lire*.**
+**Focus à l'arrivée : le bouton *Reprendre* s'il y en a un, *Lire* sinon.**
 
-**Une seule cible focalisable, exprès.** Celui qui a appuyé sur `OK` depuis une
-affiche a déjà décidé ; l'écran est là pour confirmer ce qu'il a choisi, pas pour le
-faire voyager. Tout le reste est du texte, et du texte qui prend le focus sur une
-télévision est du texte qu'il faut dépasser en appuyant.
+**Une seule cible focalisable — deux quand il y a une position sauvegardée.** Celui
+qui a appuyé sur `OK` depuis une affiche a déjà décidé ; l'écran est là pour
+confirmer ce qu'il a choisi, pas pour le faire voyager. Tout le reste est du texte,
+et du texte qui prend le focus sur une télévision est du texte qu'il faut dépasser
+en appuyant.
 
 Il n'y a pas de bouton *Retour* dessiné : `BACK` est une touche physique, et en
 dessiner un serait une seconde cible pour ce que la télécommande fait déjà.
 
 | Depuis | UP | DOWN | LEFT | RIGHT | OK | BACK |
 |---|---|---|---|---|---|---|
-| Bouton *Lire* | — (seule cible) | — (seule cible) | rail | — | lance le film | **grille, sur ce film** |
+| *Reprendre à 20:14* | — (bord haut) | *Recommencer* | rail | — | lance à cette position | **grille, sur ce film** |
+| *Recommencer* / *Lire* | *Reprendre* (s'il existe) | — (bord bas) | rail | — | lance au début | **grille, sur ce film** |
+
+**Reprendre est proposé, jamais imposé** (`S5-11`). Les deux boutons sont visibles
+et aucun n'est pressé à la place de quelqu'un : une reprise automatique est une
+bonne idée jusqu'au jour où l'on veut revoir le début, et ce jour-là c'est une
+fonction dont on ne peut pas sortir. Un film **terminé** revient à un bouton —
+proposer de continuer à partir du générique n'est pas une proposition.
+
+**Le focus se déplace quand le second bouton apparaît.** La position vient du
+serveur, donc elle arrive une fraction de seconde après le premier rendu :
+l'ancrage du focus est posé sur *Reprendre* dès qu'il existe, et sur *Lire* tant
+qu'il n'existe pas. Un seul `FocusRequester` déplacé, jamais deux qui pourraient
+se disputer l'arrivée.
 
 **`BACK` revient sur le film qu'on regardait dans la grille**, pas en tête. C'est la
 règle d'US-10 et elle vaut ici pour la raison qui l'a fait écrire : un catalogue de

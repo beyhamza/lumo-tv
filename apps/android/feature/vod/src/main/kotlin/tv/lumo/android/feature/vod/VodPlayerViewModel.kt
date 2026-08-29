@@ -7,18 +7,23 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.model.VodPlaybackTarget
 import tv.lumo.android.core.data.repository.PlaybackRepository
+import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.player.LumoPlayer
 import tv.lumo.android.core.player.PlaybackError
 import tv.lumo.android.core.player.PlaybackProgress
 import tv.lumo.android.core.player.PlaybackRequest
 import tv.lumo.android.core.player.PlaybackState
+import tv.lumo.android.core.player.SeekAvailability
 import tv.lumo.android.network.generated.model.ErrorCode
 
 /**
@@ -43,13 +48,21 @@ import tv.lumo.android.network.generated.model.ErrorCode
  * not. `core:player` reports which of the four states applies, and this screen
  * draws a working scrubber only for one of them.
  *
- * **Nothing is recorded yet.** A film's position is worth keeping and a channel's
- * is not, but that is S5-11 — and writing half of it here would leave a position
- * saved that no screen reads.
+ * **Its position is written, and a channel's is not.** Every thirty seconds while
+ * playing, on pause, and on the way out — never per frame: `PUT /me/progress` is
+ * an idempotent upsert, not a stream, and thirty seconds is the trade between
+ * losing a minute when the process is killed and writing two thousand times a
+ * film.
+ *
+ * The guard against saving a *live* position is [savable], and it is a function
+ * rather than a comment because the risk is real: this view model and the channel
+ * player share one [LumoPlayer], and a shared player is exactly the thing that
+ * ends up writing a position for a continuous stream on its own.
  */
 @HiltViewModel
 class VodPlayerViewModel @Inject constructor(
     private val playback: PlaybackRepository,
+    private val progress: ProgressRepository,
     /** Exposed for the video surface, which needs the instance rather than its state. */
     val player: LumoPlayer,
 ) : ViewModel() {
@@ -57,6 +70,9 @@ class VodPlayerViewModel @Inject constructor(
     private val _failure = MutableStateFlow<VodPlayerFailure?>(null)
     private val _target = MutableStateFlow<VodPlaybackTarget?>(null)
     private var filmId: String? = null
+    private var sourceId: String? = null
+    private var resumeFromMs: Long = 0L
+    private var saver: Job? = null
 
     val state: StateFlow<VodPlayerUiState> =
         combine(
@@ -80,10 +96,21 @@ class VodPlayerViewModel @Inject constructor(
             initialValue = VodPlayerUiState(),
         )
 
-    /** Called once, with the film the screen was opened for. */
-    fun start(filmId: String, title: String?) {
+    /**
+     * Called once, with the film the screen was opened for.
+     *
+     * @param sourceId needed to save a position: it is part of the key the
+     *   contract upserts on. The screen has it because the film's own screen
+     *   read it from the cache before opening this one.
+     * @param resumeFromMs where the viewer chose to start. Zero is the
+     *   beginning, and that is a choice somebody made on the previous screen —
+     *   never a default this player applied on their behalf.
+     */
+    fun start(filmId: String, sourceId: String, title: String?, resumeFromMs: Long) {
         if (this.filmId == filmId) return
         this.filmId = filmId
+        this.sourceId = sourceId
+        this.resumeFromMs = resumeFromMs
         open(filmId, title)
     }
 
@@ -95,7 +122,12 @@ class VodPlayerViewModel @Inject constructor(
     fun seekTo(positionMs: Long) = player.seekTo(positionMs)
 
     fun togglePlayPause() {
-        if (player.state.value is PlaybackState.Playing) player.pause() else player.resume()
+        if (player.state.value is PlaybackState.Playing) {
+            player.pause()
+            onPaused()
+        } else {
+            player.resume()
+        }
     }
 
     private var currentTitle: String? = null
@@ -118,6 +150,12 @@ class VodPlayerViewModel @Inject constructor(
                             isLive = false,
                         ),
                     )
+                    // After `play`, because the player has no timeline before it.
+                    // Ignored by `LumoPlayer` until the stream turns out to be
+                    // seekable, which is the honest outcome: a server that will
+                    // not serve part of a file cannot resume one either.
+                    if (resumeFromMs > 0L) player.seekTo(resumeFromMs)
+                    startSaving()
                 }
 
                 is LumoResult.Failure -> _failure.value = result.error.asVodFailure()
@@ -125,14 +163,64 @@ class VodPlayerViewModel @Inject constructor(
         }
     }
 
-    /** Leaving the screen. The player survives; the stream and its URL do not. */
+    /**
+     * Leaving the screen. The player survives; the stream and its URL do not.
+     *
+     * The last save happens **before** the player is stopped, because stopping
+     * resets the position to zero — saving after it would write a viewer back to
+     * the beginning of every film they leave.
+     */
     fun stop() {
+        saveNow()
+        saver?.cancel()
+        saver = null
         player.stop()
         _target.value = null
     }
 
+    /**
+     * The thirty-second loop.
+     *
+     * A loop rather than a listener, because nothing in the player fires as time
+     * passes — the position advances with the clock. It runs while a stream is
+     * loaded, including while paused: pausing is the single most likely moment
+     * for somebody to walk away, and a paused position is the one most worth
+     * having.
+     */
+    private fun startSaving() {
+        saver?.cancel()
+        saver = viewModelScope.launch {
+            while (isActive) {
+                delay(SAVE_EVERY_MILLIS)
+                saveNow()
+            }
+        }
+    }
+
+    /** A tap on pause. The moment a position is most likely to matter. */
+    private fun onPaused() = saveNow()
+
+    private fun saveNow() {
+        val filmId = filmId ?: return
+        val sourceId = sourceId ?: return
+        val snapshot = player.progress.value
+        if (!snapshot.savable()) return
+
+        viewModelScope.launch {
+            progress.save(
+                sourceId = sourceId,
+                filmId = filmId,
+                positionMs = snapshot.positionMs,
+                durationMs = snapshot.durationMs,
+            )
+        }
+    }
+
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
+
+        /** See the class documentation: an upsert, not a stream. */
+        const val SAVE_EVERY_MILLIS = 30_000L
     }
 }
 
@@ -211,4 +299,29 @@ internal fun VodPlayerFailure.isRetryable(): Boolean = when (this) {
     VodPlayerFailure.FilmGone -> false
     VodPlayerFailure.Unplayable -> false
     VodPlayerFailure.Unexpected -> true
+}
+
+/**
+ * Whether this position is worth sending to the server.
+ *
+ * <h2>Two guards, and only one of them is an optimisation</h2>
+ *
+ * **A live stream is never saved.** `ProgressItemType` has no `LIVE` value, so
+ * the contract cannot express it — but a type system does not stop a shared
+ * player from being handed a channel and this view model from writing what it
+ * reports. The sprint asks for a test on each client for exactly that reason,
+ * and this function is what a test can hold.
+ *
+ * **A position of zero is not saved either**, and that one is not thrift: a save
+ * at zero overwrites a real position with the beginning of the film. It happens
+ * on every open — the player reports zero for the frames before the first one
+ * decodes — so without this guard opening a film and closing it immediately
+ * would lose where somebody was.
+ *
+ * `UNKNOWN` is refused with the same reasoning: nothing has loaded, so whatever
+ * the position says is not a position.
+ */
+internal fun PlaybackProgress.savable(): Boolean = when (seek) {
+    SeekAvailability.LIVE, SeekAvailability.UNKNOWN -> false
+    SeekAvailability.AVAILABLE, SeekAvailability.REFUSED -> positionMs > 0L
 }

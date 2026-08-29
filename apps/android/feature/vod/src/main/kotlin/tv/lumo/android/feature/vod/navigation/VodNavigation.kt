@@ -28,7 +28,7 @@ fun NavGraphBuilder.vodMobileScreen(onOpenFilm: (filmId: String) -> Unit) {
 }
 
 fun NavGraphBuilder.vodDetailMobileScreen(
-    onPlay: (filmId: String, title: String?) -> Unit,
+    onPlay: (filmId: String, sourceId: String, title: String?, atMs: Long) -> Unit,
     onBack: () -> Unit,
 ) {
     composable(
@@ -54,12 +54,24 @@ fun NavGraphBuilder.vodPlayerMobileScreen(onBack: () -> Unit) {
                 type = NavType.StringType
                 defaultValue = ""
             },
+            navArgument(VodPlayerDestination.ARG_SOURCE_ID) {
+                type = NavType.StringType
+                defaultValue = ""
+            },
+            navArgument(VodPlayerDestination.ARG_AT) {
+                type = NavType.LongType
+                // The beginning. A player never resumes on its own — the value
+                // here is one somebody chose on the film's own screen.
+                defaultValue = 0L
+            },
         ),
     ) { entry ->
         VodPlayerMobileScreen(
             filmId = entry.arguments?.getString(VodPlayerDestination.ARG_FILM_ID).orEmpty(),
+            sourceId = entry.arguments?.getString(VodPlayerDestination.ARG_SOURCE_ID).orEmpty(),
             title = entry.arguments?.getString(VodPlayerDestination.ARG_TITLE)
                 ?.takeIf { it.isNotEmpty() },
+            resumeFromMs = entry.arguments?.getLong(VodPlayerDestination.ARG_AT) ?: 0L,
             onBack = onBack,
         )
     }
@@ -111,7 +123,7 @@ fun NavGraphBuilder.vodTvScreen(onOpenFilm: (filmId: String) -> Unit) {
  * have lost the viewer's place.
  */
 fun NavGraphBuilder.vodDetailTvScreen(
-    onPlay: (filmId: String, title: String?) -> Unit,
+    onPlay: (filmId: String, sourceId: String, title: String?, atMs: Long) -> Unit,
     onBack: (filmId: String) -> Unit,
 ) {
     composable(
@@ -145,12 +157,24 @@ fun NavGraphBuilder.vodPlayerTvScreen(onBack: () -> Unit) {
                 type = NavType.StringType
                 defaultValue = ""
             },
+            navArgument(VodPlayerDestination.ARG_SOURCE_ID) {
+                type = NavType.StringType
+                defaultValue = ""
+            },
+            navArgument(VodPlayerDestination.ARG_AT) {
+                type = NavType.LongType
+                // The beginning. A player never resumes on its own — the value
+                // here is one somebody chose on the film's own screen.
+                defaultValue = 0L
+            },
         ),
     ) { entry ->
         VodPlayerTvScreen(
             filmId = entry.arguments?.getString(VodPlayerDestination.ARG_FILM_ID).orEmpty(),
+            sourceId = entry.arguments?.getString(VodPlayerDestination.ARG_SOURCE_ID).orEmpty(),
             title = entry.arguments?.getString(VodPlayerDestination.ARG_TITLE)
                 ?.takeIf { it.isNotEmpty() },
+            resumeFromMs = entry.arguments?.getLong(VodPlayerDestination.ARG_AT) ?: 0L,
             onBack = onBack,
         )
     }

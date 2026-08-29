@@ -293,7 +293,10 @@
     "filmsMinutes": "{count} min",
     "filmsPlay": "Lire",
     "filmsNoSeeking": "Votre fournisseur ne permet pas à un navigateur de se déplacer dans ce film : il renvoie le fichier entier quelle que soit la position demandée. La lecture part du début.",
-    "sourceOpenFilms": "Parcourir les films"
+    "sourceOpenFilms": "Parcourir les films",
+    "filmsResumeAt": "Reprendre à {at}",
+    "filmsStartOver": "Recommencer",
+    "filmsContinueWatching": "Reprendre"
   },
   "Errors": {
     "generic": "Une erreur est survenue. Réessayez.",

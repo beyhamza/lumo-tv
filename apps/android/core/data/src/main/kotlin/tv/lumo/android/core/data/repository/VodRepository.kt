@@ -232,6 +232,21 @@ class VodRepository @Inject internal constructor(
         categoryDao.observeBySource(sourceId, ContentType.VOD.value)
             .map { it.isNotEmpty() }
 
+    /**
+     * Several films from the cache, by id.
+     *
+     * For a rail built from rows that carry identifiers and nothing else — a
+     * saved position knows a film's id, not its poster. Room's order is not the
+     * caller's, so the caller re-orders; see `VodDao.byIds`.
+     *
+     * An id the cache does not hold is simply absent from the answer. That is a
+     * film a re-synchronisation dropped, and a rail one card shorter is better
+     * than a card with no title on it.
+     */
+    suspend fun filmsByIds(ids: List<String>): List<VodItem> = withContext(io) {
+        if (ids.isEmpty()) emptyList() else vodDao.byIds(ids).map { it.asVodItem() }
+    }
+
     /** How many films the cache holds for a source. Drives the empty state. */
     suspend fun cachedFilmCount(sourceId: String): Int =
         withContext(io) { vodDao.countForSource(sourceId) }

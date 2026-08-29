@@ -55,6 +55,18 @@ interface VodDao {
     @Query("SELECT * FROM vod_item WHERE id = :id")
     fun observe(id: String): Flow<VodItemEntity?>
 
+    /**
+     * Several films by id, for a rail built from something that carries
+     * identifiers only.
+     *
+     * **The order is not honoured, and callers must not expect it to be.**
+     * SQLite answers an `IN` in whatever order it likes; a "continue watching"
+     * rail wants the server's order, which the caller holds. So the caller
+     * re-orders, driven by the list it asked for.
+     */
+    @Query("SELECT * FROM vod_item WHERE id IN (:ids)")
+    suspend fun byIds(ids: List<String>): List<VodItemEntity>
+
     @Query("SELECT count(*) FROM vod_item WHERE source_id = :sourceId")
     suspend fun countForSource(sourceId: String): Int
 

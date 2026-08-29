@@ -31,12 +31,25 @@ object VodDetailDestination : LumoDestination {
  * title only once the cache emits is a player with a blank heading for a frame.
  */
 object VodPlayerDestination : LumoDestination {
-    override val route: String = "vod/player/{filmId}?title={title}"
+    override val route: String =
+        "vod/player/{filmId}?title={title}&sourceId={sourceId}&at={at}"
     override val titleRes: Int = R.string.feature_vod_title
 
-    fun routeFor(filmId: String, title: String?): String =
-        "vod/player/$filmId?title=${title.orEmpty()}"
+    /**
+     * @param sourceId part of the key `PUT /me/progress` upserts on. Carried in
+     *   the route rather than looked up here: the screen that sends the viewer
+     *   has the film in hand, and a player that had to read the cache before it
+     *   could save a position would be one more thing between a press and a
+     *   picture.
+     * @param atMs where to start. **A value somebody chose on the previous
+     *   screen**, never a resume this player applied on their own — see S5-11:
+     *   resuming is offered, not imposed.
+     */
+    fun routeFor(filmId: String, sourceId: String, title: String?, atMs: Long): String =
+        "vod/player/$filmId?title=${title.orEmpty()}&sourceId=$sourceId&at=$atMs"
 
     const val ARG_FILM_ID = "filmId"
     const val ARG_TITLE = "title"
+    const val ARG_SOURCE_ID = "sourceId"
+    const val ARG_AT = "at"
 }

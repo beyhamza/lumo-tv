@@ -26,7 +26,7 @@ import com.squareup.moshi.JsonClass
  * @param id 
  * @param sourceId The source this position belongs to. Returned because it is part of the key: a client reading a page of progress has to be able to tell two subscriptions' `1042` apart, exactly as the server does. 
  * @param itemType 
- * @param itemRef Identifier of the item within its source, opaque and minted by the user's panel. Unique only in combination with `source_id`. 
+ * @param itemRef Identifier of the item, opaque to this API. For `VOD` it is `VodItem.id` — see `SaveProgressRequest.item_ref`, where that is argued — which is what lets a \"continue watching\" rail resolve these rows through `GET /sources/{id}/vod?ids=`. 
  * @param positionMs Playback position, in milliseconds.
  * @param updatedAt 
  * @param durationMs Total duration, when known.
@@ -45,7 +45,7 @@ data class PlaybackProgress (
     @Json(name = "item_type")
     val itemType: ProgressItemType,
 
-    /* Identifier of the item within its source, opaque and minted by the user's panel. Unique only in combination with `source_id`.  */
+    /* Identifier of the item, opaque to this API. For `VOD` it is `VodItem.id` — see `SaveProgressRequest.item_ref`, where that is argued — which is what lets a \"continue watching\" rail resolve these rows through `GET /sources/{id}/vod?ids=`.  */
     @Json(name = "item_ref")
     val itemRef: kotlin.String,
 

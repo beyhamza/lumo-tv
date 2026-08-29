@@ -257,10 +257,11 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S5-08 | Mobile : grille d'affiches, fiche, lecture | mobile | mobile | 8 | 100 % |
 | ☑ | S5-09 | TV : la même au D-pad, et la carte du parcours | tv | tv | 8 | 100 % |
 | ☑ | S5-10 | Web : grille et fiche | web | web | 5 | 100 % |
-| ☐ | S5-11 | Reprise de lecture, et le rail qui la rend visible | 3 clients | mobile + tv + web | 8 | 0 % |
+| ☑ | S5-11 | Reprise de lecture, et le rail qui la rend visible | 3 clients | mobile + tv + web | 8 | 100 % |
 
-**Avancement du sprint : 87 % de 60 points.** Les trois clients affichent les films.
-Il ne reste que la reprise de lecture, qui les traverse tous les trois.
+**Avancement du sprint : 100 % de 60 points.** Les douze tâches sont livrées. Reste
+la recette, qui n'est pas dans ce tableau et sans laquelle rien n'est « terminé » au
+sens de la DoD.
 
 ---
 
@@ -753,7 +754,7 @@ message d'échec plutôt que d'être rangée dans « indisponible ».
 
 ---
 
-### S5-11 — Reprise de lecture, et le rail · **8** · dépend de S5-08, S5-09, S5-10
+### S5-11 — Reprise de lecture, et le rail · **8** · dépend de S5-08, S5-09, S5-10 · ☑
 
 Les deux endpoints existent depuis `SRV-05` et personne ne les a jamais appelés.
 
@@ -785,6 +786,28 @@ agacement, un film qui en disparaît avant la fin est une perte.
 `LIVE`, et le contrat le dit : envoyer une progression pour du direct est un bug
 client, pas un cas supporté. Un test le vérifie sur chaque client, parce que c'est le
 genre d'appel qu'un lecteur partagé entre deux usages fait tout seul.
+
+> **Une décision prise à la livraison : ce que les clients mettent dans `item_ref`.**
+>
+> Le contrat le décrivait comme « frappé par le panel de l'utilisateur » et « pas un
+> de nos identifiants, donc il n'y a rien où le chercher ». Or **le rail a
+> précisément besoin de le chercher** : `GET /me/progress` rend des identifiants et
+> des positions, pas des affiches et des titres, et `GET /sources/{id}/vod?ids=` est
+> la seule opération qui fasse la conversion.
+>
+> Les clients envoient donc **`VodItem.id`**, et le contrat le dit maintenant. Ça ne
+> coûte rien en stabilité : `vod_item` est upserté sur `(source_id, external_id)`,
+> donc une ligne garde son identifiant à travers les resynchronisations — la
+> propriété pour laquelle une référence frappée par le panel aurait été choisie.
+> `source_id` reste dans la clé bien qu'il devienne redondant pour ce type : une clé
+> qui change de forme quand `EPISODE` arrivera coûterait plus cher.
+>
+> **Ce qui n'est pas fait de ce côté :** la progression ne passe pas par Room sur
+> Android. Une position s'écrit sur un appareil et se lit sur un autre, et un cache
+> local devrait fusionner deux positions qui se contredisent, hors ligne, sans savoir
+> laquelle est la plus récente. Le rail est donc vide dans le train, et un film
+> ouvert hors ligne repart du début. C'est visible, ce n'est pas faux, et c'est
+> mieux que de reprendre quelqu'un à vingt minutes d'un film qu'il a fini hier soir.
 
 ---
 

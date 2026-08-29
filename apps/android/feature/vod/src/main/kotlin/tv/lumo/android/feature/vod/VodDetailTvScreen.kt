@@ -47,12 +47,19 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
  * paperwork: on a television the way in and out of a screen is the screen, and a
  * blank cell in that table is a defect rather than an omission in the writing.
  *
- * <h2>One focus target, on purpose</h2>
+ * <h2>One focus target, or two when there is something to resume</h2>
  *
  * **Play**, and it has the focus on arrival. Somebody who pressed `OK` on a
  * poster has already decided; the screen exists to confirm what they chose, not
  * to make them travel through it. Everything else here is text, and text that
  * takes focus on a television is text somebody has to press past.
+ *
+ * A film with a saved position gets **two buttons — "Resume at 20:14" focused,
+ * "Start over" one `DOWN` away** (S5-11). Both visible, and neither pressed on
+ * anybody's behalf: resuming automatically is a good idea right up until somebody
+ * wants the beginning, and then it is a feature with no way out. A **finished**
+ * film is back to one button, because offering to carry on from the credits is
+ * not an offer.
  *
  * `BACK` is the way out and it is a physical key, so there is no back control to
  * draw — one would be a second target for something the remote already does.
@@ -69,7 +76,7 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
 @Composable
 fun VodDetailTvScreen(
     filmId: String,
-    onPlay: (filmId: String, title: String?) -> Unit,
+    onPlay: (filmId: String, sourceId: String, title: String?, atMs: Long) -> Unit,
     onBack: (filmId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: VodDetailViewModel = hiltViewModel(),
@@ -84,9 +91,14 @@ fun VodDetailTvScreen(
     BackHandler { onBack(filmId) }
 
     val play = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { play.requestFocus() } }
-
     val film = state.film
+    val resumeAt = state.resumeFrom?.positionMs
+
+    // Keyed on the offer: the resume button does not exist on the frame this
+    // screen first draws — the position arrives from the server a moment later —
+    // and the focus has to move to it when it appears rather than stay on the
+    // button below.
+    LaunchedEffect(resumeAt) { runCatching { play.requestFocus() } }
 
     Row(
         modifier = modifier
@@ -122,10 +134,29 @@ fun VodDetailTvScreen(
                 )
             }
 
-            PlayButton(
+            if (resumeAt != null) {
+                TvActionButton(
+                    label = stringResource(R.string.feature_vod_resume_at, resumeAt.asTvClock()),
+                    enabled = film != null,
+                    focusRequester = play,
+                    onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, resumeAt) } },
+                )
+            }
+
+            TvActionButton(
+                label = stringResource(
+                    if (resumeAt != null) {
+                        R.string.feature_vod_start_over
+                    } else {
+                        R.string.feature_vod_play
+                    },
+                ),
                 enabled = film != null,
-                focusRequester = play,
-                onClick = { film?.let { onPlay(it.id, it.name) } },
+                // The requester goes to whichever button is the arrival target:
+                // resume when there is one, play otherwise. One requester, moved,
+                // rather than two that could both fire.
+                focusRequester = if (resumeAt == null) play else null,
+                onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, 0L) } },
             )
 
             Text(
@@ -145,23 +176,31 @@ fun VodDetailTvScreen(
 }
 
 /**
- * The one thing on this screen the remote can land on.
+ * A button the remote can land on.
  *
  * `clickable` rather than `focusable()` plus a click handler: it does both, and
  * adding the second would put two focus targets on one control — rule 6 of the
  * focus map.
+ *
+ * @param focusRequester null for a button that is not the arrival target. One
+ *   requester moves between the two rather than each holding its own, because
+ *   two requesters both asking for focus is a race whose winner changes between
+ *   runs.
  */
 @Composable
-private fun PlayButton(
+private fun TvActionButton(
+    label: String,
     enabled: Boolean,
-    focusRequester: FocusRequester,
+    focusRequester: FocusRequester?,
     onClick: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
-            .focusRequester(focusRequester)
+            .then(
+                focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier,
+            )
             .onFocusChanged { focused = it.isFocused }
             .lumoTvFocus(focused)
             .clip(LumoShapes.medium)
@@ -175,10 +214,24 @@ private fun PlayButton(
             .padding(horizontal = LumoSpacing.xl, vertical = LumoSpacing.md),
     ) {
         Text(
-            text = stringResource(R.string.feature_vod_play),
+            text = label,
             style = MaterialTheme.typography.titleLarge,
             color = if (focused) LumoColors.OnAccent else LumoColors.OnDark,
         )
+    }
+}
+
+/** The player's formatter: "resume at 20:14" must read as the scrubber's number. */
+private fun Long.asTvClock(): String {
+    val totalSeconds = (this / 1_000L).coerceAtLeast(0L)
+    val seconds = totalSeconds % 60
+    val minutes = (totalSeconds / 60) % 60
+    val hours = totalSeconds / 3_600
+
+    return if (hours > 0) {
+        "%d:%02d:%02d".format(hours, minutes, seconds)
+    } else {
+        "%d:%02d".format(minutes, seconds)
     }
 }
 

@@ -72,8 +72,10 @@ fun LumoTvNavHost(
             },
         )
         vodDetailTvScreen(
-            onPlay = { filmId, title ->
-                navController.navigate(VodPlayerDestination.routeFor(filmId, title))
+            onPlay = { filmId, sourceId, title, atMs ->
+                navController.navigate(
+                    VodPlayerDestination.routeFor(filmId, sourceId, title, atMs),
+                )
             },
             onBack = { filmId ->
                 // The same rule as the channel player, one screen further out:

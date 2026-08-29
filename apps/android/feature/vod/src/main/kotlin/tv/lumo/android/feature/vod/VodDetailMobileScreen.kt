@@ -44,6 +44,16 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
  * reach the one control they came for is the kind of thing that only happens
  * because the synopsis was written first.
  *
+ * <h2>Resuming is offered, never imposed (S5-11)</h2>
+ *
+ * A film with a saved position shows **two** buttons — "Resume at 20:14" first,
+ * "Start over" under it — and neither is pressed on anybody's behalf. Automatic
+ * resume is a good idea right up until the day somebody wants to see the
+ * beginning again, and then it is a feature with no way out.
+ *
+ * A **finished** film shows one button. Offering to carry on from the credits is
+ * not an offer.
+ *
  * <h2>The screen renders before the network answers</h2>
  *
  * Everything except the synopsis comes out of the cache, so the poster and the
@@ -54,7 +64,7 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
 @Composable
 fun VodDetailMobileScreen(
     filmId: String,
-    onPlay: (filmId: String, title: String?) -> Unit,
+    onPlay: (filmId: String, sourceId: String, title: String?, atMs: Long) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: VodDetailViewModel = hiltViewModel(),
@@ -102,12 +112,35 @@ fun VodDetailMobileScreen(
                     )
                 }
 
+                val resumeAt = state.resumeFrom?.positionMs
+
+                // Resume first, and start-over under it. Both visible, and that
+                // is the whole ruling of S5-11: a player that resumed on its own
+                // is a good idea right up until somebody wants the beginning.
+                if (resumeAt != null) {
+                    Button(
+                        onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, resumeAt) } },
+                        enabled = film != null,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.feature_vod_resume_at, resumeAt.asClock()))
+                    }
+                }
+
                 Button(
-                    onClick = { film?.let { onPlay(it.id, it.name) } },
+                    onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, 0L) } },
                     enabled = film != null,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(stringResource(R.string.feature_vod_play))
+                    Text(
+                        stringResource(
+                            if (resumeAt != null) {
+                                R.string.feature_vod_start_over
+                            } else {
+                                R.string.feature_vod_play
+                            },
+                        ),
+                    )
                 }
             }
         }
@@ -165,6 +198,25 @@ private fun VodItem.facts(): List<String> = buildList {
         add(stringResource(R.string.feature_vod_minutes, minutes))
     }
     rating?.let(::add)
+}
+
+/**
+ * Milliseconds as a clock, the hour only when there is one.
+ *
+ * The player's formatter, and it is the same value being spoken about: "resume
+ * at 20:14" has to read as the number the scrubber will show.
+ */
+private fun Long.asClock(): String {
+    val totalSeconds = (this / 1_000L).coerceAtLeast(0L)
+    val seconds = totalSeconds % 60
+    val minutes = (totalSeconds / 60) % 60
+    val hours = totalSeconds / 3_600
+
+    return if (hours > 0) {
+        "%d:%02d:%02d".format(hours, minutes, seconds)
+    } else {
+        "%d:%02d".format(minutes, seconds)
+    }
 }
 
 /**

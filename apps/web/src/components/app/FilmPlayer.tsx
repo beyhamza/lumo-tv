@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { saveFilmProgress } from "@/actions/playback";
+import { savableProgress } from "@/lib/playback/progress";
 
 /**
  * Plays one film in the browser (US-13, ADR 0007).
@@ -37,6 +39,17 @@ import { useTranslations } from "next-intl";
  * It gets its own message rather than being folded into "unavailable", which is
  * what the task asked for and the reason it asked.
  *
+ * <h2>Where somebody stopped (S5-11)</h2>
+ *
+ * Every thirty seconds while playing, on pause, and when the page goes away —
+ * never per frame: `PUT /me/progress` is an idempotent upsert, not a stream.
+ *
+ * The page-going-away case is the one a browser makes hard. `beforeunload` is
+ * unreliable on mobile and `unload` does not fire at all in some browsers, so
+ * the listener is on `visibilitychange`, which is what actually fires when a tab
+ * is hidden, switched away from, or closed. It saves more often than strictly
+ * needed, which for an idempotent upsert costs nothing.
+ *
  * <h2>Failures are named</h2>
  *
  * A black rectangle with no message is what makes someone conclude the product
@@ -44,7 +57,31 @@ import { useTranslations } from "next-intl";
  * and the ones a browser cannot get past point at the applications, which have
  * neither constraint.
  */
-export function FilmPlayer({ filmId, name }: { filmId: string; name: string }) {
+export function FilmPlayer({
+  filmId,
+  sourceId,
+  name,
+  resumeFromMs,
+  resumeLabel,
+}: {
+  filmId: string;
+  sourceId: string;
+  name: string;
+  /**
+   * Where to start, **chosen on the page around this component** and never by
+   * this component. Zero is the beginning, and it is somebody's answer to a
+   * question they were asked — resuming is offered, not imposed.
+   */
+  resumeFromMs: number;
+  /**
+   * "Resume at 20:14", or null when there is nothing to resume.
+   *
+   * Formatted by the page rather than here: the position comes from the server
+   * with the film, and a client component asking for it again would be a second
+   * request for a number the page already has.
+   */
+  resumeLabel: string | null;
+}) {
   const t = useTranslations("App");
   const tErrors = useTranslations("Errors");
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -53,6 +90,30 @@ export function FilmPlayer({ filmId, name }: { filmId: string; name: string }) {
   const [maxConnections, setMaxConnections] = useState<number | null>(null);
   const [seekable, setSeekable] = useState<boolean | null>(null);
   const [started, setStarted] = useState(false);
+  /**
+   * Where this playback was told to start.
+   *
+   * State rather than the prop, because "start over" changes it: the two buttons
+   * are one player told two different things, not two players.
+   */
+  const [startAtMs, setStartAtMs] = useState(resumeFromMs);
+
+  /**
+   * The last position worth saving, kept in a ref rather than in state.
+   *
+   * A ref because it changes several times a second and nothing renders from it:
+   * as state it would re-render the whole player on every timeupdate, over a
+   * `<video>` that is drawing frames.
+   */
+  const position = useRef({ positionMs: 0, durationMs: null as number | null });
+
+  const save = useCallback(() => {
+    const { positionMs, durationMs } = position.current;
+    // `isLive` is false and stated rather than assumed: this component only ever
+    // plays a film, and the guard is what keeps that true if it is ever reused.
+    if (!savableProgress({ positionMs, isLive: false })) return;
+    void saveFilmProgress({ sourceId, filmId, positionMs, durationMs });
+  }, [filmId, sourceId]);
 
   useEffect(() => {
     if (!started) return;
@@ -97,6 +158,11 @@ export function FilmPlayer({ filmId, name }: { filmId: string; name: string }) {
       // into a CORS request and break every panel that does not send the header
       // — for a capability (canvas, Web Audio) nothing here uses.
       video.src = payload.url;
+      // Set before play, so the browser opens the file at the offset rather than
+      // downloading its way there. On a server that ignores `Range` it silently
+      // does nothing, which is the honest outcome — the same server cannot seek
+      // either.
+      if (startAtMs > 0) video.currentTime = startAtMs / 1000;
       void video.play().catch(() => {
         // Autoplay refused by policy is not a playback failure, and saying so
         // would be wrong: the file loaded, the controls work, the visitor
@@ -108,18 +174,60 @@ export function FilmPlayer({ filmId, name }: { filmId: string; name: string }) {
     return () => {
       disposed = true;
     };
-  }, [filmId, started]);
+  }, [filmId, started, startAtMs]);
+
+  // The thirty-second loop, plus the two moments that matter more than any tick:
+  // the tab going away, and the component being taken down.
+  useEffect(() => {
+    if (!started) return;
+
+    const timer = setInterval(save, SAVE_EVERY_MS);
+    const onHidden = () => {
+      if (document.visibilityState === "hidden") save();
+    };
+    document.addEventListener("visibilitychange", onHidden);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onHidden);
+      // Last, and it is the one that catches navigating away from the page.
+      save();
+    };
+  }, [started, save]);
 
   return (
     <section className="mt-6">
       {!started ? (
-        <button
-          type="button"
-          onClick={() => setStarted(true)}
-          className="bg-primary text-primary-foreground h-10 rounded-lg px-5 text-sm font-medium"
-        >
-          {t("filmsPlay")}
-        </button>
+        <div className="flex flex-wrap gap-3">
+          {/* Resume first, start-over beside it, both visible. Neither is pressed
+              on anybody's behalf — see the page's own documentation. */}
+          {resumeLabel ? (
+            <button
+              type="button"
+              onClick={() => {
+                setStartAtMs(resumeFromMs);
+                setStarted(true);
+              }}
+              className="bg-primary text-primary-foreground h-10 rounded-lg px-5 text-sm font-medium"
+            >
+              {resumeLabel}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setStartAtMs(0);
+              setStarted(true);
+            }}
+            className={
+              resumeLabel
+                ? "bg-secondary text-secondary-foreground h-10 rounded-lg px-5 text-sm font-medium"
+                : "bg-primary text-primary-foreground h-10 rounded-lg px-5 text-sm font-medium"
+            }
+          >
+            {t(resumeLabel ? "filmsStartOver" : "filmsPlay")}
+          </button>
+        </div>
       ) : null}
 
       <video
@@ -135,6 +243,17 @@ export function FilmPlayer({ filmId, name }: { filmId: string; name: string }) {
           const video = event.currentTarget;
           setSeekable(video.seekable.length > 0 && Number.isFinite(video.duration));
         }}
+        onTimeUpdate={(event) => {
+          const video = event.currentTarget;
+          position.current = {
+            positionMs: video.currentTime * 1000,
+            durationMs: Number.isFinite(video.duration) ? video.duration * 1000 : null,
+          };
+        }}
+        // A pause is the single most likely moment for somebody to walk away, so
+        // it is worth a write of its own rather than waiting up to thirty
+        // seconds for the next tick.
+        onPause={save}
         onError={() =>
           setFailure((current) =>
             // Not overwritten: a named failure set above is more specific than
@@ -176,6 +295,9 @@ export function FilmPlayer({ filmId, name }: { filmId: string; name: string }) {
     </section>
   );
 }
+
+/** See the class documentation: an upsert, not a stream. */
+const SAVE_EVERY_MS = 30_000;
 
 type Failure =
   | { kind: "api"; code: string }

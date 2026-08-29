@@ -52,4 +52,9 @@
     <!-- ==== The television ==== -->
     <string name="feature_vod_tv_loading">Loading the films…</string>
     <string name="feature_vod_tv_back_hint">Press BACK to return to the film.</string>
+
+    <!-- ==== Resuming (S5-11) ==== -->
+    <string name="feature_vod_resume_at">Resume at %1$s</string>
+    <string name="feature_vod_start_over">Start over</string>
+    <string name="feature_vod_continue_watching">Continue watching</string>
 </resources>

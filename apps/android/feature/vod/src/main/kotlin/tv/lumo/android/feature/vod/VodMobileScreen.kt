@@ -7,8 +7,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -34,6 +38,7 @@ import androidx.paging.compose.itemKey
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.VodItem
+import tv.lumo.android.core.data.model.WatchProgress
 import tv.lumo.android.core.designsystem.component.LumoPoster
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
@@ -102,6 +107,8 @@ fun VodMobileScreen(
                         .fillMaxWidth()
                         .padding(horizontal = LumoSpacing.md),
                 )
+
+                ContinueWatching(films = state.continueWatching, onOpen = onOpenFilm)
 
                 Categories(
                     categories = state.categories,
@@ -199,6 +206,88 @@ private fun Header(state: VodState, onRefresh: () -> Unit) {
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.padding(horizontal = LumoSpacing.md),
+        )
+    }
+}
+
+/**
+ * The "continue watching" rail (S5-11).
+ *
+ * At the head of the catalogue, and a **rail** rather than a filter — unlike the
+ * television, where the same list is a chip. A phone has the height to carry a
+ * row above the grid; a television's category strip has no room for a second
+ * mechanism, which is the ruling `S4-08` made for the channels and it holds here.
+ *
+ * Absent when empty rather than drawn with a "nothing yet" placeholder: a heading
+ * over an empty row on the first visit is a promise about a feature nobody has
+ * used, taking space from the catalogue they came for.
+ *
+ * The bar under each poster is the position, and it is the only thing on this
+ * screen that is not in the grid below. **Drawn only when the length is known** —
+ * many panels state none, and a bar with no denominator would be a fraction of
+ * nothing.
+ */
+@Composable
+private fun ContinueWatching(films: List<ResumableFilm>, onOpen: (String) -> Unit) {
+    if (films.isEmpty()) return
+
+    Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs)) {
+        Text(
+            text = stringResource(R.string.feature_vod_continue_watching),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(horizontal = LumoSpacing.md),
+        )
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = LumoSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+        ) {
+            items(films.size) { index ->
+                val entry = films[index]
+                Column(
+                    modifier = Modifier
+                        .width(RAIL_POSTER_WIDTH)
+                        .clickable { onOpen(entry.film.id) },
+                    verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+                ) {
+                    LumoPoster(
+                        posterUrl = entry.film.posterUrl,
+                        title = entry.film.name,
+                        modifier = Modifier.fillMaxWidth(),
+                        overlay = { PositionBar(entry.progress) },
+                    )
+                    Text(
+                        text = entry.film.name,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** How far in, drawn across the foot of the poster. Nothing when the length is unknown. */
+@Composable
+private fun BoxScope.PositionBar(progress: WatchProgress) {
+    val duration = progress.durationMs ?: return
+    if (duration <= 0L) return
+
+    Box(
+        modifier = Modifier
+            .align(Alignment.BottomStart)
+            .fillMaxWidth()
+            .height(RAIL_BAR_HEIGHT)
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth((progress.positionMs.toFloat() / duration).coerceIn(0f, 1f))
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.primary),
         )
     }
 }
@@ -334,3 +423,8 @@ internal fun Centered(content: @Composable () -> Unit) {
 
 /** See the class documentation: two, because recognising the picture is the job. */
 private const val COLUMNS = 2
+
+/** Narrower than a grid card: the rail is a shortcut, not a second catalogue. */
+private val RAIL_POSTER_WIDTH = 110.dp
+
+private val RAIL_BAR_HEIGHT = 4.dp

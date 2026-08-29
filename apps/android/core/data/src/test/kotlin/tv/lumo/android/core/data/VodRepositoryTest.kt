@@ -304,6 +304,9 @@ private class FakeVodDao : VodDao {
     override suspend fun countForSource(sourceId: String): Int =
         stored.count { it.sourceId == sourceId }
 
+    override suspend fun byIds(ids: List<String>): List<VodItemEntity> =
+        stored.filter { it.id in ids }
+
     override fun observe(id: String): Flow<VodItemEntity?> =
         MutableStateFlow(Unit).map { stored.firstOrNull { entity -> entity.id == id } }
 

@@ -293,7 +293,10 @@
     "filmsMinutes": "{count} min",
     "filmsPlay": "Play",
     "filmsNoSeeking": "Your provider does not let a browser jump within this film: it sends the whole file whatever position is asked for. It plays from the beginning.",
-    "sourceOpenFilms": "Browse the films"
+    "sourceOpenFilms": "Browse the films",
+    "filmsResumeAt": "Resume at {at}",
+    "filmsStartOver": "Start over",
+    "filmsContinueWatching": "Continue watching"
   },
   "Errors": {
     "generic": "Something went wrong. Try again.",
