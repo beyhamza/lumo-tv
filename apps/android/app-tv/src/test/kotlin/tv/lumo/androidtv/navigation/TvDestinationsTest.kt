@@ -3,6 +3,7 @@ package tv.lumo.androidtv.navigation
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import tv.lumo.android.feature.live.LiveDestination
+import tv.lumo.android.feature.series.SeriesDestination
 import tv.lumo.android.feature.settings.SettingsDestination
 import tv.lumo.android.feature.source.SourceDestination
 import tv.lumo.android.feature.vod.VodDestination
@@ -10,38 +11,28 @@ import tv.lumo.android.feature.vod.VodDestination
 /**
  * What the rail offers (US-13).
  *
- * The phone has the same test and the same reason — a negative requirement is the
- * kind that gets silently undone — but it weighs more here. **A rail entry is a
- * mandatory stop on the way down.** A door onto an empty room costs every viewer a
- * `DOWN` press, on every journey, for a room most M3U playlists do not have; on a
- * phone the equivalent tab is simply ignored.
+ * <h2>The reversal cost more to accept here, and it is still right</h2>
  *
- * The order is asserted, and on a television that is not cosmetic either: the rail
- * is where the D-pad lands first, and a list that reorders itself between two
- * launches moves every destination the viewer has learnt to reach by counting
- * presses.
+ * The earlier version of this file proved the films entry was absent on a source
+ * with no films, and argued that it weighed more on a television than on a phone:
+ * a rail entry is a **mandatory stop on the way down**, so a door onto an empty
+ * room costs every viewer a press, on every journey.
+ *
+ * That cost is real. It is also the smaller one. Hiding the films is what made
+ * somebody with a hundred and forty thousand of them conclude the feature did not
+ * exist — and on a television there is nowhere else to go and look, no second
+ * screen, no address bar. A press spent reaching a grid that explains itself beats
+ * a feature nobody can find.
+ *
+ * What is guarded now is the line that survived: an *empty* catalogue is a reply
+ * and belongs in the rail; an *unbuilt* screen is a promise and does not.
  */
 class TvDestinationsTest {
 
     @Test
-    fun `a source with no films offers no films entry`() {
-        val routes = tvDestinations(hasFilms = false).map { it.route }
+    fun `the rail offers films, whatever the source holds`() {
+        val routes = TvDestinations.map { it.route }
 
-        assertThat(routes).doesNotContain(VodDestination.route)
-        assertThat(routes).containsExactly(
-            LiveDestination.route,
-            SourceDestination.route,
-            SettingsDestination.route,
-        ).inOrder()
-    }
-
-    @Test
-    fun `a source with films offers it second, right after the channels`() {
-        val routes = tvDestinations(hasFilms = true).map { it.route }
-
-        // Second, so the two catalogue destinations sit together at the top of the
-        // rail: they are what the television is for, and everything below them is
-        // something one goes to occasionally.
         assertThat(routes).containsExactly(
             LiveDestination.route,
             VodDestination.route,
@@ -51,12 +42,22 @@ class TvDestinationsTest {
     }
 
     @Test
-    fun `channels stay first either way`() {
-        // The shortest journey from the rail, whatever else is in it. That is the
-        // rule the rail was built on, and the films entry must not shift it.
-        assertThat(tvDestinations(hasFilms = false).first().route)
-            .isEqualTo(LiveDestination.route)
-        assertThat(tvDestinations(hasFilms = true).first().route)
-            .isEqualTo(LiveDestination.route)
+    fun `channels stay first, and films sit next to them`() {
+        val routes = TvDestinations.map { it.route }
+
+        // Live is the shortest journey from the rail, whatever else is in it —
+        // the rule the rail was built on. The two catalogues sit together;
+        // everything below them is somewhere one goes occasionally.
+        assertThat(routes.first()).isEqualTo(LiveDestination.route)
+        assertThat(routes[1]).isEqualTo(VodDestination.route)
+    }
+
+    @Test
+    fun `a screen that does not exist yet is not in the rail`() {
+        // Series have no television screen until S6-06 — only `LumoTvPlaceholder`.
+        // A rail entry onto one would cost every viewer a `DOWN` press to reach a
+        // sentence saying the feature is not built, which is the one thing worse
+        // than an empty catalogue.
+        assertThat(TvDestinations.map { it.route }).doesNotContain(SeriesDestination.route)
     }
 }

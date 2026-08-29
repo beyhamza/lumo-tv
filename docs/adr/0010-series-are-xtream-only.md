@@ -124,10 +124,16 @@ can.
 > sentence explaining that this source carries none is not a promise, it is a
 > reply — and the sentences of this ruling are exactly what makes the difference.
 >
-> The phone and the television still hide theirs, and that is now an
-> **inconsistency rather than a decision**. It is written down here rather than
-> left to be found: whoever touches `CatalogueSections` next should make the two
-> Android surfaces do what the web does.
+> The phone and the television now do the same, and `CatalogueSections` — the
+> class whose only purpose was to answer "should this tab exist" — is gone with
+> the question. One request fewer at every launch, on both.
+>
+> **One line of the old rule survives and is what still keeps series out of the
+> two Android bars:** an *empty* catalogue is a reply, an *unbuilt* screen is a
+> promise. A grid that says "this source offers only channels" answers somebody;
+> a tab onto a placeholder tells them a feature exists when it does not. Series
+> join the phone with `S6-05` and the television with `S6-06`, and the tests on
+> both nav lists say so in as many words.
 
 ### 4. What would reopen this, and what it would cost
 

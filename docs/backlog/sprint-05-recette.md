@@ -148,22 +148,30 @@ rouge.
 
 ## 4. La grille — téléphone
 
-**R-210 · Une source sans films ne montre pas d'onglet** · S5-08 · téléphone
-Compte dont la **première** source est `/playlist.m3u` (voir §1 : deux comptes, ou
-suppression et réenregistrement).
-→ **Il n'y a pas d'onglet Films.** Quatre entrées dans la barre. Une porte sur une
-pièce vide est rouge : c'est une exigence *négative*, et le genre qui se défait
-sans que rien ne casse.
+**R-210 · Une source sans films montre l'onglet, et la grille explique** · S5-08 ·
+téléphone
+Compte dont la **première** source est `/playlist.m3u`.
+→ **L'onglet Films est là**, et il ouvre sur « Aucun film — cette source ne propose
+que des chaînes. Il ne manque rien ici. »
 
-**R-211 · Une source avec des films le montre** · S5-08 · téléphone
+> **Ce cas disait exactement le contraire, et il était vert.** Il vérifiait
+> l'absence de l'onglet, au nom de « une promesse vide est pire qu'une absence ».
+> Un usage réel l'a démenti : le propriétaire d'un panel de cent quarante et un
+> mille films ne les a pas trouvés et a conclu que la fonction n'existait pas.
+> **Une absence est indiscernable d'un bug.** Ce qui subsiste de la règle est la
+> distinction entre un catalogue *vide* — une réponse — et un écran *non
+> construit* — une promesse ; c'est R-212 qui la tient maintenant.
+
+**R-211 · Une source avec des films ouvre sur la grille** · S5-08 · téléphone
 Compte dont la **première** source est `/mixed.m3u`.
-→ L'onglet Films est là, **en deuxième position**, après les chaînes et avant les
-favoris.
+→ L'onglet Films est **en deuxième position**, après les chaînes et avant les
+favoris, et il ouvre sur les affiches.
 
-**R-212 · L'onglet arrive, il ne disparaît pas** · S5-08 · téléphone
-Lancer l'application et regarder la barre pendant la première seconde.
-→ La barre se dessine avec quatre entrées puis en gagne une. **Jamais l'inverse** :
-une barre qui retire une cible sous le pouce est rouge.
+**R-212 · Aucun onglet vers un écran non construit** · S5-08 · téléphone
+→ **Pas d'onglet Séries, pas d'onglet Recherche.** Ce sont des placeholders : une
+entrée qui mène à « cette fonction arrivera » dit qu'elle existe alors qu'elle
+n'existe pas. La distinction avec R-210 est la seule moitié de l'ancienne règle qui
+reste, et elle tombe le jour où S6-05 livre la fiche série.
 
 **R-213 · Des affiches, pas une liste** · S5-08 · téléphone
 → Deux colonnes, affiches en portrait, titre sous l'image. Trois colonnes est
@@ -250,11 +258,20 @@ Cette section se joue **à la télécommande**, sur un appareil réel.
 de ses tableaux est un défaut**. Une souris produit du survol, pas du focus, et le
 survol masque exactement ce que cette section cherche.
 
-**R-250 · L'entrée Films n'existe que s'il y a des films** · S5-09 · TV
-Même préparation que R-210 (§1).
-→ Trois entrées de rail sur une source sans films, quatre sinon, Films en seconde
-position. Sur une télévision une entrée de rail est un arrêt obligatoire en
-descendant : une porte sur une pièce vide coûte un appui à chaque trajet.
+**R-250 · L'entrée Films est toujours là, sur une source qui en a ou non** · S5-09 ·
+TV
+→ Quatre entrées de rail, Films en seconde position, dans les deux cas. Sur une
+source sans films elle ouvre sur la grille qui explique.
+
+> **L'argument contraire était plus fort ici qu'ailleurs** — une entrée de rail est
+> un arrêt obligatoire en descendant, donc une porte sur une pièce vide coûte un
+> appui à chaque trajet. Il reste vrai, et il est le plus petit des deux coûts :
+> sur une télévision il n'y a nulle part ailleurs où aller regarder, pas de second
+> écran, pas de barre d'adresse. Un appui pour atteindre une grille qui s'explique
+> vaut mieux qu'une fonction introuvable.
+>
+> **Pas d'entrée Séries** tant que `S6-06` n'a pas livré son écran, pour la raison
+de R-212.
 
 **R-251 · Le focus arrive sur la première affiche** · S5-09 · TV
 → Pas sur la bande de catégories.
@@ -366,8 +383,9 @@ besoin d'être expliqué.
 > permettre le déplacement. Si le déplacement échoue là, c'est la correction qui
 > est fausse, et il faut le dire.
 
-**R-278 · L'entrée Films n'apparaît que s'il y a des films** · S5-10 · navigateur
-→ Le lien « Parcourir les films » est absent de la page d'une source sans films.
+**R-278 · Les trois liens sont sur la page de la source** · S5-10 · navigateur
+→ « Voir les chaînes », « Parcourir les films » et « Parcourir les séries », quelle
+que soit la source. Chacun ouvre sur son catalogue, vide ou non.
 
 **R-279 · On traverse entre les deux catalogues, et seulement quand il y en a deux**
 · S5-10 · navigateur
@@ -376,9 +394,12 @@ Sur `/mixed.m3u` : ouvrir les chaînes, puis la bande **Chaînes · Films**.
 → Les deux onglets sont là, celui de la page courante marqué (`aria-current`), et
 chacun mène à l'autre catalogue de **cette** source.
 
-Sur `/playlist.m3u` : ouvrir les chaînes.
-→ **Aucune bande.** Un onglet seul n'est pas un choix : il dessinerait « Chaînes »
-au-dessus d'une liste de chaînes, ce qui ne dit rien et prend une ligne.
+Sur `/playlist.m3u` : ouvrir les chaînes, puis l'onglet Films, puis l'onglet Séries.
+→ **La bande est là aussi**, et chaque catalogue vide dit pourquoi : les films
+annoncent une source qui ne porte que des chaînes, les séries annoncent qu'une
+playlist M3U ne déclare ni saison ni épisode (`adr/0010`). **Deux phrases
+distinctes**, parce que ce sont deux faits distincts — un panel Xtream sans séries
+en reçoit une troisième.
 
 > **Ce cas a été ajouté après un signalement d'usage**, et c'est le trou qui
 > compte : les films étaient atteignables uniquement depuis la page de la source,

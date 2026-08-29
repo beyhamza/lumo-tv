@@ -38,13 +38,13 @@ import tv.lumo.android.feature.vod.navigation.vodPlayerMobileScreen
  * has to know what else exists.
  *
  * Series and search stay registered even though nothing points at them any more
- * (see [mobileDestinations]). Removing them from the graph as well would turn a
+ * (see [MobileDestinations]). Removing them from the graph as well would turn a
  * screen that is merely unreachable into a crash for anything that still names
  * its route — a saved back stack, a deep link, a notification.
  *
- * The same applies to the three film routes on a source that carries no films:
- * the tab is gone, the routes stay. A deep link to a film is not made invalid by
- * a playlist that has none.
+ * The film routes are registered whatever the source carries. A deep link to a
+ * film is not made invalid by a playlist that has none — it lands on the empty
+ * state, which is an answer.
  */
 @Composable
 fun LumoMobileNavHost(
@@ -136,17 +136,27 @@ fun mobileStartRoute(start: AppStart): String? = when (start) {
 /**
  * What the bottom bar offers, in order.
  *
- * Four or five, not eight. Series and search are still placeholders, and a bar
- * that offers doors onto empty rooms explains itself badly — the reviewer
- * remembers the empty rooms, not the journey that works.
+ * Five, not eight. Series and search are still **placeholders** — screens that do
+ * not exist — and a bar that offers doors onto rooms nobody has built explains
+ * itself badly. Films join the day their screens land, which for series is
+ * `S6-05`.
  *
- * **Films are the fifth, and only when the source has any.** US-13 asks for
- * exactly that, and it is not a refinement: most M3U playlists carry channels and
- * nothing else, and a tab that opens onto an empty grid is a promise nobody can
- * keep. `CatalogueSections` answers the question with one request, and the answer
- * is false until something says otherwise — so the bar draws immediately with
- * what is certain and gains a tab, rather than offering one and taking it away
- * under somebody's thumb.
+ * <h2>Films are always here, and that reverses what this comment used to say</h2>
+ *
+ * The tab was conditional on the source having films, on the argument that an
+ * empty promise is worse than an absence. **Use disproved it**: the owner of a
+ * panel carrying a hundred and forty thousand films could not find them,
+ * concluded the feature did not exist, and reported it missing. An absence is
+ * indistinguishable from a bug.
+ *
+ * A source with no films now opens onto a grid that says so — "this source offers
+ * only channels, nothing is missing here" — which is the one thing an absence can
+ * never do: explain itself.
+ *
+ * **The distinction that survives, and it is why series stay out:** an *empty*
+ * catalogue is a reply, an *unbuilt* screen is a promise. The first belongs in the
+ * bar; the second does not. `adr/0010` carries the same reasoning for the
+ * television.
  *
  * Films sit after the channels because that is the order of a catalogue, and
  * before favourites because a shelf comes before a selection from it.
@@ -159,10 +169,10 @@ fun mobileStartRoute(start: AppStart): String? = when (start) {
  * places one returns to. They are the way in, and a tab that takes a signed-in
  * user back to a sign-up form is a tab that will be pressed by accident.
  */
-fun mobileDestinations(hasFilms: Boolean): List<LumoDestination> = buildList {
-    add(LiveDestination)
-    if (hasFilms) add(VodDestination)
-    add(FavoritesDestination)
-    add(SourceDestination)
-    add(SettingsDestination)
-}
+val MobileDestinations: List<LumoDestination> = listOf(
+    LiveDestination,
+    VodDestination,
+    FavoritesDestination,
+    SourceDestination,
+    SettingsDestination,
+)

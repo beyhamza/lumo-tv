@@ -22,7 +22,7 @@ import tv.lumo.android.core.designsystem.component.LumoMobileNavBar
 import tv.lumo.android.feature.live.PlayerDestination
 import tv.lumo.android.feature.vod.VodPlayerDestination
 import tv.lumo.android.navigation.LumoMobileNavHost
-import tv.lumo.android.navigation.mobileDestinations
+import tv.lumo.android.navigation.MobileDestinations
 import tv.lumo.android.navigation.mobileStartRoute
 
 /**
@@ -52,14 +52,6 @@ import tv.lumo.android.navigation.mobileStartRoute
 @Composable
 fun LumoMobileApp(
     startState: AppStart,
-    /**
-     * Whether the account's source offers films at all (US-13).
-     *
-     * A parameter rather than a collection here, so this shell stays a pure
-     * function of what it is given — which is what makes it previewable and what
-     * keeps the decision in `core:data` where the television reads the same one.
-     */
-    hasFilms: Boolean = false,
     navController: NavHostController = rememberNavController(),
 ) {
     val startRoute = mobileStartRoute(startState)
@@ -103,7 +95,7 @@ fun LumoMobileApp(
             // picture.
             if (startState != AppStart.SignedOut && currentRoute !in PLAYER_ROUTES) {
                 LumoMobileNavBar(
-                    destinations = mobileDestinations(hasFilms),
+                    destinations = MobileDestinations,
                     selectedRoute = currentRoute,
                     onSelect = { navController.switchTopLevelTo(it) },
                 )

@@ -129,18 +129,27 @@ fun tvStartRoute(start: AppStart): String? = when (start) {
  * rail item is another `DOWN` press between the viewer and the one thing they
  * came for.
  *
- * **Films are second, and only when the source has any** (US-13). The argument is
- * the phone's, and it weighs more here: a rail entry is a mandatory stop on the
- * way down, so a door onto an empty room costs every viewer a press, on every
- * journey, for a room most M3U playlists do not have.
+ * **Films are second, and always there** — which reverses what this comment used
+ * to say. The entry was conditional on the source having films, on the argument
+ * that a rail entry is a mandatory stop on the way down and a door onto an empty
+ * room costs every viewer a press.
  *
- * Three or four items also keeps the rail's own rule easy to hold: `RIGHT` enters
- * the content, `LEFT` comes back, and nothing here is reachable only by
- * travelling through everything else (US-10).
+ * That cost is real and it is the smaller one. Hiding the films is what made
+ * somebody with a hundred and forty thousand of them conclude the feature did not
+ * exist: **an absence is indistinguishable from a bug**, and on a television there
+ * is nowhere else to go and look. A source with no films opens onto a grid that
+ * says so, which is a press spent on an answer rather than on nothing.
+ *
+ * Series stay out until `S6-06` builds their screen. An *empty* catalogue is a
+ * reply; an *unbuilt* one is a promise, and only the first belongs in a rail.
+ *
+ * Four items also keeps the rail's own rule easy to hold: `RIGHT` enters the
+ * content, `LEFT` comes back, and nothing here is reachable only by travelling
+ * through everything else (US-10).
  */
-fun tvDestinations(hasFilms: Boolean): List<LumoDestination> = buildList {
-    add(LiveDestination)
-    if (hasFilms) add(VodDestination)
-    add(SourceDestination)
-    add(SettingsDestination)
-}
+val TvDestinations: List<LumoDestination> = listOf(
+    LiveDestination,
+    VodDestination,
+    SourceDestination,
+    SettingsDestination,
+)

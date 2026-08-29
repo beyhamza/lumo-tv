@@ -20,7 +20,7 @@ import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.feature.live.PlayerDestination
 import tv.lumo.android.feature.vod.VodPlayerDestination
 import tv.lumo.androidtv.navigation.LumoTvNavHost
-import tv.lumo.androidtv.navigation.tvDestinations
+import tv.lumo.androidtv.navigation.TvDestinations
 import tv.lumo.androidtv.navigation.tvStartRoute
 
 /**
@@ -40,8 +40,6 @@ import tv.lumo.androidtv.navigation.tvStartRoute
 @Composable
 fun LumoTvApp(
     startState: AppStart,
-    /** Whether the account's source offers films at all (US-13). See `CatalogueSections`. */
-    hasFilms: Boolean = false,
     navController: NavHostController = rememberNavController(),
 ) {
     val startRoute = tvStartRoute(startState)
@@ -78,7 +76,7 @@ fun LumoTvApp(
         // BACK.
         if (startState != AppStart.SignedOut && currentRoute !in PLAYER_ROUTES) {
             LumoTvNavRail(
-                destinations = tvDestinations(hasFilms),
+                destinations = TvDestinations,
                 selectedRoute = currentRoute,
                 onSelect = { navController.switchTopLevelTo(it) },
             )
