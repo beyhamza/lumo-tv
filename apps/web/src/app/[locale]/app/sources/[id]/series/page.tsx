@@ -5,7 +5,8 @@ import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api, problemCode } from "@/lib/api/client";
-import type { Category, Series } from "@/lib/api/types";
+import type { Category, Episode, Series } from "@/lib/api/types";
+import { isFinished } from "@/lib/playback/progress";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
 
@@ -25,6 +26,35 @@ import { requireSession } from "@/lib/session/session";
  * costs a call to the user's own panel — see the detail page. Nothing on this
  * screen triggers it: a grid that loaded a tree per card would be eight hundred
  * requests against somebody's provider for one scroll.
+ *
+ * <h2>The "continue watching" rail, and it is a rail of series (S6-08)</h2>
+ *
+ * Progress is recorded on an **episode**; resuming is thought about in **series**.
+ * Turning one into the other takes two resolutions the contract was shaped for:
+ * `GET /sources/{id}/episodes?ids=` — a resolver, not a listing, and this is what
+ * it exists for — gives each row its `series_id`, and
+ * `GET /sources/{id}/series?ids=` turns those into posters.
+ *
+ * **One card per series, never one per episode.** Somebody who watched three
+ * episodes last night has three rows and wants one card; a rail showing three has
+ * understood the data and not the use. The most recently touched row wins, which is
+ * the order the server already returns.
+ *
+ * <h2>Where a card goes, and the one row of the table this page cannot answer</h2>
+ *
+ * - **Started, under the threshold** — straight to that episode, at its position.
+ *   The card carries `?season=…&play=…`, so it is one click and the URL is
+ *   shareable like every other piece of state in this zone.
+ * - **Past the threshold** — to the series, and no further. What somebody wants
+ *   next is the *following* episode, and which episode follows is on the other
+ *   side of a tree this page has not fetched. Fetching one per card is the
+ *   request-per-poster the whole design refuses, so the answer is deferred by one
+ *   click to the page that has the tree. **Sending them back into the credits
+ *   would be a wrong answer; this is a shorter one.**
+ * - **Finished with nothing after it** — still shown here, and the series page is
+ *   what discovers there is nothing after it. The applications drop such a series
+ *   from the rail because they hold the tree; this page does not, and inventing an
+ *   answer it cannot check would be worse than one extra card.
  *
  * <h2>An M3U source always shows an empty grid, and says why</h2>
  *
@@ -67,7 +97,7 @@ export default async function SeriesPage({
   const search = single(query.q);
   const page = Math.max(0, Number.parseInt(single(query.page) ?? "0", 10) || 0);
 
-  const [categories, series, source] = await Promise.all([
+  const [categories, series, source, progress] = await Promise.all([
     api(session.accessToken).GET("/sources/{id}/categories", {
       params: { path: { id }, query: { contentType: "SERIES" } },
     }),
@@ -86,6 +116,14 @@ export default async function SeriesPage({
     // series" and "this panel offers none" are different facts, and one sentence
     // for both would tell an Xtream user their panel cannot do something it can.
     api(session.accessToken).GET("/sources/{id}", { params: { path: { id } } }),
+    // The rail (S6-08). Already ordered most recently updated first, which the
+    // contract says is the order this rail wants, so nothing here re-sorts it.
+    // Its failure is deliberately not part of `failure` below: a catalogue that
+    // refused to render because a rail could not be read would trade the whole
+    // screen for its smallest part.
+    api(session.accessToken).GET("/me/progress", {
+      params: { query: { sourceId: id, itemType: "EPISODE", size: RAIL_SIZE * 4 } },
+    }),
   ]);
 
   const failure = problemCode(series.error) ?? problemCode(categories.error);
@@ -118,6 +156,12 @@ export default async function SeriesPage({
 
   const totalPages = series.data.total_pages;
   const isPlaylist = source.data?.kind !== "XTREAM";
+  const rail = await continueWatching({
+    token: session.accessToken,
+    sourceId: id,
+    rows: progress.data?.items ?? [],
+    onPage: series.data.items,
+  });
   const context = { categoryId, q: search, page: page > 0 ? String(page) : undefined };
 
   return (
@@ -144,6 +188,29 @@ export default async function SeriesPage({
         channelsLabel={t("catalogueTitle")}
         filmsLabel={t("filmsTitle")}
         seriesLabel={t("seriesTitle")}
+      />
+
+      <ContinueWatching
+        entries={rail}
+        title={t("seriesContinueWatching")}
+        href={(entry) =>
+          hrefFor(
+            locale as Locale,
+            `/app/sources/${id}/series/${entry.series.id}${
+              // Only where this page can name the episode. See its documentation:
+              // a finished one would send somebody back into the credits.
+              entry.resume
+                ? queryString({
+                    season: String(entry.episode.season_number),
+                    play: entry.episode.id,
+                  })
+                : ""
+            }`,
+          )
+        }
+        episodeLabel={(seasonNumber, episodeNumber) =>
+          t("seriesSeasonEpisode", { season: seasonNumber, episode: episodeNumber })
+        }
       />
 
       <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
@@ -389,4 +456,167 @@ function queryString(values: Record<string, string | undefined>): string {
 
 function single(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+/** How many the rail holds. A shortcut, not a second catalogue. */
+const RAIL_SIZE = 12;
+
+/**
+ * Turns saved episode positions into one card per series (S6-08).
+ *
+ * <h2>Two resolutions, and both are what the contract was shaped for</h2>
+ *
+ * `GET /me/progress` carries identifiers and positions — not posters, not titles,
+ * and not the series an episode belongs to. So: episodes by id (a **resolver**,
+ * where `ids` is required precisely so it can never become a listing), then the
+ * series those name, minus any already on this page.
+ *
+ * <h2>What is dropped, and why each is dropped rather than drawn</h2>
+ *
+ * - **Finished episodes with nothing after them.** This page has no tree, so it
+ *   cannot know what follows an episode somebody finished. It keeps the series on
+ *   the strength of the row and lets the series page decide — which it can, because
+ *   it has the tree. A card that opened onto the credits would be the wrong answer;
+ *   a card that opens onto the series is a shorter one.
+ * - **Episodes the last re-synchronisation dropped.** Absent from the resolver by
+ *   contract, so they fall out rather than rendering as a gap.
+ * - **Everything after the first row of a series.** `distinctBy` on the series id,
+ *   in the server's order, which is the "one card, most recent" rule in one step.
+ */
+async function continueWatching({
+  token,
+  sourceId,
+  rows,
+  onPage,
+}: {
+  token: string;
+  sourceId: string;
+  rows: { item_ref: string; position_ms: number; duration_ms?: number | null }[];
+  onPage: Series[];
+}): Promise<RailEntry[]> {
+  const refs = rows.map((row) => row.item_ref).slice(0, RAIL_SIZE * 4);
+  if (refs.length === 0) return [];
+
+  const episodes = await api(token).GET("/sources/{id}/episodes", {
+    params: { path: { id: sourceId }, query: { ids: refs, size: refs.length } },
+  });
+  const byId = new Map((episodes.data?.items ?? []).map((row) => [row.id, row]));
+
+  // In the order the rows came in — most recently touched first — and one per
+  // series. A rail showing three episodes of one series has understood the data
+  // and not the use.
+  const seen = new Set<string>();
+  const picked: { episode: Episode; resume: boolean }[] = [];
+  for (const row of rows) {
+    const episode = byId.get(row.item_ref);
+    if (!episode || seen.has(episode.series_id)) continue;
+    seen.add(episode.series_id);
+    picked.push({
+      episode,
+      // Under the threshold is the only case this page can act on directly.
+      resume: !isFinished(row.position_ms, row.duration_ms ?? null),
+    });
+    if (picked.length === RAIL_SIZE) break;
+  }
+  if (picked.length === 0) return [];
+
+  // The grid may already carry some of them; only the rest costs a request.
+  const known = new Map(onPage.map((item) => [item.id, item]));
+  const missing = picked
+    .map(({ episode }) => episode.series_id)
+    .filter((id) => !known.has(id));
+
+  if (missing.length > 0) {
+    const resolved = await api(token).GET("/sources/{id}/series", {
+      params: { path: { id: sourceId }, query: { ids: missing, size: missing.length } },
+    });
+    for (const item of resolved.data?.items ?? []) known.set(item.id, item);
+  }
+
+  return picked
+    .map(({ episode, resume }) => ({
+      series: known.get(episode.series_id),
+      episode,
+      resume,
+    }))
+    .filter((entry): entry is RailEntry => entry.series != null);
+}
+
+/**
+ * A card.
+ *
+ * @param resume true when the row is under the threshold, which is the only case
+ *   where this page can name the episode to open. See the page documentation.
+ */
+type RailEntry = { series: Series; episode: Episode; resume: boolean };
+
+/**
+ * The rail, at the head of the catalogue.
+ *
+ * Absent when empty rather than drawn with a "nothing yet" placeholder: a heading
+ * over an empty row on a first visit is a promise about a feature nobody has used,
+ * taking space from the catalogue they came for.
+ *
+ * Each card says which episode it will land on, because "continue" without saying
+ * what is being continued is a link somebody follows to find out.
+ */
+function ContinueWatching({
+  entries,
+  title,
+  href,
+  episodeLabel,
+}: {
+  entries: RailEntry[];
+  title: string;
+  href: (entry: RailEntry) => string;
+  episodeLabel: (season: number, episode: number) => string;
+}) {
+  if (entries.length === 0) return null;
+
+  return (
+    <section className="mt-8">
+      <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+      <ul aria-label={title} className="mt-3 flex gap-4 overflow-x-auto pb-2">
+        {entries.map((entry) => (
+          <li key={entry.series.id} className="w-28 shrink-0">
+            <a
+              href={href(entry)}
+              className="focus-visible:ring-ring block rounded-lg focus-visible:ring-2 focus-visible:outline-none"
+            >
+              <RailPoster series={entry.series} />
+              <p className="mt-2 truncate text-xs font-medium">{entry.series.name}</p>
+              <p className="text-muted-foreground truncate text-xs">
+                {episodeLabel(entry.episode.season_number, entry.episode.episode_number)}
+              </p>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * A poster, or the space one would have taken.
+ *
+ * **No fallback image, ever** (AGENTS.md §1): this product ships no artwork, and a
+ * placeholder that looked like a poster would be a picture we invented for somebody
+ * else's catalogue.
+ */
+function RailPoster({ series }: { series: Series }) {
+  if (!series.poster_url) {
+    return <div className="bg-muted aspect-[2/3] w-full rounded-lg" />;
+  }
+  // Not `next/image`: it needs its remote hosts configured one domain at a time,
+  // and there is no list of them here — it is whatever panel each person
+  // subscribes to. The same reasoning already applies to film posters.
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={series.poster_url}
+      alt=""
+      loading="lazy"
+      className="aspect-[2/3] w-full rounded-lg object-cover"
+    />
+  );
 }

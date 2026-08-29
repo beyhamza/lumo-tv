@@ -66,10 +66,18 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
  *
  * <h2>What it does *not* have, and both absences are decisions</h2>
  *
- * **No "continue watching" chip.** The film strip has one; nothing saves an
- * episode position yet, so a chip here would filter onto an empty shelf — which at
- * three metres reads as a breakage. It arrives with `S6-08`, and it will be a
- * *series* chip rather than an episode one.
+ * **A "continue watching" chip, and it is a chip rather than a rail** (S6-08). The
+ * ruling is `S4-08`'s, for the third time: a rail above this grid is a second focus
+ * zone, and this strip has no height for a second mechanism. The phone has the room
+ * and gets the rail.
+ *
+ * It filters the grid to the series somebody has started; `OK` on one of those
+ * cards opens the series, where the focus now lands on the episode to resume. Two
+ * presses, and **no new zone in the focus map** — which is the point.
+ *
+ * Shown only when there is something in it, which is the film strip's rule and the
+ * reason for it: a chip that filters onto nothing leaves a blank grid after an `OK`,
+ * and at three metres that reads as a breakage rather than as an empty shelf.
  *
  * **No search.** The phone has a field because it has a keyboard; a television has
  * a D-pad, and an on-screen keyboard is `feature:search`'s problem rather than a
@@ -124,6 +132,7 @@ fun SeriesTvScreen(
                 state = state,
                 series = series,
                 onSelectCategory = viewModel::onCategorySelected,
+                onSelectResume = viewModel::onResumeSelected,
                 onOpenSeries = onOpenSeries,
                 returnedSeriesId = returnedSeriesId,
                 onReturnHandled = onReturnHandled,
@@ -137,6 +146,7 @@ private fun Browsing(
     state: SeriesState,
     series: LazyPagingItems<Series>,
     onSelectCategory: (String?) -> Unit,
+    onSelectResume: () -> Unit,
     onOpenSeries: (String) -> Unit,
     returnedSeriesId: String?,
     onReturnHandled: () -> Unit,
@@ -197,7 +207,11 @@ private fun Browsing(
         Categories(
             categories = state.categories,
             selectedId = state.selectedCategoryId,
+            // Only when there is something in it. See the class documentation.
+            hasResumable = state.continueWatching.isNotEmpty(),
+            resumeSelected = state.resumeSelected,
             onSelect = onSelectCategory,
+            onSelectResume = onSelectResume,
         )
 
         if (series.itemCount == 0 && !state.refreshing) {
@@ -249,16 +263,17 @@ private fun Browsing(
  * The strip above the grid.
  *
  * `UP` from the grid lands here, `DOWN` goes back, `LEFT`/`RIGHT` walk it, and
- * "All" is first because it is what the screen opens on. The film strip's, with
- * the "continue watching" chip left out for the reason on the class: nothing saves
- * an episode position yet, and a chip that filtered onto nothing would be the empty
- * shelf that screen's own rules refuse.
+ * "All" is first because it is what the screen opens on. The film strip's, chip
+ * for chip: **All · [Continue watching] · [the source's categories]**.
  */
 @Composable
 private fun Categories(
     categories: List<Category>,
     selectedId: String?,
+    hasResumable: Boolean,
+    resumeSelected: Boolean,
     onSelect: (String?) -> Unit,
+    onSelectResume: () -> Unit,
 ) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
@@ -267,9 +282,22 @@ private fun Categories(
         item {
             TvCategoryChip(
                 label = stringResource(R.string.feature_series_all_categories),
-                selected = selectedId == null,
+                selected = selectedId == null && !resumeSelected,
                 onClick = { onSelect(null) },
             )
+        }
+        // Second, and only when there is something in it — the position it holds
+        // on the channel and film strips, for the same reason: it is what somebody
+        // turning the television on reaches for most often, and the one shelf they
+        // did not have to build.
+        if (hasResumable) {
+            item {
+                TvCategoryChip(
+                    label = stringResource(R.string.feature_series_continue_watching),
+                    selected = resumeSelected,
+                    onClick = onSelectResume,
+                )
+            }
         }
         items(categories, key = { it.id }) { category ->
             TvCategoryChip(

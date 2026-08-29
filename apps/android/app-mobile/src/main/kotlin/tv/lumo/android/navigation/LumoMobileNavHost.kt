@@ -105,15 +105,21 @@ fun LumoMobileNavHost(
             onBack = { navController.popBackStack() },
         )
         vodPlayerMobileScreen(onBack = { navController.popBackStack() })
+        // One wire, held here, for the two screens that hand an episode on: the
+        // grid's resume rail and the series' own list. Where an episode takes
+        // somebody is the application's business, not the feature's.
+        val playEpisode = { episodeId: String, title: String?, atMs: Long ->
+            navController.navigate(EpisodePlayerDestination.routeFor(episodeId, title, atMs))
+        }
+
         seriesMobileScreen(
             onOpenSeries = { seriesId ->
                 navController.navigate(SeriesDetailDestination.routeFor(seriesId))
             },
+            onPlay = playEpisode,
         )
         seriesDetailMobileScreen(
-            onPlay = { episodeId, title ->
-                navController.navigate(EpisodePlayerDestination.routeFor(episodeId, title))
-            },
+            onPlay = playEpisode,
             onBack = { navController.popBackStack() },
         )
         episodePlayerMobileScreen(onBack = { navController.popBackStack() })

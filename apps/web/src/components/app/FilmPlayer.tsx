@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { saveFilmProgress } from "@/actions/playback";
+import { saveEpisodeProgress, saveFilmProgress } from "@/actions/playback";
 import { savableProgress } from "@/lib/playback/progress";
 
 /**
@@ -64,13 +64,13 @@ export function FilmPlayer({
   resumeFromMs,
   resumeLabel,
   playbackPath = "vod",
+  itemType = "VOD",
 }: {
   filmId: string;
   /**
-   * The source, for saving a position. **Empty switches saving off**, which is
-   * what an episode passes: what a viewer resumes is a series rather than an
-   * episode, and that turn is `S6-08`. Saving half of it here would file an
-   * episode under `VOD`, which the contract says means something else.
+   * The source, for saving a position. **Empty switches saving off** — which is
+   * no longer what an episode passes, and is kept for a page that genuinely has
+   * no source to file a row under.
    */
   sourceId: string;
   name: string;
@@ -98,6 +98,15 @@ export function FilmPlayer({
    * words in its comments, and the day one learnt something the other would not.
    */
   playbackPath?: "vod" | "episode";
+  /**
+   * Which table the saved position belongs to (S6-08).
+   *
+   * Beside `playbackPath` rather than derived from it, because they answer two
+   * different questions — where the stream URL comes from, and what a row means —
+   * and tying them together would make one of them silently follow the other the
+   * day a third kind of thing is played.
+   */
+  itemType?: "VOD" | "EPISODE";
 }) {
   const t = useTranslations("App");
   const tErrors = useTranslations("Errors");
@@ -125,17 +134,23 @@ export function FilmPlayer({
   const position = useRef({ positionMs: 0, durationMs: null as number | null });
 
   const save = useCallback(() => {
-    // No source means an episode, and an episode's position is S6-08 — see the
-    // prop. Nothing is written rather than something written under the wrong
-    // `item_type`.
+    // Nothing to file a row under. Nothing is written rather than something
+    // written against a key the server cannot make sense of.
     if (!sourceId) return;
 
     const { positionMs, durationMs } = position.current;
     // `isLive` is false and stated rather than assumed: this component only ever
     // plays a file, and the guard is what keeps that true if it is ever reused.
     if (!savableProgress({ positionMs, isLive: false })) return;
-    void saveFilmProgress({ sourceId, filmId, positionMs, durationMs });
-  }, [filmId, sourceId]);
+
+    // Two actions rather than one with a type argument, for the reason written on
+    // them: the two ids come from two tables.
+    if (itemType === "EPISODE") {
+      void saveEpisodeProgress({ sourceId, episodeId: filmId, positionMs, durationMs });
+    } else {
+      void saveFilmProgress({ sourceId, filmId, positionMs, durationMs });
+    }
+  }, [filmId, sourceId, itemType]);
 
   useEffect(() => {
     if (!started) return;

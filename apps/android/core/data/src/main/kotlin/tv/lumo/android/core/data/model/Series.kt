@@ -181,3 +181,28 @@ fun List<Season>.episodeAfter(episodeId: String): Episode? {
     val index = flat.indexOfFirst { it.id == episodeId }
     return if (index < 0) null else flat.getOrNull(index + 1)
 }
+
+/**
+ * One card in a "continue watching" rail (S6-08).
+ *
+ * <h2>The whole of the task is in the shape of this type</h2>
+ *
+ * Progress is recorded **on an episode**; resuming is thought about **in series**.
+ * `GET /me/progress?itemType=EPISODE` answers the first, and a rail that rendered
+ * it directly would show three rows of the same series to somebody who watched
+ * three episodes last night — a rail that has understood the data and not the use.
+ *
+ * So there is **one of these per series**, never per episode, and it already
+ * carries the decision rather than the raw position: [episode] is what pressing it
+ * opens and [positionMs] is where. A screen renders it; it does not reason about
+ * thresholds.
+ *
+ * @param positionMs zero when [episode] is the *next* one — the episode somebody
+ *   was watching is past the threshold, and what they want is the following one
+ *   from its beginning, not the credits they already saw.
+ */
+data class ResumableSeries(
+    val series: Series,
+    val episode: Episode,
+    val positionMs: Long,
+)

@@ -6,6 +6,7 @@ import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Episode, Season, Series } from "@/lib/api/types";
 import { api, problemCode } from "@/lib/api/client";
+import { asClock, isFinished } from "@/lib/playback/progress";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
 
@@ -26,6 +27,16 @@ import { requireSession } from "@/lib/session/session";
  * their provider merely hiccuped sends them looking in the wrong place, so the two
  * get different sentences — which is exactly why the contract gives them different
  * codes.
+ *
+ * <h2>Where somebody stopped, per episode (S6-08)</h2>
+ *
+ * One extra call, made **in parallel with the tree** rather than after it: the two
+ * do not depend on each other, and a page that awaited them in turn would add its
+ * own latency to a request that already crosses somebody else's machine.
+ *
+ * `GET /me/progress?itemType=EPISODE` cannot be narrowed to one series — `item_ref`
+ * is opaque and a series is not one — so the rows are filtered here. There are a
+ * dozen of them.
  *
  * <h2>The open season is in the URL</h2>
  *
@@ -63,9 +74,17 @@ export default async function SeriesDetailPage({
   const t = await getTranslations("App");
   const tErrors = await getTranslations("Errors");
 
-  const detail = await api(session.accessToken).GET("/series/{id}", {
-    params: { path: { id: seriesId } },
-  });
+  const [detail, progress] = await Promise.all([
+    api(session.accessToken).GET("/series/{id}", {
+      params: { path: { id: seriesId } },
+    }),
+    // Started, in parallel: it does not depend on the tree, and awaiting the two
+    // in turn would add this page's own latency to a request that already crosses
+    // somebody else's machine.
+    api(session.accessToken).GET("/me/progress", {
+      params: { query: { sourceId: id, itemType: "EPISODE", size: 100 } },
+    }),
+  ]);
 
   const back = `/app/sources/${id}/series${queryString({
     categoryId: single(query.categoryId),
@@ -105,8 +124,15 @@ export default async function SeriesDetailPage({
   const open =
     seasons.find((season) => season.season_number === requested) ?? seasons[0];
 
+  // By episode id, because every row below asks the same question about itself
+  // and a list would be a scan per row down a fifty-episode season.
+  const positions = new Map(
+    (progress.data?.items ?? []).map((row) => [row.item_ref, row] as const),
+  );
+
   const playing = single(query.play);
   const episode = open?.episodes.find((candidate) => candidate.id === playing);
+  const resumeAt = episode ? startAt(positions.get(episode.id)) : 0;
 
   return (
     <div className="max-w-3xl">
@@ -132,7 +158,12 @@ export default async function SeriesDetailPage({
         <NextIntlClientProvider messages={{ App: messages.App, Errors: messages.Errors }}>
           <EpisodePlayer
             episodeId={episode.id}
+            sourceId={id}
             name={episodeLabel(episode, t)}
+            resumeFromMs={resumeAt}
+            resumeLabel={
+              resumeAt > 0 ? t("filmsResumeAt", { at: asClock(resumeAt) }) : null
+            }
           />
         </NextIntlClientProvider>
       ) : null}
@@ -172,21 +203,41 @@ export default async function SeriesDetailPage({
                 <span className="text-muted-foreground w-10 shrink-0 text-right text-sm tabular-nums">
                   {row.episode_number}
                 </span>
-                <a
-                  href={hrefFor(
-                    locale as Locale,
-                    `/app/sources/${id}/series/${seriesId}${queryString({
-                      categoryId: single(query.categoryId),
-                      q: single(query.q),
-                      page: single(query.page),
-                      season: String(open?.season_number ?? 0),
-                      play: row.id,
-                    })}`,
-                  )}
-                  className="min-w-0 flex-1 truncate font-medium underline-offset-4 hover:underline"
-                >
-                  {episodeLabel(row, t)}
-                </a>
+                <div className="min-w-0 flex-1">
+                  <a
+                    href={hrefFor(
+                      locale as Locale,
+                      `/app/sources/${id}/series/${seriesId}${queryString({
+                        categoryId: single(query.categoryId),
+                        q: single(query.q),
+                        page: single(query.page),
+                        season: String(open?.season_number ?? 0),
+                        play: row.id,
+                      })}`,
+                    )}
+                    className="block truncate font-medium underline-offset-4 hover:underline"
+                  >
+                    {episodeLabel(row, t)}
+                  </a>
+
+                  {/* Only where there is a position (S6-08). A bar at zero on every
+                      row would say that everybody has started everything. */}
+                  {fraction(positions.get(row.id)) !== null ? (
+                    <div
+                      className="bg-muted mt-1.5 h-1 w-full overflow-hidden rounded-full"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(fraction(positions.get(row.id))! * 100)}
+                      aria-label={t("seriesEpisodeProgress")}
+                    >
+                      <div
+                        className="bg-primary h-full"
+                        style={{ width: `${fraction(positions.get(row.id))! * 100}%` }}
+                      />
+                    </div>
+                  ) : null}
+                </div>
                 {row.duration_seconds ? (
                   <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
                     {t("filmsMinutes", { count: Math.round(row.duration_seconds / 60) })}
@@ -324,3 +375,33 @@ function queryString(values: Record<string, string | undefined>): string {
 function single(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
+
+/**
+ * Where to start an episode: the saved position, or its beginning (S6-08).
+ *
+ * **A finished episode starts over.** Resuming somebody into the credits is not
+ * resuming. The threshold is `isFinished`, shared with the films — the day it moves
+ * it has to move for both, and a rail that dropped films at 95 % while advancing
+ * series at 90 % would be two products.
+ */
+function startAt(row: ProgressRow | undefined): number {
+  if (!row) return 0;
+  return isFinished(row.position_ms, row.duration_ms ?? null) ? 0 : row.position_ms;
+}
+
+/**
+ * How far in, as a fraction, or null when there is nothing honest to draw.
+ *
+ * **Null without a stated duration**, which is common: a bar needs an end, and one
+ * drawn full because the end is unknown is a bar that lies. Null when finished too
+ * — a full bar on every episode of a watched season is ink that says nothing about
+ * where somebody is.
+ */
+function fraction(row: ProgressRow | undefined): number | null {
+  const duration = row?.duration_ms;
+  if (!row || duration == null || duration <= 0) return null;
+  if (isFinished(row.position_ms, duration)) return null;
+  return Math.min(1, Math.max(0, row.position_ms / duration));
+}
+
+type ProgressRow = { position_ms: number; duration_ms?: number | null };

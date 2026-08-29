@@ -24,6 +24,8 @@ import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.Episode
 import tv.lumo.android.core.data.model.Season
 import tv.lumo.android.core.data.model.Series
+import tv.lumo.android.core.data.model.EpisodeProgress
+import tv.lumo.android.core.data.model.ResumableSeries
 import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.data.model.episodeAfter
 import tv.lumo.android.core.database.dao.CategoryDao
@@ -302,6 +304,62 @@ class SeriesRepository @Inject internal constructor(
             episodes = seriesDao.episodesOf(current.seriesId),
         ).episodeAfter(episodeId)
     }
+    /**
+     * Turns saved episode positions into one card per series (S6-08).
+     *
+     * <h2>The rule, and every line of it is a case somebody hits</h2>
+     *
+     * - **One card per series, never one per episode.** Somebody who watched three
+     *   episodes last night has three rows and wants one card. The most recently
+     *   touched row wins, which is the order the server already returns.
+     * - **Under the threshold** — that episode, at its position.
+     * - **Over it** — the *next* episode, from the beginning. What somebody wants
+     *   after the credits is the following episode, not the credits again.
+     * - **Over it with nothing after** — the series leaves the rail. It is
+     *   finished, and offering to start it over is not an offer.
+     *
+     * <h2>Only series whose tree this device holds, and it is assumed</h2>
+     *
+     * Going from an episode to its series needs the tree, and the tree is in Room
+     * only for series opened at least once **on this device** — which is every
+     * series somebody has begun watching here. The exception is resuming on the
+     * television something started on the phone; that resolves the moment the
+     * series screen is opened, which is the normal way in.
+     *
+     * The alternative would be a request per row at the moment a catalogue screen
+     * opens, and a rail that costs twelve calls to the panel is not a rail.
+     */
+    suspend fun resumable(rows: List<EpisodeProgress>): List<ResumableSeries> =
+        withContext(io) {
+            val episodes = seriesDao.episodesByIds(rows.map { it.episodeId })
+                .associateBy { it.id }
+
+            // Insertion order is the server's order — most recently touched first —
+            // and `distinctBy` keeps the first it sees. That is the "one card per
+            // series" rule and the "most recent wins" rule in one step.
+            rows.mapNotNull { row -> episodes[row.episodeId]?.let { row to it } }
+                .distinctBy { (_, episode) -> episode.seriesId }
+                .mapNotNull { (row, episode) -> card(row, episode) }
+        }
+
+    private suspend fun card(row: EpisodeProgress, episode: EpisodeEntity): ResumableSeries? {
+        val series = seriesDao.byIds(listOf(episode.seriesId)).firstOrNull() ?: return null
+
+        // Under the threshold: this episode, where they left it.
+        if (!row.finished) {
+            return ResumableSeries(series.asSeries(), episode.asEpisode(), row.positionMs)
+        }
+
+        // Past it: the next one, from the beginning. Null means the series is
+        // finished and leaves the rail.
+        val next = assemble(
+            seasons = seriesDao.seasonsOf(episode.seriesId),
+            episodes = seriesDao.episodesOf(episode.seriesId),
+        ).episodeAfter(episode.id) ?: return null
+
+        return ResumableSeries(series.asSeries(), next, positionMs = 0L)
+    }
+
     /** Drops one source's series, for a source the user just deleted. */
     suspend fun forget(sourceId: String) = withContext(io) {
         // Seasons and episodes cascade with their series.

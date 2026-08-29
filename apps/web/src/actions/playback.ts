@@ -73,3 +73,45 @@ export async function saveFilmProgress(input: {
     // See above: nothing to tell the user, and nothing for them to do.
   }
 }
+
+/**
+ * Saves where somebody stopped watching an episode (S6-08).
+ *
+ * <p>[saveFilmProgress] with `EPISODE` in place of `VOD`, and that is the whole
+ * difference: the server stores `item_ref` opaquely and never asks what it points
+ * at, so this needed nothing new behind it.
+ *
+ * <p><b>Two actions rather than one with an `itemType` argument.</b> The two ids come
+ * from two different tables, and a caller that could pass either would eventually
+ * file a film under `EPISODE` — a row nothing would ever read again. The contract
+ * makes the same argument about `item_ref` itself.
+ *
+ * <p>What reads these rows is a rail of <i>series</i>: progress is recorded on an
+ * episode, resuming is thought about in series, and the turn between the two needs
+ * the tree. Nothing here knows about that, and it must not.
+ *
+ * <p>Silent on failure, for the reason the two above are.
+ */
+export async function saveEpisodeProgress(input: {
+  sourceId: string;
+  episodeId: string;
+  positionMs: number;
+  durationMs: number | null;
+}): Promise<void> {
+  const session = await getSession();
+  if (!session) return;
+
+  try {
+    await api(session.accessToken).PUT("/me/progress", {
+      body: {
+        source_id: input.sourceId,
+        item_type: "EPISODE",
+        item_ref: input.episodeId,
+        position_ms: Math.round(input.positionMs),
+        duration_ms: input.durationMs == null ? null : Math.round(input.durationMs),
+      },
+    });
+  } catch {
+    // See above: nothing to tell the user, and nothing for them to do.
+  }
+}

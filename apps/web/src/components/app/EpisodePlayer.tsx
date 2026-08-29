@@ -13,35 +13,43 @@ import { FilmPlayer } from "@/components/app/FilmPlayer";
  * sentences. A second component would be the same code with a different word in
  * its comments, and the day one of them learnt something the other would not.
  *
- * <h2>What it does not do yet, and it is deliberate</h2>
+ * <h2>Where somebody stopped (S6-08)</h2>
  *
- * **No resume, and no position saved.** That is `S6-08`, which has a decision in
- * it this file must not pre-empt: what a viewer wants to resume is a *series*, not
- * an episode — they remember having got to episode four, not an identifier — and
- * turning one into the other needs the tree. Writing half of it here would leave
- * positions saved that no screen reads.
+ * The film player's own saving, pointed at the other table. An episode's position
+ * is written under `EPISODE` and read back by a rail of **series** — progress is
+ * recorded on an episode, resuming is thought about in series, and the turn between
+ * the two needs the tree.
  *
- * The film player's own saving is keyed on a film and a source; handing it an
- * episode would file an episode's position under `VOD`, which is a row the
- * contract says means something else.
+ * Nothing about that turn is here. This component plays a file and records where it
+ * got to; the page around it decided which episode and from where.
  */
 export function EpisodePlayer({
   episodeId,
+  sourceId,
   name,
+  resumeFromMs,
+  resumeLabel,
 }: {
   episodeId: string;
+  sourceId: string;
   name: string;
+  /**
+   * Where to start, **chosen on the page around this component**. Zero is the
+   * beginning, and it is somebody's answer to a question they were asked.
+   */
+  resumeFromMs: number;
+  /** "Resume at 20:14", or null when there is nothing to resume. */
+  resumeLabel: string | null;
 }) {
   return (
     <FilmPlayer
       filmId={episodeId}
-      // Empty, and it is what switches the saving off — see the prop's own
-      // documentation. An episode's position belongs to S6-08.
-      sourceId=""
+      sourceId={sourceId}
       name={name}
-      resumeFromMs={0}
-      resumeLabel={null}
+      resumeFromMs={resumeFromMs}
+      resumeLabel={resumeLabel}
       playbackPath="episode"
+      itemType="EPISODE"
     />
   );
 }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import tv.lumo.android.core.data.model.Episode
+import tv.lumo.android.core.data.model.EpisodeProgress
 import tv.lumo.android.core.data.model.Season
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
@@ -69,11 +71,14 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
  * here for the same reason: a selector that takes the arrival focus is a decision
  * imposed on somebody who did not ask to make one.
  *
- * **Which episode** is the first one listed. The statement asks for the episode to
- * resume, then the first unwatched, then the first — and the first two need a saved
- * position, which `S6-08` has not written yet. Nothing here guesses in the
- * meantime: the fallback is the answer, and it becomes the exception the day there
- * is something to prefer.
+ * **Which episode**, in full and finally (S6-08): the one being watched, then the
+ * first not started, then the first listed. `S6-06` shipped only the third branch
+ * because nothing saved an episode position then; the other two are what the
+ * ten per cent it was short bought.
+ *
+ * **Within the open season only.** A viewer who chose season 3 is looking at season
+ * 3, and moving the focus back to season 1 because that is where they stopped would
+ * be the screen arguing with them.
  *
  * <h2>The season selector is hidden when there is one season</h2>
  *
@@ -91,7 +96,7 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
 @Composable
 fun SeriesDetailTvScreen(
     seriesId: String,
-    onPlay: (episodeId: String, title: String?) -> Unit,
+    onPlay: (episodeId: String, title: String?, atMs: Long) -> Unit,
     onBack: (seriesId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SeriesDetailViewModel = hiltViewModel(),
@@ -122,6 +127,8 @@ fun SeriesDetailTvScreen(
             Tree(
                 tree = state.tree,
                 openSeason = state.openSeason,
+                progress = state.progress,
+                focusEpisodeId = state.resumeEpisodeId,
                 onSelectSeason = viewModel::onSeasonSelected,
                 onRetry = viewModel::retry,
                 onPlay = onPlay,
@@ -180,9 +187,11 @@ private fun Header(series: Series?) {
 private fun Tree(
     tree: SeriesTree,
     openSeason: Season?,
+    progress: Map<String, EpisodeProgress>,
+    focusEpisodeId: String?,
     onSelectSeason: (Int) -> Unit,
     onRetry: () -> Unit,
-    onPlay: (String, String?) -> Unit,
+    onPlay: (String, String?, Long) -> Unit,
 ) {
     when (tree) {
         // One frame, before the request leaves. Drawing the loading state here
@@ -209,7 +218,12 @@ private fun Tree(
                 openSeason = openSeason,
                 onSelectSeason = onSelectSeason,
             )
-            Episodes(season = openSeason, onPlay = onPlay)
+            Episodes(
+                season = openSeason,
+                progress = progress,
+                focusEpisodeId = focusEpisodeId,
+                onPlay = onPlay,
+            )
         }
     }
 }
@@ -281,25 +295,40 @@ private fun Seasons(seasons: List<Season>, openSeason: Season?, onSelectSeason: 
  * a long-running series is fifty rows and a television that composed all of them
  * would drop frames on the way in.
  *
+ * **The focus lands on the episode to resume, and the list scrolls to it** (S6-08).
+ * A season somebody is twelve episodes into opens on episode twelve rather than on
+ * episode one — which on a remote is the difference between one press and twelve.
+ *
  * The list is re-focused when the season changes: pressing `OK` on a season chip
  * and having the focus stay on the chip would leave somebody looking at a list they
- * cannot reach without pressing `DOWN` — which works, but is a press spent finding
+ * cannot reach without pressing `DOWN` — which works, and is a press spent finding
  * out that the thing they asked for did happen.
  */
 @Composable
-private fun Episodes(season: Season?, onPlay: (String, String?) -> Unit) {
+private fun Episodes(
+    season: Season?,
+    progress: Map<String, EpisodeProgress>,
+    focusEpisodeId: String?,
+    onPlay: (String, String?, Long) -> Unit,
+) {
     val episodes = season?.episodes.orEmpty()
-    val first = remember { FocusRequester() }
+    val target = remember { FocusRequester() }
     val listState = rememberLazyListState()
 
-    // Keyed on the season so a change moves the focus, and on the count because the
-    // first row is not composed on the frame a tree arrives.
-    LaunchedEffect(season?.seasonNumber, episodes.size) {
+    // The episode to resume, or the first. Resolved here rather than defaulted to
+    // zero, so an episode dropped from the tree between the two falls back to the
+    // head of the list instead of to nothing focusable.
+    val focusIndex = episodes.indexOfFirst { it.id == focusEpisodeId }.coerceAtLeast(0)
+
+    // Keyed on the season so a change moves the focus, on the count because the
+    // rows are not composed on the frame a tree arrives, and on the index because
+    // the saved positions answer a moment after the tree does.
+    LaunchedEffect(season?.seasonNumber, episodes.size, focusIndex) {
         if (episodes.isEmpty()) return@LaunchedEffect
-        listState.scrollToItem(0)
+        listState.scrollToItem(focusIndex)
         // Failing to focus is recoverable — the D-pad still works — and throwing
         // would take the screen down.
-        runCatching { first.requestFocus() }
+        runCatching { target.requestFocus() }
     }
 
     LazyColumn(
@@ -311,8 +340,13 @@ private fun Episodes(season: Season?, onPlay: (String, String?) -> Unit) {
         items(episodes.size) { index ->
             EpisodeRow(
                 episode = episodes[index],
+                progress = progress[episodes[index].id],
                 onPlay = onPlay,
-                modifier = if (index == 0) Modifier.focusRequester(first) else Modifier,
+                modifier = if (index == focusIndex) {
+                    Modifier.focusRequester(target)
+                } else {
+                    Modifier
+                },
             )
         }
 
@@ -336,7 +370,6 @@ private fun Episodes(season: Season?, onPlay: (String, String?) -> Unit) {
         }
     }
 }
-
 /**
  * One episode, as a row the remote can land on.
  *
@@ -351,7 +384,8 @@ private fun Episodes(season: Season?, onPlay: (String, String?) -> Unit) {
 @Composable
 private fun EpisodeRow(
     episode: Episode,
-    onPlay: (String, String?) -> Unit,
+    progress: EpisodeProgress?,
+    onPlay: (String, String?, Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val label = episode.name
@@ -368,7 +402,12 @@ private fun EpisodeRow(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-            ) { onPlay(episode.id, label) }
+            ) {
+                // Where they were, or the beginning. A finished episode starts
+                // over, because resuming somebody into the credits is not
+                // resuming.
+                onPlay(episode.id, label, progress?.takeIf { !it.finished }?.positionMs ?: 0L)
+            }
             .padding(horizontal = LumoSpacing.lg, vertical = LumoSpacing.md),
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
         verticalAlignment = Alignment.CenterVertically,
@@ -380,14 +419,38 @@ private fun EpisodeRow(
             modifier = Modifier.width(NUMBER_WIDTH),
         )
 
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleLarge,
-            color = if (focused) LumoColors.OnDark else LumoColors.OnDarkMuted,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        Column(
             modifier = Modifier.weight(1f),
-        )
+            verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleLarge,
+                color = if (focused) LumoColors.OnDark else LumoColors.OnDarkMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            // Only where there is a position (S6-08). A bar at zero on every row
+            // would say that everybody has started everything, and at three metres
+            // a wall of identical bars carries no information at all.
+            progress?.fraction()?.let { fraction ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(BAR_HEIGHT)
+                        .clip(LumoShapes.small)
+                        .background(LumoColors.Surface),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction)
+                            .fillMaxHeight()
+                            .background(LumoColors.Accent),
+                    )
+                }
+            }
+        }
 
         episode.durationSeconds?.let { seconds ->
             Text(
@@ -399,13 +462,22 @@ private fun EpisodeRow(
                 color = LumoColors.OnDarkMuted,
             )
         }
-
-        // Where S6-08's progress bar goes. Deliberately absent until something
-        // saves an episode position: a bar at zero on every row would say that
-        // everybody has started everything.
     }
 }
 
+/**
+ * How far in, as a fraction, or null when there is nothing to draw.
+ *
+ * **Null without a stated duration**, which is common: a bar needs an end, and one
+ * drawn full because the end is unknown is a bar that lies. Null when finished too
+ * — a full bar on every episode of a watched season is ink that says nothing about
+ * where somebody is.
+ */
+private fun EpisodeProgress.fraction(): Float? {
+    val duration = durationMs ?: return null
+    if (duration <= 0L || finished) return null
+    return (positionMs.toFloat() / duration).coerceIn(0f, 1f)
+}
 /** A control the remote can land on. `VodDetailTvScreen`'s, with its argument. */
 @Composable
 private fun TvButton(label: String, focusRequester: FocusRequester, onClick: () -> Unit) {
@@ -451,6 +523,9 @@ private val POSTER_WIDTH = 280.dp
 
 /** Wide enough for three digits, so the titles line up down the whole season. */
 private val NUMBER_WIDTH = 48.dp
+
+/** Thicker than the phone's: three metres away, three device pixels is nothing. */
+private val BAR_HEIGHT = 6.dp
 
 /** See [Header]: a cap, stated, rather than a third focus zone. */
 private const val SYNOPSIS_LINES = 8

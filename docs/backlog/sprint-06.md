@@ -202,34 +202,28 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S6-02 | Base : l'arbre, et son unicité qui survit à une resynchronisation | serveur | api | 3 | 100 % |
 | ☑ | S6-03 | Ingestion : la liste à la synchro, l'arbre à la demande, le cache qui expire | serveur | api | 8 | 100 % |
 | ☑ | S6-04 | `core:data` et Room : l'arbre hors ligne | socle | android | 5 | 100 % |
-| ☐ | S6-05 | Mobile : fiche série, saisons, épisodes | mobile | mobile | 8 | **90 %** |
-| ☐ | S6-06 | TV : la même au D-pad, et « Épisode suivant » | tv | tv | 8 | **90 %** |
+| ☑ | S6-05 | Mobile : fiche série, saisons, épisodes | mobile | mobile | 8 | 100 % |
+| ☑ | S6-06 | TV : la même au D-pad, et « Épisode suivant » | tv | tv | 8 | 100 % |
 | ☑ | S6-07 | Web : fiche série | web | web | 5 | 100 % |
-| ☐ | S6-08 | Reprendre une série, pas un épisode | 3 clients | mobile + tv + web | 5 | 0 % |
+| ☑ | S6-08 | Reprendre une série, pas un épisode | 3 clients | mobile + tv + web | 5 | 100 % |
 | ☐ | S6-09 | Web : l'écran Favoris, à l'échelle du compte | web | web | 5 | 0 % |
 
-**Avancement du sprint : 79 % de 54 points.** Le serveur, le socle Android, le web et
-les deux surfaces Android sont livrés. Il reste la reprise et le rattrapage web.
+**Avancement du sprint : 91 % de 54 points.** Les séries sont livrées de bout en
+bout sur les trois clients. Il ne reste que S6-09, qui ne porte pas sur les séries.
 
-**S6-05 et S6-06 sont à 90 %, et les deux buttent sur la même absence** — une
-position d'épisode enregistrée. Ce qui manque à S6-05 est la barre de progression sur
-chaque épisode ; ce qui manque à S6-06 est le focus qui devait arriver sur l'épisode
-à reprendre, sinon sur le premier non regardé.
+**S6-05 et S6-06 sont passés de 90 % à 100 % en même temps que S6-08, et pas par
+hasard** : ce qui leur manquait était la même chose — une position d'épisode
+enregistrée. La barre de progression du téléphone et le focus qui doit arriver sur
+l'épisode à reprendre sur la télévision étaient deux façons de lire une donnée que
+personne n'écrivait encore.
 
-Aucun des deux ne peut exister avant S6-08 : aucune position d'épisode n'est
-enregistrée nulle part — `ProgressRepository.save` n'accepte que `VOD`, et le
-contrat lui-même ne connaît `EPISODE` comme `item_ref` que depuis S6-01, sans
-écriture derrière. **La dépendance de l'énoncé est inversée** : les deux
-écrans ne précèdent pas S6-08, ils en attendent la moitié. Les dix pour cent
-restants se ferment le jour où la reprise écrit, et il n'y a rien à réécrire ici —
-l'emplacement de la barre est marqué dans les deux `EpisodeRow`, et le repli du
-focus TV est écrit comme un repli plutôt que comme une règle.
-
-**Rien ne devine en attendant**, et c'est la décision qui compte : un écran qui
-aurait choisi « le premier épisode de la dernière saison » ou dessiné une barre à
-zéro aurait produit une réponse fausse plutôt qu'un manque visible. Un repli honnête
-redevient une exception le jour où il y a quelque chose à préférer ; une devinette,
-elle, reste.
+**La dépendance annoncée était donc à l'envers.** Le plan disait
+`S6-05 → S6-08` ; dans les faits, S6-08 fournit à S6-05 et S6-06 leur dernière
+ligne. Rien n'a été perdu : les deux écrans ont été livrés sans deviner — pas de
+barre à zéro, pas de focus posé sur « la dernière saison » au hasard — et les dix
+pour cent manquants étaient écrits noir sur blanc plutôt que masqués par une valeur
+inventée. **Un repli honnête redevient une exception le jour où il y a quelque chose
+à préférer ; une devinette, elle, reste.**
 
 **S6-07 est passé avant S6-05 et S6-06**, hors de l'ordre prévu : un signalement
 d'usage a montré que les films et les séries étaient introuvables sur le web, et un
@@ -506,7 +500,7 @@ disparu est une ligne que rien ne peut atteindre.
 
 ---
 
-### S6-05 — Mobile : fiche série, saisons, épisodes · **8** · dépend de S6-04 · ☐ 90 %
+### S6-05 — Mobile : fiche série, saisons, épisodes · **8** · dépend de S6-04 · ☑
 
 `feature:series` cesse d'être un placeholder et revient dans la barre de navigation.
 
@@ -518,15 +512,16 @@ un sélecteur de saison, et la liste des épisodes de la saison ouverte. Chaque 
 d'épisode : numéro, titre s'il existe, durée, et **une barre de progression quand il y
 en a une** — c'est ce qui rend « où j'en suis » lisible d'un coup d'œil.
 
-> **La barre n'est pas livrée, et c'est le seul manque de la tâche.** Elle suppose une
-> position enregistrée pour un épisode ; il n'en existe aucune. `ProgressRepository.save`
-> pose `itemType = VOD` en dur, et rien dans le sprint n'a encore écrit une ligne de
-> progression pour un épisode.
+> **La barre a été livrée par `S6-08`, pas par cette tâche**, et le décalage est
+> l'information : elle suppose une position enregistrée pour un épisode, et il n'en
+> existait aucune quand cet écran a été écrit. `ProgressRepository.save` posait
+> `itemType = VOD` en dur.
 >
-> Dessiner la barre quand même la mettrait à zéro sur chaque épisode de chaque série,
-> ce qui dirait que tout le monde a commencé tout — l'exact contraire de ce que la
-> ligne demande. L'emplacement est marqué d'un commentaire dans `EpisodeRow` et se
-> remplit en S6-08.
+> Elle a donc été laissée absente plutôt que dessinée à zéro sur chaque épisode de
+> chaque série — ce qui aurait dit que tout le monde a commencé tout, l'exact
+> contraire de ce que la ligne demande. L'emplacement était marqué d'un commentaire
+> dans `EpisodeRow` ; `S6-08` l'a rempli, et la barre ne se dessine toujours que là
+> où il y a une position **et** une durée annoncée.
 
 **La première saison est ouverte à l'arrivée**, pas un sélecteur vide. Une saison à
 choisir avant de voir quoi que ce soit est une décision qu'on impose à quelqu'un qui
@@ -540,11 +535,13 @@ titre et le synopsis sont là immédiatement — ils viennent de la liste — et
 zone des saisons attend. C'est le Gherkin, et c'est ce que S6-04 rend possible en
 distinguant trois états.
 
-**Le lecteur est celui de S5-08, à une soustraction près.** `EpisodePlayerViewModel` en
-est la copie — un module de fonction ne dépend jamais d'un autre
-(`settings.gradle.kts`) — moins la boucle de trente secondes qui enregistre une
-position, pour la raison ci-dessus. Le déplacement dans le fichier reste : bouger dans
-ce qu'on regarde est de la lecture, y revenir demain est la fonction qui n'existe pas
+**Le lecteur est celui de S5-08.** `EpisodePlayerViewModel` en est la copie — un
+module de fonction ne dépend jamais d'un autre (`settings.gradle.kts`) — et il a été
+livré **sans** la boucle de trente secondes qui enregistre une position, pour la
+raison ci-dessus. `S6-08` la lui a rendue, contre `EPISODE` au lieu de `VOD`.
+
+Le déplacement dans le fichier, lui, n'a jamais été retiré : bouger dans ce qu'on
+regarde est de la lecture, y revenir demain était la fonction qui n'existait pas
 encore.
 
 **Ce que la barre de navigation gagne**, et c'est la seconde moitié de l'énoncé :
@@ -559,7 +556,7 @@ panel qui ne propose rien.
 
 ---
 
-### S6-06 — TV : la fiche au D-pad, et l'épisode suivant · **8** · dépend de S6-04 · ☐ 90 %
+### S6-06 — TV : la fiche au D-pad, et l'épisode suivant · **8** · dépend de S6-04 · ☑
 
 La grille reprend `VodTvScreen`. La fiche, elle, est **une nouvelle surface de focus à
 deux zones** — le sélecteur de saison et la liste d'épisodes — donc une nouvelle
@@ -571,13 +568,16 @@ ou à défaut sur le premier épisode. Pas sur le sélecteur de saison : quelqu'
 ouvre une série veut la regarder, et l'étagère où il se trouve est la bonne. C'est
 exactement le raisonnement de `S2-13` sur la bande de catégories, appliqué ici.
 
-> **Les deux premières branches ne sont pas livrées, et c'est le seul manque de la
-> tâche.** Elles exigent une position d'épisode enregistrée, que `S6-08` écrira ;
-> aujourd'hui il n'en existe aucune. Le focus arrive donc sur le premier épisode de
-> la saison ouverte, **et rien ne devine en attendant** : un écran qui aurait choisi
-> « la dernière saison » ou « le dernier épisode listé » aurait donné une réponse
-> fausse au lieu d'un repli visible. La troisième branche est la réponse pour
-> l'instant ; elle redevient le repli le jour où il y a quelque chose à préférer.
+> **Les deux premières branches ont été livrées par `S6-08`**, une tâche plus tard,
+> parce qu'elles exigent une position d'épisode enregistrée et qu'il n'en existait
+> aucune quand cet écran a été écrit.
+>
+> Le focus arrivait alors sur le premier épisode de la saison ouverte, **et rien ne
+> devinait en attendant** : un écran qui aurait choisi « la dernière saison » ou
+> « le dernier épisode listé » aurait donné une réponse fausse au lieu d'un repli
+> visible. La troisième branche a repris sa place de repli le jour où il y a eu
+> quelque chose à préférer — ce qui est exactement ce qu'un repli honnête permet et
+> qu'une devinette empêche.
 
 **« Épisode suivant » est ce qui fait une application de séries**, et c'est le seul
 endroit du sprint où le comportement par défaut se discute :
@@ -675,7 +675,7 @@ décision, et elle est notée dans l'ADR.
 
 ---
 
-### S6-08 — Reprendre une série, pas un épisode · **5** · dépend de S6-05, S6-06, S6-07
+### S6-08 — Reprendre une série, pas un épisode · **5** · dépend de S6-05, S6-06, S6-07 · ☑
 
 Le seul endroit du sprint où la mécanique n'est pas évidente, et il tient en une
 phrase : **la progression est sur l'épisode, la reprise se pense en série.**
@@ -700,6 +700,57 @@ résout en chargeant l'arbre à l'ouverture de la fiche, ce qui est le chemin no
 
 **Une seule carte par série**, jamais une par épisode. Un rail qui montre trois
 épisodes de la même série a compris la donnée et pas l'usage.
+
+---
+
+#### Ce qui a été livré
+
+**Le seuil est une fonction, pas deux.** `watched(positionMs, durationMs)` dans
+`core:data`, `isFinished` sur le web — un par plateforme, aucun par type. Un film
+au-delà de 95 % **sort** du rail ; un épisode au-delà de 95 % est ce qui y **met le
+suivant**. Même nombre, deux réponses opposées, et c'est précisément pourquoi la
+fonction est partagée et les types ne le sont pas : le jour où le seuil bouge, il
+doit bouger pour les deux.
+
+**La traduction épisode → série est dans `core:data`**, pas dans un écran :
+`SeriesRepository.resumable` prend les lignes de progression et rend des cartes qui
+portent déjà la décision. `ResumeSeriesTest` en tient neuf cas, et les quatre qui
+comptent ne lèvent aucune exception — ils se voient seulement chez quelqu'un :
+trois cartes pour trois épisodes de la même série, la carte qui propose l'épisode
+qu'on vient de finir, la série finie qui ne sort jamais du rail, et la série dont
+l'arbre n'est pas sur cet appareil qui apparaît avec rien derrière.
+
+**Chaque surface a la forme que sa contrainte impose**, et la contrainte est la même
+depuis `S4-08` :
+
+| Surface | Forme | Ce qu'une carte fait |
+|---|---|---|
+| Téléphone | un rail au-dessus de la grille | lance directement, à la position |
+| Télévision | une **puce** dans la bande | filtre la grille ; `OK` ouvre la série, focus sur l'épisode à reprendre |
+| Web | un rail en tête du catalogue | ouvre la série sur le bon épisode (`?season=…&play=…`) |
+
+La télévision a une puce et pas un rail parce qu'un rail au-dessus de cette grille
+est une **seconde zone de focus**, et cette bande n'a pas la hauteur d'un second
+mécanisme. Deux appuis au lieu d'un, et **aucune zone nouvelle dans la carte de
+focus** — ce qui est exactement l'arbitrage que `S4-08` a tranché et que `S5-11` a
+refait pour les films.
+
+**La ligne du milieu du tableau, le web ne peut pas y répondre seul**, et il ne fait
+pas semblant. Savoir quel épisode suit celui qu'on vient de finir demande l'arbre ;
+le web ne l'a pas et aller le chercher par carte serait la requête-par-affiche que
+tout ce design refuse. La carte mène donc à la série, où l'arbre est. **Renvoyer
+quelqu'un dans le générique serait une mauvaise réponse ; celle-ci est seulement
+plus courte d'un clic.**
+
+**Le rail ne montre que les séries dont l'arbre est connu de l'appareil**, comme
+annoncé — sur les applications. Sur le web c'est le contrat qui résout :
+`GET /sources/{id}/episodes?ids=` est un **résolveur** dont `ids` est obligatoire
+précisément pour ça, et chaque `Episode` porte son `series_id`. `S6-01` avait
+prévu ce chemin ; c'est la tâche qui l'emprunte.
+
+**Rien côté serveur.** `item_ref` est opaque, `item_type` accepte `EPISODE` depuis
+le contrat de `S6-01`, et le `ProgressRepository` Java ne demande jamais ce que la
+référence désigne. La tâche est entièrement cliente, et cela se voit au diff.
 
 ---
 

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -33,6 +34,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
+import tv.lumo.android.core.data.model.ResumableSeries
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.designsystem.component.LumoPoster
 import tv.lumo.android.core.designsystem.theme.LumoShapes
@@ -48,10 +50,23 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
  * The one thing it does differently is where a card goes: opening a series opens a
  * *tree*, and that tree costs a call to the user's own panel. Nothing on this
  * screen triggers one.
+ *
+ * <h2>The "continue watching" rail, and it plays rather than opens (S6-08)</h2>
+ *
+ * A rail here and a chip on the television, which is `S4-08`'s ruling for the
+ * third time: a rail above a television grid is a second focus zone and that strip
+ * has no height for one. A phone has the room and no D-pad, so it gets the rail —
+ * and on a rail a card can do the useful thing directly.
+ *
+ * **What a card does is already decided before it is drawn.** `ResumableSeries`
+ * carries the episode and the position; whether that is the episode somebody
+ * stopped in or the one after it was settled by `SeriesRepository.resumable`
+ * against the 95 % threshold. This screen renders a decision, it does not make one.
  */
 @Composable
 fun SeriesMobileScreen(
     onOpenSeries: (seriesId: String) -> Unit,
+    onPlay: (episodeId: String, title: String?, atMs: Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SeriesViewModel = hiltViewModel(),
 ) {
@@ -94,6 +109,13 @@ fun SeriesMobileScreen(
                     selectedId = state.selectedCategoryId,
                     onSelect = viewModel::onCategorySelected,
                 )
+
+                // Above the grid and below the strip, and only when there is
+                // something in it: an empty rail with a heading over it is a
+                // promise of a feature rather than the feature.
+                if (state.continueWatching.isNotEmpty() && state.query.isBlank()) {
+                    ContinueWatching(cards = state.continueWatching, onPlay = onPlay)
+                }
 
                 if (items.itemCount == 0 && !state.refreshing) {
                     Message(
@@ -218,6 +240,75 @@ private fun Categories(
     }
 }
 
+/**
+ * The rail (S6-08).
+ *
+ * **One card per series, never one per episode.** Somebody who watched three
+ * episodes last night has three saved rows and wants one card; a rail showing three
+ * has understood the data and not the use. The grouping is
+ * `SeriesRepository.resumable`'s, and it is tested there.
+ *
+ * Each card says what pressing it will do — "Episode 4" against the series it
+ * belongs to — because "continue" without saying what is being continued is a
+ * button somebody presses to find out.
+ */
+@Composable
+private fun ContinueWatching(
+    cards: List<ResumableSeries>,
+    onPlay: (String, String?, Long) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
+        Text(
+            text = stringResource(R.string.feature_series_continue_watching),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(horizontal = LumoSpacing.md),
+        )
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = LumoSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+        ) {
+            items(cards.size) { index ->
+                val card = cards[index]
+                val label = card.episode.name ?: stringResource(
+                    R.string.feature_series_episode,
+                    card.episode.episodeNumber,
+                )
+
+                Column(
+                    modifier = Modifier
+                        .width(RAIL_CARD_WIDTH)
+                        .clickable { onPlay(card.episode.id, label, card.positionMs) },
+                    verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+                ) {
+                    LumoPoster(
+                        posterUrl = card.series.posterUrl,
+                        title = card.series.name,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        text = card.series.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.feature_series_season_episode,
+                            card.episode.seasonNumber,
+                            card.episode.episodeNumber,
+                        ),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
@@ -303,3 +394,6 @@ internal fun Centered(content: @Composable () -> Unit) {
 
 /** Two, for the reason the films grid has two: recognising the picture is the job. */
 private const val COLUMNS = 2
+
+/** Narrower than a grid card: a rail is a shortcut, not a second catalogue. */
+private val RAIL_CARD_WIDTH = 110.dp

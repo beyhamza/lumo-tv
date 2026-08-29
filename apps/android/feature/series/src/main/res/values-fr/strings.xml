@@ -47,4 +47,6 @@
     <string name="feature_series_play_next">Lire</string>
     <string name="feature_series_tv_loading">Chargement des séries…</string>
     <string name="feature_series_tv_back_hint">Appuyez sur RETOUR pour revenir à la série.</string>
+    <string name="feature_series_continue_watching">Reprendre</string>
+    <string name="feature_series_season_episode">S%1$d E%2$d</string>
 </resources>

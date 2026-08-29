@@ -23,6 +23,9 @@ import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
+import tv.lumo.android.core.data.model.EpisodeProgress
+import tv.lumo.android.core.data.model.ResumableSeries
+import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.data.repository.SeriesRepository
 import tv.lumo.android.core.data.repository.SourceRepository
 import tv.lumo.android.core.data.valueOrNull
@@ -45,22 +48,39 @@ import tv.lumo.android.network.generated.model.SourceStatus
 class SeriesViewModel @Inject constructor(
     private val series: SeriesRepository,
     private val sources: SourceRepository,
+    private val progress: ProgressRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SeriesState())
     val state: StateFlow<SeriesState> = _state
 
     val items: Flow<PagingData<Series>> = _state
-        .map { SeriesQuery(it.sourceId, it.selectedCategoryId, it.query) }
+        .map { SeriesQuery(it.sourceId, it.filter, it.query, it.continueWatching) }
         .distinctUntilChanged()
         .debounce { query -> if (query.text.isEmpty()) 0L else SEARCH_DEBOUNCE_MILLIS }
         .flatMapLatest { query -> seriesFor(query) }
         .cachedIn(viewModelScope)
 
+    /**
+     * The grid, from whichever shelf is open.
+     *
+     * The resume shelf is served as a one-page [PagingData] rather than as a list
+     * of its own, which is what keeps the television's grid a single code path —
+     * same cards, same focus handling, same return-to-what-you-opened. `S5-11` does
+     * exactly this for films, and the shapes underneath genuinely differ: fifty
+     * thousand series are read out of SQLite in windows, while a dozen started ones
+     * are already in memory.
+     */
     private fun seriesFor(query: SeriesQuery): Flow<PagingData<Series>> = when {
         query.sourceId == null -> flowOf(PagingData.empty())
         query.text.isNotBlank() -> series.search(query.sourceId, query.text)
-        else -> series.series(query.sourceId, query.categoryId)
+        // Already in the server's order, most recently watched first. Re-sorting it
+        // on anything would throw away the one thing this list knows and the
+        // catalogue does not.
+        query.filter is SeriesFilter.Resume -> flowOf(
+            PagingData.from(query.resumable.map { it.series }),
+        )
+        else -> series.series(query.sourceId, (query.filter as? SeriesFilter.Category)?.id)
     }
 
     init {
@@ -95,6 +115,7 @@ class SeriesViewModel @Inject constructor(
                 )
             }
             observeCategories(sourceId)
+            loadContinueWatching(sourceId)
 
             if (series.cachedSeriesCount(sourceId) == 0) {
                 refresh()
@@ -107,6 +128,25 @@ class SeriesViewModel @Inject constructor(
             series.categories(sourceId).collect { cached ->
                 _state.update { it.copy(categories = cached.value, origin = cached.origin) }
             }
+        }
+    }
+
+    /**
+     * The "continue watching" rail (S6-08).
+     *
+     * Two calls, and the second is what makes it a rail of **series** rather than a
+     * list of episodes: `GET /me/progress` carries identifiers and positions, and
+     * going from an episode back to its series needs the tree. `resumable` is where
+     * that translation lives, and where the threshold decides between "this episode
+     * again" and "the next one".
+     *
+     * A series whose tree this device does not hold drops out rather than rendering
+     * as a gap — see `SeriesRepository.resumable`, which states the trade.
+     */
+    private fun loadContinueWatching(sourceId: String) {
+        viewModelScope.launch {
+            val rows = progress.episodesInProgress().filter { it.sourceId == sourceId }
+            _state.update { it.copy(continueWatching = series.resumable(rows)) }
         }
     }
 
@@ -124,8 +164,24 @@ class SeriesViewModel @Inject constructor(
         }
     }
 
-    fun onCategorySelected(categoryId: String?) =
-        _state.update { it.copy(selectedCategoryId = categoryId) }
+    /** Null is every series of the source, which is what the screen opens on. */
+    fun onCategorySelected(categoryId: String?) = _state.update {
+        it.copy(filter = categoryId?.let(SeriesFilter::Category) ?: SeriesFilter.All)
+    }
+
+    /**
+     * Filters the grid to what was started. The television's chip (S6-08).
+     *
+     * A chip and not a rail, which is `S4-08`'s ruling applied for the third time:
+     * a rail above the grid is a **second focus zone**, and this strip has no height
+     * for a second mechanism. The phone, which has the room and no D-pad, gets the
+     * rail — where a card plays directly.
+     *
+     * On a television the chip filters, and `OK` on one of those cards opens the
+     * series, where the focus lands on the episode to resume. Two presses, and no
+     * new zone in the focus map.
+     */
+    fun onResumeSelected() = _state.update { it.copy(filter = SeriesFilter.Resume) }
 
     fun onQueryChanged(query: String) = _state.update { it.copy(query = query) }
 
@@ -134,7 +190,19 @@ class SeriesViewModel @Inject constructor(
     }
 }
 
-private data class SeriesQuery(val sourceId: String?, val categoryId: String?, val text: String)
+private data class SeriesQuery(
+    val sourceId: String?,
+    val filter: SeriesFilter,
+    val text: String,
+    val resumable: List<ResumableSeries>,
+)
+
+/** Which shelf the grid is showing. The film screen's three, one catalogue over. */
+sealed interface SeriesFilter {
+    data object All : SeriesFilter
+    data class Category(val id: String) : SeriesFilter
+    data object Resume : SeriesFilter
+}
 
 sealed interface SeriesStep {
     data object Loading : SeriesStep
@@ -148,10 +216,18 @@ data class SeriesState(
     val sourceId: String? = null,
     val categories: List<Category> = emptyList(),
     val origin: DataOrigin = DataOrigin.Cache,
-    val selectedCategoryId: String? = null,
+    val filter: SeriesFilter = SeriesFilter.All,
     val query: String = "",
     val refreshing: Boolean = false,
     val refreshFailed: Boolean = false,
+    /**
+     * One card per series, already carrying what pressing it does (S6-08).
+     *
+     * Empty until the two calls behind it answer, and empty for ever on a device
+     * that has not opened any of these series — which is honest, and stated on
+     * `SeriesRepository.resumable`.
+     */
+    val continueWatching: List<ResumableSeries> = emptyList(),
     /**
      * Whether the source is a playlist rather than a panel.
      *
@@ -161,7 +237,15 @@ data class SeriesState(
      * would be the worse of the two mistakes.
      */
     val isPlaylist: Boolean = false,
-)
+) {
+
+    /** What the category strip should draw as selected. */
+    val selectedCategoryId: String?
+        get() = (filter as? SeriesFilter.Category)?.id
+
+    val resumeSelected: Boolean
+        get() = filter is SeriesFilter.Resume
+}
 
 /**
  * One series, its tree, and the three answers a screen has to tell apart (US-15).
@@ -184,6 +268,7 @@ data class SeriesState(
 @HiltViewModel
 class SeriesDetailViewModel @Inject constructor(
     private val series: SeriesRepository,
+    private val progress: ProgressRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SeriesDetailState())
@@ -206,6 +291,25 @@ class SeriesDetailViewModel @Inject constructor(
             // Once, on opening. The repository serves what is cached first and
             // decides on its own whether this call is worth making.
             series.loadTree(seriesId)
+        }
+        loadProgress()
+    }
+
+    /**
+     * Where the viewer is in each episode of this series (S6-08).
+     *
+     * Asked once, when the screen opens, and never again: it is a number the
+     * screen already has by the time anything can change it, and a screen that
+     * re-asked on every frame would be polling the server for its own state.
+     *
+     * Filtered to this series here rather than by the server, because the request
+     * cannot express it — `item_ref` is opaque and a series is not one. The list is
+     * a dozen rows.
+     */
+    private fun loadProgress() {
+        viewModelScope.launch {
+            val rows = progress.episodesInProgress().associateBy { it.episodeId }
+            _state.update { it.copy(progress = rows) }
         }
     }
 
@@ -230,6 +334,13 @@ data class SeriesDetailState(
      * See [openSeason], which resolves the two.
      */
     val openedSeason: Int? = null,
+    /**
+     * Saved positions, by episode id (S6-08).
+     *
+     * A map rather than a list, because every episode row asks the same question
+     * about itself and a list would be a scan per row down a fifty-episode season.
+     */
+    val progress: Map<String, EpisodeProgress> = emptyMap(),
 ) {
 
     /**
@@ -247,5 +358,25 @@ data class SeriesDetailState(
         get() {
             val seasons = (tree as? SeriesTree.Loaded)?.seasons.orEmpty()
             return seasons.firstOrNull { it.seasonNumber == openedSeason } ?: seasons.firstOrNull()
+        }
+
+    /**
+     * The episode the remote should land on (S6-08).
+     *
+     * **The one being watched, then the first not started, then the first.** That is
+     * S6-06's statement, finally answerable now that positions exist — and it is
+     * the whole of the ten per cent that task was short.
+     *
+     * Within the open season only. A viewer who chose season 3 is looking at season
+     * 3, and moving the focus to season 1 because that is where they stopped would
+     * be the screen arguing with them.
+     */
+    val resumeEpisodeId: String?
+        get() {
+            val episodes = openSeason?.episodes.orEmpty()
+            val started = episodes.firstOrNull {
+                progress[it.id]?.finished == false
+            }
+            return started?.id ?: episodes.firstOrNull { progress[it.id] == null }?.id
         }
 }

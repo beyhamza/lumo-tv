@@ -21,14 +21,17 @@ import tv.lumo.android.feature.series.SeriesTvScreen
  * (docs/architecture.md §3): the grid says "this series was chosen", the detail
  * screen says "play this episode", and the NavHost decides what that means.
  */
-fun NavGraphBuilder.seriesMobileScreen(onOpenSeries: (seriesId: String) -> Unit) {
+fun NavGraphBuilder.seriesMobileScreen(
+    onOpenSeries: (seriesId: String) -> Unit,
+    onPlay: (episodeId: String, title: String?, atMs: Long) -> Unit,
+) {
     composable(route = SeriesDestination.route) {
-        SeriesMobileScreen(onOpenSeries = onOpenSeries)
+        SeriesMobileScreen(onOpenSeries = onOpenSeries, onPlay = onPlay)
     }
 }
 
 fun NavGraphBuilder.seriesDetailMobileScreen(
-    onPlay: (episodeId: String, title: String?) -> Unit,
+    onPlay: (episodeId: String, title: String?, atMs: Long) -> Unit,
     onBack: () -> Unit,
 ) {
     composable(
@@ -54,6 +57,12 @@ fun NavGraphBuilder.episodePlayerMobileScreen(onBack: () -> Unit) {
                 type = NavType.StringType
                 defaultValue = ""
             },
+            navArgument(EpisodePlayerDestination.ARG_AT) {
+                type = NavType.LongType
+                // The beginning. A player never resumes on its own — the value
+                // here is one somebody chose on the screen before it.
+                defaultValue = 0L
+            },
         ),
     ) { entry ->
         EpisodePlayerMobileScreen(
@@ -61,6 +70,7 @@ fun NavGraphBuilder.episodePlayerMobileScreen(onBack: () -> Unit) {
                 .orEmpty(),
             title = entry.arguments?.getString(EpisodePlayerDestination.ARG_TITLE)
                 ?.takeIf { it.isNotEmpty() },
+            resumeFromMs = entry.arguments?.getLong(EpisodePlayerDestination.ARG_AT) ?: 0L,
             onBack = onBack,
         )
     }
@@ -110,7 +120,7 @@ fun NavGraphBuilder.seriesTvScreen(onOpenSeries: (seriesId: String) -> Unit) {
  * have lost the viewer's place.
  */
 fun NavGraphBuilder.seriesDetailTvScreen(
-    onPlay: (episodeId: String, title: String?) -> Unit,
+    onPlay: (episodeId: String, title: String?, atMs: Long) -> Unit,
     onBack: (seriesId: String) -> Unit,
 ) {
     composable(
@@ -147,6 +157,12 @@ fun NavGraphBuilder.episodePlayerTvScreen(onBack: () -> Unit) {
                 type = NavType.StringType
                 defaultValue = ""
             },
+            navArgument(EpisodePlayerDestination.ARG_AT) {
+                type = NavType.LongType
+                // The beginning. A player never resumes on its own — the value
+                // here is one somebody chose on the screen before it.
+                defaultValue = 0L
+            },
         ),
     ) { entry ->
         EpisodePlayerTvScreen(
@@ -154,6 +170,7 @@ fun NavGraphBuilder.episodePlayerTvScreen(onBack: () -> Unit) {
                 .orEmpty(),
             title = entry.arguments?.getString(EpisodePlayerDestination.ARG_TITLE)
                 ?.takeIf { it.isNotEmpty() },
+            resumeFromMs = entry.arguments?.getLong(EpisodePlayerDestination.ARG_AT) ?: 0L,
             onBack = onBack,
         )
     }

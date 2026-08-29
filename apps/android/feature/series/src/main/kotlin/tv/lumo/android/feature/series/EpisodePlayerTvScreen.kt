@@ -96,6 +96,7 @@ import tv.lumo.android.core.player.ui.LumoVideoSurface
 fun EpisodePlayerTvScreen(
     episodeId: String,
     title: String?,
+    resumeFromMs: Long,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: EpisodePlayerViewModel = hiltViewModel(),
@@ -103,7 +104,12 @@ fun EpisodePlayerTvScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(episodeId) {
-        viewModel.start(episodeId, title, autoAdvanceSeconds = AUTO_ADVANCE_SECONDS)
+        viewModel.start(
+            episodeId = episodeId,
+            title = title,
+            autoAdvanceSeconds = AUTO_ADVANCE_SECONDS,
+            resumeFromMs = resumeFromMs,
+        )
     }
 
     DisposableEffect(Unit) {

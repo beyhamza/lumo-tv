@@ -74,6 +74,7 @@ import tv.lumo.android.core.player.ui.LumoVideoSurface
 fun EpisodePlayerMobileScreen(
     episodeId: String,
     title: String?,
+    resumeFromMs: Long,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: EpisodePlayerViewModel = hiltViewModel(),
@@ -84,7 +85,12 @@ fun EpisodePlayerMobileScreen(
     // does not — the Activity declares `configChanges` and the player is a
     // singleton.
     LaunchedEffect(episodeId) {
-        viewModel.start(episodeId, title, autoAdvanceSeconds = AUTO_ADVANCE_SECONDS)
+        viewModel.start(
+            episodeId = episodeId,
+            title = title,
+            autoAdvanceSeconds = AUTO_ADVANCE_SECONDS,
+            resumeFromMs = resumeFromMs,
+        )
     }
 
     // The last episode of the series has finished. Nothing is offered, so the

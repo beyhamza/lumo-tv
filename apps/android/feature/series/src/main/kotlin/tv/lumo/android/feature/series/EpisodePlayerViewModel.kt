@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,12 +19,14 @@ import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.model.Episode
 import tv.lumo.android.core.data.model.EpisodePlaybackTarget
 import tv.lumo.android.core.data.repository.PlaybackRepository
+import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.data.repository.SeriesRepository
 import tv.lumo.android.core.player.LumoPlayer
 import tv.lumo.android.core.player.PlaybackError
 import tv.lumo.android.core.player.PlaybackProgress
 import tv.lumo.android.core.player.PlaybackRequest
 import tv.lumo.android.core.player.PlaybackState
+import tv.lumo.android.core.player.SeekAvailability
 import tv.lumo.android.network.generated.model.ErrorCode
 
 /**
@@ -64,24 +67,26 @@ import tv.lumo.android.network.generated.model.ErrorCode
  * is the kind of thing that is not forgiven. What they lose is the automatic part;
  * the offer is still there to accept.
  *
- * <h2>Nothing is saved here, and that is a decision rather than an omission</h2>
+ * <h2>The position is saved, and what reads it is a series (S6-08)</h2>
  *
- * The film's player runs a thirty-second loop that upserts a position. This one
- * runs none, and `ProgressRepository.save` would refuse an episode if it tried:
- * its `itemType` is `VOD` and nothing else.
+ * The film player's thirty-second loop, unchanged in shape, writing `EPISODE`
+ * rows instead of `VOD` ones. The last save happens **before** the player is
+ * stopped, because stopping resets the position to zero — saving after it would
+ * write every viewer back to the beginning of everything they leave.
  *
- * Saving belongs to `S6-08`, which carries a ruling this file must not pre-empt:
- * what a viewer resumes is a **series**, not an episode — they remember having
- * got to episode four, not an identifier — and turning one into the other needs
- * the tree. Writing half of it here would leave rows saved that no screen reads.
+ * What is written is an episode; what reads it is a rail of **series**
+ * (`SeriesRepository.resumable`). Nothing here knows about that, and it must not:
+ * this file records where somebody is, and deciding what to offer them tomorrow —
+ * this episode again, or the next one — is a rule that needs the tree.
  *
- * Seeking still works. Moving inside what one is watching is playback; coming back
- * to it tomorrow is the feature that is not built yet.
+ * **A position is saved for an episode reached by advancing, too.** The offer is
+ * a way of watching a series, not a way around the bookkeeping.
  */
 @HiltViewModel
 class EpisodePlayerViewModel @Inject constructor(
     private val playback: PlaybackRepository,
     private val series: SeriesRepository,
+    private val progress: ProgressRepository,
     /** Exposed for the video surface, which needs the instance rather than its state. */
     val player: LumoPlayer,
 ) : ViewModel() {
@@ -102,6 +107,8 @@ class EpisodePlayerViewModel @Inject constructor(
     private var currentTitle: String? = null
     private var autoAdvanceSeconds: Int = 0
     private var countdown: Job? = null
+    private var saver: Job? = null
+    private var resumeFromMs: Long = 0L
 
     val state: StateFlow<EpisodePlayerUiState> =
         combine(
@@ -160,10 +167,20 @@ class EpisodePlayerViewModel @Inject constructor(
      * @param autoAdvanceSeconds how long the offer counts down before it plays by
      *   itself. Ten on a television, fewer on a phone; zero would mean "offer,
      *   never start", which no surface asks for today but costs nothing to allow.
+     * @param resumeFromMs where the viewer chose to start. Zero is the beginning,
+     *   and it is a choice somebody made on the previous screen — never a default
+     *   this player applied on their behalf. Episodes reached by advancing start
+     *   at zero because that is where they start, not because it is a fallback.
      */
-    fun start(episodeId: String, title: String?, autoAdvanceSeconds: Int) {
+    fun start(
+        episodeId: String,
+        title: String?,
+        autoAdvanceSeconds: Int,
+        resumeFromMs: Long = 0L,
+    ) {
         if (this.episodeId == episodeId) return
         this.autoAdvanceSeconds = autoAdvanceSeconds
+        this.resumeFromMs = resumeFromMs
         open(episodeId, title)
     }
 
@@ -175,7 +192,15 @@ class EpisodePlayerViewModel @Inject constructor(
     fun seekTo(positionMs: Long) = player.seekTo(positionMs)
 
     fun togglePlayPause() {
-        if (player.state.value is PlaybackState.Playing) player.pause() else player.resume()
+        if (player.state.value is PlaybackState.Playing) {
+            player.pause()
+            // A tap on pause. The moment a position is most likely to matter:
+            // pausing is the single most likely thing somebody does before walking
+            // away.
+            saveNow()
+        } else {
+            player.resume()
+        }
     }
 
     /**
@@ -195,6 +220,10 @@ class EpisodePlayerViewModel @Inject constructor(
         val next = _playing.value.upNext?.episode ?: return
         countdown?.cancel()
         countdown = null
+        // From its beginning: the offer is for an episode nobody has seen. Carrying
+        // the previous one's position forward would drop somebody forty minutes into
+        // an episode that has not started.
+        resumeFromMs = 0L
         open(next.id, next.name)
     }
 
@@ -223,6 +252,12 @@ class EpisodePlayerViewModel @Inject constructor(
                             isLive = false,
                         ),
                     )
+                    // After `play`, because the player has no timeline before it.
+                    // Ignored by `LumoPlayer` until the stream turns out to be
+                    // seekable, which is the honest outcome: a server that will not
+                    // serve part of a file cannot resume one either.
+                    if (resumeFromMs > 0L) player.seekTo(resumeFromMs)
+                    startSaving()
                 }
 
                 is LumoResult.Failure -> _failure.value = result.error.asEpisodeFailure()
@@ -273,8 +308,50 @@ class EpisodePlayerViewModel @Inject constructor(
             playNext()
         }
     }
+    /**
+     * The thirty-second loop.
+     *
+     * A loop rather than a listener, because nothing in the player fires as time
+     * passes — the position advances with the clock. It runs while a stream is
+     * loaded, **including while paused**: pausing is the single most likely moment
+     * for somebody to walk away, and a paused position is the one most worth having.
+     */
+    private fun startSaving() {
+        saver?.cancel()
+        saver = viewModelScope.launch {
+            while (isActive) {
+                delay(SAVE_EVERY_MILLIS)
+                saveNow()
+            }
+        }
+    }
+
+    private fun saveNow() {
+        val episode = _playing.value.episode ?: return
+        val snapshot = player.progress.value
+        if (!snapshot.savable()) return
+
+        viewModelScope.launch {
+            progress.saveEpisode(
+                // The episode's own source, from the cache, rather than one carried
+                // in the route: an episode reached by advancing was never in a
+                // route, and a player that only saved the first one would lose every
+                // episode of an evening but the first.
+                sourceId = episode.sourceId,
+                episodeId = episode.id,
+                positionMs = snapshot.positionMs,
+                durationMs = snapshot.durationMs,
+            )
+        }
+    }
+
     /** Leaving the screen. The player survives; the stream and its URL do not. */
     fun stop() {
+        // Before `player.stop()`, which resets the position to zero. Saving after it
+        // would write a viewer back to the beginning of every episode they leave.
+        saveNow()
+        saver?.cancel()
+        saver = null
         countdown?.cancel()
         countdown = null
         player.stop()
@@ -285,6 +362,9 @@ class EpisodePlayerViewModel @Inject constructor(
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
         const val ONE_SECOND_MILLIS = 1_000L
+
+        /** An upsert, not a stream. The film player's interval, for its reason. */
+        const val SAVE_EVERY_MILLIS = 30_000L
     }
 }
 
@@ -395,4 +475,27 @@ internal fun EpisodePlayerFailure.isRetryable(): Boolean = when (this) {
     EpisodePlayerFailure.EpisodeGone -> false
     EpisodePlayerFailure.Unplayable -> false
     EpisodePlayerFailure.Unexpected -> true
+}
+
+/**
+ * Whether this position is worth sending to the server.
+ *
+ * <h2>Two guards, and only one of them is an optimisation</h2>
+ *
+ * **A live stream is never saved.** `ProgressItemType` has no `LIVE` value, so the
+ * contract cannot express it — but a type system does not stop a shared player
+ * from being handed a channel and this view model from writing what it reports.
+ *
+ * **A position of zero is not saved either**, and that one is not thrift: a save at
+ * zero overwrites a real position with the beginning of the episode. It happens on
+ * every open — the player reports zero for the frames before the first one decodes
+ * — so without this guard, opening an episode and closing it immediately would lose
+ * where somebody was.
+ *
+ * `UNKNOWN` is refused with the same reasoning: nothing has loaded, so whatever the
+ * position says is not a position.
+ */
+internal fun PlaybackProgress.savable(): Boolean = when (seek) {
+    SeekAvailability.LIVE, SeekAvailability.UNKNOWN -> false
+    SeekAvailability.AVAILABLE, SeekAvailability.REFUSED -> positionMs > 0L
 }

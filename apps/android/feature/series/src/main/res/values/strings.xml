@@ -51,4 +51,6 @@
     <string name="feature_series_play_next">Play</string>
     <string name="feature_series_tv_loading">Loading the series…</string>
     <string name="feature_series_tv_back_hint">Press BACK to return to the series.</string>
+    <string name="feature_series_continue_watching">Continue watching</string>
+    <string name="feature_series_season_episode">S%1$d E%2$d</string>
 </resources>

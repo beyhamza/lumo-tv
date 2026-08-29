@@ -6,6 +6,7 @@ import javax.inject.Singleton
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.internal.ApiCaller
 import tv.lumo.android.core.data.map
+import tv.lumo.android.core.data.model.EpisodeProgress
 import tv.lumo.android.core.data.model.WatchProgress
 import tv.lumo.android.core.data.valueOrNull
 import tv.lumo.android.network.generated.api.UserdataApi
@@ -77,6 +78,34 @@ class ProgressRepository @Inject internal constructor(
     }.map { }
 
     /**
+     * Saves where somebody is in an episode (S6-08).
+     *
+     * [save] with `EPISODE` in place of `VOD`, and that is the entire difference:
+     * the server stores `item_ref` opaquely and never asks what it points at, so
+     * this needed nothing new behind it.
+     *
+     * Two methods rather than one with a type parameter, because the two ids come
+     * from two tables and a caller that could pass either would eventually pass a
+     * film id here. The contract argues the same point about `item_ref` itself.
+     */
+    suspend fun saveEpisode(
+        sourceId: String,
+        episodeId: String,
+        positionMs: Long,
+        durationMs: Long?,
+    ): LumoResult<Unit> = calls.call {
+        userdata.saveProgress(
+            SaveProgressRequest(
+                sourceId = UUID.fromString(sourceId),
+                itemType = ProgressItemType.EPISODE,
+                itemRef = episodeId,
+                positionMs = positionMs,
+                durationMs = durationMs,
+            ),
+        )
+    }.map { }
+
+    /**
      * The saved position of one film, or null.
      *
      * The three filters together, because the contract says that combination
@@ -113,6 +142,29 @@ class ProgressRepository @Inject internal constructor(
             ?.take(limit)
             .orEmpty()
 
+    /**
+     * Every episode somebody has started, most recently touched first (S6-08).
+     *
+     * <h2>Finished rows are kept, and that is the difference from [continueWatching]</h2>
+     *
+     * A **film** past the threshold leaves the rail: there is nothing after it. An
+     * **episode** past the threshold is what puts the *next* one in the rail, so
+     * dropping it here would silently end every series at the episode somebody
+     * actually finished — the worst possible moment.
+     *
+     * What is dropped is decided one layer up, by `SeriesRepository.resumable`,
+     * which is the only place that knows whether a finished episode has a
+     * successor. That is the whole reason this returns rows rather than cards.
+     */
+    suspend fun episodesInProgress(limit: Int = RAIL_SIZE): List<EpisodeProgress> =
+        calls.call {
+            userdata.listProgress(itemType = ProgressItemType.EPISODE, size = limit * 2)
+        }
+            .valueOrNull()
+            ?.items
+            ?.map { it.asEpisodeProgress() }
+            .orEmpty()
+
     private companion object {
         /**
          * How many the rail holds, and why it is asked for twice over.
@@ -129,6 +181,15 @@ class ProgressRepository @Inject internal constructor(
 private fun PlaybackProgress.asWatchProgress() = WatchProgress(
     sourceId = sourceId.toString(),
     filmId = itemRef,
+    positionMs = positionMs,
+    durationMs = durationMs,
+)
+
+private fun PlaybackProgress.asEpisodeProgress() = EpisodeProgress(
+    sourceId = sourceId.toString(),
+    // The same opaque field, read as what an `EPISODE` row puts in it. The
+    // contract settles that this is an `Episode.id`; nothing here re-decides it.
+    episodeId = itemRef,
     positionMs = positionMs,
     durationMs = durationMs,
 )

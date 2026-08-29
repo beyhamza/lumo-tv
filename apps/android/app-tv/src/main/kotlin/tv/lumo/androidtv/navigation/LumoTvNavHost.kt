@@ -101,8 +101,10 @@ fun LumoTvNavHost(
             },
         )
         seriesDetailTvScreen(
-            onPlay = { episodeId, title ->
-                navController.navigate(EpisodePlayerDestination.routeFor(episodeId, title))
+            onPlay = { episodeId, title, atMs ->
+                navController.navigate(
+                    EpisodePlayerDestination.routeFor(episodeId, title, atMs),
+                )
             },
             onBack = { seriesId ->
                 // The rule the film screen already follows, one catalogue over:

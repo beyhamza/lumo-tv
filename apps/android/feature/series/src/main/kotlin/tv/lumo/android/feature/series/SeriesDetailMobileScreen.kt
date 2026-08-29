@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -30,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.lumo.android.core.data.model.Episode
+import tv.lumo.android.core.data.model.EpisodeProgress
 import tv.lumo.android.core.data.model.Season
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
@@ -68,7 +71,7 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
 @Composable
 fun SeriesDetailMobileScreen(
     seriesId: String,
-    onPlay: (episodeId: String, title: String?) -> Unit,
+    onPlay: (episodeId: String, title: String?, atMs: Long) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SeriesDetailViewModel = hiltViewModel(),
@@ -90,6 +93,7 @@ fun SeriesDetailMobileScreen(
         Tree(
             tree = state.tree,
             openSeason = state.openSeason,
+            progress = state.progress,
             onSelectSeason = viewModel::onSeasonSelected,
             onRetry = viewModel::retry,
             onPlay = onPlay,
@@ -147,9 +151,10 @@ private fun Header(series: Series?) {
 private fun Tree(
     tree: SeriesTree,
     openSeason: Season?,
+    progress: Map<String, EpisodeProgress>,
     onSelectSeason: (Int) -> Unit,
     onRetry: () -> Unit,
-    onPlay: (String, String?) -> Unit,
+    onPlay: (String, String?, Long) -> Unit,
 ) {
     when (tree) {
         // One frame, before the request leaves. Drawing the loading state here
@@ -207,7 +212,7 @@ private fun Tree(
                 openSeason = openSeason,
                 onSelectSeason = onSelectSeason,
             )
-            Episodes(season = openSeason, onPlay = onPlay)
+            Episodes(season = openSeason, progress = progress, onPlay = onPlay)
         }
     }
 }
@@ -246,12 +251,16 @@ private fun Seasons(seasons: List<Season>, openSeason: Season?, onSelectSeason: 
 }
 
 @Composable
-private fun Episodes(season: Season?, onPlay: (String, String?) -> Unit) {
+private fun Episodes(
+    season: Season?,
+    progress: Map<String, EpisodeProgress>,
+    onPlay: (String, String?, Long) -> Unit,
+) {
     val episodes = season?.episodes.orEmpty()
 
     Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs)) {
         episodes.forEach { episode ->
-            EpisodeRow(episode = episode, onPlay = onPlay)
+            EpisodeRow(episode = episode, progress = progress[episode.id], onPlay = onPlay)
         }
 
         // The panel's own count, shown only when it disagrees with what it listed.
@@ -281,7 +290,11 @@ private fun Episodes(season: Season?, onPlay: (String, String?) -> Unit) {
  * that it is empty.
  */
 @Composable
-private fun EpisodeRow(episode: Episode, onPlay: (String, String?) -> Unit) {
+private fun EpisodeRow(
+    episode: Episode,
+    progress: EpisodeProgress?,
+    onPlay: (String, String?, Long) -> Unit,
+) {
     val label = episode.name
         ?: stringResource(R.string.feature_series_episode, episode.episodeNumber)
 
@@ -289,7 +302,15 @@ private fun EpisodeRow(episode: Episode, onPlay: (String, String?) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(LumoShapes.medium)
-            .clickable { onPlay(episode.id, label) }
+            // Where they were, or the beginning. A finished episode starts over,
+            // because resuming somebody into the credits is not resuming.
+            .clickable {
+                onPlay(
+                    episode.id,
+                    label,
+                    progress?.takeIf { !it.finished }?.positionMs ?: 0L,
+                )
+            }
             .padding(vertical = LumoSpacing.sm, horizontal = LumoSpacing.xs),
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
@@ -312,9 +333,26 @@ private fun EpisodeRow(episode: Episode, onPlay: (String, String?) -> Unit) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            // The progress bar S6-05 asks for, and it is deliberately absent until
-            // S6-08 saves a position: a bar drawn at zero on every episode would
-            // say everyone has started everything.
+
+            // The bar S6-05 asked for and could not have, because nothing saved a
+            // position then. Only where there is one: a bar at zero on every row
+            // would say that everybody has started everything.
+            progress?.fraction()?.let { fraction ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(BAR_HEIGHT)
+                        .clip(LumoShapes.small)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction)
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.primary),
+                    )
+                }
+            }
         }
 
         episode.durationSeconds?.let { seconds ->
@@ -331,6 +369,19 @@ private fun EpisodeRow(episode: Episode, onPlay: (String, String?) -> Unit) {
 }
 
 /**
+ * How far in, as a fraction, or null when there is nothing to draw.
+ *
+ * **Null without a stated duration**, which is common: a bar needs an end, and a
+ * bar drawn full because the end is unknown is a bar that lies. Null when finished
+ * too — a full bar on every episode of a season somebody has watched is a wall of
+ * ink that says nothing about where they are.
+ */
+private fun EpisodeProgress.fraction(): Float? {
+    val duration = durationMs ?: return null
+    if (duration <= 0L || finished) return null
+    return (positionMs.toFloat() / duration).coerceIn(0f, 1f)
+}
+/**
  * Year, typical episode length and rating, absent ones left out.
  *
  * The run time is the panel's own indication and never a duration: whether an
@@ -344,5 +395,8 @@ private fun Series.facts(): List<String> = buildList {
 }
 
 private val POSTER_WIDTH = 140.dp
+
+/** Thin enough to read as a mark on a row rather than as a control. */
+private val BAR_HEIGHT = 3.dp
 
 private const val SECONDS_PER_MINUTE = 60L

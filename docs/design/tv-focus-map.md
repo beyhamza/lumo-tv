@@ -365,12 +365,19 @@ série qu'on regardait.**
 
 `BACK` revient aux chaînes, destination de départ.
 
-**Deux choses que la bande n'a pas, et les deux sont des décisions.**
+**Ce que la bande porte, et ce qu'elle ne porte pas.**
 
-- **Pas de puce « Reprendre ».** Celle des films en a une ; rien ne sauvegarde
-  encore la position d'un épisode, donc une puce ici filtrerait sur une étagère
-  vide — ce qui à trois mètres se lit comme une panne. Elle arrive avec `S6-08`, et
-  ce sera une puce de **séries**, pas d'épisodes.
+- **Une puce « Reprendre »** depuis `S6-08`, en deuxième position et seulement si
+  elle contient quelque chose. Ordre de la bande : **Toutes · [Reprendre] ·
+  [catégories de la source]**, comme les chaînes et les films.
+
+  C'est une **puce et pas un rail**, et c'est `S4-08` appliqué pour la troisième
+  fois : un rail au-dessus de cette grille est une **seconde zone de focus**, et
+  cette bande n'a pas la hauteur d'un second mécanisme. La puce filtre la grille ;
+  `OK` sur une de ces affiches ouvre la série, où le focus tombe sur l'épisode à
+  reprendre. Deux appuis, **et aucune zone nouvelle dans ce document**. Le
+  téléphone, qui a la place et pas de D-pad, a le rail — et là une carte lance
+  directement.
 - **Pas de recherche.** Le téléphone a un champ parce qu'il a un clavier ; une
   télévision a une D-pad, et un clavier à l'écran est le problème de
   `feature:search`, pas une seconde solution construite ici.
@@ -414,12 +421,25 @@ supprime la zone. Une puce seule au-dessus de ses propres épisodes ne dit rien,
 sur une télécommande le coût est un `UP` que quelqu'un fait avant de savoir qu'il
 était inutile. Avec une saison, `UP` depuis le premier épisode est un bord.
 
-**Le focus arrive sur le premier épisode et pas sur celui à reprendre**, ce que
-l'énoncé de `S6-06` demandait — l'épisode à reprendre, sinon le premier non
-regardé, sinon le premier. Les deux premiers exigent une position sauvegardée, et
-`S6-08` ne l'a pas encore écrite. **Rien ne devine en attendant** : le repli est la
-réponse, et il redeviendra l'exception le jour où il y aura quelque chose à
-préférer.
+**Le focus arrive sur l'épisode à reprendre, sinon sur le premier non regardé,
+sinon sur le premier listé** — les trois branches, depuis `S6-08`. Une saison dont
+on a vu douze épisodes s'ouvre sur le douzième, et la liste défile jusqu'à lui : sur
+une télécommande, la différence entre un appui et douze.
+
+**Dans la saison ouverte uniquement.** Quelqu'un qui a choisi la saison 3 regarde la
+saison 3, et déplacer le focus vers la saison 1 parce que c'est là qu'il s'est arrêté
+serait l'écran qui le contredit.
+
+> `S6-06` n'avait livré que la troisième branche, parce que rien n'enregistrait
+> alors de position. **Rien ne devinait en attendant** — le repli était écrit comme
+> un repli — et il est redevenu une exception le jour où il y a eu quelque chose à
+> préférer. Une devinette, elle, serait restée.
+
+**Une barre de progression sous le titre d'un épisode commencé**, et seulement là :
+une barre à zéro sur chaque ligne dirait que tout le monde a commencé tout, et à
+trois mètres un mur de barres identiques ne porte aucune information. Rien non plus
+quand le panel ne donne pas de durée — une barre a besoin d'une fin, et une barre
+pleine parce que la fin est inconnue est une barre qui ment.
 
 **L'écran n'est jamais vide pendant que l'arbre charge.** Affiche, titre et
 informations viennent de la liste et sont dessinés à la première image ; seule la
