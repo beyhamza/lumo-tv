@@ -128,12 +128,24 @@ can.
 > class whose only purpose was to answer "should this tab exist" — is gone with
 > the question. One request fewer at every launch, on both.
 >
-> **One line of the old rule survives and is what still keeps series out of the
-> two Android bars:** an *empty* catalogue is a reply, an *unbuilt* screen is a
-> promise. A grid that says "this source offers only channels" answers somebody;
-> a tab onto a placeholder tells them a feature exists when it does not. Series
-> join the phone with `S6-05` and the television with `S6-06`, and the tests on
-> both nav lists say so in as many words.
+> **One line of the old rule survives:** an *empty* catalogue is a reply, an
+> *unbuilt* screen is a promise. A grid that says "this source offers only
+> channels" answers somebody; a tab onto a placeholder tells them a feature
+> exists when it does not.
+>
+> **Series crossed that line on the phone with `S6-05`**, and they crossed it by
+> gaining a screen rather than by gaining a catalogue — which is the rule stated
+> the right way round. `MobileDestinations` carries the tab unconditionally, and
+> the last `doesNotContain` in `MobileDestinationsTest` now guards *search*, the
+> one destination still standing on a placeholder. The television follows with
+> `S6-06`; until then `TvDestinations` keeps series out for the same reason, and
+> its own test says so.
+>
+> A source with no series opens onto a grid that says so, and an M3U playlist
+> gets a sentence of its own: the format declares neither season nor episode.
+> **Three sentences, not one** — a playlist that cannot carry series, a panel
+> that offers none, and a search that found nothing are three different facts,
+> and ruling 2 above is what makes the first of them sayable.
 
 ### 4. What would reopen this, and what it would cost
 

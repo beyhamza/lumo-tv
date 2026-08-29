@@ -1,5 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="feature_series_title">Séries</string>
-    <string name="feature_series_placeholder">Les séries de votre source apparaîtront ici.</string>
+    <string name="feature_series_placeholder">Cet écran arrive dans un prochain sprint. Vos séries sont déjà synchronisées.</string>
+    <string name="feature_series_search">Rechercher une série</string>
+    <string name="feature_series_all_categories">Toutes</string>
+    <string name="feature_series_category_count">%1$s (%2$d)</string>
+    <string name="feature_series_refresh">Actualiser</string>
+    <string name="feature_series_refresh_failed">Les séries n\'ont pas pu être actualisées. Ce qui s\'affiche est la dernière synchronisation.</string>
+    <string name="feature_series_offline">Hors ligne</string>
+    <string name="feature_series_no_source_title">Aucune source</string>
+    <string name="feature_series_no_source_body">Ajoutez votre fournisseur dans l\'onglet Source, et ses séries apparaîtront ici.</string>
+    <string name="feature_series_not_ready_title">Import en cours</string>
+    <string name="feature_series_not_ready_body">Votre source est encore en cours de lecture. Cet écran se remplit dès qu\'elle est prête.</string>
+    <string name="feature_series_empty_title">Aucune série</string>
+    <string name="feature_series_empty_playlist">Cette source est une playlist M3U. Le format ne déclare ni saison ni épisode, et Lumo n\'invente pas d\'arbre à partir des titres. Les séries sont disponibles sur les sources Xtream.</string>
+    <string name="feature_series_empty_panel">Ce fournisseur ne propose pas de séries.</string>
+    <string name="feature_series_no_results_title">Aucun résultat</string>
+    <string name="feature_series_no_results_body">La recherche parcourt ce qui est déjà synchronisé, et elle ne pardonne pas une faute de frappe.</string>
+    <string name="feature_series_back">Retour</string>
+    <string name="feature_series_run_time">~%1$d min par épisode</string>
+    <string name="feature_series_season">Saison %1$d</string>
+    <string name="feature_series_episode">Épisode %1$d</string>
+    <string name="feature_series_minutes">%1$d min</string>
+    <string name="feature_series_retry">Réessayer</string>
+    <string name="feature_series_tree_unavailable_title">Épisodes indisponibles</string>
+    <string name="feature_series_tree_unavailable_body">Votre fournisseur n\'a pas répondu. La série est toujours là — réessayez dans un instant.</string>
+    <string name="feature_series_no_seasons_title">Aucun épisode listé</string>
+    <string name="feature_series_no_seasons_body">Votre fournisseur liste cette série mais n\'a renvoyé aucune saison pour elle. Il ne manque rien de notre côté.</string>
+    <string name="feature_series_episode_count_mismatch">%1$d épisodes listés, %2$d annoncés par votre fournisseur.</string>
+    <string name="feature_series_position">%1$s / %2$s</string>
+    <string name="feature_series_unknown_length">--</string>
+    <string name="feature_series_pause">Pause</string>
+    <string name="feature_series_resume">Lire</string>
+    <string name="feature_series_seek_refused">Votre serveur n\'autorise pas le déplacement dans cet épisode. Il se lit depuis le début.</string>
+    <string name="feature_series_player_retry">Réessayer</string>
+    <string name="feature_series_player_back">Retour</string>
+    <string name="feature_series_player_unreachable">Votre serveur n\'a pas répondu. Vérifiez votre connexion, puis réessayez.</string>
+    <string name="feature_series_player_too_many_streams">Votre abonnement diffuse déjà autant de flux qu\'il l\'autorise. Arrêtez un autre flux, puis réessayez.</string>
+    <string name="feature_series_player_too_many_streams_count">Votre abonnement autorise %1$d flux simultanés et ils sont tous utilisés. Arrêtez-en un, puis réessayez.</string>
+    <string name="feature_series_player_not_ready">Votre source est encore en cours d\'import. Réessayez dans un instant.</string>
+    <string name="feature_series_player_expired">Votre abonnement chez ce fournisseur a expiré.</string>
+    <string name="feature_series_player_episode_gone">Cet épisode n\'est plus listé. Rouvrez la série.</string>
+    <string name="feature_series_player_unplayable">Cet épisode ne peut pas être lu sur cet appareil.</string>
+    <string name="feature_series_player_unexpected">Cet épisode n\'a pas pu être lu.</string>
 </resources>

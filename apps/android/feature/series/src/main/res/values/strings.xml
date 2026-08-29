@@ -5,5 +5,46 @@
 -->
 <resources>
     <string name="feature_series_title">Series</string>
-    <string name="feature_series_placeholder">Series from your own source will appear here.</string>
+    <string name="feature_series_placeholder">This screen arrives in a later sprint. Your series are already synchronised.</string>
+    <string name="feature_series_search">Search the series</string>
+    <string name="feature_series_all_categories">All</string>
+    <string name="feature_series_category_count">%1$s (%2$d)</string>
+    <string name="feature_series_refresh">Refresh</string>
+    <string name="feature_series_refresh_failed">The series could not be refreshed. What is shown is the last synchronisation.</string>
+    <string name="feature_series_offline">Offline</string>
+    <string name="feature_series_no_source_title">No source yet</string>
+    <string name="feature_series_no_source_body">Add your provider in the Source tab, and its series will appear here.</string>
+    <string name="feature_series_not_ready_title">Import in progress</string>
+    <string name="feature_series_not_ready_body">Your source is still being read. This screen fills as soon as it is done.</string>
+    <string name="feature_series_empty_title">No series</string>
+    <string name="feature_series_empty_playlist">This source is an M3U playlist. The format declares neither seasons nor episodes, and Lumo does not invent a tree from titles. Series are available on Xtream sources.</string>
+    <string name="feature_series_empty_panel">This provider offers no series.</string>
+    <string name="feature_series_no_results_title">Nothing found</string>
+    <string name="feature_series_no_results_body">The search looks through what has already been synchronised, and it does not forgive a typo.</string>
+    <string name="feature_series_back">Back</string>
+    <string name="feature_series_run_time">~%1$d min per episode</string>
+    <string name="feature_series_season">Season %1$d</string>
+    <string name="feature_series_episode">Episode %1$d</string>
+    <string name="feature_series_minutes">%1$d min</string>
+    <string name="feature_series_retry">Try again</string>
+    <string name="feature_series_tree_unavailable_title">Episodes unavailable</string>
+    <string name="feature_series_tree_unavailable_body">Your provider did not answer. The series is still there — try again in a moment.</string>
+    <string name="feature_series_no_seasons_title">No episode listed</string>
+    <string name="feature_series_no_seasons_body">Your provider lists this series but returned no season for it. Nothing is missing on our side.</string>
+    <string name="feature_series_episode_count_mismatch">%1$d episodes listed, %2$d announced by your provider.</string>
+    <string name="feature_series_position">%1$s / %2$s</string>
+    <string name="feature_series_unknown_length">--</string>
+    <string name="feature_series_pause">Pause</string>
+    <string name="feature_series_resume">Play</string>
+    <string name="feature_series_seek_refused">Your server does not allow moving within this episode. It plays from the beginning.</string>
+    <string name="feature_series_player_retry">Try again</string>
+    <string name="feature_series_player_back">Back</string>
+    <string name="feature_series_player_unreachable">Your server could not be reached. Check your connection, then try again.</string>
+    <string name="feature_series_player_too_many_streams">Your subscription is already streaming as much as it allows. Stop another stream, then try again.</string>
+    <string name="feature_series_player_too_many_streams_count">Your subscription allows %1$d simultaneous streams and they are all in use. Stop one, then try again.</string>
+    <string name="feature_series_player_not_ready">Your source is still being imported. Try again in a moment.</string>
+    <string name="feature_series_player_expired">Your subscription with this provider has expired.</string>
+    <string name="feature_series_player_episode_gone">This episode is no longer listed. Reopen the series.</string>
+    <string name="feature_series_player_unplayable">This episode cannot be played on this device.</string>
+    <string name="feature_series_player_unexpected">This episode could not be played.</string>
 </resources>

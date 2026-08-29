@@ -18,6 +18,11 @@ import tv.lumo.android.feature.live.navigation.liveMobileScreen
 import tv.lumo.android.feature.live.navigation.livePlayerMobileScreen
 import tv.lumo.android.feature.onboarding.navigation.onboardingMobileScreen
 import tv.lumo.android.feature.search.navigation.searchMobileScreen
+import tv.lumo.android.feature.series.EpisodePlayerDestination
+import tv.lumo.android.feature.series.SeriesDestination
+import tv.lumo.android.feature.series.SeriesDetailDestination
+import tv.lumo.android.feature.series.navigation.episodePlayerMobileScreen
+import tv.lumo.android.feature.series.navigation.seriesDetailMobileScreen
 import tv.lumo.android.feature.series.navigation.seriesMobileScreen
 import tv.lumo.android.feature.settings.SettingsDestination
 import tv.lumo.android.feature.settings.navigation.settingsMobileScreen
@@ -37,10 +42,10 @@ import tv.lumo.android.feature.vod.navigation.vodPlayerMobileScreen
  * adding a screen means adding a module and one line here — and a feature never
  * has to know what else exists.
  *
- * Series and search stay registered even though nothing points at them any more
- * (see [MobileDestinations]). Removing them from the graph as well would turn a
- * screen that is merely unreachable into a crash for anything that still names
- * its route — a saved back stack, a deep link, a notification.
+ * Search stays registered even though nothing points at it (see
+ * [MobileDestinations]). Removing an unreachable screen from the graph as well
+ * would turn it into a crash for anything that still names its route — a saved
+ * back stack, a deep link, a notification.
  *
  * The film routes are registered whatever the source carries. A deep link to a
  * film is not made invalid by a playlist that has none — it lands on the empty
@@ -100,7 +105,18 @@ fun LumoMobileNavHost(
             onBack = { navController.popBackStack() },
         )
         vodPlayerMobileScreen(onBack = { navController.popBackStack() })
-        seriesMobileScreen()
+        seriesMobileScreen(
+            onOpenSeries = { seriesId ->
+                navController.navigate(SeriesDetailDestination.routeFor(seriesId))
+            },
+        )
+        seriesDetailMobileScreen(
+            onPlay = { episodeId, title ->
+                navController.navigate(EpisodePlayerDestination.routeFor(episodeId, title))
+            },
+            onBack = { navController.popBackStack() },
+        )
+        episodePlayerMobileScreen(onBack = { navController.popBackStack() })
         searchMobileScreen()
         settingsMobileScreen()
     }
@@ -136,10 +152,12 @@ fun mobileStartRoute(start: AppStart): String? = when (start) {
 /**
  * What the bottom bar offers, in order.
  *
- * Five, not eight. Series and search are still **placeholders** — screens that do
- * not exist — and a bar that offers doors onto rooms nobody has built explains
- * itself badly. Films join the day their screens land, which for series is
- * `S6-05`.
+ * Six, not eight. Search is still a **placeholder** — a screen that does not
+ * exist — and a bar that offers a door onto a room nobody has built explains
+ * itself badly.
+ *
+ * Series joined with `S6-05`, on the day the screen behind the tab became real.
+ * That is the whole rule: the tab follows the screen, never the catalogue.
  *
  * <h2>Films are always here, and that reverses what this comment used to say</h2>
  *
@@ -153,13 +171,16 @@ fun mobileStartRoute(start: AppStart): String? = when (start) {
  * only channels, nothing is missing here" — which is the one thing an absence can
  * never do: explain itself.
  *
- * **The distinction that survives, and it is why series stay out:** an *empty*
+ * **The distinction that survives, and it is why search stays out:** an *empty*
  * catalogue is a reply, an *unbuilt* screen is a promise. The first belongs in the
  * bar; the second does not. `adr/0010` carries the same reasoning for the
  * television.
  *
- * Films sit after the channels because that is the order of a catalogue, and
- * before favourites because a shelf comes before a selection from it.
+ * The two catalogues sit after the channels because that is the order of a
+ * catalogue, and before favourites because a shelf comes before a selection from
+ * it. Series follow films rather than lead them for one reason only: films came
+ * first, and a bar that reorders itself between two releases moves a target from
+ * under somebody's thumb.
  *
  * Favourites earns its place beside the catalogue rather than inside it, and that
  * is the structural point of US-12: a group belongs to the account and can hold
@@ -172,6 +193,7 @@ fun mobileStartRoute(start: AppStart): String? = when (start) {
 val MobileDestinations: List<LumoDestination> = listOf(
     LiveDestination,
     VodDestination,
+    SeriesDestination,
     FavoritesDestination,
     SourceDestination,
     SettingsDestination,

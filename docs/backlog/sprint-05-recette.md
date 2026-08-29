@@ -168,10 +168,14 @@ Compte dont la **première** source est `/mixed.m3u`.
 favoris, et il ouvre sur les affiches.
 
 **R-212 · Aucun onglet vers un écran non construit** · S5-08 · téléphone
-→ **Pas d'onglet Séries, pas d'onglet Recherche.** Ce sont des placeholders : une
-entrée qui mène à « cette fonction arrivera » dit qu'elle existe alors qu'elle
-n'existe pas. La distinction avec R-210 est la seule moitié de l'ancienne règle qui
-reste, et elle tombe le jour où S6-05 livre la fiche série.
+→ **Pas d'onglet Recherche.** C'est un placeholder : une entrée qui mène à « cette
+fonction arrivera » dit qu'elle existe alors qu'elle n'existe pas. La distinction
+avec R-210 est la seule moitié de l'ancienne règle qui reste.
+
+> **Ce cas nommait aussi les séries, et il ne le fait plus** : `S6-05` a livré la
+> fiche, donc l'onglet est là. Il l'a gagné en gagnant un écran, pas un catalogue —
+> ce qui est exactement la règle, énoncée dans le bon sens. La recherche est la
+> dernière destination que cette phrase tient encore à distance.
 
 **R-213 · Des affiches, pas une liste** · S5-08 · téléphone
 → Deux colonnes, affiches en portrait, titre sous l'image. Trois colonnes est

@@ -202,14 +202,24 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S6-02 | Base : l'arbre, et son unicité qui survit à une resynchronisation | serveur | api | 3 | 100 % |
 | ☑ | S6-03 | Ingestion : la liste à la synchro, l'arbre à la demande, le cache qui expire | serveur | api | 8 | 100 % |
 | ☑ | S6-04 | `core:data` et Room : l'arbre hors ligne | socle | android | 5 | 100 % |
-| ☐ | S6-05 | Mobile : fiche série, saisons, épisodes | mobile | mobile | 8 | 0 % |
+| ☐ | S6-05 | Mobile : fiche série, saisons, épisodes | mobile | mobile | 8 | **90 %** |
 | ☐ | S6-06 | TV : la même au D-pad, et « Épisode suivant » | tv | tv | 8 | 0 % |
 | ☑ | S6-07 | Web : fiche série | web | web | 5 | 100 % |
 | ☐ | S6-08 | Reprendre une série, pas un épisode | 3 clients | mobile + tv + web | 5 | 0 % |
 | ☐ | S6-09 | Web : l'écran Favoris, à l'échelle du compte | web | web | 5 | 0 % |
 
-**Avancement du sprint : 52 % de 54 points.** Le serveur, le socle Android et le web
-sont livrés. Il reste les deux écrans Android, la reprise, et le rattrapage web.
+**Avancement du sprint : 65 % de 54 points.** Le serveur, le socle Android, le web et
+l'écran du téléphone sont livrés. Il reste la télévision, la reprise, et le
+rattrapage web.
+
+**S6-05 est à 90 % et pas à 100 % pour une seule ligne de son énoncé** : la barre de
+progression sur chaque épisode. Elle ne peut pas exister avant S6-08, parce qu'aucune
+position d'épisode n'est enregistrée nulle part — `ProgressRepository.save` n'accepte
+que `VOD`, et le contrat lui-même ne connaît `EPISODE` comme `item_ref` que depuis
+S6-01, sans écriture derrière. **La dépendance de l'énoncé est inversée** : S6-05 ne
+précède pas S6-08, il en attend la moitié. Les dix pour cent restants se ferment le
+jour où la reprise écrit, et rien à réécrire ici — la ligne où la barre se dessine est
+marquée dans `EpisodeRow`.
 
 **S6-07 est passé avant S6-05 et S6-06**, hors de l'ordre prévu : un signalement
 d'usage a montré que les films et les séries étaient introuvables sur le web, et un
@@ -486,7 +496,7 @@ disparu est une ligne que rien ne peut atteindre.
 
 ---
 
-### S6-05 — Mobile : fiche série, saisons, épisodes · **8** · dépend de S6-04
+### S6-05 — Mobile : fiche série, saisons, épisodes · **8** · dépend de S6-04 · ☐ 90 %
 
 `feature:series` cesse d'être un placeholder et revient dans la barre de navigation.
 
@@ -497,6 +507,16 @@ affiches en portrait, même bande de catégories, même recherche.
 un sélecteur de saison, et la liste des épisodes de la saison ouverte. Chaque ligne
 d'épisode : numéro, titre s'il existe, durée, et **une barre de progression quand il y
 en a une** — c'est ce qui rend « où j'en suis » lisible d'un coup d'œil.
+
+> **La barre n'est pas livrée, et c'est le seul manque de la tâche.** Elle suppose une
+> position enregistrée pour un épisode ; il n'en existe aucune. `ProgressRepository.save`
+> pose `itemType = VOD` en dur, et rien dans le sprint n'a encore écrit une ligne de
+> progression pour un épisode.
+>
+> Dessiner la barre quand même la mettrait à zéro sur chaque épisode de chaque série,
+> ce qui dirait que tout le monde a commencé tout — l'exact contraire de ce que la
+> ligne demande. L'emplacement est marqué d'un commentaire dans `EpisodeRow` et se
+> remplit en S6-08.
 
 **La première saison est ouverte à l'arrivée**, pas un sélecteur vide. Une saison à
 choisir avant de voir quoi que ce soit est une décision qu'on impose à quelqu'un qui
@@ -510,7 +530,22 @@ titre et le synopsis sont là immédiatement — ils viennent de la liste — et
 zone des saisons attend. C'est le Gherkin, et c'est ce que S6-04 rend possible en
 distinguant trois états.
 
-Le lecteur est celui de S5-08, sans modification.
+**Le lecteur est celui de S5-08, à une soustraction près.** `EpisodePlayerViewModel` en
+est la copie — un module de fonction ne dépend jamais d'un autre
+(`settings.gradle.kts`) — moins la boucle de trente secondes qui enregistre une
+position, pour la raison ci-dessus. Le déplacement dans le fichier reste : bouger dans
+ce qu'on regarde est de la lecture, y revenir demain est la fonction qui n'existe pas
+encore.
+
+**Ce que la barre de navigation gagne**, et c'est la seconde moitié de l'énoncé :
+l'onglet Séries est là, sans condition, à la suite des films. Il y arrive parce que
+l'écran derrière existe — jamais parce que la source a un catalogue. C'est la
+distinction qui a survécu au renversement du sprint 5 (`adr/0010`), et
+`MobileDestinationsTest` la tient : le dernier `doesNotContain` du fichier porte
+désormais sur la recherche, qui est encore un placeholder. Une source qui n'a pas de
+séries ouvre sur une grille qui le dit, et une playlist M3U en reçoit une phrase à
+elle : le format ne déclare ni saison ni épisode, ce qui n'est pas la même chose qu'un
+panel qui ne propose rien.
 
 ---
 
