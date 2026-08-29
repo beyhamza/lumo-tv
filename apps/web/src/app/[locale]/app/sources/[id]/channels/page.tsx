@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
-import {
-  addFavorite,
-  createFavoriteGroup,
-  deleteFavoriteGroup,
-  removeFavorite,
-  renameFavoriteGroup,
-} from "@/actions/favorites";
+import { addFavorite, removeFavorite } from "@/actions/favorites";
 import { CatalogueTabs } from "@/components/app/CatalogueTabs";
+import {
+  FavoriteGroups,
+  defaultGroupLabel,
+  groupLabel,
+} from "@/components/app/FavoriteGroups";
 import { ChannelPlayer } from "@/components/app/ChannelPlayer";
 import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
@@ -197,6 +196,21 @@ export default async function ChannelsPage({
   const countInGroup = (groupId: string) =>
     (favorites.data?.items ?? []).filter((favorite) => favorite.group_id === groupId)
       .length;
+
+  // How many of the open group live on **another** source, and are therefore not
+  // in the rail below (S6-09).
+  //
+  // This page is one source and its rail can only resolve names and logos within
+  // it, so the truncation is structural and stays. What was wrong was that it was
+  // **silent**: a group holds channels from several subscriptions (US-12), and a
+  // "Documentaries" rail short of half its channels with nothing said is the
+  // expensive kind of defect — nothing looks broken. `/app/favorites` is where the
+  // whole group lives; this number is the sentence that points at it.
+  const elsewhere = (favorites.data?.items ?? []).filter(
+    (favorite) =>
+      favorite.source_id !== id &&
+      (activeGroup ? favorite.group_id === activeGroup.id : true),
+  ).length;
   const watched = (recents.data?.items ?? []).filter(
     (recent) => recent.source_id === id,
   );
@@ -322,10 +336,16 @@ export default async function ChannelsPage({
       <FavoriteGroups
         groups={favoriteGroups}
         activeId={activeGroup?.id}
-        sourceId={id}
-        locale={locale as Locale}
-        categoryId={categoryId}
-        search={search}
+        hrefForGroup={(groupId) =>
+          hrefFor(
+            locale as Locale,
+            `/app/sources/${id}/channels${queryString({
+              categoryId,
+              q: search,
+              group: groupId,
+            })}`,
+          )
+        }
         returnTo={returnTo}
         countInGroup={countInGroup}
         defaultGroupName={t("catalogueFavoritesDefaultGroup")}
@@ -349,6 +369,21 @@ export default async function ChannelsPage({
         channels={railFavorites}
         playHref={playHref}
       />
+
+      {/* Said rather than hidden. See `elsewhere` above: the rail is limited to
+          this source by construction, and the whole account's favourites are one
+          link away. */}
+      {elsewhere > 0 ? (
+        <p className="text-muted-foreground mt-2 text-sm">
+          {t("catalogueFavoritesElsewhere", { count: elsewhere })}{" "}
+          <a
+            href={hrefFor(locale as Locale, "/app/favorites")}
+            className="underline underline-offset-4"
+          >
+            {t("catalogueFavoritesSeeAll")}
+          </a>
+        </p>
+      ) : null}
 
       {/* A plain GET form. Submitting it changes the URL, which is what every
           other control on this page does too. `page` is deliberately absent:
@@ -498,227 +533,6 @@ function railOf(
  * an empty strip with a heading above it is a promise that something belongs
  * there, and the star on the rows below is where that starts.
  */
-/**
- * The favourite groups: which one the rail shows, and what can be done to them.
- *
- * <h2>Links to filter, forms to change</h2>
- *
- * Same split as the rest of the screen. Choosing a group is a link, because it is
- * a view — it belongs in the URL, it survives a reload, the back button undoes it.
- * Creating, renaming and deleting are `<form>`s pointed at Server Actions,
- * because they change something and because the access token is not in the
- * browser (`AGENTS.md` §4). Neither needs JavaScript.
- *
- * <h2>Deleting says what it will do, with the number</h2>
- *
- * The server moves a deleted group's favourites into the default group rather
- * than removing them. "Are you sure?" would tell this person nothing they do not
- * already know; the count and the destination let them predict the state they
- * will be in. Same wording as the phone, same number.
- *
- * <h2>The default group has no delete control</h2>
- *
- * The server refuses it — it is where the others empty into — and a control whose
- * only possible answer is an error teaches somebody that the application is
- * broken.
- *
- * <h2>Nothing here when there is nothing to organise</h2>
- *
- * No groups and no favourites means no bar: an account that has never starred
- * anything does not need a filter over an empty rail. The creation form appears
- * with the first group, which is created by the first star.
- */
-function FavoriteGroups({
-  groups,
-  activeId,
-  sourceId,
-  locale,
-  categoryId,
-  search,
-  returnTo,
-  countInGroup,
-  defaultGroupName,
-  labels,
-  deleteWarning,
-}: {
-  groups: FavoriteGroup[];
-  activeId?: string;
-  sourceId: string;
-  locale: Locale;
-  categoryId?: string;
-  search?: string;
-  returnTo: string;
-  countInGroup: (groupId: string) => number;
-  defaultGroupName: string;
-  labels: {
-    all: string;
-    create: string;
-    name: string;
-    rename: string;
-    remove: string;
-  };
-  deleteWarning: (count: number) => string;
-}) {
-  if (groups.length === 0) return null;
-
-  const hrefForGroup = (groupId?: string) =>
-    hrefFor(
-      locale,
-      `/app/sources/${sourceId}/channels${queryString({
-        categoryId,
-        q: search,
-        group: groupId,
-      })}`,
-    );
-
-  const active = groups.find((group) => group.id === activeId);
-
-  return (
-    <section className="mt-6">
-      <nav aria-label={labels.all} className="flex flex-wrap items-center gap-2">
-        <GroupLink href={hrefForGroup()} active={activeId === undefined}>
-          {labels.all}
-        </GroupLink>
-        {groups.map((group) => (
-          <GroupLink
-            key={group.id}
-            href={hrefForGroup(group.id)}
-            active={group.id === activeId}
-          >
-            {groupLabel(group, defaultGroupName)}
-          </GroupLink>
-        ))}
-      </nav>
-
-      <div className="mt-3 flex flex-wrap items-end gap-4">
-        {/* Renaming and deleting act on the group that is open, so there is one
-            of each rather than a control per chip — a bar that carried three
-            buttons per group would be unreadable at the width a phone gives it. */}
-        {active ? (
-          <>
-            <form action={renameFavoriteGroup} className="flex items-end gap-2">
-              <input type="hidden" name="groupId" value={active.id} />
-              <input type="hidden" name="returnTo" value={returnTo} />
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="group-name"
-                  className="text-muted-foreground text-xs font-medium"
-                >
-                  {labels.name}
-                </label>
-                <input
-                  id="group-name"
-                  name="name"
-                  type="text"
-                  required
-                  maxLength={100}
-                  defaultValue={groupLabel(active, defaultGroupName)}
-                  className="border-input bg-background h-9 rounded-lg border px-3 text-sm"
-                />
-              </div>
-              <button
-                type="submit"
-                className="bg-secondary text-secondary-foreground h-9 rounded-lg px-3 text-sm font-medium"
-              >
-                {labels.rename}
-              </button>
-            </form>
-
-            {active.is_default ? null : (
-              <form action={deleteFavoriteGroup} className="space-y-1.5">
-                <input type="hidden" name="groupId" value={active.id} />
-                <input type="hidden" name="returnTo" value={returnTo} />
-                <p className="text-muted-foreground max-w-md text-xs">
-                  {deleteWarning(countInGroup(active.id))}
-                </p>
-                <button
-                  type="submit"
-                  className="border-destructive text-destructive h-9 rounded-lg border px-3 text-sm font-medium"
-                >
-                  {labels.remove}
-                </button>
-              </form>
-            )}
-          </>
-        ) : null}
-
-        <form action={createFavoriteGroup} className="flex items-end gap-2">
-          <input type="hidden" name="returnTo" value={returnTo} />
-          <div className="space-y-1.5">
-            <label
-              htmlFor="new-group-name"
-              className="text-muted-foreground text-xs font-medium"
-            >
-              {labels.create}
-            </label>
-            <input
-              id="new-group-name"
-              name="name"
-              type="text"
-              required
-              maxLength={100}
-              className="border-input bg-background h-9 rounded-lg border px-3 text-sm"
-            />
-          </div>
-          <button
-            type="submit"
-            className="bg-secondary text-secondary-foreground h-9 rounded-lg px-3 text-sm font-medium"
-          >
-            {labels.create}
-          </button>
-        </form>
-      </div>
-    </section>
-  );
-}
-
-function GroupLink({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <a
-      href={href}
-      aria-current={active ? "true" : undefined}
-      className={`rounded-lg border px-3 py-1.5 text-sm ${
-        active
-          ? "border-primary bg-primary/10 font-medium"
-          : "border-border text-muted-foreground hover:bg-secondary/60"
-      }`}
-    >
-      {children}
-    </a>
-  );
-}
-
-/**
- * What to call a group on screen.
- *
- * The server names the group it creates on the first add, and names it
- * `Favorites`, in English. `is_default` is what lets a client translate it; the
- * second half of the condition is what stops the translation overriding the user
- * once they have renamed it — here, or on their phone.
- */
-function groupLabel(group: FavoriteGroup, translated: string): string {
-  return group.is_default && group.name === SERVER_DEFAULT_GROUP_NAME
-    ? translated
-    : group.name;
-}
-
-/** Where a deleted group's channels go, named as the user sees it. */
-function defaultGroupLabel(groups: FavoriteGroup[], translated: string): string {
-  const fallback = groups.find((group) => group.is_default);
-  return fallback ? groupLabel(fallback, translated) : translated;
-}
-
-/** The name the server gives the default group, verbatim. */
-const SERVER_DEFAULT_GROUP_NAME = "Favorites";
-
 function Rail({
   title,
   channels,

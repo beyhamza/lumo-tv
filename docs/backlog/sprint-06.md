@@ -206,10 +206,11 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S6-06 | TV : la même au D-pad, et « Épisode suivant » | tv | tv | 8 | 100 % |
 | ☑ | S6-07 | Web : fiche série | web | web | 5 | 100 % |
 | ☑ | S6-08 | Reprendre une série, pas un épisode | 3 clients | mobile + tv + web | 5 | 100 % |
-| ☐ | S6-09 | Web : l'écran Favoris, à l'échelle du compte | web | web | 5 | 0 % |
+| ☑ | S6-09 | Web : l'écran Favoris, à l'échelle du compte | web | web | 5 | 100 % |
 
-**Avancement du sprint : 91 % de 54 points.** Les séries sont livrées de bout en
-bout sur les trois clients. Il ne reste que S6-09, qui ne porte pas sur les séries.
+**Avancement du sprint : 100 % de 54 points. Sprint terminé.** Les séries sont
+livrées de bout en bout sur les trois clients, et le retard du web sur US-12 est
+rattrapé.
 
 **S6-05 et S6-06 sont passés de 90 % à 100 % en même temps que S6-08, et pas par
 hasard** : ce qui leur manquait était la même chose — une position d'épisode
@@ -794,7 +795,7 @@ séries, pas sur elle.
 
 ---
 
-### S6-09 — Web : l'écran Favoris, à l'échelle du compte · **5** · aucune dépendance
+### S6-09 — Web : l'écran Favoris, à l'échelle du compte · **5** · aucune dépendance · ☑
 
 **Ce n'est pas une fonction manquante, c'est une fonction qui ment discrètement** —
 et c'est ce qui la fait entrer ici plutôt qu'attendre.
@@ -886,6 +887,45 @@ seule source. Ici il y a une route de plus, une entrée de navigation, deux jeux
 libellés — et surtout **un résolveur multi-source à écrire correctement du premier
 coup**, sur un plafond qui s'est déjà payé une fois sur le téléphone. C'est le même
 prix que `S5-10` et `S6-07` : une route neuve plus un mécanisme neuf.
+
+#### Ce qui a été livré
+
+**La route est la moitié du correctif.** `/app/favorites`, à la racine de la zone
+compte, avec son entrée dans la barre de navigation. Le groupe ouvert est dans
+l'URL (`?group=`) et l'écran fonctionne sans JavaScript, comme le reste de la zone.
+
+**Le résolveur multi-source est un module à part, avec ses propres tests** —
+`lib/catalogue/resolve-channels.ts` et huit cas. Ce qui est vérifié est exactement
+ce qui coûte cher : cent vingt identifiants sur une source font **deux** requêtes et
+pas une tronquée à cent ; cent vingt répartis sur deux sources font deux requêtes de
+soixante, parce que le plafond est par requête et que l'opération est par source,
+donc un lot ne peut jamais enjamber les deux ; et `size` part avec chaque lot,
+faute de quoi un lot de cent revient à moitié répondu — avec un `200` et rien à
+remarquer.
+
+> C'est `R-140` du sprint 4 transposé, et c'est la deuxième fois que ce plafond se
+> présente. Le téléphone l'a payé une fois en `S4-02` et en a extrait un
+> `ChannelResolver`. Le payer deux fois aurait été un choix.
+
+**La barre de groupes a été extraite plutôt que copiée.** `FavoriteGroups` est
+maintenant un composant partagé ; la page des chaînes et l'écran Favoris en
+utilisent le même. Le seul paramètre qui a dû changer est `hrefForGroup` — choisir
+un groupe mène à une URL différente sur chaque écran, et c'est tout ce qui les
+distingue. Une barre qui se comporterait différemment selon où on la trouve serait
+deux fonctions sous un seul nom.
+
+**Et le défaut a été fermé là où il se disait, pas seulement ailleurs.** Le rail de
+la page des chaînes reste limité à sa source — il ne peut résoudre les noms et les
+logos que dans la sienne, la troncature est structurelle. Ce qui était faux, ce
+n'était pas la troncature : c'était son **silence**. Une phrase dessous compte
+maintenant les chaînes du groupe qui viennent d'ailleurs et pointe vers l'écran
+complet. Un groupe amputé qui le dit n'est plus un mensonge, c'est un renvoi.
+
+**Aucun lecteur, comme annoncé.** Une chaîne favorite ouvre
+`/app/sources/{sourceId}/channels?play={channelId}`. Et la troisième requête —
+`GET /sources` — a bien été faite : sans les libellés, l'écran n'aurait pas dit d'où
+vient une chaîne, ce qui aurait été livrer le même défaut sous une autre route.
+
 
 **Ce qui le ferait déraper à 8** : décider en cours de route que l'écran doit aussi
 réordonner les favoris par glisser-déposer (`PATCH /me/favorites/{id}`, livré côté
