@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Bulk writes performed by ingestion.
@@ -313,6 +314,183 @@ public class CatalogWriteRepository {
      *                           complete URL already (ADR 0009, ruling 4)
      * @param position           display index, reassigned at every ingestion
      */
+    // ---- series -------------------------------------------------------------
+
+    /**
+     * Upserts one batch of series.
+     *
+     * <p>Same shape and same reason as {@link #upsertVodItems}: on conflict the
+     * existing id is kept, which is what lets a saved position survive a
+     * re-synchronisation.
+     *
+     * <p><b>Neither {@code plot} nor {@code tree_fetched_at} is touched.</b> The
+     * synchronisation writes the flat list; the tree and the synopsis arrive from
+     * {@code get_series_info}, on demand. Resetting the stamp here would refetch
+     * every tree the morning after every nightly sync — which is the traffic the
+     * whole on-demand design exists to avoid.
+     */
+    public void upsertSeries(UUID sourceId, List<SeriesUpsert> series) {
+        if (series.isEmpty()) {
+            return;
+        }
+        jdbcTemplate.batchUpdate("""
+                INSERT INTO series (id, source_id, category_id, external_id, name,
+                                    poster_url, year, episode_run_time, rating,
+                                    position, is_adult)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (source_id, external_id) WHERE external_id IS NOT NULL
+                DO UPDATE SET category_id      = EXCLUDED.category_id,
+                              name             = EXCLUDED.name,
+                              poster_url       = EXCLUDED.poster_url,
+                              year             = EXCLUDED.year,
+                              episode_run_time = EXCLUDED.episode_run_time,
+                              rating           = EXCLUDED.rating,
+                              position         = EXCLUDED.position,
+                              is_adult         = EXCLUDED.is_adult
+                """, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                SeriesUpsert row = series.get(i);
+                ps.setObject(1, row.id());
+                ps.setObject(2, sourceId);
+                ps.setObject(3, row.categoryId());
+                ps.setString(4, row.externalId());
+                ps.setString(5, row.name());
+                ps.setString(6, row.posterUrl());
+                ps.setObject(7, row.year());
+                ps.setObject(8, row.episodeRunTime());
+                ps.setString(9, row.rating());
+                ps.setInt(10, row.position());
+                ps.setBoolean(11, row.adult());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return series.size();
+            }
+        });
+    }
+
+    /** Drops the series a synchronisation did not see. Their trees cascade with them. */
+    public int deleteSeriesNotIn(UUID sourceId, List<String> seenExternalIds) {
+        if (seenExternalIds.isEmpty()) {
+            return 0;
+        }
+        return jdbcTemplate.update(
+                "DELETE FROM series WHERE source_id = ? AND external_id IS NOT NULL "
+                        + "AND NOT (external_id = ANY (?))",
+                sourceId, seenExternalIds.toArray(String[]::new));
+    }
+
+    /**
+     * Replaces the tree of one series, and stamps it.
+     *
+     * <p><b>Upsert then delete-what-was-not-seen, never delete then insert.</b>
+     * The difference is not style: an episode that survives a refresh must keep
+     * its identifier, because a saved position points at it. Deleting first would
+     * mint a new one every time the cache expired and orphan every position on a
+     * series still airing — which is precisely the series this feature exists for.
+     *
+     * <p>The stamp is written in the same transaction as the tree. A tree written
+     * without its stamp is refetched on every open; a stamp written without its
+     * tree serves nothing and claims to be fresh.
+     *
+     * <p><b>An empty list empties the tree</b>, and here that is right where it
+     * would be wrong during a catalogue walk. This runs only after a successful
+     * fetch about one series, so "no seasons" is an answer the panel gave rather
+     * than a read that failed.
+     */
+    @Transactional
+    public void replaceTree(UUID seriesId, UUID sourceId, List<SeasonUpsert> seasons) {
+        List<UUID> seenSeasons = new ArrayList<>();
+        List<String> seenEpisodes = new ArrayList<>();
+
+        for (SeasonUpsert season : seasons) {
+            UUID seasonId = upsertSeasonReturningId(seriesId, season);
+            seenSeasons.add(seasonId);
+            for (EpisodeUpsert episode : season.episodes()) {
+                upsertEpisode(seriesId, seasonId, sourceId, episode);
+                seenEpisodes.add(episode.externalId());
+            }
+        }
+
+        deleteEpisodesNotIn(seriesId, seenEpisodes);
+        deleteSeasonsNotIn(seriesId, seenSeasons);
+
+        jdbcTemplate.update("UPDATE series SET tree_fetched_at = now() WHERE id = ?", seriesId);
+    }
+
+    /** Writes the synopsis a tree fetch brought back with it. */
+    public void updateSeriesPlot(UUID seriesId, String plot) {
+        jdbcTemplate.update("UPDATE series SET plot = ? WHERE id = ?", plot, seriesId);
+    }
+
+    private UUID upsertSeasonReturningId(UUID seriesId, SeasonUpsert season) {
+        return jdbcTemplate.queryForObject("""
+                INSERT INTO season (id, series_id, season_number, episode_count, poster_url)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT (series_id, season_number)
+                DO UPDATE SET episode_count = EXCLUDED.episode_count,
+                              poster_url    = EXCLUDED.poster_url
+                RETURNING id
+                """, UUID.class, UUID.randomUUID(), seriesId, season.seasonNumber(),
+                season.episodeCount(), season.posterUrl());
+    }
+
+    private void upsertEpisode(UUID seriesId, UUID seasonId, UUID sourceId, EpisodeUpsert e) {
+        jdbcTemplate.update("""
+                INSERT INTO episode (id, series_id, season_id, source_id, external_id,
+                                     season_number, episode_number, name, duration_seconds,
+                                     plot, stream_url, container_extension)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (series_id, external_id) WHERE external_id IS NOT NULL
+                DO UPDATE SET season_id           = EXCLUDED.season_id,
+                              season_number       = EXCLUDED.season_number,
+                              episode_number      = EXCLUDED.episode_number,
+                              name                = EXCLUDED.name,
+                              duration_seconds    = EXCLUDED.duration_seconds,
+                              plot                = EXCLUDED.plot,
+                              stream_url          = EXCLUDED.stream_url,
+                              container_extension = EXCLUDED.container_extension
+                """, UUID.randomUUID(), seriesId, seasonId, sourceId, e.externalId(),
+                e.seasonNumber(), e.episodeNumber(), e.name(), e.durationSeconds(),
+                e.plot(), e.streamUrl(), e.containerExtension());
+    }
+
+    private void deleteSeasonsNotIn(UUID seriesId, List<UUID> seen) {
+        if (seen.isEmpty()) {
+            jdbcTemplate.update("DELETE FROM season WHERE series_id = ?", seriesId);
+            return;
+        }
+        jdbcTemplate.update("DELETE FROM season WHERE series_id = ? AND NOT (id = ANY (?))",
+                seriesId, seen.toArray(UUID[]::new));
+    }
+
+    private void deleteEpisodesNotIn(UUID seriesId, List<String> seen) {
+        if (seen.isEmpty()) {
+            jdbcTemplate.update("DELETE FROM episode WHERE series_id = ?", seriesId);
+            return;
+        }
+        jdbcTemplate.update(
+                "DELETE FROM episode WHERE series_id = ? AND external_id IS NOT NULL "
+                        + "AND NOT (external_id = ANY (?))",
+                seriesId, seen.toArray(String[]::new));
+    }
+
+    public record SeriesUpsert(UUID id, UUID categoryId, String externalId, String name,
+                               String posterUrl, Integer year, Integer episodeRunTime,
+                               String rating, int position, boolean adult) {
+    }
+
+    public record SeasonUpsert(int seasonNumber, Integer episodeCount, String posterUrl,
+                               List<EpisodeUpsert> episodes) {
+    }
+
+    /** @param streamUrl sensitive; written, never logged (AGENTS.md §5) */
+    public record EpisodeUpsert(String externalId, int seasonNumber, int episodeNumber,
+                                String name, Integer durationSeconds, String plot,
+                                String streamUrl, String containerExtension) {
+    }
     public record VodUpsert(UUID id, UUID categoryId, String externalId, String name,
                             String posterUrl, Integer year, Integer durationSeconds,
                             String rating, String streamUrl, String containerExtension,

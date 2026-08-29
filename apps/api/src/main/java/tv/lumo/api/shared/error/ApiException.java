@@ -64,4 +64,17 @@ public class ApiException extends RuntimeException {
     public static ApiException unprocessable(ErrorCode code, String detail) {
         return new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, code, detail);
     }
+
+    /**
+     * The caller is fine, and something we depend on is not.
+     *
+     * <p>Distinct from {@link #notFound} in the one place it is raised, and the
+     * distinction is the point: a series whose tree could not be fetched still
+     * exists, and reporting it as missing would send somebody looking for
+     * something their provider still has. Retrying is the right advice here and
+     * the wrong one there.
+     */
+    public static ApiException unavailable(ErrorCode code, String detail) {
+        return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, code, detail);
+    }
 }

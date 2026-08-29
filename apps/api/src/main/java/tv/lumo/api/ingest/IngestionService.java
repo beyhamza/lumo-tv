@@ -215,6 +215,7 @@ public class IngestionService {
         catalogWrites.deleteChannelsNotIn(source.id(), seenExternalIds);
 
         ingestXtreamVod(source, host, password);
+        ingestXtreamSeries(source, host, password);
 
         log.info("Source {}: ingested {} channel(s)", source.id(), seenExternalIds.size());
         return account;
@@ -281,6 +282,70 @@ public class IngestionService {
         log.info("Source {}: ingested {} film(s)", source.id(), seenExternalIds.size());
     }
 
+    /**
+     * The series list, after the films.
+     *
+     * <p><b>The flat list only.</b> {@code get_series} answers with every series
+     * of the panel; the tree of one series is {@code get_series_info}, one call
+     * per series, made when somebody opens it. Walking the trees here would be
+     * eight hundred requests against the user's own provider at every
+     * synchronisation — not slow, bannable.
+     *
+     * <p><b>Its failure does not fail the source</b>, exactly as the films'
+     * does not. A panel that serves television and refuses {@code get_series} —
+     * or simply has no series, which is common — must still end up
+     * {@code READY}. The deletion is guarded by a non-empty list for the same
+     * reason: an empty answer after a failed read means the read failed, not
+     * that the panel dropped everything.
+     *
+     * <p>There is no M3U counterpart to this method, and there will not be:
+     * a playlist declares no season and no episode, and this application does
+     * not reconstruct a tree from titles (ADR 0010).
+     */
+    private void ingestXtreamSeries(SourceRepository.SourceRow source, String host,
+                                    String password) {
+        sources.markSyncStep(source.id(), SyncStep.PARSING_SERIES);
+
+        Map<String, UUID> categoryIds = new HashMap<>();
+        int[] categoryPosition = {0};
+        List<String> seenExternalIds = new ArrayList<>();
+        int[] position = {0};
+        CatalogWriteRepository.Batcher<CatalogWriteRepository.SeriesUpsert> batcher =
+                CatalogWriteRepository.batcher(batch -> catalogWrites.upsertSeries(source.id(), batch));
+
+        try {
+            xtream.streamSeriesCategories(host, source.username(), password, category ->
+                    categoryIds.put(category.externalId(), catalogWrites.upsertCategoryReturningId(
+                            source.id(), category.externalId(), category.name(),
+                            ContentType.SERIES.getValue(), categoryPosition[0]++)));
+
+            xtream.streamSeries(host, source.username(), password, series -> {
+                seenExternalIds.add(series.externalId());
+                batcher.add(new CatalogWriteRepository.SeriesUpsert(
+                        UUID.randomUUID(),
+                        categoryIds.get(series.categoryExternalId()),
+                        series.externalId(),
+                        series.name(),
+                        series.posterUrl(),
+                        series.year(),
+                        series.episodeRunTimeMinutes(),
+                        series.rating(),
+                        position[0]++,
+                        false));
+            });
+            batcher.flushNow();
+        } catch (IngestionException e) {
+            log.info("Source {}: no series catalogue ingested ({})", source.id(), e.code());
+            return;
+        }
+
+        if (!seenExternalIds.isEmpty()) {
+            catalogWrites.deleteSeriesNotIn(source.id(), seenExternalIds);
+        }
+        // Counted apart from the channels and the films, for the reason they are
+        // counted apart from each other: one total hides a zero.
+        log.info("Source {}: ingested {} series", source.id(), seenExternalIds.size());
+    }
     // ---- M3U ----------------------------------------------------------------
 
     private void ingestM3u(SourceRepository.SourceRow source) {

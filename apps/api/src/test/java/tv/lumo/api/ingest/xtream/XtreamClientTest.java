@@ -59,6 +59,9 @@ class XtreamClientTest {
                     : query.contains("action=get_live_streams") ? STREAMS
                     : query.contains("action=get_vod_categories") ? VOD_CATEGORIES
                     : query.contains("action=get_vod_streams") ? VOD_STREAMS
+                    : query.contains("action=get_series_categories") ? SERIES_CATEGORIES
+                    : query.contains("action=get_series_info") ? SERIES_INFO
+                    : query.contains("action=get_series") ? SERIES
                     : ACCOUNT;
             respondGzipped(exchange, body);
         });
@@ -191,6 +194,85 @@ class XtreamClientTest {
         assertThat(categories.getFirst().name()).isEqualTo("Action");
     }
 
+    @Test
+    @DisplayName("la liste des séries est plate : ni saison ni épisode")
+    void readsSeriesList() {
+        List<XtreamClient.XtreamSeries> series = new ArrayList<>();
+        client.streamSeries(host, "user", "pass", series::add);
+
+        assertThat(series).extracting(XtreamClient.XtreamSeries::name)
+                .containsExactly("Les Falaises", "Le Phare");
+        // `get_series` answers with the catalogue and no tree. Walking the trees
+        // here would be one request per series at every synchronisation.
+        assertThat(series.getFirst().episodeRunTimeMinutes()).isEqualTo(45);
+        assertThat(series.getFirst().year()).isEqualTo(2019);
+    }
+
+    @Test
+    @DisplayName("une année en `N/A` ou dans `releaseDate` est lue ou abandonnée sans casser")
+    void toleratesTheYearKeysPanelsActuallySend() {
+        List<XtreamClient.XtreamSeries> series = new ArrayList<>();
+        client.streamSeries(host, "user", "pass", series::add);
+
+        // The second has `year: "N/A"` and a usable `releaseDate`. A panel that
+        // fills one, the other, or both with different values is ordinary.
+        assertThat(series.get(1).year()).isEqualTo(2011);
+    }
+
+    @Test
+    @DisplayName("l'arbre vient des épisodes, et une saison déclarée vide reste une saison")
+    void readsTheTree() {
+        List<XtreamClient.XtreamSeason> tree =
+                client.fetchSeriesInfo(host, "user", "pass", "9001");
+
+        assertThat(tree).extracting(XtreamClient.XtreamSeason::seasonNumber)
+                .containsExactly(1, 2, 3);
+        // Season 3 is declared in `seasons` and has no episode in `episodes`. A
+        // viewer should see it as empty rather than not at all — dropping it
+        // would be hiding something the panel said.
+        assertThat(tree.get(2).episodes()).isEmpty();
+        assertThat(tree.get(2).episodeCount()).isEqualTo(8);
+    }
+
+    @Test
+    @DisplayName("les trous de numérotation sont conservés tels quels")
+    void keepsGapsInEpisodeNumbers() {
+        List<XtreamClient.XtreamSeason> tree =
+                client.fetchSeriesInfo(host, "user", "pass", "9001");
+
+        // Episodes 1 and 3. Renumbering them to 1 and 2 would be inventing an
+        // episode order the provider did not give, and it would break the
+        // "next episode" of any client that trusted it.
+        assertThat(tree.getFirst().episodes())
+                .extracting(XtreamClient.XtreamEpisode::episodeNumber)
+                .containsExactly(1, 3);
+    }
+
+    @Test
+    @DisplayName("un épisode sans extension est écarté, comme un film sans extension")
+    void dropsEpisodesWithNoContainerExtension() {
+        List<XtreamClient.XtreamSeason> tree =
+                client.fetchSeriesInfo(host, "user", "pass", "9001");
+
+        // Season 2 has two entries and one of them cannot have a URL built. An
+        // episode that opens onto a failure is worse than one that is absent.
+        assertThat(tree.get(1).episodes())
+                .extracting(XtreamClient.XtreamEpisode::externalId)
+                .containsExactly("2001");
+    }
+
+    @Test
+    @DisplayName("une saison absente de `seasons` est déduite des épisodes")
+    void inventsNoSeasonButFindsThemAll() {
+        List<XtreamClient.XtreamSeason> tree =
+                client.fetchSeriesInfo(host, "user", "pass", "9001");
+
+        // Season 2 is not in the `seasons` array — panels are inconsistent about
+        // it — and it has episodes. `episodes` is what holds the content, so it
+        // is what the tree is built from.
+        assertThat(tree.get(1).seasonNumber()).isEqualTo(2);
+        assertThat(tree.get(1).episodeCount()).isNull();
+    }
     // ---- fixture ------------------------------------------------------------
 
     private static final String ACCOUNT = """
@@ -237,6 +319,52 @@ class XtreamClientTest {
               "category_id":"10","year":"2001"}]
             """;
 
+    private static final String SERIES_CATEGORIES = """
+            [{"category_id":"20","category_name":"Drame","parent_id":0}]
+            """;
+
+    /**
+     * Two series, and the second is the one that matters.
+     *
+     * <p>Its {@code year} is {@code N/A} and its {@code releaseDate} is usable.
+     * Panels fill one, the other, or both with different values, and a reader
+     * that only knew one key would lose a year on half a catalogue.
+     */
+    private static final String SERIES = """
+            [{"series_id":9001,"name":"Les Falaises","cover":"https://poster.example/s.jpg",
+              "category_id":"20","year":"2019","episode_run_time":"45","rating":"8.1",
+              "plot":"Un synopsis."},
+             {"series_id":"9002","name":"Le Phare","cover":null,
+              "stream_icon":"https://poster.example/p.jpg","category_id":"20",
+              "year":"N/A","releaseDate":"2011-09-04","episode_run_time":"","rating":""}]
+            """;
+
+    /**
+     * One series sheet, carrying every shape this parser has to survive.
+     *
+     * <ul>
+     *   <li>season 1: episodes 1 and 3 — <b>a gap</b>, kept as it is;
+     *   <li>season 2: <b>absent from {@code seasons}</b>, present in
+     *       {@code episodes}, with one entry that has no
+     *       {@code container_extension} and is therefore unplayable;
+     *   <li>season 3: <b>declared and empty</b> — a season a viewer should see
+     *       rather than one that silently does not exist.
+     * </ul>
+     */
+    private static final String SERIES_INFO = """
+            {"info":{"name":"Les Falaises","plot":"Un synopsis."},
+             "seasons":[{"season_number":1,"episode_count":"3","cover":null},
+                        {"season_number":3,"episode_count":"8","cover":null}],
+             "episodes":{
+               "1":[{"id":"1001","episode_num":1,"title":"Le départ","season":1,
+                     "container_extension":"mkv","info":{"duration_secs":"2700"}},
+                    {"id":"1003","episode_num":"3","title":null,"season":1,
+                     "container_extension":"mkv","info":{"duration_secs":""}}],
+               "2":[{"id":"2001","episode_num":1,"title":"La côte",
+                     "container_extension":"mp4","info":{"duration_secs":"2650"}},
+                    {"id":"2002","episode_num":2,"title":"Sans extension",
+                     "info":{}}]}}
+            """;
     private static void respondGzipped(com.sun.net.httpserver.HttpExchange exchange, String body)
             throws IOException {
         ByteArrayOutputStream compressed = new ByteArrayOutputStream();

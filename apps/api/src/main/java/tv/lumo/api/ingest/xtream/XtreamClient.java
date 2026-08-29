@@ -6,6 +6,12 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.time.ZoneOffset;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -225,6 +231,231 @@ public class XtreamClient {
         });
     }
 
+    public void streamSeriesCategories(String host, String username, String password,
+                                       Consumer<XtreamCategory> consumer) {
+        streamArray(host, username, password, "get_series_categories", node -> {
+            String id = readText(node.path("category_id"));
+            String name = readText(node.path("category_name"));
+            if (id != null && name != null) {
+                consumer.accept(new XtreamCategory(id, name));
+            }
+        });
+    }
+
+    /**
+     * Streams the series list, one at a time.
+     *
+     * <p><b>Flat, and that is the point.</b> {@code get_series} answers with every
+     * series of the panel and no seasons: the tree of one series is a second call,
+     * {@code get_series_info}, made when somebody opens it. Walking the tree here
+     * would mean one request per series at every synchronisation — eight hundred
+     * against the user's own provider, which is not slow but bannable.
+     *
+     * <p>Unlike a film, a series with no container extension is still emitted:
+     * nothing is played at this level, so there is no URL to build and nothing to
+     * be missing.
+     */
+    public void streamSeries(String host, String username, String password,
+                             Consumer<XtreamSeries> consumer) {
+        streamArray(host, username, password, "get_series", node -> {
+            String seriesId = readText(node.path("series_id"));
+            String name = readText(node.path("name"));
+            if (seriesId == null || name == null) {
+                return;
+            }
+            consumer.accept(new XtreamSeries(
+                    seriesId,
+                    name,
+                    // Panels disagree on the key and often serve both.
+                    firstNonBlank(readText(node.path("cover")),
+                            readText(node.path("stream_icon"))),
+                    readText(node.path("category_id")),
+                    // Three keys, and the first that PARSES wins — not the
+                    // first that is non-empty. Panels routinely send
+                    // `year: "N/A"` beside a usable `releaseDate`, and picking
+                    // by emptiness would let the useless one shadow the good
+                    // one on half a catalogue.
+                    firstYear(readText(node.path("year")),
+                            readText(node.path("releaseDate")),
+                            readText(node.path("release_date"))),
+                    parseMinutes(readText(node.path("episode_run_time"))),
+                    // Echoed verbatim, as everywhere else.
+                    readText(node.path("rating")),
+                    readText(node.path("plot"))));
+        });
+    }
+
+    /**
+     * The whole tree of one series, from {@code get_series_info}.
+     *
+     * <p><b>One call, one series, and it returns everything.</b> That is what makes
+     * it cheap enough to do on demand and far too expensive to do at
+     * synchronisation.
+     *
+     * <p>Read whole rather than streamed, like {@code get_vod_info} and unlike the
+     * catalogue walks: it describes one series and is tens of kilobytes.
+     *
+     * <p><b>The seasons come from the episodes, not from the {@code seasons}
+     * array.</b> Panels are inconsistent about that array — absent, empty, or
+     * listing seasons that have no episodes — while {@code episodes} is an object
+     * keyed by season number and is what actually holds the content. Anything the
+     * {@code seasons} array adds on top is merged in for its artwork and its
+     * count; a season named there and empty here is kept, because a viewer should
+     * see it as empty rather than not at all.
+     *
+     * @return null when the panel answered with something unusable. The caller
+     *     decides what that means, which differs depending on whether a tree is
+     *     already cached.
+     */
+    public List<XtreamSeason> fetchSeriesInfo(String host, String username, String password,
+                                              String seriesId) {
+        URI uri = playerApiWithId(host, username, password, "get_series_info", seriesId);
+        return http.get(host, uri, stream -> {
+            try {
+                return readTree(objectMapper.readTree(stream), host, username, password);
+            } catch (RuntimeException e) {
+                // A malformed answer. Common enough to be info rather than warn:
+                // an array where an object belongs is the usual shape.
+                log.info("Panel returned an unreadable series sheet");
+                return null;
+            }
+        });
+    }
+
+    /**
+     * Turns one {@code get_series_info} body into seasons.
+     *
+     * <p>Package-private rather than inline so the parsing can be tested against
+     * real panel bodies without a socket.
+     */
+    private List<XtreamSeason> readTree(JsonNode root, String host, String username,
+                                        String password) {
+        Map<Integer, XtreamSeason> seasons = new LinkedHashMap<>();
+
+        // Declared seasons first, so their artwork and their announced count are
+        // in place before the episodes arrive.
+        for (JsonNode declared : root.path("seasons")) {
+            Integer number = parseInt(readText(declared.path("season_number")));
+            if (number == null) {
+                continue;
+            }
+            seasons.put(number, new XtreamSeason(number,
+                    parseInt(readText(declared.path("episode_count"))),
+                    firstNonBlank(readText(declared.path("cover")),
+                            readText(declared.path("cover_big"))),
+                    new ArrayList<>()));
+        }
+
+        JsonNode episodes = root.path("episodes");
+        Iterator<Map.Entry<String, JsonNode>> fields = episodes.properties().iterator();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> entry = fields.next();
+            for (JsonNode episode : entry.getValue()) {
+                XtreamEpisode parsed = readEpisode(episode, entry.getKey(), host, username, password);
+                if (parsed == null) {
+                    continue;
+                }
+                seasons.computeIfAbsent(parsed.seasonNumber(),
+                                n -> new XtreamSeason(n, null, null, new ArrayList<>()))
+                        .episodes()
+                        .add(parsed);
+            }
+        }
+
+        List<XtreamSeason> ordered = new ArrayList<>(seasons.values());
+        ordered.sort(Comparator.comparingInt(XtreamSeason::seasonNumber));
+        for (XtreamSeason season : ordered) {
+            season.episodes().sort(Comparator.comparingInt(XtreamEpisode::episodeNumber));
+        }
+        return ordered;
+    }
+
+    /**
+     * One episode.
+     *
+     * <p><b>An episode with no container extension is dropped</b>, for the reason a
+     * film without one is: its playback URL cannot be built, and an entry that
+     * opens onto a failure is worse than an entry that is not there.
+     *
+     * <p>The season number is taken from the episode when it carries one and from
+     * the key of the {@code episodes} object otherwise. Panels disagree about which
+     * of the two they fill, and a few fill both with different values — in which
+     * case the episode's own wins, because that is the one the panel puts next to
+     * the episode number it also states.
+     */
+    private XtreamEpisode readEpisode(JsonNode node, String seasonKey, String host,
+                                      String username, String password) {
+        String episodeId = readText(node.path("id"));
+        String extension = readText(node.path("container_extension"));
+        Integer number = parseInt(readText(node.path("episode_num")));
+        Integer season = parseInt(readText(node.path("season")));
+        if (season == null) {
+            season = parseInt(seasonKey);
+        }
+        if (episodeId == null || extension == null || number == null || season == null) {
+            return null;
+        }
+
+        JsonNode info = node.path("info");
+        return new XtreamEpisode(
+                episodeId,
+                season,
+                number,
+                // Often absent, and far more often than for a film. A client shows
+                // "Episode 4" rather than an empty line.
+                readText(node.path("title")),
+                parseSeconds(readText(info.path("duration_secs"))),
+                readText(info.path("plot")),
+                buildEpisodeStreamUrl(host, username, password, episodeId, extension),
+                extension);
+    }
+
+    /**
+     * The playback URL of one episode.
+     *
+     * <p>A film's, with a different path segment. A third method rather than a
+     * parameter for the reason the second exists: the segment is the difference,
+     * and naming it is cheaper than remembering which flag means which path.
+     */
+    public static String buildEpisodeStreamUrl(String host, String username, String password,
+                                               String episodeId, String containerExtension) {
+        return host + "/series/" + encode(username) + "/" + encode(password) + "/"
+                + encode(episodeId) + "." + encode(containerExtension);
+    }
+
+    /**
+     * The first of several candidates that yields a plausible year.
+     *
+     * <p>Not {@code firstNonBlank} followed by a parse: a panel that sends
+     * {@code "N/A"} in {@code year} and a real date in {@code releaseDate} would
+     * lose the real one, because the useless value is not blank.
+     */
+    private static Integer firstYear(String... candidates) {
+        for (String candidate : candidates) {
+            Integer year = parseYear(candidate);
+            if (year != null) {
+                return year;
+            }
+        }
+        return null;
+    }
+    /** A plain integer, or null. Panels send `3`, `` and `N/A` in the same field. */
+    private static Integer parseInt(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** Xtream reports a series run time in minutes, and that is what is stored. */
+    private static Integer parseMinutes(String minutes) {
+        return parseInt(minutes);
+    }
+
     /**
      * Builds the playback URL for one channel.
      *
@@ -427,6 +658,31 @@ public class XtreamClient {
      *                           when it reports nothing usable
      * @param rating             echoed verbatim and never reinterpreted
      */
+    /**
+     * A series as {@code get_series} lists it: flat, with no season and no episode.
+     */
+    public record XtreamSeries(String externalId, String name, String posterUrl,
+                               String categoryExternalId, Integer year,
+                               Integer episodeRunTimeMinutes, String rating, String plot) {
+    }
+
+    /**
+     * A season and its episodes, as {@code get_series_info} describes them.
+     *
+     * <p>{@code episodeCount} is what the panel claims. It can disagree with
+     * {@link #episodes()}, and when it does the list is what is real — the claim is
+     * carried because it is occasionally the only hint that a season is incomplete.
+     */
+    public record XtreamSeason(int seasonNumber, Integer episodeCount, String posterUrl,
+                               List<XtreamEpisode> episodes) {
+    }
+
+    /** @param streamUrl sensitive; must not be logged (AGENTS.md §5) */
+    public record XtreamEpisode(String externalId, int seasonNumber, int episodeNumber,
+                                String name, Integer durationSeconds, String plot,
+                                String streamUrl, String containerExtension) {
+    }
+
     public record XtreamVodStream(String externalId, String name, String posterUrl,
                                   String categoryExternalId, boolean adult, String streamUrl,
                                   String containerExtension, Integer year,

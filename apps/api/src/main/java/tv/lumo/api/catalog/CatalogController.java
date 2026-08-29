@@ -45,12 +45,14 @@ public class CatalogController implements CatalogApi {
     private final CatalogReadRepository catalog;
     private final SourceRepository sources;
     private final VodPlotSource plots;
+    private final SeriesTreeSource trees;
 
     public CatalogController(CatalogReadRepository catalog, SourceRepository sources,
-                             VodPlotSource plots) {
+                             VodPlotSource plots, SeriesTreeSource trees) {
         this.catalog = catalog;
         this.sources = sources;
         this.plots = plots;
+        this.trees = trees;
     }
 
     @Override
@@ -224,12 +226,15 @@ public class CatalogController implements CatalogApi {
      * against a validity window rather than merely checked for presence — which is
      * why {@code series} carries {@code tree_fetched_at} and no boolean beside it.
      *
-     * <p><b>What this method does not do yet.</b> Fetching the tree from the panel
-     * is {@code S6-03}: this returns what the database holds, which after this
-     * task and before that one is a series with no seasons. That is a real state
-     * and not a placeholder — a panel that lists a series and answers nothing for
-     * it produces exactly the same thing — so the empty tree is served rather than
-     * faked, and the screens built on top of it are built against the truth.
+     * <p><b>A stale tree is served while it refreshes.</b> The viewer sees the
+     * episodes they know and the new one appears when the answer arrives. The
+     * opposite — a waiting screen over data already held — is a regression for a
+     * feature whose whole point is convenience.
+     *
+     * <p><b>The row is read twice, and the second read is not redundant.</b> A
+     * fetch that just ran wrote the tree <em>and</em> the synopsis; the row this
+     * method opened with predates both. Serving it would show an empty synopsis
+     * beside a full tree, once, on exactly the open that paid for them.
      */
     @Override
     public ResponseEntity<SeriesDetail> getSeries(UUID id) {
@@ -239,8 +244,25 @@ public class CatalogController implements CatalogApi {
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.SERIES_NOT_FOUND,
                         "No such series on a source owned by the caller"));
 
-        Series series = row.series();
-        series.setPlot(row.plot());
+        SeriesTreeSource.Availability availability = trees.ensureTree(
+                row.sourceId(), id, row.externalId(), row.treeFetchedAt());
+
+        if (availability == SeriesTreeSource.Availability.UNAVAILABLE) {
+            // 503 and not 404. The series exists; what failed is the call that
+            // fills in its seasons. A client that said "series not found" here
+            // would send somebody looking for a series their provider still has.
+            throw ApiException.unavailable(ErrorCode.SOURCE_UNREACHABLE,
+                    "The provider could not supply this series' episodes");
+        }
+
+        // Re-read after the fetch: a tree written a moment ago also wrote the
+        // synopsis, and the row in hand predates both.
+        CatalogReadRepository.SeriesDetailRow current = catalog.findSeriesOwnedBy(id, userId)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.SERIES_NOT_FOUND,
+                        "No such series on a source owned by the caller"));
+
+        Series series = current.series();
+        series.setPlot(current.plot());
 
         return ResponseEntity.ok(new SeriesDetail(series, catalog.findTree(id)));
     }

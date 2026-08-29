@@ -200,7 +200,7 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S6-00 | Décision : les séries en M3U | décision | décision | 2 | 100 % |
 | ☑ | S6-01 | Contrat : `Series`, `Season`, `Episode`, et leurs **quatre** lectures | contrat | contrat | 5 | 100 % |
 | ☑ | S6-02 | Base : l'arbre, et son unicité qui survit à une resynchronisation | serveur | api | 3 | 100 % |
-| ☐ | S6-03 | Ingestion : la liste à la synchro, l'arbre à la demande, le cache qui expire | serveur | api | 8 | 0 % |
+| ☑ | S6-03 | Ingestion : la liste à la synchro, l'arbre à la demande, le cache qui expire | serveur | api | 8 | 100 % |
 | ☐ | S6-04 | `core:data` et Room : l'arbre hors ligne | socle | android | 5 | 0 % |
 | ☐ | S6-05 | Mobile : fiche série, saisons, épisodes | mobile | mobile | 8 | 0 % |
 | ☐ | S6-06 | TV : la même au D-pad, et « Épisode suivant » | tv | tv | 8 | 0 % |
@@ -208,8 +208,8 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S6-08 | Reprendre une série, pas un épisode | 3 clients | mobile + tv + web | 5 | 0 % |
 | ☐ | S6-09 | Web : l'écran Favoris, à l'échelle du compte | web | web | 5 | 0 % |
 
-**Avancement du sprint : 19 % de 54 points.** La décision, le contrat et les trois
-tables sont livrés. Il reste l'ingestion, le socle Android et les écrans.
+**Avancement du sprint : 33 % de 54 points.** Tout le serveur est livré. Il reste le
+socle Android, les écrans et les deux tâches web.
 
 **S6-01 et S6-02 sont partis dans le même commit**, comme S5-01 et S5-02 au sprint
 précédent, et pour la même raison mécanique : `ADR 0001` génère les interfaces avec
@@ -364,7 +364,7 @@ ligne que plus aucune opération n'atteint.
 
 ---
 
-### S6-03 — Ingestion : la liste, l'arbre, le cache · **8** · dépend de S6-02
+### S6-03 — Ingestion : la liste, l'arbre, le cache · **8** · dépend de S6-02 · ☑
 
 La tâche la plus longue du sprint, et elle contient la seule décision qui peut coûter
 un client.
@@ -401,6 +401,38 @@ censée être un confort.
 (on sert le cache), panel injoignable sur un arbre jamais chargé (`503`, code
 distinct), saison vide, numéros d'épisodes à trous, deux ouvertures simultanées de la
 même série.
+
+**Livré, seize cas.** Les sept demandés, et neuf de plus qui se sont imposés en
+écrivant les fixtures — dont une saison absente du tableau `seasons` mais présente
+dans `episodes` (les panels sont incohérents là-dessus, et c'est `episodes` qui porte
+le contenu), et un épisode sans `container_extension`, écarté pour la raison qu'un
+film sans extension est écarté : son URL ne peut pas être construite.
+
+> **Un défaut trouvé par un test, et il valait le sprint 5 aussi.**
+>
+> La lecture de l'année prenait « la première clé non vide » parmi `year`,
+> `releaseDate` et `release_date`. Or les panels envoient couramment
+> **`year: "N/A"` à côté d'un `releaseDate` utilisable** — et `"N/A"` n'est pas
+> vide. La clé inutile masquait donc la bonne, sur la moitié d'un catalogue.
+>
+> C'est maintenant « la première qui **s'analyse** », ce qui est la sémantique qu'on
+> croyait avoir. Le même raisonnement vaut pour `firstNonBlank` partout où il
+> précède une conversion ; les affiches n'en souffrent pas — une URL vide et une
+> URL absente sont le même cas — mais c'est à regarder si un troisième champ
+> numérique arrive.
+
+**Deux écarts avec ce qui était écrit, tous deux dans le sens de la prudence :**
+
+**La limite par source est de deux requêtes simultanées, pas d'une.** Une seule ferait
+attendre derrière la première quelqu'un qui ouvre une série, revient, en ouvre une
+autre. Au-delà de deux il n'y a plus de spectateur à servir : on lit un écran à la
+fois.
+
+**Un refus de démarrer parce qu'une requête est déjà en vol compte comme « rien en
+cache ».** C'est le seul endroit où la garde et la réponse se rencontrent : la seconde
+ouverture simultanée d'une série jamais chargée reçoit un `503`, pas un arbre vide.
+Servir un arbre vide serait dire à quelqu'un que sa série n'a pas d'épisodes, ce qui
+est bien plus alarmant que « votre fournisseur n'a pas répondu ».
 
 ---
 
