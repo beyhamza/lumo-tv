@@ -69,11 +69,20 @@ d'un autre ordre : une erreur ne range pas mal un élément, elle **fabrique une
 structure fausse** — une saison 1 à trente épisodes parce que le séparateur n'a pas
 été reconnu, deux séries distinctes fusionnées parce que leurs titres se ressemblent.
 
-**Proposition, à confirmer en S6-00 : les séries sont une fonction Xtream en v1.** Une
-entrée M3U qui ressemble à un épisode reste un film, comme aujourd'hui. C'est une
-limite honnête, elle se dit en une phrase à l'utilisateur, et elle retire du sprint le
-seul risque qu'on ne sait pas borner. Le contraire — un arbre inventé à partir de
-titres — produit un écran dont personne ne peut dire s'il est juste.
+**Tranché en S6-00 : les séries sont une fonction Xtream en v1**
+([`adr/0010`](../adr/0010-series-are-xtream-only.md)). Une entrée M3U qui ressemble
+à un épisode reste classée par `ADR 0009` et rien de plus, **son titre affiché tel
+quel**, token compris.
+
+L'ADR ajoute deux choses que cette section n'avait pas :
+
+- **l'argument qui décide vraiment** n'est pas la précision d'une heuristique, c'est
+  qu'**il n'existe aucune vérité de référence** — un test de parseur de titres ne peut
+  qu'affirmer le parseur contre lui-même ;
+- **où l'absence se dit** : pas un onglet vide, mais une phrase sur la page de la
+  source, à côté de ce qu'elle propose. C'est ce qui réconcilie cette limite avec la
+  règle de `S5-08` — un onglet est une promesse, la page d'une source est une
+  description.
 
 ---
 
@@ -188,7 +197,7 @@ met à jour **dans le commit qui livre le travail**, pas après.
 
 | | Id | Tâche | Lot | Cible | Points | Avancement |
 |---|---|---|---|---|---|---|
-| ☐ | S6-00 | Décision : les séries en M3U | décision | décision | 2 | 0 % |
+| ☑ | S6-00 | Décision : les séries en M3U | décision | décision | 2 | 100 % |
 | ☐ | S6-01 | Contrat : `Series`, `Season`, `Episode`, et leurs trois lectures | contrat | contrat | 5 | 0 % |
 | ☐ | S6-02 | Base : l'arbre, et son unicité qui survit à une resynchronisation | serveur | api | 3 | 0 % |
 | ☐ | S6-03 | Ingestion : la liste à la synchro, l'arbre à la demande, le cache qui expire | serveur | api | 8 | 0 % |
@@ -199,7 +208,8 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S6-08 | Reprendre une série, pas un épisode | 3 clients | mobile + tv + web | 5 | 0 % |
 | ☐ | S6-09 | Web : l'écran Favoris, à l'échelle du compte | web | web | 5 | 0 % |
 
-**Avancement du sprint : 0 % de 54 points.**
+**Avancement du sprint : 4 % de 54 points.** La seule inconnue est tranchée
+([`adr/0010`](../adr/0010-series-are-xtream-only.md)), ce qui débloque le contrat.
 
 S6-09 ne porte pas sur les séries et n'a aucune dépendance dans ce sprint : c'est un
 retard du web sur US-12, mesuré après le sprint 5, et il est ici parce que c'est le
@@ -207,7 +217,7 @@ prochain sprint qui a de la place. Il peut démarrer le premier jour.
 
 ---
 
-### S6-00 — Décision : les séries en M3U · **2**
+### S6-00 — Décision : les séries en M3U · **2** · ☑ tranché
 
 Le pendant d'`ADR 0009`, et la seule inconnue du sprint — donc en premier.
 
@@ -227,8 +237,31 @@ l'utilisateur, qui déclare « ce groupe contient des épisodes » et accepte un
 convention de nommage. Ce n'est pas ce sprint, et c'est écrit pour que la question ne
 se repose pas en cours de route.
 
-**Livrable** : `ADR 0010`, et la phrase que les trois clients affichent à un
-utilisateur M3U qui cherche ses séries.
+**Livré** : [`ADR 0010`](../adr/0010-series-are-xtream-only.md), **option A**, avec
+quatre décisions plutôt que les deux attendues.
+
+Les deux prévues : les séries sont Xtream en v1, et une entrée M3U qui ressemble à un
+épisode reste classée par `ADR 0009` — **son titre affiché verbatim**, token compris.
+Nettoyer le titre serait la même erreur en miniature : décider ici que `S01 E02` est
+une métadonnée et pas une partie du nom.
+
+**La troisième a demandé de résoudre une collision avec une règle en vigueur.**
+`S5-08` a décidé qu'une source sans films ne montre pas d'onglet Films — une promesse
+vide est pire qu'une absence. Appliquée telle quelle, un utilisateur M3U ne verrait
+jamais d'onglet Séries **et ne saurait jamais pourquoi** : exactement le risque que le
+tableau ci-dessus portait contre l'option A.
+
+Les deux règles sont justes et parlent d'endroits différents. **Un onglet est une
+promesse ; la page d'une source est une description.** Donc pas d'onglet, et une phrase
+sur la page de la source, à côté du nombre de chaînes. Avec **deux phrases
+distinctes**, parce que ce sont deux faits distincts : une playlist M3U ne peut pas
+porter de séries, un panel Xtream qui n'en propose pas pourrait.
+
+**La quatrième est le prix de changer d'avis**, et il n'était pas chiffré. Reconstruire
+un arbre plus tard déplace des lignes de `vod_item` vers `episode`, et une position
+sauvegardée pointe sur un `VodItem.id` (`S5-11`). **Toute progression sur un film
+converti devient orpheline.** Le moment bon marché pour revenir sur cette décision,
+c'est maintenant ; il n'y en aura pas un second.
 
 ---
 

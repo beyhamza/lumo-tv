@@ -139,8 +139,9 @@ thousand of them, against the user's own provider. That is exactly the hammering
 rest of this system is built to avoid (`SOURCE_SYNC_RATE_LIMITED`), and it would make
 an import take an hour.
 
-**Do nothing: films are Xtream-only.** Tenable — it is what
-[`sprint-06.md`](../backlog/sprint-06.md) decides for *series*, where a wrong answer
-fabricates a false tree rather than misfiling a row. It is not tenable here: a film
-misfiled is a film in the wrong list, and refusing the whole feature to M3U users
-over that is a worse trade.
+**Do nothing: films are Xtream-only.** Tenable — and it is what
+[`ADR 0010`](./0010-series-are-xtream-only.md) went on to decide for *series*, where
+a wrong answer fabricates a tree rather than misfiling a row and **there is no ground
+truth to test it against**. It is not tenable here: a film misfiled is a film in the
+wrong list, visible to the person looking at it, and refusing the whole feature to M3U
+users over that is a worse trade.
