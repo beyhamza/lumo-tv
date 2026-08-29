@@ -197,8 +197,13 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☐ | S6-06 | TV : la même au D-pad, et « Épisode suivant » | tv | tv | 8 | 0 % |
 | ☐ | S6-07 | Web : fiche série | web | web | 5 | 0 % |
 | ☐ | S6-08 | Reprendre une série, pas un épisode | 3 clients | mobile + tv + web | 5 | 0 % |
+| ☐ | S6-09 | Web : l'écran Favoris, à l'échelle du compte | web | web | 5 | 0 % |
 
-**Avancement du sprint : 0 % de 49 points.**
+**Avancement du sprint : 0 % de 54 points.**
+
+S6-09 ne porte pas sur les séries et n'a aucune dépendance dans ce sprint : c'est un
+retard du web sur US-12, mesuré après le sprint 5, et il est ici parce que c'est le
+prochain sprint qui a de la place. Il peut démarrer le premier jour.
 
 ---
 
@@ -462,7 +467,8 @@ résout en chargeant l'arbre à l'ouverture de la fiche, ce qui est le chemin no
 | Socle Android | S6-04 | 5 |
 | Clients | S6-05 → S6-07 | 21 |
 | Reprise | S6-08 | 5 |
-| **Total** | **9 tâches** | **49** |
+| Rattrapage web (hors séries) | S6-09 | 5 |
+| **Total** | **10 tâches** | **54** |
 
 **Ordre de réalisation** — les dépendances comptent plus que les priorités :
 
@@ -471,16 +477,124 @@ S6-00 → S6-01 → S6-02 → S6-03
               → S6-04 → S6-05 → S6-08
                       → S6-06
               → S6-07 (dès S6-01 servi)
+
+S6-09 (aucune dépendance — livrable dès le premier jour)
 ```
 
 S6-00 avant S6-01 : le contrat dépend de ce que la décision retient. S6-03 peut
 avancer en parallèle des clients dès que S6-02 est en place — c'est la tâche la plus
 longue et elle ne bloque que la lecture réelle, pas l'écriture des écrans.
 
-**La coupure, si 49 points est trop** : S6-00 → S6-05 (**31 points**) livre les
+**La coupure, si 54 points est trop** : S6-00 → S6-05 (**31 points**) livre les
 séries de bout en bout sur le téléphone et se démontre seul, comme la coupure
 proposée au sprint 5. La télévision et le web suivent (S6-06, S6-07, S6-08,
 **18 points**) et ne dépendent que du socle.
+
+**S6-09 n'est pas dans cette coupure et ne doit pas y entrer comme variable
+d'ajustement.** C'est la tâche la moins risquée du sprint — aucune dépendance,
+aucune inconnue serveur — donc celle qu'on repousse le plus facilement, et elle a
+déjà été repoussée deux sprints. Si le sprint doit maigrir, il maigrit sur les
+séries, pas sur elle.
+
+---
+
+### S6-09 — Web : l'écran Favoris, à l'échelle du compte · **5** · aucune dépendance
+
+**Ce n'est pas une fonction manquante, c'est une fonction qui ment discrètement** —
+et c'est ce qui la fait entrer ici plutôt qu'attendre.
+
+Le web a reçu les groupes en `S4-09` : la barre, l'étoile, créer, renommer,
+supprimer. Tout marche. Mais ils vivent sur la page des chaînes **d'une source**, et
+cette page filtre :
+
+```
+apps/web/…/sources/[id]/channels/page.tsx
+.filter((favorite) => favorite.source_id === id)
+```
+
+Or c'est **le point structurel d'US-12** : un groupe appartient au compte et peut
+contenir des chaînes de deux abonnements. Le téléphone l'assume avec un écran dédié
+et une ligne « Depuis *[source]* » sous chaque chaîne (`S4-04`). Le web montre un
+groupe « Documentaire » **amputé des chaînes de l'autre source, sans le dire** — la
+catégorie de défaut la plus chère, parce que rien n'a l'air cassé.
+
+**Livrable :** `app/favorites`, à la racine de la zone compte et **pas** sous
+`sources/[id]`. Le groupe ouvert est dans l'URL (`?group=`), donc partageable,
+compatible avec le bouton retour, et **fonctionnel sans JavaScript** — la règle de la
+zone ne se suspend pas parce que l'écran est nouveau.
+
+#### Ce qui est déjà écrit et ne se réécrit pas
+
+C'est ce qui rend le chiffrage crédible plutôt qu'optimiste. `S4-09` a livré, et
+tout est réutilisable tel quel :
+
+- les cinq Server Actions (`actions/favorites.ts`) ;
+- le composant `FavoriteGroups` — barre, création, renommage, suppression avec son
+  décompte ;
+- `groupLabel` / `defaultGroupLabel`, qui traduisent le nom du groupe par défaut ;
+- le composant `Rail` et le résolveur `railOf`.
+
+**Et un cadeau du schéma** : `favorite.channel_id` porte un
+`REFERENCES channel(id) ON DELETE CASCADE`, tandis que la resynchronisation
+**upserte** sur `(source_id, external_id)`. Une chaîne qui reste garde son
+identifiant ; une chaîne qui disparaît emporte ses favoris. Cet écran n'a donc
+**aucun cas de favori orphelin** à traiter.
+
+#### Le seul mécanisme réellement nouveau, et c'est lui qui coûte
+
+`GET /me/favorites` rend les favoris **de tout le compte**. Pour les afficher il
+faut des noms et des logos, qui viennent de
+`GET /sources/{id}/channels?ids=` — **une opération par source**. Rien sur le web ne
+fait ça aujourd'hui : la page des chaînes ne résout jamais que dans la sienne.
+
+Donc : grouper par `source_id`, une requête par source, en parallèle, puis
+reconstituer l'ordre — celui des favoris, pas celui des réponses.
+
+**Le piège est celui que `S4-02` a payé sur le téléphone, à un endroit neuf.** Le
+contrat plafonne `ids` à cent, **par requête**. Un groupe de trois cents chaînes
+réparties sur trois sources, ce sont des lots à découper par source, pas trois
+requêtes. Android a fini par extraire un `ChannelResolver` pour ne l'écrire qu'une
+fois ; la page des chaînes du web s'en tire avec un `.slice(0, 100)` défensif parce
+qu'un rail y est borné par construction. **Ici il faut une boucle, pas une coupe** :
+une coupe tronquerait un groupe en silence, avec un `200` et aucune erreur.
+
+C'est le cas `R-140` de la recette du sprint 4, transposé au web — un groupe de
+cent vingt chaînes qui en affiche cent tout rond.
+
+Et le second piège du même endroit : **`size` vaut 50 par défaut**. Un lot de cent
+identifiants revient à moitié répondu si on ne le passe pas explicitement.
+
+#### Ce dont cet écran n'a pas besoin
+
+**Aucun lecteur.** Une chaîne favorite ouvre
+`/app/sources/{sourceId}/channels?play={channelId}` — la page de *sa* source, qui a
+déjà tout. C'est ce qui garde la tâche à cinq points : l'écran liste et route, il ne
+lit pas.
+
+Il faut en revanche **une requête de plus, `GET /sources`**, pour la ligne
+« Depuis *[source]* » : les libellés ne sont dans aucune des deux autres réponses, et
+sans eux l'écran ne dit toujours pas d'où vient une chaîne — ce qui serait livrer le
+défaut sous un autre nom.
+
+#### Ce qui ne bouge pas
+
+**La barre de groupes reste aussi sur la page des chaînes.** Les deux endroits ont
+deux rôles : on **range** là où est l'étoile, on **parcourt** ici. C'est la
+répartition d'Android — le cœur dans la liste, l'onglet Favoris à côté — et la
+dupliquer volontairement coûte moins qu'un aller-retour par mise en favori.
+
+#### Pourquoi 5 et pas 3
+
+`S4-09` valait 3 : une barre et un rail ajoutés à une page qui existait, dans une
+seule source. Ici il y a une route de plus, une entrée de navigation, deux jeux de
+libellés — et surtout **un résolveur multi-source à écrire correctement du premier
+coup**, sur un plafond qui s'est déjà payé une fois sur le téléphone. C'est le même
+prix que `S5-10` et `S6-07` : une route neuve plus un mécanisme neuf.
+
+**Ce qui le ferait déraper à 8** : décider en cours de route que l'écran doit aussi
+réordonner les favoris par glisser-déposer (`PATCH /me/favorites/{id}`, livré côté
+serveur en `S4-01` et jamais appelé par le web). C'est une tâche à part entière et
+elle n'est pas dans celle-ci.
 
 ---
 
@@ -520,6 +634,9 @@ pas une page blanche :
   le webhook Stripe, puis la recette avec un rapport de session. Chacune a son état
   réel et ce qui la rouvre dans [`dette.md`](./dette.md).
 - **Les favoris de films et de séries**, décision annoncée ci-dessus.
+- **Le glisser-déposer des favoris sur le web.** `PATCH /me/favorites/{id}` existe
+  depuis `S4-01` et le web ne l'appelle toujours pas. C'est ce que `S6-09` laisse
+  volontairement de côté pour ne pas déraper.
 
 ---
 
