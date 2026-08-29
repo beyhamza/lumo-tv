@@ -9,12 +9,16 @@ import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.ChannelDao
 import tv.lumo.android.core.database.dao.FavoriteDao
 import tv.lumo.android.core.database.dao.RecentChannelDao
+import tv.lumo.android.core.database.dao.SeriesDao
 import tv.lumo.android.core.database.dao.VodDao
 import tv.lumo.android.core.database.model.CategoryEntity
 import tv.lumo.android.core.database.model.ChannelEntity
 import tv.lumo.android.core.database.model.FavoriteEntity
 import tv.lumo.android.core.database.model.FavoriteGroupEntity
 import tv.lumo.android.core.database.model.RecentChannelEntity
+import tv.lumo.android.core.database.model.EpisodeEntity
+import tv.lumo.android.core.database.model.SeasonEntity
+import tv.lumo.android.core.database.model.SeriesEntity
 import tv.lumo.android.core.database.model.VodItemEntity
 
 /**
@@ -39,8 +43,11 @@ import tv.lumo.android.core.database.model.VodItemEntity
         FavoriteEntity::class,
         RecentChannelEntity::class,
         VodItemEntity::class,
+        SeriesEntity::class,
+        SeasonEntity::class,
+        EpisodeEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class LumoDatabase : RoomDatabase() {
@@ -49,6 +56,7 @@ abstract class LumoDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoriteDao
     abstract fun recentChannelDao(): RecentChannelDao
     abstract fun vodDao(): VodDao
+    abstract fun seriesDao(): SeriesDao
 }
 
 /**
@@ -197,6 +205,103 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
         connection.execSQL(
             "CREATE INDEX IF NOT EXISTS `index_vod_item_source_id_name` " +
                 "ON `vod_item` (`source_id`, `name`)",
+        )
+    }
+}
+
+/**
+ * 5 → 6: series, seasons and episodes (US-15).
+ *
+ * Three tables, and the first foreign keys this schema has had. `favorite` and
+ * `recent_channel` deliberately have none — they point at channels this device may
+ * not have cached, and a constraint would lose the favourite rather than wait for
+ * the channel. A season is the opposite case: it only ever exists as part of one
+ * series' tree, written in one transaction, and a season whose series is gone is a
+ * row nothing can reach. The cascade is what stops the table growing at every
+ * re-synchronisation.
+ *
+ * Nothing to backfill: no build before this one ever stored a series, and the
+ * first refresh fills the list. The trees arrive one at a time, when somebody
+ * opens a series.
+ *
+ * The statements are the ones Room generates for these entities, written out
+ * because `DatabaseModule` still has no `fallbackToDestructiveMigration`.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `series` (
+                `id` TEXT NOT NULL,
+                `source_id` TEXT NOT NULL,
+                `category_id` TEXT,
+                `external_id` TEXT,
+                `name` TEXT NOT NULL,
+                `poster_url` TEXT,
+                `year` INTEGER,
+                `episode_run_time` INTEGER,
+                `rating` TEXT,
+                `plot` TEXT,
+                `tree_fetched_at` INTEGER,
+                `position` INTEGER NOT NULL,
+                `is_adult` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent(),
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_series_source_id_category_id_position` " +
+                "ON `series` (`source_id`, `category_id`, `position`)",
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_series_source_id_name` " +
+                "ON `series` (`source_id`, `name`)",
+        )
+
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `season` (
+                `id` TEXT NOT NULL,
+                `series_id` TEXT NOT NULL,
+                `season_number` INTEGER NOT NULL,
+                `episode_count` INTEGER,
+                `poster_url` TEXT,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`series_id`) REFERENCES `series`(`id`)
+                    ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+        connection.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_season_series_id_season_number` " +
+                "ON `season` (`series_id`, `season_number`)",
+        )
+
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `episode` (
+                `id` TEXT NOT NULL,
+                `series_id` TEXT NOT NULL,
+                `season_id` TEXT NOT NULL,
+                `source_id` TEXT NOT NULL,
+                `external_id` TEXT,
+                `season_number` INTEGER NOT NULL,
+                `episode_number` INTEGER NOT NULL,
+                `name` TEXT,
+                `duration_seconds` INTEGER,
+                `plot` TEXT,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`season_id`) REFERENCES `season`(`id`)
+                    ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_episode_season_id_episode_number` " +
+                "ON `episode` (`season_id`, `episode_number`)",
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_episode_series_id` ON `episode` (`series_id`)",
         )
     }
 }

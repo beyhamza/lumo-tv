@@ -201,15 +201,15 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S6-01 | Contrat : `Series`, `Season`, `Episode`, et leurs **quatre** lectures | contrat | contrat | 5 | 100 % |
 | ☑ | S6-02 | Base : l'arbre, et son unicité qui survit à une resynchronisation | serveur | api | 3 | 100 % |
 | ☑ | S6-03 | Ingestion : la liste à la synchro, l'arbre à la demande, le cache qui expire | serveur | api | 8 | 100 % |
-| ☐ | S6-04 | `core:data` et Room : l'arbre hors ligne | socle | android | 5 | 0 % |
+| ☑ | S6-04 | `core:data` et Room : l'arbre hors ligne | socle | android | 5 | 100 % |
 | ☐ | S6-05 | Mobile : fiche série, saisons, épisodes | mobile | mobile | 8 | 0 % |
 | ☐ | S6-06 | TV : la même au D-pad, et « Épisode suivant » | tv | tv | 8 | 0 % |
 | ☐ | S6-07 | Web : fiche série | web | web | 5 | 0 % |
 | ☐ | S6-08 | Reprendre une série, pas un épisode | 3 clients | mobile + tv + web | 5 | 0 % |
 | ☐ | S6-09 | Web : l'écran Favoris, à l'échelle du compte | web | web | 5 | 0 % |
 
-**Avancement du sprint : 33 % de 54 points.** Tout le serveur est livré. Il reste le
-socle Android, les écrans et les deux tâches web.
+**Avancement du sprint : 43 % de 54 points.** Le serveur et le socle Android sont
+livrés. Il ne reste que des écrans, et les deux tâches web.
 
 **S6-01 et S6-02 sont partis dans le même commit**, comme S5-01 et S5-02 au sprint
 précédent, et pour la même raison mécanique : `ADR 0001` génère les interfaces avec
@@ -436,7 +436,7 @@ est bien plus alarmant que « votre fournisseur n'a pas répondu ».
 
 ---
 
-### S6-04 — `core:data` et Room : l'arbre hors ligne · **5** · dépend de S6-01
+### S6-04 — `core:data` et Room : l'arbre hors ligne · **5** · dépend de S6-01 · ☑
 
 Trois entités, trois DAO, un `SeriesRepository`, et le `SeriesPager` sur le patron de
 `VodPager`. La base est la vérité, le réseau rafraîchit.
@@ -449,6 +449,36 @@ permanent sur une série qu'on a déjà.
 
 **Une série dont l'arbre n'a jamais été chargé s'affiche quand même** dans la grille :
 affiche, titre, année. C'est ce que la liste porte, et c'est assez pour choisir.
+
+**Livré, avec quatre états plutôt que trois.** Le quatrième est `Idle` — personne n'a
+encore rien demandé — et il n'est pas un raffinement : sans lui, la première image
+d'une fiche est soit un tourniquet qui prétend une requête non faite, soit une liste
+de saisons vide qui prétend une réponse que personne n'a demandée.
+
+> **Ce qui a demandé le plus d'attention n'est pas les états mais l'ordre de
+> priorité entre eux.** `tree()` combine quatre choses — les saisons, les épisodes,
+> la ligne de série et ce que ce processus est en train de faire — et **ce qui est en
+> cache gagne toujours**. Un rafraîchissement sur un arbre déjà là ne pose pas de
+> tourniquet : il pose un `stale = true` sur des épisodes qui restent affichés.
+>
+> C'est le même arbitrage que le serveur fait en S6-03, à un endroit différent. Le
+> confondre donnait la régression que la tâche nomme : un écran d'attente sur des
+> données qu'on a déjà.
+
+**Deux détails qui ne se voient pas et qui coûteraient cher :**
+
+**`tree_fetched_at` n'est écrit que par `replaceTree`.** Une synchronisation qui
+estamperait les lignes laisserait chaque série *paraître* en cache, et chaque fiche
+afficherait un arbre vide au lieu d'en demander un. Un test le tient.
+
+**L'état `Loading` vit en mémoire, pas dans Room.** Écrit sur disque, il survivrait à
+la mort du processus et laisserait un tourniquet que plus rien ne peut effacer.
+
+**Les premières clés étrangères de ce schéma**, sur `season` et `episode`. `favorite`
+et `recent_channel` n'en ont délibérément pas — ils pointent des chaînes que
+l'appareil peut ne pas avoir en cache. Une saison est le cas inverse : elle n'existe
+que dans l'arbre d'une série, écrite en une transaction, et une saison dont la série a
+disparu est une ligne que rien ne peut atteindre.
 
 ---
 

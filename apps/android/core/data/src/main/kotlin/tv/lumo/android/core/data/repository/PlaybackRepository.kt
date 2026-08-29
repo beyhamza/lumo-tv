@@ -7,15 +7,17 @@ import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.internal.ApiCaller
 import tv.lumo.android.core.data.map
 import tv.lumo.android.core.data.model.PlaybackTarget
+import tv.lumo.android.core.data.model.EpisodePlaybackTarget
 import tv.lumo.android.core.data.model.VodPlaybackTarget
 import tv.lumo.android.network.generated.api.CatalogApi
 import tv.lumo.android.network.generated.api.UserdataApi
 import tv.lumo.android.network.generated.model.PlaybackInfo
 import tv.lumo.android.network.generated.model.RecordRecentChannelRequest
+import tv.lumo.android.network.generated.model.EpisodePlaybackInfo
 import tv.lumo.android.network.generated.model.VodPlaybackInfo
 
 /**
- * Opening a channel or a film, and remembering it was opened.
+ * Opening a channel, a film or an episode, and remembering it was opened.
  *
  * <h2>One request per playback, and nothing kept</h2>
  *
@@ -72,6 +74,22 @@ class PlaybackRepository @Inject internal constructor(
             .map(VodPlaybackInfo::asTarget)
 
     /**
+     * The same, for an episode (US-15).
+     *
+     * A third method rather than one taking a kind, for the reason there is
+     * already a second: the contract has three operations because the three
+     * identifiers point at three different tables, and a player handed "an id" it
+     * cannot name is how an episode gets looked up among the films.
+     *
+     * **What comes back plays like a film**: a progressive file, so seeking
+     * depends on the user's server answering `Range` requests. The player finds
+     * that out on its first attempt rather than drawing a scrubber that does
+     * nothing.
+     */
+    suspend fun episodePlaybackTarget(episodeId: String): LumoResult<EpisodePlaybackTarget> =
+        calls.call { catalog.getEpisodePlayback(UUID.fromString(episodeId)) }
+            .map(EpisodePlaybackInfo::asTarget)
+    /**
      * Records that a channel was actually watched.
      *
      * **Called when playback starts, never when a channel is focused.** On a
@@ -105,6 +123,14 @@ private fun PlaybackInfo.asTarget() = PlaybackTarget(
 
 private fun VodPlaybackInfo.asTarget() = VodPlaybackTarget(
     vodItemId = vodItemId.toString(),
+    streamUrl = streamUrl,
+    userAgent = userAgent,
+    maxConnections = maxConnections,
+    expiresAtMillis = expiresAt?.toInstant()?.toEpochMilli(),
+)
+
+private fun EpisodePlaybackInfo.asTarget() = EpisodePlaybackTarget(
+    episodeId = episodeId.toString(),
     streamUrl = streamUrl,
     userAgent = userAgent,
     maxConnections = maxConnections,
