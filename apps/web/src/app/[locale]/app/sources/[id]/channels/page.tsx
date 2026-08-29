@@ -116,7 +116,7 @@ export default async function ChannelsPage({
   // Not through `fetched()`: this screen has to tell three failures apart, and
   // that helper deliberately collapses everything that is not an unrouted 404
   // into "unavailable". A source still importing is not an outage.
-  const [categories, channels, favorites, recents, groups, filmCategories] = await Promise.all([
+  const [categories, channels, favorites, recents, groups] = await Promise.all([
     api(session.accessToken).GET("/sources/{id}/categories", {
       params: { path: { id }, query: { contentType: "LIVE" } },
     }),
@@ -147,14 +147,6 @@ export default async function ChannelsPage({
     // take the catalogue down: the rail loses its group bar, the channel list is
     // untouched.
     api(session.accessToken).GET("/me/favorite-groups", {}),
-    // Whether this source has films, and it buys exactly one thing: the tab
-    // that lets somebody cross from here to them. One request against a list
-    // counted in tens. Its failure hides the tab rather than the catalogue —
-    // which is the same answer as "this source has no films", and the right one:
-    // a tab drawn on a guess is a door onto a room nobody has confirmed.
-    api(session.accessToken).GET("/sources/{id}/categories", {
-      params: { path: { id }, query: { contentType: "VOD" } },
-    }),
   ]);
 
   const failure = problemCode(channels.error) ?? problemCode(categories.error);
@@ -308,14 +300,18 @@ export default async function ChannelsPage({
         {t("catalogueCount", { total: channels.data.total_elements })}
       </p>
 
+      {/* Always the three, and no request to decide it. An earlier version paid
+          one call to hide the films tab on a source that had none; hiding it is
+          what made somebody with a hundred and forty thousand films conclude the
+          feature did not exist. An empty catalogue says so in its own list. */}
       <CatalogueTabs
         sourceId={id}
         locale={locale as Locale}
         active="channels"
-        hasFilms={(filmCategories.data?.items.length ?? 0) > 0}
         label={t("catalogueTabsLabel")}
         channelsLabel={t("catalogueTitle")}
         filmsLabel={t("filmsTitle")}
+        seriesLabel={t("seriesTitle")}
       />
 
       <Rail

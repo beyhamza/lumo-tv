@@ -77,16 +77,6 @@ export default async function SourcePage({
     api(session.accessToken).GET("/sources/{id}", { params: { path: { id } } }),
   );
 
-  // Whether this source offers films at all (US-13). One request, against a
-  // list counted in tens, and it decides one link — a source that carries only
-  // channels, which is most M3U playlists, must not be offered a door onto an
-  // empty grid. A failure here is `false`: the link is absent rather than
-  // promising something nothing has confirmed.
-  const filmCategories = await api(session.accessToken).GET(
-    "/sources/{id}/categories",
-    { params: { path: { id }, query: { contentType: "VOD" } } },
-  );
-  const hasFilms = (filmCategories.data?.items.length ?? 0) > 0;
 
   if (source.state === "unavailable") {
     // Distinguished from "no such source" on purpose: one asks the user to come
@@ -131,13 +121,7 @@ export default async function SourcePage({
             format={format}
           />
         ) : (
-          <ReadyPanel
-            row={row}
-            hasFilms={hasFilms}
-            locale={locale as Locale}
-            t={t}
-            format={format}
-          />
+          <ReadyPanel row={row} locale={locale as Locale} t={t} format={format} />
         )}
       </div>
 
@@ -260,13 +244,11 @@ function stepKey(step: SyncStep): SyncStepKey {
  */
 function ReadyPanel({
   row,
-  hasFilms,
   locale,
   t,
   format,
 }: {
   row: Source;
-  hasFilms: boolean;
   locale: Locale;
   t: Translate;
   format: Format;
@@ -310,16 +292,21 @@ function ReadyPanel({
         >
           {t("sourceOpenCatalogue")}
         </a>
-        {/* Only when the source has films. An empty promise is worse than an
-            absence: somebody offered a door goes looking for the room. */}
-        {hasFilms ? (
-          <a
-            href={hrefFor(locale, `/app/sources/${row.id}/vod`)}
-            className="text-foreground text-sm underline underline-offset-4"
-          >
-            {t("sourceOpenFilms")}
-          </a>
-        ) : null}
+        {/* All three, whatever the source holds. Hiding the films link is what
+            made somebody conclude the feature did not exist; each catalogue says
+            in its own list when it is empty, which an absent link cannot. */}
+        <a
+          href={hrefFor(locale, `/app/sources/${row.id}/vod`)}
+          className="text-foreground text-sm underline underline-offset-4"
+        >
+          {t("sourceOpenFilms")}
+        </a>
+        <a
+          href={hrefFor(locale, `/app/sources/${row.id}/series`)}
+          className="text-foreground text-sm underline underline-offset-4"
+        >
+          {t("sourceOpenSeries")}
+        </a>
       </p>
     </div>
   );

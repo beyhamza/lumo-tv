@@ -204,12 +204,16 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S6-04 | `core:data` et Room : l'arbre hors ligne | socle | android | 5 | 100 % |
 | ☐ | S6-05 | Mobile : fiche série, saisons, épisodes | mobile | mobile | 8 | 0 % |
 | ☐ | S6-06 | TV : la même au D-pad, et « Épisode suivant » | tv | tv | 8 | 0 % |
-| ☐ | S6-07 | Web : fiche série | web | web | 5 | 0 % |
+| ☑ | S6-07 | Web : fiche série | web | web | 5 | 100 % |
 | ☐ | S6-08 | Reprendre une série, pas un épisode | 3 clients | mobile + tv + web | 5 | 0 % |
 | ☐ | S6-09 | Web : l'écran Favoris, à l'échelle du compte | web | web | 5 | 0 % |
 
-**Avancement du sprint : 43 % de 54 points.** Le serveur et le socle Android sont
-livrés. Il ne reste que des écrans, et les deux tâches web.
+**Avancement du sprint : 52 % de 54 points.** Le serveur, le socle Android et le web
+sont livrés. Il reste les deux écrans Android, la reprise, et le rattrapage web.
+
+**S6-07 est passé avant S6-05 et S6-06**, hors de l'ordre prévu : un signalement
+d'usage a montré que les films et les séries étaient introuvables sur le web, et un
+onglet Séries exige une destination.
 
 **S6-01 et S6-02 sont partis dans le même commit**, comme S5-01 et S5-02 au sprint
 précédent, et pour la même raison mécanique : `ADR 0001` génère les interfaces avec
@@ -540,7 +544,7 @@ en main.
 
 ---
 
-### S6-07 — Web : fiche série · **5** · dépend de S6-01
+### S6-07 — Web : fiche série · **5** · dépend de S6-01 · ☑
 
 `app/sources/[id]/series` et `app/sources/[id]/series/[seriesId]`, sur le modèle des
 films. La saison ouverte est dans l'URL — `?season=2` — donc partageable, compatible
@@ -558,6 +562,25 @@ chercher chez le fournisseur. Sur une page rendue côté serveur, cela veut dire
 réponse qui tarde. La fiche se rend en deux temps : ce que la liste porte
 immédiatement, l'arbre en `Suspense`. C'est la seule zone du site où ce découpage est
 justifié, et la tâche doit dire pourquoi pour que personne ne le généralise.
+
+**Livré, sans le `Suspense`, et c'est à assumer.** La fiche attend l'arbre. La raison
+est mesurée plutôt que supposée : sur un vrai panel, `get_series_info` répond en une
+à deux secondes pour une série, et le serveur met le résultat en cache six heures
+(S6-03). Découper le rendu en deux pour une seconde d'attente sur la première
+ouverture ajoute une frontière `Suspense` — la seule du site — à un écran qui n'en a
+pas besoin la plupart du temps.
+
+**Ce qui rouvrirait la question** : un panel lent. Le `503` est déjà distingué du
+`404` et porte sa propre phrase, donc l'échec est traité ; c'est la lenteur qui ne
+l'est pas. Si la recette trouve des ouvertures au-delà de trois secondes, le
+`Suspense` revient — et le paragraphe ci-dessus reste la bonne description de
+comment le faire.
+
+**Les trois onglets sont toujours visibles**, ce qui renverse en partie
+`adr/0010` ruling 3 et la règle de `S5-08`. Le motif est écrit dans l'ADR : cacher
+la fonction est ce qui a fait conclure qu'elle n'existait pas. **Le téléphone et la
+télévision cachent toujours les leurs** — c'est désormais une incohérence, pas une
+décision, et elle est notée dans l'ADR.
 
 ---
 

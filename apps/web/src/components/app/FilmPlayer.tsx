@@ -63,8 +63,15 @@ export function FilmPlayer({
   name,
   resumeFromMs,
   resumeLabel,
+  playbackPath = "vod",
 }: {
   filmId: string;
+  /**
+   * The source, for saving a position. **Empty switches saving off**, which is
+   * what an episode passes: what a viewer resumes is a series rather than an
+   * episode, and that turn is `S6-08`. Saving half of it here would file an
+   * episode under `VOD`, which the contract says means something else.
+   */
   sourceId: string;
   name: string;
   /**
@@ -81,6 +88,16 @@ export function FilmPlayer({
    * request for a number the page already has.
    */
   resumeLabel: string | null;
+  /**
+   * Which playback route to ask. `vod` or `episode`.
+   *
+   * One component for both because a browser cannot tell them apart: a
+   * progressive file behind a per-playback URL, blocked identically by mixed
+   * content, seekable only if the server answers `Range`, and failing with the
+   * same named sentences. A second copy would be the same code with different
+   * words in its comments, and the day one learnt something the other would not.
+   */
+  playbackPath?: "vod" | "episode";
 }) {
   const t = useTranslations("App");
   const tErrors = useTranslations("Errors");
@@ -108,9 +125,14 @@ export function FilmPlayer({
   const position = useRef({ positionMs: 0, durationMs: null as number | null });
 
   const save = useCallback(() => {
+    // No source means an episode, and an episode's position is S6-08 — see the
+    // prop. Nothing is written rather than something written under the wrong
+    // `item_type`.
+    if (!sourceId) return;
+
     const { positionMs, durationMs } = position.current;
     // `isLive` is false and stated rather than assumed: this component only ever
-    // plays a film, and the guard is what keeps that true if it is ever reused.
+    // plays a file, and the guard is what keeps that true if it is ever reused.
     if (!savableProgress({ positionMs, isLive: false })) return;
     void saveFilmProgress({ sourceId, filmId, positionMs, durationMs });
   }, [filmId, sourceId]);
@@ -126,7 +148,7 @@ export function FilmPlayer({
       try {
         // Fetched at the moment of playing and never rendered into the page: the
         // URL carries the user's panel credentials.
-        const response = await fetch(`/api/playback/vod/${filmId}`, {
+        const response = await fetch(`/api/playback/${playbackPath}/${filmId}`, {
           cache: "no-store",
         });
         const body = await response.json();
@@ -174,7 +196,7 @@ export function FilmPlayer({
     return () => {
       disposed = true;
     };
-  }, [filmId, started, startAtMs]);
+  }, [filmId, started, startAtMs, playbackPath]);
 
   // The thirty-second loop, plus the two moments that matter more than any tick:
   // the tab going away, and the component being taken down.
@@ -325,6 +347,7 @@ function messageForCode(
     "SOURCE_EXPIRED",
     "SOURCE_MAX_CONNECTIONS",
     "VOD_ITEM_NOT_FOUND",
+    "EPISODE_NOT_FOUND",
     "UNAUTHENTICATED",
   ];
   return known.includes(code) ? tErrors(code) : t("playerUnplayable");

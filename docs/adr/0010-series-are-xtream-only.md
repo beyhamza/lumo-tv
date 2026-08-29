@@ -106,6 +106,29 @@ can.
 >
 > **EN** — "This provider offers no series."
 
+> **Superseded in part, by use, on 2026-08-29.**
+>
+> The reasoning above is about a *tab*, and it holds. What it got wrong is the
+> conclusion drawn from it on the web: the films tab was hidden by the same
+> argument, and the owner of a panel carrying **a hundred and forty thousand
+> films** could not find them, concluded the feature did not exist, and reported
+> it missing.
+>
+> **An absence is indistinguishable from a bug** — which is the failure this
+> ruling was written to prevent, arriving through the door it left open. The web
+> now shows all three catalogues always, and an empty one says so **in its own
+> list**, with the sentences below. That is the one thing an absence can never
+> do: explain itself.
+>
+> The half that survives: a *promise* is still bad. A tab that opens onto a
+> sentence explaining that this source carries none is not a promise, it is a
+> reply — and the sentences of this ruling are exactly what makes the difference.
+>
+> The phone and the television still hide theirs, and that is now an
+> **inconsistency rather than a decision**. It is written down here rather than
+> left to be found: whoever touches `CatalogueSections` next should make the two
+> Android surfaces do what the web does.
+
 ### 4. What would reopen this, and what it would cost
 
 Written now so the question is not reopened by whoever finds this file next.

@@ -2,65 +2,48 @@ import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 
 /**
- * The switch between a source's two catalogues.
+ * The switch between a source's three catalogues.
  *
- * <h2>What this fixes, and it was reported from real use</h2>
+ * <h2>Always the three, and that reverses a rule this project had written down</h2>
  *
- * Films were reachable only from a source's own page, behind a link at the foot
- * of it. Once somebody was browsing the channels there was **no way across** —
- * they had to go back up two levels and know the link was there. The films had
- * been built, shipped and were effectively invisible.
+ * Films and series used to be hidden when a source had none — `S5-08` for the
+ * phone tab, `adr/0010` ruling 3 for the television, and the first version of this
+ * component. The argument was that an empty promise is worse than an absence.
  *
- * <h2>Why this and not an entry in the header</h2>
+ * **Use disproved it.** The owner of a panel with a hundred and forty thousand
+ * films could not find them, concluded the feature did not exist, and reported it
+ * as missing. The absence was indistinguishable from a bug — which is the failure
+ * the rule was supposed to prevent, arriving through the door it left open.
  *
- * The header of this zone is account-level and, deliberately, fetches nothing:
- * `/app`, `/app/sources`, `/app/devices`, `/app/subscription` are four static
- * strings, and the layout that draws them renders on every page under `/app`.
+ * So the tabs are always here, and an empty catalogue says so **in the list**,
+ * where somebody who went looking finds an answer instead of nothing. That is the
+ * one thing an absence can never do: explain itself.
  *
- * Films are **per source** — `/app/sources/{id}/vod` — so a header entry would
- * need a source id, which means a lookup in the layout on every page of the zone,
- * for a link. And it would be wrong on an account with two sources: there is no
- * "the" films page to point at.
- *
- * The tabs go where the question is actually asked: on the screen somebody is
- * browsing, about the source they are already in. Channels have the same depth —
- * Sources, then a source, then its catalogue — and this is the step that was
- * missing from it.
- *
- * <h2>The films tab is absent when the source has none</h2>
- *
- * The same rule as everywhere: an empty promise is worse than an absence. Most
- * M3U playlists carry only channels, and a tab onto an empty grid sends somebody
- * looking for a room that is not there.
- *
- * Series are absent for a different reason — no screen exists yet — and a tab
- * would be worse here than anywhere, because it would say the feature is
- * finished.
+ * The old rule was not silly, and its remaining half still holds: a *promise* is
+ * bad. A tab that says "Films" and opens onto a sentence explaining that this
+ * source carries none is not a promise, it is a reply.
  */
 export function CatalogueTabs({
   sourceId,
   locale,
   active,
-  hasFilms,
   label,
   channelsLabel,
   filmsLabel,
+  seriesLabel,
 }: {
   sourceId: string;
   locale: Locale;
-  active: "channels" | "vod";
-  hasFilms: boolean;
+  active: "channels" | "vod" | "series";
   label: string;
   channelsLabel: string;
   filmsLabel: string;
+  seriesLabel: string;
 }) {
-  // One tab is not a choice. On a source with no films this would draw a single
-  // "Channels" pill above a list of channels, which says nothing and takes a line.
-  if (!hasFilms) return null;
-
   const tabs = [
     { key: "channels" as const, href: `/app/sources/${sourceId}/channels`, label: channelsLabel },
     { key: "vod" as const, href: `/app/sources/${sourceId}/vod`, label: filmsLabel },
+    { key: "series" as const, href: `/app/sources/${sourceId}/series`, label: seriesLabel },
   ];
 
   return (
@@ -70,7 +53,7 @@ export function CatalogueTabs({
           <li key={tab.key}>
             <a
               href={hrefFor(locale, tab.href)}
-              // `aria-current` rather than colour alone: the active tab has to be
+              // `aria-current` rather than colour alone: the open tab has to be
               // announced, not merely drawn.
               aria-current={tab.key === active ? "page" : undefined}
               className={

@@ -189,18 +189,14 @@ export default async function VodPage({
         {t("filmsCount", { total: films.data.total_elements })}
       </p>
 
-      {/* Always drawn here, and no extra request for it: reaching this page at
-          all means the source has films — the tab that led here is only shown
-          when it does, and a direct link that did not would land on the empty
-          state below rather than on a lie. */}
       <CatalogueTabs
         sourceId={id}
         locale={locale as Locale}
         active="vod"
-        hasFilms
         label={t("catalogueTabsLabel")}
         channelsLabel={t("catalogueTitle")}
         filmsLabel={t("filmsTitle")}
+        seriesLabel={t("seriesTitle")}
       />
 
       <ContinueWatching
