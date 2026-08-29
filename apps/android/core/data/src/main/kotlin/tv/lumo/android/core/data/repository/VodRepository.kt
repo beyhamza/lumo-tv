@@ -168,8 +168,8 @@ class VodRepository @Inject internal constructor(
     suspend fun refresh(sourceId: String): LumoResult<Unit> = withContext(io) {
         val id = UUID.fromString(sourceId)
 
-        val categories = calls.call { api.listCategories(id, ContentType.VOD) }
-        if (categories is LumoResult.Failure) return@withContext markStale(sourceId, categories)
+        val categories = probeFilmCategories(sourceId)
+        if (categories is LumoResult.Failure) return@withContext categories
 
         val films = mutableListOf<VodItemEntity>()
         var page = 0
@@ -186,16 +186,51 @@ class VodRepository @Inject internal constructor(
             page++
         }
 
-        categoryDao.replaceForSourceAndType(
-            sourceId,
-            ContentType.VOD.value,
-            (categories as LumoResult.Success).value.items.map { it.asEntity() },
-        )
         vodDao.replaceForSource(sourceId, films)
 
         staleness.update { it + (sourceId to null) }
         LumoResult.Success(Unit)
     }
+
+    /**
+     * Asks the one question that decides whether films exist at all, and caches
+     * the answer.
+     *
+     * `GET /sources/{id}/categories?contentType=VOD` — a single request, against a
+     * list counted in tens. It is the whole of what S5-08 needs to decide whether
+     * the phone offers a films tab, and it is deliberately **not** [refresh]:
+     * hiding or showing a tab must not cost a walk through thirty thousand rows
+     * at every launch.
+     *
+     * [refresh] calls it too, as its first step, so the two cannot disagree about
+     * what a category of this source looks like.
+     */
+    suspend fun probeFilmCategories(sourceId: String): LumoResult<Unit> = withContext(io) {
+        val result = calls.call {
+            api.listCategories(UUID.fromString(sourceId), ContentType.VOD)
+        }
+        if (result is LumoResult.Failure) return@withContext markStale(sourceId, result)
+
+        categoryDao.replaceForSourceAndType(
+            sourceId,
+            ContentType.VOD.value,
+            (result as LumoResult.Success).value.items.map { it.asEntity() },
+        )
+        LumoResult.Success(Unit)
+    }
+
+    /**
+     * Whether this source offers films at all, from the cache.
+     *
+     * **The cache and not the network**, which has a consequence worth stating:
+     * on a device that has never reached the server, this is false and the films
+     * tab is absent. That is the right way round. A tab that appears offline and
+     * opens onto nothing is a promise nobody can keep, and S5-08 is explicit that
+     * an empty promise is worse than an absence.
+     */
+    fun hasFilms(sourceId: String): Flow<Boolean> =
+        categoryDao.observeBySource(sourceId, ContentType.VOD.value)
+            .map { it.isNotEmpty() }
 
     /** How many films the cache holds for a source. Drives the empty state. */
     suspend fun cachedFilmCount(sourceId: String): Int =

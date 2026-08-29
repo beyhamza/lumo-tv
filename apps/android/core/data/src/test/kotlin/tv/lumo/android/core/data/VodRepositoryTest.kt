@@ -50,6 +50,9 @@ import tv.lumo.android.network.generated.infrastructure.Serializer
  *    Xtream panel it is one HTTP call per film against somebody else's server.
  * 3. **A source with no films is a success.** Most M3U playlists carry none, and
  *    a banner there would tell somebody their working source is broken.
+ * 4. **Whether to offer a films tab costs one request.** A phone asks it at every
+ *    launch, so the answer must not be a catalogue walk — and once answered it
+ *    comes out of the cache, which is what keeps the tab on a train.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class VodRepositoryTest {
@@ -166,6 +169,46 @@ class VodRepositoryTest {
         // Nothing written. A half-applied replacement is a catalogue that is
         // neither the old one nor the new one.
         assertThat(vodDao.stored.map { it.name }).containsExactly("Yesterday")
+    }
+
+    @Test
+    fun `deciding whether to offer films costs one request, not a catalogue walk`() = runTest {
+        server.enqueue(json(categoryList(listOf("Action", "Comédie"))))
+
+        val result = repository().probeFilmCategories(sourceId)
+
+        assertThat(result).isEqualTo(LumoResult.Success(Unit))
+        // One, and it is the one S5-08 names. A phone decides whether to draw a
+        // films tab at every launch; paying for a walk through thirty thousand
+        // rows to answer it would be a synchronisation nobody asked for.
+        assertThat(server.requestCount).isEqualTo(1)
+        assertThat(server.takeRequest().path).contains("contentType=VOD")
+        assertThat(vodDao.stored).isEmpty()
+    }
+
+    @Test
+    fun `a source whose categories say nothing offers no films`() = runTest {
+        server.enqueue(json(categoryList(emptyList())))
+
+        val repository = repository()
+        repository.probeFilmCategories(sourceId)
+
+        // False, so the tab is absent. Most M3U playlists carry only channels,
+        // and a tab onto an empty grid is a promise nobody can keep.
+        assertThat(repository.hasFilms(sourceId).first()).isFalse()
+    }
+
+    @Test
+    fun `a source that answered once keeps its films tab offline`() = runTest {
+        server.enqueue(json(categoryList(listOf("Action"))))
+
+        val repository = repository()
+        repository.probeFilmCategories(sourceId)
+
+        // The answer comes out of Room from here on. A phone on a train that has
+        // synchronised a source with films keeps the tab it earned — the flow
+        // reports the cache, not the last request.
+        assertThat(repository.hasFilms(sourceId).first()).isTrue()
     }
 
     // ---- helpers -----------------------------------------------------------

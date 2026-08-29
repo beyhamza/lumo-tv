@@ -15,8 +15,9 @@ dependencies {
     // androidx.media3 — that is what lets the phone and the television share one
     // playback implementation and what would let the engine be replaced.
     implementation(libs.androidx.media3.exoplayer)
-    // HLS is what IPTV panels serve. Progressive/DASH sources are added the day
-    // a real user needs one, not speculatively.
+    // HLS is what IPTV panels serve for live. Progressive files — which is what a
+    // film is — need no extra artifact: the MP4 and Matroska extractors ship in
+    // media3-exoplayer itself. DASH still does not, and is still not added.
     implementation(libs.androidx.media3.exoplayer.hls)
     api(libs.androidx.media3.common)
     implementation(libs.androidx.media3.ui.compose)

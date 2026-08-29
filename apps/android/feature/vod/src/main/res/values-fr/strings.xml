@@ -1,5 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="feature_vod_title">Films</string>
-    <string name="feature_vod_placeholder">Les films de votre source apparaîtront ici.</string>
+    <string name="feature_vod_placeholder">Les films de votre source apparaîtront ici. L\'écran télévision arrive.</string>
+
+    <!-- ==== La grille ==== -->
+    <string name="feature_vod_search">Rechercher un film</string>
+    <string name="feature_vod_all_categories">Tous</string>
+    <string name="feature_vod_category_count">%1$s (%2$d)</string>
+    <string name="feature_vod_refresh">Actualiser</string>
+    <string name="feature_vod_refresh_failed">Les films n\'ont pas pu être actualisés. Ce qui s\'affiche est la dernière synchronisation.</string>
+    <string name="feature_vod_offline">Hors ligne</string>
+
+    <string name="feature_vod_no_source_title">Aucune source</string>
+    <string name="feature_vod_no_source_body">Ajoutez votre fournisseur dans l\'onglet Source, et ses films apparaîtront ici.</string>
+    <string name="feature_vod_not_ready_title">Import en cours</string>
+    <string name="feature_vod_not_ready_body">Votre source est encore en cours de lecture. Cet écran se remplit dès qu\'elle est prête.</string>
+    <string name="feature_vod_empty_title">Aucun film</string>
+    <string name="feature_vod_empty_body">Cette source ne propose que des chaînes. Il ne manque rien ici.</string>
+    <string name="feature_vod_no_results_title">Aucun résultat</string>
+    <string name="feature_vod_no_results_body">La recherche parcourt ce qui est déjà synchronisé, et elle ne pardonne pas une faute de frappe.</string>
+
+    <!-- ==== Un film ==== -->
+    <string name="feature_vod_play">Lire</string>
+    <string name="feature_vod_back">Retour</string>
+    <string name="feature_vod_minutes">%1$d min</string>
+    <string name="feature_vod_synopsis_loading">Récupération du synopsis…</string>
+    <string name="feature_vod_synopsis_none">Cette source ne donne pas de synopsis pour ce film.</string>
+
+    <!-- ==== Le lecteur ==== -->
+    <string name="feature_vod_position">%1$s / %2$s</string>
+    <string name="feature_vod_unknown_length">--</string>
+    <string name="feature_vod_pause">Pause</string>
+    <string name="feature_vod_resume">Lire</string>
+    <string name="feature_vod_seek_refused">Votre serveur n\'autorise pas le déplacement dans ce film. Il se lit depuis le début.</string>
+
+    <string name="feature_vod_player_retry">Réessayer</string>
+    <string name="feature_vod_player_back">Retour</string>
+    <string name="feature_vod_player_unreachable">Votre serveur n\'a pas répondu. Vérifiez votre connexion, puis réessayez.</string>
+    <string name="feature_vod_player_too_many_streams">Votre abonnement diffuse déjà autant de flux qu\'il l\'autorise. Arrêtez un autre flux, puis réessayez.</string>
+    <string name="feature_vod_player_too_many_streams_count">Votre abonnement autorise %1$d flux simultanés et ils sont tous utilisés. Arrêtez-en un, puis réessayez.</string>
+    <string name="feature_vod_player_not_ready">Votre source est encore en cours d\'import. Réessayez dans un instant.</string>
+    <string name="feature_vod_player_expired">Votre abonnement chez ce fournisseur a expiré.</string>
+    <string name="feature_vod_player_film_gone">Ce film n\'est plus dans votre catalogue. Actualisez la liste.</string>
+    <string name="feature_vod_player_unplayable">Ce film ne peut pas être lu sur cet appareil.</string>
+    <string name="feature_vod_player_unexpected">Ce film n\'a pas pu être lu.</string>
 </resources>

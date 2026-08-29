@@ -5,5 +5,47 @@
 -->
 <resources>
     <string name="feature_vod_title">Films</string>
-    <string name="feature_vod_placeholder">Films from your own source will appear here.</string>
+    <string name="feature_vod_placeholder">Films from your own source will appear here. The television screen is next.</string>
+
+    <!-- ==== The grid ==== -->
+    <string name="feature_vod_search">Search the films</string>
+    <string name="feature_vod_all_categories">All</string>
+    <string name="feature_vod_category_count">%1$s (%2$d)</string>
+    <string name="feature_vod_refresh">Refresh</string>
+    <string name="feature_vod_refresh_failed">The films could not be refreshed. What is shown is the last synchronisation.</string>
+    <string name="feature_vod_offline">Offline</string>
+
+    <string name="feature_vod_no_source_title">No source yet</string>
+    <string name="feature_vod_no_source_body">Add your provider in the Source tab, and its films will appear here.</string>
+    <string name="feature_vod_not_ready_title">Import in progress</string>
+    <string name="feature_vod_not_ready_body">Your source is still being read. This screen fills as soon as it is done.</string>
+    <string name="feature_vod_empty_title">No films</string>
+    <string name="feature_vod_empty_body">This source offers only channels. Nothing is missing here.</string>
+    <string name="feature_vod_no_results_title">Nothing found</string>
+    <string name="feature_vod_no_results_body">The search looks through what has already been synchronised, and it does not forgive a typo.</string>
+
+    <!-- ==== One film ==== -->
+    <string name="feature_vod_play">Play</string>
+    <string name="feature_vod_back">Back</string>
+    <string name="feature_vod_minutes">%1$d min</string>
+    <string name="feature_vod_synopsis_loading">Fetching the synopsis…</string>
+    <string name="feature_vod_synopsis_none">This source gives no synopsis for this film.</string>
+
+    <!-- ==== The player ==== -->
+    <string name="feature_vod_position">%1$s / %2$s</string>
+    <string name="feature_vod_unknown_length">--</string>
+    <string name="feature_vod_pause">Pause</string>
+    <string name="feature_vod_resume">Play</string>
+    <string name="feature_vod_seek_refused">Your server does not allow moving within this film. It plays from the beginning.</string>
+
+    <string name="feature_vod_player_retry">Try again</string>
+    <string name="feature_vod_player_back">Back</string>
+    <string name="feature_vod_player_unreachable">Your server could not be reached. Check your connection, then try again.</string>
+    <string name="feature_vod_player_too_many_streams">Your subscription is already streaming as much as it allows. Stop another stream, then try again.</string>
+    <string name="feature_vod_player_too_many_streams_count">Your subscription allows %1$d simultaneous streams and they are all in use. Stop one, then try again.</string>
+    <string name="feature_vod_player_not_ready">Your source is still being imported. Try again in a moment.</string>
+    <string name="feature_vod_player_expired">Your subscription with this provider has expired.</string>
+    <string name="feature_vod_player_film_gone">This film is no longer in your catalogue. Refresh the list.</string>
+    <string name="feature_vod_player_unplayable">This film cannot be played on this device.</string>
+    <string name="feature_vod_player_unexpected">This film could not be played.</string>
 </resources>

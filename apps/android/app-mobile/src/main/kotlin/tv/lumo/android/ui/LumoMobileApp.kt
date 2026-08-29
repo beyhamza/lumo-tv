@@ -20,8 +20,9 @@ import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.core.designsystem.component.LumoMobileNavBar
 import tv.lumo.android.feature.live.PlayerDestination
+import tv.lumo.android.feature.vod.VodPlayerDestination
 import tv.lumo.android.navigation.LumoMobileNavHost
-import tv.lumo.android.navigation.MobileDestinations
+import tv.lumo.android.navigation.mobileDestinations
 import tv.lumo.android.navigation.mobileStartRoute
 
 /**
@@ -51,6 +52,14 @@ import tv.lumo.android.navigation.mobileStartRoute
 @Composable
 fun LumoMobileApp(
     startState: AppStart,
+    /**
+     * Whether the account's source offers films at all (US-13).
+     *
+     * A parameter rather than a collection here, so this shell stays a pure
+     * function of what it is given — which is what makes it previewable and what
+     * keeps the decision in `core:data` where the television reads the same one.
+     */
+    hasFilms: Boolean = false,
     navController: NavHostController = rememberNavController(),
 ) {
     val startRoute = mobileStartRoute(startState)
@@ -88,12 +97,13 @@ fun LumoMobileApp(
             // settings of an account that does not exist yet, and the only screen
             // reachable while signed out is the one already on display.
             //
-            // And none over a video: the player hides the system bars and fills
-            // the panel (US-09), so leaving ours across the bottom would be the
-            // one strip of chrome in an otherwise full-screen picture.
-            if (startState != AppStart.SignedOut && currentRoute != PlayerDestination.route) {
+            // And none over a video, channel or film alike: the player hides the
+            // system bars and fills the panel (US-09), so leaving ours across the
+            // bottom would be the one strip of chrome in an otherwise full-screen
+            // picture.
+            if (startState != AppStart.SignedOut && currentRoute !in PLAYER_ROUTES) {
                 LumoMobileNavBar(
-                    destinations = MobileDestinations,
+                    destinations = mobileDestinations(hasFilms),
                     selectedRoute = currentRoute,
                     onSelect = { navController.switchTopLevelTo(it) },
                 )
@@ -101,6 +111,15 @@ fun LumoMobileApp(
         }
     }
 }
+
+/**
+ * The two full-screen players.
+ *
+ * A set rather than a second `||`, because the list grows with every surface that
+ * fills the panel — and the condition it feeds is the one that decides whether a
+ * strip of our chrome sits across somebody's film.
+ */
+private val PLAYER_ROUTES = setOf(PlayerDestination.route, VodPlayerDestination.route)
 
 /**
  * Moves between top-level destinations without stacking them.

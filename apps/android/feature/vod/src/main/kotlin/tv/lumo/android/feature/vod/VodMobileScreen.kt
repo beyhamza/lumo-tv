@@ -1,21 +1,336 @@
 package tv.lumo.android.feature.vod
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import tv.lumo.android.core.designsystem.component.LumoMobilePlaceholder
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
+import tv.lumo.android.core.data.model.Category
+import tv.lumo.android.core.data.model.DataOrigin
+import tv.lumo.android.core.data.model.VodItem
+import tv.lumo.android.core.designsystem.component.LumoPoster
+import tv.lumo.android.core.designsystem.theme.LumoShapes
+import tv.lumo.android.core.designsystem.theme.LumoSpacing
 
 /**
- * Placeholder for the phone. Replaced when this feature's story is picked up.
+ * The film catalogue on the phone (US-13).
  *
- * Text comes from this module's own strings.xml, in FR and EN — no literal ever
- * reaches a Composable (AGENTS.md §4).
+ * <h2>A grid, where the channels got a list</h2>
+ *
+ * Same mechanics, different shape, and the difference is not decoration: a
+ * channel is chosen by a name somebody already knows, so a list of names is the
+ * right instrument. **A film is chosen by looking.** A list of film titles is a
+ * catalogue nobody can browse, which is why every product that has ever shown
+ * films has shown posters — and why the poster, not the title, is what a card is.
+ *
+ * <h2>Two columns, and the number is the argument</h2>
+ *
+ * A poster is 2:3. Three columns on a phone puts a poster at about 120 dp wide,
+ * which is under the size at which somebody recognises a film they have seen. Two
+ * is the widest layout the screen affords, and recognising the picture is the
+ * whole job of this screen.
+ *
+ * <h2>A card with no poster is not a card with a placeholder</h2>
+ *
+ * It is its title on a flat colour — see `LumoPoster`. Lumo ships no artwork of
+ * its own (CLAUDE.md, règle 2), and on a real source a great many posters are
+ * advertised over `http`, which this application does not permit. "No poster" and
+ * "the poster did not load" are one outcome from where the user is sitting.
  */
 @Composable
-fun VodMobileScreen(modifier: Modifier = Modifier) {
-    LumoMobilePlaceholder(
-        title = stringResource(R.string.feature_vod_title),
-        body = stringResource(R.string.feature_vod_placeholder),
-        modifier = modifier,
+fun VodMobileScreen(
+    onOpenFilm: (filmId: String) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: VodViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val films = viewModel.films.collectAsLazyPagingItems()
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
+        when (state.step) {
+            VodStep.Loading -> Centered { CircularProgressIndicator() }
+
+            VodStep.NoSource -> Message(
+                title = stringResource(R.string.feature_vod_no_source_title),
+                body = stringResource(R.string.feature_vod_no_source_body),
+            )
+
+            VodStep.NotReadyYet -> Message(
+                title = stringResource(R.string.feature_vod_not_ready_title),
+                body = stringResource(R.string.feature_vod_not_ready_body),
+            )
+
+            VodStep.Browsing -> {
+                Header(state = state, onRefresh = viewModel::refresh)
+
+                OutlinedTextField(
+                    value = state.query,
+                    onValueChange = viewModel::onQueryChanged,
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.feature_vod_search)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = LumoSpacing.md),
+                )
+
+                Categories(
+                    categories = state.categories,
+                    selectedId = state.selectedCategoryId,
+                    onSelect = viewModel::onCategorySelected,
+                )
+
+                // An empty grid after a search is not an empty catalogue, and the
+                // two need different sentences: one is "try another word", the
+                // other is "your source has no films". Only the loaded, settled
+                // case can tell them apart, which is what `itemCount` after a
+                // finished append means.
+                if (films.itemCount == 0 && !state.refreshing) {
+                    Message(
+                        title = if (state.query.isBlank()) {
+                            stringResource(R.string.feature_vod_empty_title)
+                        } else {
+                            stringResource(R.string.feature_vod_no_results_title)
+                        },
+                        body = if (state.query.isBlank()) {
+                            stringResource(R.string.feature_vod_empty_body)
+                        } else {
+                            stringResource(R.string.feature_vod_no_results_body)
+                        },
+                    )
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(COLUMNS),
+                        contentPadding = PaddingValues(LumoSpacing.md),
+                        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        items(
+                            count = films.itemCount,
+                            key = films.itemKey { it.id },
+                        ) { index ->
+                            // Null is a placeholder Paging has not loaded yet. It
+                            // draws at the right size so the grid does not reflow
+                            // as windows arrive.
+                            FilmCard(film = films[index], onOpen = onOpenFilm)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Header(state: VodState, onRefresh: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.sm),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.feature_vod_title),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Discreet, and only when it is true — the same rule the channel
+            // screen follows, for the same reason: serving the cache is what this
+            // screen does well, and a banner would call it a failure.
+            if (state.origin == DataOrigin.Cache) {
+                Text(
+                    text = stringResource(R.string.feature_vod_offline),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            if (state.refreshing) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    modifier = Modifier
+                        .padding(start = LumoSpacing.sm)
+                        .size(LumoSpacing.md),
+                )
+            } else {
+                TextButton(onClick = onRefresh) {
+                    Text(stringResource(R.string.feature_vod_refresh))
+                }
+            }
+        }
+    }
+
+    if (state.refreshFailed) {
+        Text(
+            text = stringResource(R.string.feature_vod_refresh_failed),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(horizontal = LumoSpacing.md),
+        )
+    }
+}
+
+/** The film categories. The channel screen's strip, unchanged — see `LiveMobileScreen`. */
+@Composable
+private fun Categories(
+    categories: List<Category>,
+    selectedId: String?,
+    onSelect: (String?) -> Unit,
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = LumoSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+        modifier = Modifier.padding(vertical = LumoSpacing.sm),
+    ) {
+        item {
+            CategoryChip(
+                label = stringResource(R.string.feature_vod_all_categories),
+                selected = selectedId == null,
+                onClick = { onSelect(null) },
+            )
+        }
+        items(categories.size) { index ->
+            val category = categories[index]
+            CategoryChip(
+                // The count is the server's and is null when it did not count. An
+                // absent count is a chip without a number, not a zero.
+                label = category.channelCount
+                    ?.let { stringResource(R.string.feature_vod_category_count, category.name, it) }
+                    ?: category.name,
+                selected = selectedId == category.id,
+                onClick = { onSelect(category.id) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelLarge,
+        color = if (selected) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        modifier = Modifier
+            .clip(LumoShapes.small)
+            .background(
+                if (selected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                },
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.sm),
     )
 }
+
+/**
+ * One film: its poster, and its title under it.
+ *
+ * The title is under the picture and not over it. A title burned into the corner
+ * of a poster is unreadable on the half of posters that have something bright
+ * there, and every scrim heavy enough to fix that hides the picture the card
+ * exists to show.
+ *
+ * The year sits beside the title because two films share a name often enough that
+ * a catalogue without it makes somebody open the wrong one. It is absent when the
+ * source did not state one — many do not — and an absent year is nothing, never a
+ * dash.
+ */
+@Composable
+private fun FilmCard(film: VodItem?, onOpen: (String) -> Unit) {
+    Column(
+        modifier = Modifier.clickable(enabled = film != null) {
+            film?.let { onOpen(it.id) }
+        },
+        verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+    ) {
+        LumoPoster(
+            posterUrl = film?.posterUrl,
+            title = film?.name.orEmpty(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Text(
+            text = film?.name.orEmpty(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        film?.year?.let { year ->
+            Text(
+                text = year.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun Message(title: String, body: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(LumoSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm, Alignment.CenterVertically),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = body,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+internal fun Centered(content: @Composable () -> Unit) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
+}
+
+/** See the class documentation: two, because recognising the picture is the job. */
+private const val COLUMNS = 2

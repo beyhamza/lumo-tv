@@ -23,7 +23,12 @@ import tv.lumo.android.feature.settings.SettingsDestination
 import tv.lumo.android.feature.settings.navigation.settingsMobileScreen
 import tv.lumo.android.feature.source.SourceDestination
 import tv.lumo.android.feature.source.navigation.sourceMobileScreen
+import tv.lumo.android.feature.vod.VodDestination
+import tv.lumo.android.feature.vod.VodDetailDestination
+import tv.lumo.android.feature.vod.VodPlayerDestination
+import tv.lumo.android.feature.vod.navigation.vodDetailMobileScreen
 import tv.lumo.android.feature.vod.navigation.vodMobileScreen
+import tv.lumo.android.feature.vod.navigation.vodPlayerMobileScreen
 
 /**
  * Every destination the phone application can reach.
@@ -32,10 +37,14 @@ import tv.lumo.android.feature.vod.navigation.vodMobileScreen
  * adding a screen means adding a module and one line here — and a feature never
  * has to know what else exists.
  *
- * VOD, series and search stay registered even though nothing points at them any
- * more (see [MobileDestinations]). Removing them from the graph as well would
- * turn a screen that is merely unreachable into a crash for anything that still
- * names its route — a saved back stack, a deep link, a notification.
+ * Series and search stay registered even though nothing points at them any more
+ * (see [mobileDestinations]). Removing them from the graph as well would turn a
+ * screen that is merely unreachable into a crash for anything that still names
+ * its route — a saved back stack, a deep link, a notification.
+ *
+ * The same applies to the three film routes on a source that carries no films:
+ * the tab is gone, the routes stay. A deep link to a film is not made invalid by
+ * a playlist that has none.
  */
 @Composable
 fun LumoMobileNavHost(
@@ -77,7 +86,18 @@ fun LumoMobileNavHost(
                 navController.navigate(PlayerDestination.routeFor(channelId, name))
             },
         )
-        vodMobileScreen()
+        vodMobileScreen(
+            onOpenFilm = { filmId ->
+                navController.navigate(VodDetailDestination.routeFor(filmId))
+            },
+        )
+        vodDetailMobileScreen(
+            onPlay = { filmId, title ->
+                navController.navigate(VodPlayerDestination.routeFor(filmId, title))
+            },
+            onBack = { navController.popBackStack() },
+        )
+        vodPlayerMobileScreen(onBack = { navController.popBackStack() })
         seriesMobileScreen()
         searchMobileScreen()
         settingsMobileScreen()
@@ -114,9 +134,20 @@ fun mobileStartRoute(start: AppStart): String? = when (start) {
 /**
  * What the bottom bar offers, in order.
  *
- * Four, not eight. VOD, series and search are still placeholders, and a bar that
- * offers doors onto empty rooms explains itself badly — the reviewer remembers the
- * empty rooms, not the journey that works.
+ * Four or five, not eight. Series and search are still placeholders, and a bar
+ * that offers doors onto empty rooms explains itself badly — the reviewer
+ * remembers the empty rooms, not the journey that works.
+ *
+ * **Films are the fifth, and only when the source has any.** US-13 asks for
+ * exactly that, and it is not a refinement: most M3U playlists carry channels and
+ * nothing else, and a tab that opens onto an empty grid is a promise nobody can
+ * keep. `CatalogueSections` answers the question with one request, and the answer
+ * is false until something says otherwise — so the bar draws immediately with
+ * what is certain and gains a tab, rather than offering one and taking it away
+ * under somebody's thumb.
+ *
+ * Films sit after the channels because that is the order of a catalogue, and
+ * before favourites because a shelf comes before a selection from it.
  *
  * Favourites earns its place beside the catalogue rather than inside it, and that
  * is the structural point of US-12: a group belongs to the account and can hold
@@ -126,9 +157,10 @@ fun mobileStartRoute(start: AppStart): String? = when (start) {
  * places one returns to. They are the way in, and a tab that takes a signed-in
  * user back to a sign-up form is a tab that will be pressed by accident.
  */
-val MobileDestinations: List<LumoDestination> = listOf(
-    LiveDestination,
-    FavoritesDestination,
-    SourceDestination,
-    SettingsDestination,
-)
+fun mobileDestinations(hasFilms: Boolean): List<LumoDestination> = buildList {
+    add(LiveDestination)
+    if (hasFilms) add(VodDestination)
+    add(FavoritesDestination)
+    add(SourceDestination)
+    add(SettingsDestination)
+}
