@@ -143,6 +143,14 @@ class CatalogueRepository @Inject internal constructor(
      * between them leaves categories without their channels, which the next
      * refresh fixes; sharing one transaction would mean a DAO that knows about
      * both, which is a bigger commitment than the failure is worth.
+     *
+     * <h3>The categories replaced are the LIVE ones, and only those</h3>
+     *
+     * Channels and films share the `category` table, keyed by `content_type`, and
+     * [VodRepository] refreshes its half at its own moment. A replacement scoped
+     * to the source rather than to the type would have each refresh silently
+     * empty the other one's category strip — visible only on a source carrying
+     * both, which is most of them.
      */
     suspend fun refresh(sourceId: String): LumoResult<Unit> = withContext(io) {
         val id = UUID.fromString(sourceId)
@@ -166,8 +174,9 @@ class CatalogueRepository @Inject internal constructor(
             page++
         }
 
-        categoryDao.replaceForSource(
+        categoryDao.replaceForSourceAndType(
             sourceId,
+            ContentType.LIVE.value,
             (categories as LumoResult.Success).value.items.map { it.asEntity() },
         )
         channelDao.replaceForSource(sourceId, channels)

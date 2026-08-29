@@ -274,4 +274,9 @@ private class FakeCategoryDao : CategoryDao {
     override suspend fun deleteBySource(sourceId: String) {
         stored.value = stored.value.filterNot { it.sourceId == sourceId }
     }
+
+    override suspend fun deleteBySourceAndType(sourceId: String, contentType: String) {
+        stored.value = stored.value
+            .filterNot { it.sourceId == sourceId && it.contentType == contentType }
+    }
 }

@@ -7,13 +7,15 @@ import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.internal.ApiCaller
 import tv.lumo.android.core.data.map
 import tv.lumo.android.core.data.model.PlaybackTarget
+import tv.lumo.android.core.data.model.VodPlaybackTarget
 import tv.lumo.android.network.generated.api.CatalogApi
 import tv.lumo.android.network.generated.api.UserdataApi
 import tv.lumo.android.network.generated.model.PlaybackInfo
 import tv.lumo.android.network.generated.model.RecordRecentChannelRequest
+import tv.lumo.android.network.generated.model.VodPlaybackInfo
 
 /**
- * Opening a channel, and remembering it was opened.
+ * Opening a channel or a film, and remembering it was opened.
  *
  * <h2>One request per playback, and nothing kept</h2>
  *
@@ -51,6 +53,25 @@ class PlaybackRepository @Inject internal constructor(
             .map(PlaybackInfo::asTarget)
 
     /**
+     * The same, for a film (US-13).
+     *
+     * A second method rather than one taking a kind: the contract has two
+     * operations because the two identifiers point at two different tables, and a
+     * player handed "an id" it cannot name is how a channel gets looked up among
+     * the films. The three refusals above are the same three, for the same reason
+     * — a film counts against the user's simultaneous-stream ceiling exactly as a
+     * channel does.
+     *
+     * **What comes back is a progressive file, not a manifest.** Seeking depends
+     * on the user's server answering `Range` requests, which many do not, and a
+     * player finds that out on its first attempt rather than drawing a scrubber
+     * that does nothing.
+     */
+    suspend fun vodPlaybackTarget(vodItemId: String): LumoResult<VodPlaybackTarget> =
+        calls.call { catalog.getVodPlayback(UUID.fromString(vodItemId)) }
+            .map(VodPlaybackInfo::asTarget)
+
+    /**
      * Records that a channel was actually watched.
      *
      * **Called when playback starts, never when a channel is focused.** On a
@@ -82,3 +103,10 @@ private fun PlaybackInfo.asTarget() = PlaybackTarget(
     expiresAtMillis = expiresAt?.toInstant()?.toEpochMilli(),
 )
 
+private fun VodPlaybackInfo.asTarget() = VodPlaybackTarget(
+    vodItemId = vodItemId.toString(),
+    streamUrl = streamUrl,
+    userAgent = userAgent,
+    maxConnections = maxConnections,
+    expiresAtMillis = expiresAt?.toInstant()?.toEpochMilli(),
+)

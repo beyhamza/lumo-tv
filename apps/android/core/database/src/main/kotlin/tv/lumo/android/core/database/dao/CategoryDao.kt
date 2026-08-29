@@ -26,12 +26,29 @@ interface CategoryDao {
     @Upsert
     suspend fun upsert(categories: List<CategoryEntity>)
 
+    /** Every category of a source, both content types. For a source being forgotten. */
     @Query("DELETE FROM category WHERE source_id = :sourceId")
     suspend fun deleteBySource(sourceId: String)
 
+    @Query("DELETE FROM category WHERE source_id = :sourceId AND content_type = :contentType")
+    suspend fun deleteBySourceAndType(sourceId: String, contentType: String)
+
+    /**
+     * Replaces the categories of one source **for one content type**.
+     *
+     * Scoped to the type, and that is not a refinement: channels and films are
+     * refreshed by two repositories, at two moments, and they share this table.
+     * A replacement that deleted every row of the source would have each refresh
+     * silently empty the other one's category strip — a bug that only appears on
+     * a source carrying both, which is most of them.
+     */
     @Transaction
-    suspend fun replaceForSource(sourceId: String, categories: List<CategoryEntity>) {
-        deleteBySource(sourceId)
+    suspend fun replaceForSourceAndType(
+        sourceId: String,
+        contentType: String,
+        categories: List<CategoryEntity>,
+    ) {
+        deleteBySourceAndType(sourceId, contentType)
         upsert(categories)
     }
 }

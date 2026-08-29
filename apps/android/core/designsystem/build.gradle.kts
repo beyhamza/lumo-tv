@@ -20,5 +20,11 @@ dependencies {
     api(libs.androidx.tv.material)
     api(libs.androidx.compose.ui.tooling.preview)
 
+    // `api`, for the same reason Material is: `LumoPoster` is the one place a
+    // poster is drawn, and every feature that draws one goes through it. Coil
+    // shares the OkHttp stack rather than opening a second one.
+    api(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
     implementation(libs.androidx.lifecycle.runtime.compose)
 }
