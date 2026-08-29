@@ -256,12 +256,11 @@ met à jour **dans le commit qui livre le travail**, pas après.
 | ☑ | S5-07 | `core:data` et Room : les films hors ligne | socle | android | 5 | 100 % |
 | ☑ | S5-08 | Mobile : grille d'affiches, fiche, lecture | mobile | mobile | 8 | 100 % |
 | ☑ | S5-09 | TV : la même au D-pad, et la carte du parcours | tv | tv | 8 | 100 % |
-| ☐ | S5-10 | Web : grille et fiche | web | web | 5 | 0 % |
+| ☑ | S5-10 | Web : grille et fiche | web | web | 5 | 100 % |
 | ☐ | S5-11 | Reprise de lecture, et le rail qui la rend visible | 3 clients | mobile + tv + web | 8 | 0 % |
 
-**Avancement du sprint : 78 % de 60 points.** Les deux clients Android sont faits.
-Il reste le web et la reprise de lecture. La seule vraie inconnue était tranchée dès
-le départ ([`adr/0009`](../adr/0009-m3u-film-detection.md)).
+**Avancement du sprint : 87 % de 60 points.** Les trois clients affichent les films.
+Il ne reste que la reprise de lecture, qui les traverse tous les trois.
 
 ---
 
@@ -717,7 +716,7 @@ doit pas ouvrir l'overlay d'information par accident.
 
 ---
 
-### S5-10 — Web : grille et fiche · **5** · dépend de S5-01
+### S5-10 — Web : grille et fiche · **5** · dépend de S5-01 · ☑
 
 `app/sources/[id]/vod`, sur le modèle exact de `channels` : catégorie, page et
 recherche dans l'URL, donc partageable, compatible avec le bouton retour et
@@ -736,6 +735,21 @@ d'échec nommés qu'en S3-11.
 Le déplacement dans le film exige les requêtes `Range` **et** un en-tête CORS qui les
 autorise. C'est une condition de plus que pour le direct, et elle mérite son propre
 message d'échec plutôt que d'être rangée dans « indisponible ».
+
+> **Correction à la livraison — la moitié CORS de ce paragraphe est fausse.**
+>
+> Un `<video>` sans attribut `crossorigin` émet une requête *no-cors* : le
+> navigateur négocie les `Range`, lit le `206` et joue le fichier quelle que soit
+> l'origine, sans qu'aucun `Access-Control-Allow-Origin` n'intervienne. C'est
+> exactement pourquoi le chemin natif Safari du lecteur de chaînes n'a jamais eu
+> besoin de CORS alors que son chemin `hls.js` en a besoin : **CORS gouverne
+> `fetch`, pas un élément média.**
+>
+> La condition réelle, et la seule, est donc que le serveur de l'utilisateur
+> réponde `206` aux `Range` et annonce `Accept-Ranges`. Beaucoup de panels ne le
+> font pas ; le navigateur rend alors un `seekable` vide, son propre curseur
+> devient inerte, et c'est ce cas-là qui reçoit son message nommé. Le reste du
+> paragraphe tient : la limite mixte de l'`ADR 0007` s'applique à l'identique.
 
 ---
 

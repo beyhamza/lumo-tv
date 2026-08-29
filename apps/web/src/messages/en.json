@@ -277,7 +277,23 @@
     "catalogueGroupRename": "Rename",
     "catalogueGroupDelete": "Delete the group",
     "catalogueGroupDeleteWarning": "Its {count} channels will move to “{target}”. Nothing is removed from your favourites.",
-    "syncStepParsingVod": "Reading the film catalogue"
+    "syncStepParsingVod": "Reading the film catalogue",
+    "filmsTitle": "Films",
+    "filmsMetaDescription": "The films your own source offers.",
+    "filmsCount": "{total} films",
+    "filmsSearchLabel": "Search the films",
+    "filmsSearchHint": "The search matches the film title, ignoring capitals.",
+    "filmsAllCategories": "All categories",
+    "filmsEmpty": "No film in this category",
+    "filmsEmptyHint": "Pick another category, or go back to the full list.",
+    "filmsNoResults": "No film matches",
+    "filmsNoResultsHint": "Try another word, or a different spelling.",
+    "filmsBackToList": "Back to the films",
+    "filmsSynopsisNone": "This source gives no synopsis for this film.",
+    "filmsMinutes": "{count} min",
+    "filmsPlay": "Play",
+    "filmsNoSeeking": "Your provider does not let a browser jump within this film: it sends the whole file whatever position is asked for. It plays from the beginning.",
+    "sourceOpenFilms": "Browse the films"
   },
   "Errors": {
     "generic": "Something went wrong. Try again.",
@@ -309,7 +325,8 @@
     "SOURCE_LIMIT_REACHED": "Your plan does not allow one more source.",
     "DEVICE_LIMIT_REACHED": "Your plan does not allow one more device.",
     "OAUTH_TOKEN_INVALID": "Google sign-in could not be completed. Sign in with your email address instead.",
-    "CHANNEL_NOT_FOUND": "This channel does not exist, or no longer does."
+    "CHANNEL_NOT_FOUND": "This channel does not exist, or no longer does.",
+    "VOD_ITEM_NOT_FOUND": "This film is no longer in your catalogue. Refresh the list."
   },
   "NotFound": {
     "metaTitle": "Page not found",

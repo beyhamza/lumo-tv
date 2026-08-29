@@ -277,7 +277,23 @@
     "catalogueGroupRename": "Renommer",
     "catalogueGroupDelete": "Supprimer le groupe",
     "catalogueGroupDeleteWarning": "Ses {count} chaînes iront dans « {target} ». Rien n’est retiré de vos favoris.",
-    "syncStepParsingVod": "Lecture du catalogue de films"
+    "syncStepParsingVod": "Lecture du catalogue de films",
+    "filmsTitle": "Films",
+    "filmsMetaDescription": "Les films que propose votre propre source.",
+    "filmsCount": "{total} films",
+    "filmsSearchLabel": "Rechercher un film",
+    "filmsSearchHint": "La recherche porte sur le titre du film, sans tenir compte des majuscules.",
+    "filmsAllCategories": "Toutes les catégories",
+    "filmsEmpty": "Aucun film dans cette catégorie",
+    "filmsEmptyHint": "Choisissez une autre catégorie, ou revenez à la liste complète.",
+    "filmsNoResults": "Aucun film ne correspond",
+    "filmsNoResultsHint": "Essayez un autre mot, ou une autre orthographe.",
+    "filmsBackToList": "Retour aux films",
+    "filmsSynopsisNone": "Cette source ne donne pas de synopsis pour ce film.",
+    "filmsMinutes": "{count} min",
+    "filmsPlay": "Lire",
+    "filmsNoSeeking": "Votre fournisseur ne permet pas à un navigateur de se déplacer dans ce film : il renvoie le fichier entier quelle que soit la position demandée. La lecture part du début.",
+    "sourceOpenFilms": "Parcourir les films"
   },
   "Errors": {
     "generic": "Une erreur est survenue. Réessayez.",
@@ -309,7 +325,8 @@
     "SOURCE_LIMIT_REACHED": "Votre offre ne permet pas d'ajouter une source de plus.",
     "DEVICE_LIMIT_REACHED": "Votre offre ne permet pas de connecter un appareil de plus.",
     "OAUTH_TOKEN_INVALID": "La connexion Google n'a pas pu aboutir. Connectez-vous avec votre adresse email.",
-    "CHANNEL_NOT_FOUND": "Cette chaîne n'existe pas, ou plus."
+    "CHANNEL_NOT_FOUND": "Cette chaîne n'existe pas, ou plus.",
+    "VOD_ITEM_NOT_FOUND": "Ce film n'est plus dans votre catalogue. Actualisez la liste."
   },
   "NotFound": {
     "metaTitle": "Page introuvable",
