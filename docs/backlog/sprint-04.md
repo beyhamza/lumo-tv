@@ -730,4 +730,16 @@ enregistrées**, et une **mise à jour par-dessus un build antérieur** plutôt 
 installation neuve — les migrations Room `2 → 3` et `3 → 4` ne s'exécutent que sur
 une mise à jour.
 
-`sprint-04-demo.md` suivra le déroulé de la session.
+**[`sprint-04-demo.md`](./sprint-04-demo.md) est écrit** — huit actes, 15 min 30.
+
+> **Il a été rédigé après coup**, une fois les sprints 5 et 6 livrés, alors que les
+> autres sprints ont eu leur plan de démo au moment où ils se terminaient. Il est
+> donc écrit contre le code d'aujourd'hui, et il dit à quel endroit celui-ci a
+> bougé depuis : `S6-09` a livré l'écran Favoris à l'échelle du compte sur le web,
+> qui corrige un défaut de `S4-09` — un groupe s'y affichait amputé des chaînes de
+> l'autre source, sans le dire.
+
+L'acte 6 est la Definition of Done de ce sprint, littéralement : créer un groupe sur
+le téléphone et le voir sur la télévision et sur le web est la seule preuve qu'un
+groupe appartient au compte et pas à l'appareil, et c'est la seule chose de ce sprint
+qu'aucun test de ce dépôt ne peut établir.
