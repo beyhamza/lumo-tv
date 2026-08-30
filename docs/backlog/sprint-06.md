@@ -127,6 +127,15 @@ Celle du sprint 1, sans allègement, plus :
   *série* — arrêté à l'épisode 4 sur le téléphone, la télévision propose l'épisode 4 ;
 - télécommande en main pour la partie TV.
 
+Le déroulé est [`sprint-06-demo.md`](./sprint-06-demo.md), le plan de qualification
+[`sprint-06-recette.md`](./sprint-06-recette.md) — 72 cas, `R-300` → `R-394`.
+
+> **Les deux commencent par le même avertissement, et il faut le lire avant de
+> planifier la session** : le banc d'essai ne sert **aucun panel Xtream**
+> fonctionnel, et les séries sont Xtream uniquement. Sans un panel — réel ou ajouté
+> au banc — la recette est « non joué » de la section 3 à la section 8, et la démo
+> n'a pas lieu. C'est la dette n° 4 de [`dette.md`](./dette.md).
+
 ---
 
 ## Une story ajoutée — **US-15, retenue**
@@ -951,9 +960,21 @@ Explicitement, pour que la question ne se repose pas en cours de route :
   demanderait de télécharger le flux — ce qu'`architecture.md` §1 interdit.
 - **Le contrôle parental, le multi-profils.** v2, `AGENTS.md` §6.
 
-La dette assumée — client OAuth Google, webhook Stripe, recette des sprints 1 et 2 —
-et les quatre règles qui l'encadrent sont dans [`dette.md`](./dette.md), et valent
-pour ce sprint sans changement.
+La dette assumée et les règles qui l'encadrent sont dans
+[`dette.md`](./dette.md). **Ce sprint en a ajouté deux**, et aucune des deux n'est
+arrivée par un arbitrage — elles se sont signalées toutes seules :
+
+- **le banc d'essai ne sert pas ce que les sprints testent** (n° 4). Deuxième sprint
+  de suite : après le fichier de film du sprint 5, le panel Xtream de celui-ci. La
+  différence est de degré — le premier rendait des cas injouables, le second rend une
+  story entière injouable ;
+- **`IngestionService` n'a aucun test** (n° 5), ce que les recettes des sprints 5 et
+  6 disent toutes les deux. Ce trou a coûté un vrai bug : la contrainte
+  `source_sync_step_check` a fait finir en `ERROR` toute source Xtream synchronisée
+  pendant deux sprints, en accusant le fournisseur.
+
+**Les deux se tiennent** : tester `IngestionService` proprement demande un panel de
+banc. C'est la même tâche, et elle n'est pas chiffrée.
 
 ---
 
@@ -966,6 +987,11 @@ pas une page blanche :
   `GET /channels/{id}/epg` répondent depuis le sprint 1. Il ne manque que les écrans :
   « En ce moment / Ensuite » sur la télévision, le guide sur le téléphone, la grille
   horaire sur le web. C'est le sprint le moins cher qui reste, et il ne bloque rien.
+- **Le banc d'essai**, et il est passé devant le reste de la dette. Un
+  `player_api.php` qui réponde aux six appels d'`XtreamClient`, avec un arbre inventé
+  de deux séries dont une à deux saisons et un trou dans la numérotation. Sans lui,
+  la recette de ce sprint ne se joue que sur un abonnement réel — et celle du sprint
+  suivant non plus.
 - **La dette technique**, dans l'ordre où elle fait mal : le client OAuth Google, puis
   le webhook Stripe, puis la recette avec un rapport de session. Chacune a son état
   réel et ce qui la rouvre dans [`dette.md`](./dette.md).
