@@ -987,18 +987,23 @@ manquent toujours.
 Trois chantiers restent, et ils sont nommés ici pour que la fin de ce sprint ne soit
 pas une page blanche :
 
-- **L'EPG.** Le serveur le fait déjà — `XmltvStreamParser`, la table `epg_programme`,
-  `GET /channels/{id}/epg` répondent depuis le sprint 1. Il ne manque que les écrans :
-  « En ce moment / Ensuite » sur la télévision, le guide sur le téléphone, la grille
-  horaire sur le web. C'est le sprint le moins cher qui reste, et il ne bloque rien.
-- **Le banc d'essai, ce qu'il en reste.** Le panel Xtream est livré ; manquent un
-  vrai fichier vidéo progressif et un serveur qui ignore `Range`. Six cas de lecture
-  des sprints 5 et 6 en dépendent, et les deux sont moins chers que ce qui a été
-  fait — un fichier généré localement, et un serveur qui répond `200` quel que soit
-  l'offset.
-- **La dette technique**, dans l'ordre où elle fait mal : le client OAuth Google, puis
-  le webhook Stripe, puis la recette avec un rapport de session. Chacune a son état
-  réel et ce qui la rouvre dans [`dette.md`](./dette.md).
+- **L'EPG — c'est le [sprint 7](./sprint-07.md), écrit.** 34 points, sept tâches. Le
+  serveur le fait déjà depuis le sprint 1 et **aucun client ne l'appelle** : ce
+  sprint branche du code écrit il y a six sprints plutôt que d'en écrire.
+
+  Le plan a trouvé une chose que personne n'avait vue : [`api-gaps.md`](../design/api-gaps.md)
+  ne pense l'EPG que pour « En ce moment / Ensuite » à la télévision, **une chaîne à
+  la fois**. Une grille horaire web est cinquante chaînes sur un écran, donc
+  cinquante requêtes avec le contrat actuel. Il manque une opération groupée, et
+  c'est tranché dans `S7-01` plutôt que découvert dans un écran.
+- ~~**Le banc d'essai.**~~ **Fait le 31 août 2026.** Le panel Xtream, un vrai MP4
+  et `max_ranges 0` : les six cas de lecture qui étaient « non joué » depuis le
+  sprint 5 sont jouables. La dette n° 4 est fermée, et la n° 5 avec elle — on ne
+  teste pas une ingestion Xtream sans panel Xtream.
+- **La dette technique, désormais à trois entrées** et plus aucune n'est du code :
+  le client OAuth Google, le webhook Stripe, et la recette des sprints 1 et 2. Les
+  trois demandent une décision ou une session humaine. Chacune a son état réel et ce
+  qui la rouvre dans [`dette.md`](./dette.md).
 - **Les favoris de films et de séries**, décision annoncée ci-dessus.
 - **Le glisser-déposer des favoris sur le web.** `PATCH /me/favorites/{id}` existe
   depuis `S4-01` et le web ne l'appelle toujours pas. C'est ce que `S6-09` laisse
