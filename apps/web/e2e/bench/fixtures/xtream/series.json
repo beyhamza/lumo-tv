@@ -1,0 +1,24 @@
+[
+  {
+    "series_id": 9001,
+    "name": "Les Falaises",
+    "cover": "",
+    "category_id": "20",
+    "year": "2019",
+    "episode_run_time": "45",
+    "rating": "8.1",
+    "plot": "Deux saisons, et un numéro qui manque."
+  },
+  {
+    "series_id": "9002",
+    "name": "Le Phare",
+    "cover": "",
+    "stream_icon": "",
+    "category_id": "20",
+    "year": "N/A",
+    "releaseDate": "2011-09-04",
+    "episode_run_time": "",
+    "rating": "",
+    "plot": "Une seule saison, pour l’écran qui ne dessine pas de sélecteur."
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "info": {
+    "plot": "Un synopsis inventé, pour un film qui n'existe pas.",
+    "duration_secs": 6240,
+    "rating": "7.4"
+  },
+  "movie_data": {
+    "stream_id": 4001,
+    "name": "Le Voyage",
+    "container_extension": "mp4"
+  }
+}

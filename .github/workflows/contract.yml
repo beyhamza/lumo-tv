@@ -113,7 +113,19 @@ jobs:
           # get.php?...type=m3u_plus and player_api.php?username=&password= are
           # the two shapes a real IPTV subscription URL takes. Either one in a
           # tracked file means someone pasted their own provider into the repo.
-          found=$(git grep -nIE 'player_api\.php\?[^ ]*(username|password)=|get\.php\?[^ ]*type=m3u_plus' \
+          #
+          # A CREDENTIAL VALUE IS REQUIRED, and that is what makes this usable.
+          # The pattern used to match the shape alone, so it fired on the code
+          # that BUILDS such a URL (`"/player_api.php?username="` in XtreamClient)
+          # and on a deliberately fake `panel.example.com` URL in a redaction
+          # test. Neither is a pasted subscription. This job has never run — the
+          # repository has no remote — so it went unnoticed, and a guard that
+          # fires on its own source is one the first person to meet it turns off.
+          #
+          # Four alphanumerics after the `=` is the line. A real credential clears
+          # it (`username=ASYGSZV`); a format string does not, because the next
+          # character is a quote; and a one-letter placeholder does not either.
+          found=$(git grep -nIE 'player_api\.php\?[^ ]*(username|password)=[A-Za-z0-9]{4,}|get\.php\?[^ ]*type=m3u_plus' \
                    -- . ':!packages/contracts/openapi.yaml' ':!docs/**' ':!.github/**' || true)
           if [ -n "$found" ]; then
             echo "::error::A real IPTV source URL appears to be committed (AGENTS.md §1)."

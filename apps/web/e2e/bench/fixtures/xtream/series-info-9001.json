@@ -1,0 +1,85 @@
+{
+  "info": {
+    "name": "Les Falaises",
+    "plot": "Deux saisons, et un numéro qui manque.",
+    "cover": "",
+    "releaseDate": "2019-03-11",
+    "episode_run_time": "45",
+    "rating": "8.1"
+  },
+  "seasons": [
+    {
+      "season_number": 1,
+      "episode_count": "4",
+      "cover": "",
+      "name": "Saison 1"
+    },
+    {
+      "season_number": 2,
+      "episode_count": "2",
+      "cover": "",
+      "name": "Saison 2"
+    }
+  ],
+  "episodes": {
+    "1": [
+      {
+        "id": "1101",
+        "episode_num": 1,
+        "title": "Le départ",
+        "container_extension": "mp4",
+        "season": 1,
+        "info": {
+          "duration_secs": 2700,
+          "plot": "Un résumé inventé."
+        }
+      },
+      {
+        "id": "1102",
+        "episode_num": 2,
+        "title": "La corniche",
+        "container_extension": "mp4",
+        "season": 1,
+        "info": {
+          "duration_secs": 2680,
+          "plot": "Un résumé inventé."
+        }
+      },
+      {
+        "id": "1104",
+        "episode_num": 4,
+        "title": "Le retour",
+        "container_extension": "mp4",
+        "season": 1,
+        "info": {
+          "duration_secs": 2710,
+          "plot": "Un résumé inventé."
+        }
+      }
+    ],
+    "2": [
+      {
+        "id": "1201",
+        "episode_num": 1,
+        "title": "La suite",
+        "container_extension": "mp4",
+        "season": 2,
+        "info": {
+          "duration_secs": 2700,
+          "plot": "Un résumé inventé."
+        }
+      },
+      {
+        "id": "1202",
+        "episode_num": 2,
+        "title": null,
+        "container_extension": "mp4",
+        "season": 2,
+        "info": {
+          "duration_secs": 2695,
+          "plot": "Un résumé inventé."
+        }
+      }
+    ]
+  }
+}

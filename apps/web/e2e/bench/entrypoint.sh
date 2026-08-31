@@ -65,6 +65,18 @@ cp "$WEB/film/le-voyage.mp4" "$WEB/film/la-traversee.mkv"
 
 echo "bench: two film fixtures generated ($(wc -c < "$WEB/film/le-voyage.mp4") bytes each, MPEG-TS)"
 
+# ---- The Xtream panel --------------------------------------------------------
+#
+# Nothing to generate: the JSON under fixtures/xtream is copied as committed,
+# like every other fixture, and nginx routes an action to a file. This block
+# exists to say so at start-up, because a panel that answers is new and a
+# qualification run should see it in the log rather than discover it.
+#
+# **Only `user_info` is read by the API.** `server_info` is in the account
+# fixture because a real panel sends one; nothing consumes it, and its
+# host and port are decorative.
+echo "bench: xtream panel at /player_api.php ($(ls "$WEB/xtream" | wc -l) fixtures)"
+
 # ---- The payload past the cap -----------------------------------------------
 #
 # `#EXTM3U` first, so the parser accepts it as a playlist and keeps reading —

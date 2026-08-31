@@ -1,0 +1,40 @@
+{
+  "info": {
+    "name": "Le Phare",
+    "plot": "Une seule saison.",
+    "cover": ""
+  },
+  "seasons": [
+    {
+      "season_number": 1,
+      "episode_count": "2",
+      "cover": ""
+    }
+  ],
+  "episodes": {
+    "1": [
+      {
+        "id": "2101",
+        "episode_num": 1,
+        "title": "La lampe",
+        "container_extension": "mp4",
+        "season": 1,
+        "info": {
+          "duration_secs": 2400,
+          "plot": "Un résumé inventé."
+        }
+      },
+      {
+        "id": "2102",
+        "episode_num": 2,
+        "title": "La tempête",
+        "container_extension": "mp4",
+        "season": 1,
+        "info": {
+          "duration_secs": 2420,
+          "plot": "Un résumé inventé."
+        }
+      }
+    ]
+  }
+}
