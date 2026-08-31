@@ -1,16 +1,19 @@
 # Dette assumée
 
-Quatre chantiers sont volontairement repoussés : un vrai client OAuth Google, le
-webhook Stripe, la recette des sprints 1 et 2, et deux trous du banc d'essai.
-**Ce ne sont pas des oublis, ce sont des décisions** — et la différence entre les
-deux tient à un seul fait : une décision est écrite quelque part, avec ce qui la
-rouvrirait.
+Trois chantiers sont volontairement repoussés : un vrai client OAuth Google, le
+webhook Stripe, et la recette des sprints 1 et 2. **Ce ne sont pas des oublis, ce
+sont des décisions** — et la différence entre les deux tient à un seul fait : une
+décision est écrite quelque part, avec ce qui la rouvrirait.
 
-> **Une dette a été fermée le 31 août 2026** : `IngestionService` n'avait aucun
-> test, et il en a cinq. Elle avait été écrite ici la veille, après avoir coûté un
-> vrai bug ; la fermer a demandé de fermer **la moitié** de la quatrième d'abord,
-> parce qu'on ne teste pas une ingestion Xtream sans panel Xtream. Sa section a été
-> supprimée plutôt que barrée, comme le demande la dernière règle de ce document.
+> **Deux dettes ont été fermées le 31 août 2026, et elles se tenaient.**
+> `IngestionService` n'avait aucun test — il en a cinq. Le banc d'essai ne servait
+> ni panel Xtream, ni vrai fichier vidéo, ni serveur refusant `Range` — il sert les
+> trois. On ne teste pas une ingestion Xtream sans panel Xtream, donc la seconde a
+> dû partir la première.
+>
+> **Leurs sections ont été supprimées plutôt que barrées**, comme le demande la
+> dernière règle de ce document. Ce qu'elles ont laissé derrière elles est la règle
+> n° 5 ci-dessous, qui leur survit — c'est le propre d'une règle.
 
 C'est ce document. Il se relit **à l'ouverture de chaque sprint**, avant d'écrire les
 tâches, parce que c'est le seul moment où corriger le cap coûte encore peu.
@@ -28,7 +31,6 @@ pas, et n'a pas de date.
 | Client OAuth Google | Le code des trois surfaces existe et **n'a jamais tourné contre un vrai client** — il n'y en a dans aucun build | Un sprint dédié, ou le jour où quelqu'un s'inscrit |
 | Webhook Stripe | `SRV-10` à 80 %. Ouvrir une session marche ; **un paiement réussi n'accorde rien** | La décision 1 d'[`api-gaps.md`](../design/api-gaps.md) |
 | Recette sprints 1 et 2 | **Partiellement jouée**, sans rapport de session. **0 story sur 10** en Definition of Done | Une session de recette avec un rapport, cas par cas |
-| Banc d'essai incomplet | **Le panel Xtream existe depuis le 31 août 2026.** Restent deux trous : aucun vrai fichier vidéo, aucun serveur sans `Range` | Une tâche de banc, chiffrée. En attendant, six cas de lecture des sprints 5 et 6 ne se jouent pas |
 
 ---
 
@@ -133,42 +135,7 @@ pas les 40 cas en retard — c'est ce que ce document est là pour rappeler.
 
 ---
 
-## 4. Le banc d'essai, et les deux trous qui restent
-
-**Ce qui a été fermé le 31 août 2026 :** le banc sert un panel Xtream qui répond.
-Onze fixtures inventées, les six appels qu'émet `XtreamClient`, et les deux fiches
-adressées par identifiant. `player_api.php` est servi par nginx — un `map` sur
-l'action, un fichier — et non par PHP.
-
-**Il est strict par construction**, et c'est ce qui lui donne sa valeur : les deux
-actions adressées par identifiant lisent deux noms de paramètre différents
-(`vod_id` et `series_id`), donc le nom du fichier se construit à partir de celui que
-l'action est censée envoyer. Une requête qui envoie l'autre nomme un fichier absent
-et tombe sur `wrong-id.json` — un tableau vide avec un `200`, ce que répond un vrai
-panel strict. **Ce n'est pas une hypothèse** : le client adressait une série par
-`vod_id`, et ça marchait parce que les panels essayés acceptent les deux.
-
-**Ce qui reste, et c'est la moitié de l'ancienne dette :**
-
-| Manque | Signalé au | Ce que ça rend injouable |
-|---|---|---|
-| Un vrai fichier vidéo progressif | sprint 5 | Six cas de lecture. `/film/*.mp4` et ce que servent `/movie/` et `/series/` sont **des octets MPEG-TS sous un nom de film** — assez pour l'ADR 0009, qui classe sur l'URL ; pas un conteneur qu'un lecteur décode |
-| Un serveur qui ignore `Range` | sprint 5 | `R-242`, `R-264`, `R-277`, `R-328`. Le banc répond `206` correctement, ce qui est la bonne nouvelle et le problème |
-
-**Ce que le panel a changé pour les recettes.** Les sections 3 à 8 de
-[`sprint-06-recette.md`](./sprint-06-recette.md) étaient intégralement injouables
-sans abonnement réel ; elles le sont maintenant contre le banc, sauf les cas de
-lecture réelle. La règle du contenu (`AGENTS.md` §1) cesse du même coup d'être sous
-tension : on ne branche plus un catalogue plein de titres que tout le monde
-reconnaît pour vérifier un arbre de saisons.
-
-**Ce qui rouvrira le reste :** la première recette qui bute sur un des six cas de
-lecture. Les deux manques sont anciens, connus, et moins chers que le premier —
-un fichier généré localement et un petit serveur qui répond `200` quel que soit
-l'offset.
-
----
-## Les cinq règles qui empêchent la dette de grossir
+## Les six règles qui empêchent la dette de grossir
 
 Elles coûtent presque rien maintenant et très cher plus tard. Elles valent pour tout
 sprint tant que ce document n'est pas vide.
@@ -206,6 +173,13 @@ La règle est née d'une dette qui est maintenant fermée, et elle lui survit : 
 le propre d'une règle. `SyncStepConstraintTest` la tient pour `SyncStep`, et
 `IngestionServiceIntegrationTest` tient le chemin en dessous — remettre l'ancienne
 contrainte fait rougir trois de ses cinq cas.
+
+**6. Le banc sert ce que le sprint teste, et il le sert avant la fin du sprint.**
+Deux sprints de suite, une recette a été écrite en ouvrant sur « ce plan n'est pas
+jouable ». Les deux fois, ce qui manquait a coûté moins cher à écrire que la gêne
+qu'il a causée — un panel de banc, un vrai fichier vidéo, et `max_ranges 0`. Une
+tâche qui a besoin d'une fixture que le banc n'a pas porte cette fixture dans son
+chiffrage.
 
 ---
 

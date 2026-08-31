@@ -25,25 +25,25 @@ web de l'acte 5. **Jamais l'acte 6** — voir plus bas pourquoi.
 - L'API et le banc d'essai démarrés et vérifiés.
 - Un réseau dont on connaît le comportement.
 
-### Les deux choses que le banc ne fournit pas
+### Les deux choses que le banc ne fournissait pas — il les fournit
 
-À préparer, sinon deux actes tombent à l'eau et on le découvre devant la salle.
+**Cette section était une liste de préparatifs manuels. Elle est devenue une liste
+de chemins**, le 31 août 2026.
 
-**Un vrai fichier MP4 progressif.** Les fixtures `/film/*.mp4` du banc sont **des
-octets MPEG-TS sous un nom de film** : c'est assez pour l'ingestion, qui classe sur
-l'URL, et **ce n'est pas un conteneur qu'un lecteur décode**. Les actes 3, 4 et 5
-ont besoin d'un vrai fichier, généré localement et servi par le banc.
+| Ce dont la démo a besoin | Où, maintenant |
+|---|---|
+| Un vrai MP4 progressif | `/film/le-voyage.mp4` — H.264 + AAC, six secondes, `faststart` |
+| Un serveur qui ignore `Range` | `/film-norange/le-voyage.mp4` — le même fichier, `max_ranges 0` |
 
-**Un serveur qui ignore les requêtes `Range`.** Le banc répond `206`
-correctement — ce qui est la bonne nouvelle et le problème. La moitié de l'acte 3
-et un tiers de l'acte 4 montrent ce que fait le produit quand le serveur refuse de
-se déplacer, et cela demande un serveur qui refuse. `python3 -m http.server` ne
-convient pas : il gère `Range`.
+Les actes 3, 4 et 5 se jouent donc contre le banc et rien d'autre. Le fichier
+était auparavant des octets MPEG-TS sous un nom de film — assez pour l'ingestion,
+qui classe sur l'URL, et rien qu'un lecteur décode ; et il fallait improviser un
+serveur sans `Range`, ce qu'un `python3 -m http.server` ne donne pas puisqu'il gère
+`Range`.
 
-Les deux sont des trous du banc d'essai, notés dans
-[`sprint-05-recette.md`](./sprint-05-recette.md) §11. Ils sont à chiffrer ; en
-attendant, ils se préparent à la main.
-
+**Les deux manques étaient notés dans [`sprint-05-recette.md`](./sprint-05-recette.md)
+§11 comme « à chiffrer ». Ils ont coûté un fichier de 57 ko et une directive nginx**
+— ce qui est la raison de la sixième règle de [`dette.md`](./dette.md).
 ## Préparation, trente minutes avant
 
 1. Dérouler le parcours en entier, une fois, seul.
@@ -252,8 +252,8 @@ C'est l'acte qui convainc les gens qui liront le code après.
 
 | Panne | Repli |
 |---|---|
-| Le vrai MP4 ne se lit pas | Second fichier préparé, encodé autrement. Ne **pas** basculer sur les fixtures du banc : elles ne décodent pas |
-| Le serveur sans `Range` ne démarre pas | Capture d'écran de la barre inerte et de sa phrase, en secours. Le dire plutôt que de le faire |
+| Le vrai MP4 ne se lit pas | C'est une fixture du banc, vérifiée : relancer le conteneur avant de conclure. `docker compose --profile bench up -d --force-recreate bench` |
+| `/film-norange/` répond `206` | Le conteneur sert une vieille configuration : `--force-recreate`. Un `206` ici veut dire que `max_ranges 0` n'est pas chargé |
 | Le rail « Reprendre » ne se remplit pas | Attendre trente secondes : c'est le pas d'écriture. Ne pas relancer le film en boucle |
 | Le catalogue de films est vide sur un appareil | Actualiser depuis l'écran. Ne pas réinstaller devant la salle |
 | Une affiche ne charge pas | **Ne pas s'en excuser.** C'est l'acte 2 : le titre sur un aplat est le comportement voulu |

@@ -61,23 +61,27 @@ réenregistrer la source entre les deux passes. C'est plus lourd, ce n'est pas u
 excuse pour les sauter, et c'est écrit ici pour que la lourdeur ne soit pas une
 surprise.
 
-**Un fichier de film qui se lit vraiment**, et le banc n'en fournit pas. Les
-fixtures `/film/*.mp4` et `/film/*.mkv` sont **des octets MPEG-TS sous un nom de
-film** : c'est écrit dans `entrypoint.sh` et c'est assez pour l'ADR 0009, qui
-classe sur l'URL, donc assez pour toute la section 3. Ce n'est **pas** un
-conteneur qu'un navigateur décode. Les cas de lecture réelle (R-240 → R-244,
-R-260 → R-265, R-274 → R-277) demandent donc un vrai MP4 progressif servi en
-`http(s)` — n'importe quel fichier généré localement fait l'affaire, du moment
-qu'il ne vient de nulle part (§2).
+**Un fichier de film qui se lit vraiment — le banc en sert un depuis le 31 août
+2026.** `/film/le-voyage.mp4` est un vrai MP4 : H.264 baseline et AAC, six
+secondes de mire et de sinus, `faststart`. `/film/la-traversee.mkv` est le même,
+remuxé en Matroska pour Media3. `/movie/` et `/series/` — les chemins qu'un panel
+Xtream construit — servent le même fichier.
 
-**Un serveur qui refuse les requêtes `Range`.** Le banc n'en a pas non plus : nginx
-répond `206` correctement, ce qui est la bonne nouvelle et le problème. Les cas
-**R-242, R-264 et R-277** vérifient la moitié la plus délicate de ce sprint et
-demandent un serveur qui ignore l'en-tête. Un `python3 -m http.server`
-**n'y suffit pas** — il gère `Range`. Il faut un petit serveur qui réponde `200`
-avec le corps entier quel que soit l'offset ; sans lui, ces trois cas sont
-« non joué avec la raison », et c'est une raison recevable et traçable.
+> **Ces fixtures étaient des octets MPEG-TS sous un nom de film**, ce qui suffisait
+> à l'ADR 0009 — qui classe sur l'URL — et ne se décodait nulle part. Six cas de
+> lecture réelle sont restés « non joué » deux sprints pour cette raison. Ils sont
+> jouables.
 
+**Un serveur qui refuse les requêtes `Range` — le banc en sert un aussi.**
+`/film-norange/le-voyage.mp4` sert le même fichier avec `max_ranges 0` : nginx
+ignore l'en-tête et répond `200` avec le corps entier, ce que font énormément de
+panels. `Accept-Ranges` n'est délibérément **pas** annoncé — annoncer puis ignorer
+est un troisième comportement, pire que les deux, et qui ne mérite pas d'être
+reproduit.
+
+> Une directive, et elle a mis deux sprints à être écrite. R-242, R-264 et R-277
+> l'attendaient ; un `python3 -m http.server` n'y suffisait pas, puisqu'il gère
+> `Range`.
 ---
 
 ## 2. La règle qui prime sur la recette elle-même
@@ -245,7 +249,7 @@ pendant le glissement. Un curseur qui se bat avec la position qui avance est
 rouge.
 
 **R-242 · Un serveur sans `Range` : désactivé *et* expliqué** · S5-08 · téléphone
-Sur le serveur sans `Range` (§1).
+Sur `/film-norange/` (§1).
 → La barre est **dessinée, inerte, avec la phrase à côté**. Les deux moitiés
 comptent : une barre absente est rouge, une barre qui ne bouge pas sans dire
 pourquoi est rouge aussi.
@@ -336,7 +340,7 @@ Ouvrir une couche, appuyer à nouveau au bout de trois secondes.
 qu'on lit est rouge.
 
 **R-264 · Sans `Range`, les touches le disent** · S5-09 · TV
-Sur le serveur sans `Range` (§1), appuyer sur `RIGHT`.
+Sur `/film-norange/` (§1), appuyer sur `RIGHT`.
 → La barre s'ouvre **inerte, avec la phrase**. Une touche qui a l'air morte est
 une télécommande dont on croit qu'elle a cessé de fonctionner.
 
@@ -380,7 +384,7 @@ Depuis une page `https`, un panel en `http://`.
 limite de l'ADR 0007, inchangée depuis S3-11.
 
 **R-277 · Sans `Range`, sa propre phrase** · S5-10 · navigateur
-Sur le serveur sans `Range` (§1).
+Sur `/film-norange/` (§1).
 → Une phrase qui dit que le déplacement est impossible, **distincte** de
 « indisponible ». Le curseur natif du navigateur est inerte, et c'est lui qui a
 besoin d'être expliqué.
@@ -569,9 +573,12 @@ recevables et traçables. « Probablement bon » ne l'est pas.
   coûté un vrai bug — la contrainte `source_sync_step_check` a fait finir en
   `ERROR` toute source Xtream pendant deux sprints — et que le signaler ici deux
   fois n'a servi à rien tant que personne ne l'a fermé.
-- **Le banc d'essai ne sert toujours pas de vrai fichier vidéo ni de serveur sans
-  `Range`.** Six cas en dépendent (§1). Le panel Xtream qui manquait aussi a été
-  livré le 31 août 2026 ; ces deux-là restent, et sont moins chers.
+- **Le banc sert tout ce que cette recette demande depuis le 31 août 2026.** Les
+  six cas de lecture qui étaient « non joué » sont jouables : `/film/` sert un vrai
+  MP4 (H.264 + AAC, six secondes), et `/film-norange/` sert le même fichier depuis
+  un serveur qui **ignore** `Range` — `max_ranges 0`, une directive. Cette ligne
+  est gardée parce que ces cas ont passé deux sprints en « non joué » et que
+  personne ne devrait avoir à redécouvrir pourquoi.
 - **Aucun sélecteur de source sur Android.** Les deux applications lisent la
   première source du compte. C'est ce qui rend R-210 et R-250 lourds à jouer, et
   c'est une limite du produit plutôt que de cette recette — antérieure à ce sprint,

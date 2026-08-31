@@ -57,10 +57,10 @@ plus un catalogue plein de titres que tout le monde reconnaît pour vérifier un
 de saisons. Elle reste écrite ci-dessous parce qu'elle vaut toujours, pas parce
 qu'elle est en danger.
 
-**Ce qui reste injouable contre le banc** : les cas de lecture réelle. Ce que
-servent `/movie/` et `/series/` sont des octets MPEG-TS sous un nom de film — assez
-pour toute l'ingestion et tout l'arbre, pas un conteneur qu'un lecteur décode. Voir
-§12 et [`dette.md`](./dette.md) n° 4.
+**Et la lecture se joue aussi** : `/movie/` et `/series/` servent un vrai MP4 —
+H.264 baseline et AAC, six secondes, `faststart` — depuis le 31 août 2026. Un
+`/film-norange/` sert le même fichier depuis un serveur qui **ignore** `Range`,
+pour R-328. **Rien de cette recette ne demande plus un fichier préparé à la main.**
 ### Les prérequis habituels
 
 **Les trois surfaces, sur le même compte.** Un téléphone Android physique, une box
@@ -565,10 +565,11 @@ raisons recevables et traçables. « Probablement bon » ne l'est pas.
 
 Écrit ici plutôt que découvert plus tard.
 
-- **Le banc sert un panel Xtream mais aucun vrai fichier vidéo**, et aucun serveur
-  qui ignore `Range`. Les cas de lecture réelle — R-327, R-328, R-365 — demandent
-  donc encore un fichier préparé à la main. C'est ce qui reste de la dette n° 4
-  après le 31 août 2026, et c'est moins cher que ce qui a été fermé.
+- **Le banc sert tout ce que cette recette demande**, depuis le 31 août 2026 :
+  le panel Xtream, un vrai MP4 et un serveur qui ignore `Range`. Cette ligne était
+  une liste de manques ; elle est gardée comme une liste de ce qu'il a fallu
+  écrire, parce que les trois avaient été signalés dans deux recettes avant que
+  quiconque les ferme.
 - **`IngestionService` a maintenant cinq tests d'intégration**, ce qui change ce que
   R-300 vérifie : il n'est plus la seule preuve que la synchronisation traverse ses
   six étapes, il est la preuve qu'elle les traverse **contre un vrai panel**. Il

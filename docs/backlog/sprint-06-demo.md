@@ -50,11 +50,10 @@ moment où quelqu'un demande une capture qu'il faut refuser. Si une démo se jou
 quand même sur un abonnement réel, la règle d'origine tient : on regarde, on
 n'archive pas (AGENTS.md §1, CLAUDE.md règle 2).
 
-**Ce que le banc ne fournit toujours pas : un fichier qu'un lecteur décode.** Ce que
-servent `/movie/` et `/series/` sont des octets MPEG-TS sous un nom de film. Tout se
-démontre jusqu'à la lecture — la grille, la fiche, l'arbre, le focus, le décompte —
-et **l'image elle-même demande un vrai fichier préparé à la main**, comme au sprint
-5. C'est ce qui reste de la dette n° 4.
+**Et l'image elle-même se démontre.** `/movie/` et `/series/` servent un vrai MP4 —
+H.264 baseline et AAC, six secondes de mire — depuis le 31 août 2026. Un épisode
+lancé pendant l'acte 4 décode réellement, sur les trois surfaces. Il n'y a plus
+aucun fichier à préparer à la main avant une démo.
 **Choisir la série de démonstration à l'avance**, et en prendre une qui a **au
 moins deux saisons**. L'acte 4 a besoin d'une fin de saison pour montrer
 l'enchaînement, et l'acte 3 a besoin d'un sélecteur de saison pour exister.

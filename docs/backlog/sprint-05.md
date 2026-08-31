@@ -612,7 +612,8 @@ Le comptage de fin d'ingestion distingue les deux, comme pour Xtream.
 > ces deux-là sont écrits comme quelque chose à regarder plutôt qu'à corriger.
 >
 > **Une limite dite plutôt que masquée** : les fichiers de film du banc sont des
-> octets MPEG-TS sous un nom de film. Assez pour la classification et
+> octets MPEG-TS sous un nom de film — **remplacés par de vrais conteneurs le
+> 31 août 2026**. Assez pour la classification et
 > l'ingestion — ADR 0009 classe sur l'URL — pas assez pour une vraie lecture dans
 > un navigateur. La recette le dira ; une fixture qui ferait semblant serait pire.
 >
@@ -622,6 +623,11 @@ Le comptage de fin d'ingestion distingue les deux, comme pour Xtream.
 > catalogue de films en échec laisse la source `READY`) n'a pas de test. La
 > construire ici sortirait du périmètre ; elle est à chiffrer, et en attendant
 > c'est un cas de recette.
+>
+> **Écrit le 31 août 2026 : ce manque a duré deux sprints et a coûté un vrai bug.**
+> `IngestionServiceIntegrationTest` le comble, et l'un de ses cinq cas est
+> exactement celui-ci. Ce qui l'a débloqué n'était pas le chiffrage, c'était le
+> panel Xtream du banc — on ne teste pas une ingestion Xtream sans panel Xtream.
 
 Ce qui protège le serveur, et ce que l'utilisateur en voit.
 
