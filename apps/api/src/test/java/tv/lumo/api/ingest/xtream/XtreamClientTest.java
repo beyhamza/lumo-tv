@@ -60,7 +60,14 @@ class XtreamClientTest {
                     : query.contains("action=get_vod_categories") ? VOD_CATEGORIES
                     : query.contains("action=get_vod_streams") ? VOD_STREAMS
                     : query.contains("action=get_series_categories") ? SERIES_CATEGORIES
-                    : query.contains("action=get_series_info") ? SERIES_INFO
+                    // A strict panel, on purpose: the two single-item actions read
+                    // two different parameter names, and a stub that answered either
+                    // way is what let `get_series_info&vod_id=` ship. See
+                    // `XtreamClient.playerApiWithId`.
+                    : query.contains("action=get_series_info")
+                            ? (query.contains("series_id=") ? SERIES_INFO : WRONG_ID)
+                    : query.contains("action=get_vod_info")
+                            ? (query.contains("vod_id=") ? VOD_INFO : WRONG_ID)
                     : query.contains("action=get_series") ? SERIES
                     : ACCOUNT;
             respondGzipped(exchange, body);
@@ -220,6 +227,31 @@ class XtreamClientTest {
     }
 
     @Test
+    @DisplayName("`get_series_info` s'adresse par `series_id`, pas par `vod_id`")
+    void addressesASeriesByItsOwnParameter() {
+        // The panel behind this test refuses anything else, and it refuses the way
+        // real ones do: an empty array with a 200 rather than an error. This shipped
+        // — the helper hard-coded `vod_id` for both single-item actions — and it
+        // worked only because the panels we happened to try take either.
+        //
+        // A strict panel would have answered nothing for every series, and every
+        // client would have said "the provider did not answer". Nothing else in
+        // this file could have caught it: the stub used to route on `action` alone.
+        assertThat(client.fetchSeriesInfo(host, "user", "pass", "9001")).isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("`get_vod_info` s'adresse par `vod_id`, et rend le synopsis")
+    void addressesAFilmByItsOwnParameter() {
+        // The symmetric case, and the one that was right all along. It has a test
+        // now because it did not have one: `get_vod_info` was never stubbed, so the
+        // only call in this client that used the correct parameter was also the
+        // only one nothing exercised.
+        assertThat(client.fetchVodPlot(host, "user", "pass", "4001"))
+                .isEqualTo("Deux gardiens de phare et une tempete qui dure.");
+    }
+
+    @Test
     @DisplayName("l'arbre vient des épisodes, et une saison déclarée vide reste une saison")
     void readsTheTree() {
         List<XtreamClient.XtreamSeason> tree =
@@ -321,6 +353,23 @@ class XtreamClientTest {
 
     private static final String SERIES_CATEGORIES = """
             [{"category_id":"20","category_name":"Drame","parent_id":0}]
+            """;
+
+    /**
+     * What a panel that reads only the documented parameter answers.
+     *
+     * <p>An empty array, which is what several of them return for an identifier
+     * they did not receive — not an error status. That is the whole difficulty:
+     * the request succeeds and the tree is empty, so the client reports "the
+     * provider did not answer" and the user goes looking at their subscription.
+     */
+    private static final String WRONG_ID = "[]";
+
+    /** One film sheet, with the key most panels use. Invented, like everything here. */
+    private static final String VOD_INFO = """
+            {"info":{"plot":"Deux gardiens de phare et une tempete qui dure.",
+                     "duration_secs":5400},
+             "movie_data":{"stream_id":4001}}
             """;
 
     /**

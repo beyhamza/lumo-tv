@@ -213,7 +213,7 @@ public class XtreamClient {
      * exists for the catalogue walks, where the array is the size of the panel.
      */
     public String fetchVodPlot(String host, String username, String password, String streamId) {
-        URI uri = playerApiWithId(host, username, password, "get_vod_info", streamId);
+        URI uri = playerApiWithId(host, username, password, "get_vod_info", "vod_id", streamId);
         return http.get(host, uri, stream -> {
             try {
                 JsonNode root = objectMapper.readTree(stream);
@@ -309,7 +309,7 @@ public class XtreamClient {
      */
     public List<XtreamSeason> fetchSeriesInfo(String host, String username, String password,
                                               String seriesId) {
-        URI uri = playerApiWithId(host, username, password, "get_series_info", seriesId);
+        URI uri = playerApiWithId(host, username, password, "get_series_info", "series_id", seriesId);
         return http.get(host, uri, stream -> {
             try {
                 return readTree(objectMapper.readTree(stream), host, username, password);
@@ -580,11 +580,25 @@ public class XtreamClient {
         return URI.create(url.toString());
     }
 
-    /** The same, for the actions that address one item — {@code get_vod_info} and its kin. */
+    /**
+     * The same, for the actions that address one item.
+     *
+     * <p><b>The parameter name is an argument because it is not the same for the
+     * two actions that use this.</b> {@code get_vod_info} reads {@code vod_id};
+     * {@code get_series_info} reads {@code series_id}. This helper used to hard-code
+     * {@code vod_id} for both — its own comment said "and its kin", which is how the
+     * generalisation happened — and it worked against the panels we tried because
+     * most of them take whichever identifier is present.
+     *
+     * <p>A panel that reads only {@code series_id} would have answered nothing for
+     * every series, and the phone would have said "episodes unavailable" on all of
+     * them — a failure that looks like the provider being down. There is no test
+     * that could have caught it either: the stub routed on {@code action} alone.
+     */
     private static URI playerApiWithId(String host, String username, String password,
-                                       String action, String streamId) {
+                                       String action, String idParameter, String id) {
         return URI.create(playerApi(host, username, password, action)
-                + "&vod_id=" + encode(streamId));
+                + "&" + idParameter + "=" + encode(id));
     }
 
     private static String encode(String value) {
