@@ -20,42 +20,47 @@ Les critères d'acceptation sont ceux d'**US-15**, en Gherkin, dans
 
 ## 1. Prérequis
 
-### Le prérequis qui décide si cette recette est jouable
+### Le panel Xtream du banc — livré le 31 août 2026
 
-**Il faut un panel Xtream qui répond, et le banc d'essai n'en a pas.**
+**Cette section disait que la recette n'était pas jouable.** Elle l'est.
 
 Les séries sont une fonction Xtream et rien d'autre
-([`adr/0010`](../adr/0010-series-are-xtream-only.md)) : une playlist M3U ne déclare
-ni saison ni épisode, et Lumo n'invente pas d'arbre à partir des titres. Or le banc
-(`apps/web/e2e/bench/nginx.conf`) ne sert que deux endpoints Xtream, et **les deux
-sont des pannes** :
+([`adr/0010`](../adr/0010-series-are-xtream-only.md)), et le banc ne servait que
+`/xtream-401/` et `/xtream-garbage/` — deux pannes. Il sert maintenant un panel qui
+répond, à la racine :
 
-| Chemin | Ce qu'il rend | Ce qu'il sert à vérifier |
-|---|---|---|
-| `/xtream-401/` | `401 {"user_info":{"auth":0}}` | `SOURCE_AUTH_FAILED` |
-| `/xtream-garbage/` | `200 not json` | `SOURCE_INVALID_FORMAT` |
+```bash
+docker compose --profile bench --env-file apps/api/.env up -d
+```
 
-Il n'existe **aucun `player_api.php` qui réponde** `get_series_categories`,
-`get_series` ou `get_series_info`. Sans l'un des deux moyens ci-dessous,
-**les sections 3 à 8 sont intégralement « non joué »**, ce qui est une réponse
-traçable et une recette qui ne prouve rien.
+| Ce qu'il faut | Où |
+|---|---|
+| Hôte de la source Xtream | `http://localhost:18081` (ou `BENCH_PUBLIC_URL` depuis un appareil) |
+| Identifiants | n'importe lesquels — `bench` / `bench` par convention |
+| Séries | `Les Falaises` (deux saisons, **trou à l'épisode 3**), `Le Phare` (une saison) |
+| Films | trois, dont un **sans `container_extension`** qui doit être écarté |
+| Chaînes | trois, sur deux catégories |
 
-**Les deux moyens, et leurs coûts :**
+**Les identifiants ne sont pas vérifiés**, et c'est délibéré : `/xtream-401/` est
+déjà la fixture d'un panel qui refuse, et c'est une meilleure fixture pour ce cas
+qu'une demi-vérification ici. Ce panel-ci est la fixture d'un panel **qui marche**.
 
-1. **Un abonnement réel**, celui d'un membre de l'équipe. C'est ce qui marche
-   aujourd'hui, et c'est ce qui rend la §2 non négociable : rien de ce panel
-   n'entre dans le dépôt, ni capture, ni titre, ni URL, ni identifiant.
-2. **Ajouter un panel Xtream au banc.** C'est le bon investissement et il n'est pas
-   chiffré. Il faut un `player_api.php` qui réponde aux six appels que
-   `XtreamClient` émet, avec un arbre inventé de deux séries — dont **une avec deux
-   saisons et un trou dans la numérotation**, parce que c'est le cas que
-   `NextEpisodeTest` couvre en JVM et que personne n'a jamais vu à l'écran.
+**`Les Falaises` est la série que cette recette a demandée** : deux saisons pour
+R-344 et R-349, et un trou dans la numérotation — épisodes 1, 2 et 4 — qui est le
+cas que `NextEpisodeTest` couvre en JVM et que personne n'avait jamais vu à
+l'écran. `Le Phare` a une seule saison, ce qui est la moitié conditionnelle de
+R-344.
 
-   > C'est le pendant exact de ce que la recette du sprint 5 disait du fichier de
-   > film : le banc ne fournit pas la chose que le sprint teste. Deux sprints de
-   > suite, la même phrase. Elle est reprise en §12 et dans
-   > [`dette.md`](./dette.md).
+**Ce que ça change pour la §2.** Un abonnement réel n'est plus nécessaire pour les
+sections 3 à 8, donc la règle du contenu cesse d'être sous tension : on ne branche
+plus un catalogue plein de titres que tout le monde reconnaît pour vérifier un arbre
+de saisons. Elle reste écrite ci-dessous parce qu'elle vaut toujours, pas parce
+qu'elle est en danger.
 
+**Ce qui reste injouable contre le banc** : les cas de lecture réelle. Ce que
+servent `/movie/` et `/series/` sont des octets MPEG-TS sous un nom de film — assez
+pour toute l'ingestion et tout l'arbre, pas un conteneur qu'un lecteur décode. Voir
+§12 et [`dette.md`](./dette.md) n° 4.
 ### Les prérequis habituels
 
 **Les trois surfaces, sur le même compte.** Un téléphone Android physique, une box
@@ -105,16 +110,17 @@ d'un vrai fournisseur, **pas d'affiche**, pas de titre d'une œuvre existante, p
 de nom de bouquet — ni dans les captures jointes à un rapport, ni dans un ticket
 ouvert pendant la session (AGENTS.md §1, CLAUDE.md règle 2).
 
-**Ce sprint rend cette règle plus difficile à tenir que tous les précédents**, et
-il faut le dire franchement : le §1 admet qu'un abonnement réel est aujourd'hui le
-seul moyen de jouer la recette. Un catalogue de séries réel est plein de titres
-que tout le monde reconnaît, et la tentation de joindre une capture « pour montrer
-le rendu » est maximale.
+**Ce sprint a failli rendre cette règle très difficile à tenir**, et le banc est ce
+qui l'en empêche. Tant qu'il ne servait aucun panel Xtream, la seule façon de jouer
+les sections 3 à 8 était un abonnement réel — un catalogue plein de titres que tout
+le monde reconnaît, au moment précis où quelqu'un veut joindre une capture « pour
+montrer le rendu ». Depuis le 31 août 2026 il y a deux séries inventées qui suffisent.
 
-**La règle de session est donc :** on regarde l'écran, on ne le photographie pas.
-Un rapport décrit — « la carte À suivre est apparue à la fin de l'épisode, le
-décompte s'est arrêté au premier appui » — et ne montre pas. Une capture n'est
-recevable que si elle vient du banc, avec des titres inventés.
+**Si une session se joue quand même sur un abonnement réel** — pour vérifier un vrai
+catalogue de cinquante mille séries, ce que le banc ne simule pas — la règle de
+session est : on regarde l'écran, on ne le photographie pas. Un rapport décrit — « la
+carte À suivre est apparue à la fin de l'épisode, le décompte s'est arrêté au premier
+appui » — et ne montre pas. Une capture n'est recevable que si elle vient du banc.
 
 ---
 
@@ -136,10 +142,15 @@ Enregistrer une source Xtream, attendre `READY`.
 > Xtream synchronisée depuis la fin du sprint 5 finissait en `ERROR` et perdait ses
 > chaînes avec ses films, en accusant le fournisseur (`SOURCE_UNREACHABLE`).
 >
-> Corrigé par `0017-sync-step-values.sql` et gardé par `SyncStepConstraintTest`,
-> qui itère sur `SyncStep.values()` au lieu d'énumérer. **Ce cas est ce qui aurait
-> attrapé le bug**, et il a survécu deux sprints parce que rien n'exerce
-> `IngestionService` (§12).
+> Corrigé par `0017-sync-step-values.sql`, gardé par `SyncStepConstraintTest` qui
+> itère sur `SyncStep.values()` au lieu d'énumérer, et **désormais par
+> `IngestionServiceIntegrationTest`**, qui parcourt le chemin en entier contre les
+> fixtures de ce banc : remettre l'ancienne contrainte fait rougir trois de ses
+> cinq cas.
+>
+> Ce cas reste à jouer, et ce qu'il vérifie a changé : plus « est-ce que la
+> synchronisation marche », que la CI sait maintenant, mais « est-ce qu'elle marche
+> contre le panel de quelqu'un ».
 
 **R-301 · Une playlist M3U ne produit aucune série** · S6-00 · serveur
 → `GET /sources/{id}/series` rend `total_elements: 0`. Pas d'erreur, pas de série
@@ -554,16 +565,14 @@ raisons recevables et traçables. « Probablement bon » ne l'est pas.
 
 Écrit ici plutôt que découvert plus tard.
 
-- **Le banc d'essai ne sert aucun panel Xtream fonctionnel**, et les séries sont
-  Xtream uniquement. Les sections 3 à 8 dépendent donc d'un abonnement réel, ce qui
-  met la §2 sous tension maximale. **C'est le deuxième sprint de suite où le banc ne
-  fournit pas la chose que le sprint teste** — le sprint 5 disait la même phrase
-  d'un fichier de film. Le chiffrage d'un `player_api.php` de banc est à faire, et
-  il est dans [`dette.md`](./dette.md).
-- **`IngestionService` n'a toujours aucun test automatisé.** R-300 est sa seule
-  vérification et elle est manuelle. Ce trou a laissé passer le bug de
-  `source_sync_step_check` pendant deux sprints ; la recette du sprint 5 le nommait
-  déjà.
+- **Le banc sert un panel Xtream mais aucun vrai fichier vidéo**, et aucun serveur
+  qui ignore `Range`. Les cas de lecture réelle — R-327, R-328, R-365 — demandent
+  donc encore un fichier préparé à la main. C'est ce qui reste de la dette n° 4
+  après le 31 août 2026, et c'est moins cher que ce qui a été fermé.
+- **`IngestionService` a maintenant cinq tests d'intégration**, ce qui change ce que
+  R-300 vérifie : il n'est plus la seule preuve que la synchronisation traverse ses
+  six étapes, il est la preuve qu'elle les traverse **contre un vrai panel**. Il
+  reste rouge-bloquant, pour une raison différente et plus petite.
 - **Le rafraîchissement des séries n'est pas mesuré.** `SeriesRepository.refresh`
   parcourt la pagination à 200 par page ; un panel de cinquante mille séries est
   **deux cent cinquante requêtes** à la première synchronisation d'un appareil.

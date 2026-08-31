@@ -602,9 +602,10 @@ Le comptage de fin d'ingestion distingue les deux, comme pour Xtream.
 > phase. La règle de l'énumération vaut dans les deux sens.
 >
 > **Le banc gagne son septième chemin, et pas celui qui était prévu.** Le document
-> demandait `/xtream-vod-huge/` ; or **le banc n'a aucun panel Xtream qui
-> fonctionne** — seulement `/xtream-401/` et `/xtream-garbage/`. Un chemin VOD
-> Xtream demanderait d'abord d'écrire un faux panel entier. Ce qui est livré à la
+> demandait `/xtream-vod-huge/` ; or **le banc n'avait alors aucun panel Xtream
+> qui fonctionne** — seulement `/xtream-401/` et `/xtream-garbage/`. Un chemin VOD
+> Xtream aurait demandé d'écrire un faux panel entier, ce qui a fini par être fait
+> au sprint suivant. Ce qui est livré à la
 > place est ce dont la recette a besoin en premier : **`/mixed.m3u`**, une playlist
 > qui mêle chaînes et films, dont **chaque entrée exerce une règle de l'ADR 0009 —
 > y compris les deux cas où la règle se trompe exprès**. C'est le seul endroit où

@@ -26,29 +26,35 @@ et c'est celle sur laquelle la salle aura un avis.
 - Un navigateur, sur le même compte.
 - L'API et le banc d'essai démarrés et vérifiés.
 
-### La chose que le banc ne fournit pas, et cette fois c'est la principale
+### Le banc suffit, depuis le 31 août 2026
 
-**Il faut un panel Xtream qui répond, et le banc n'en a pas.**
+**Cette section disait qu'il n'y avait pas de démo sans abonnement réel.** Le banc
+sert maintenant un panel Xtream qui répond :
 
-Les séries sont une fonction Xtream et rien d'autre
-([`adr/0010`](../adr/0010-series-are-xtream-only.md)). Le banc ne sert que
-`/xtream-401/` et `/xtream-garbage/` — **deux pannes**. Il n'existe aucun
-`player_api.php` qui réponde `get_series`. **Sans panel, il n'y a pas de démo** :
-sept actes sur huit en dépendent.
+```bash
+docker compose --profile bench --env-file apps/api/.env up -d
+```
 
-Deux moyens, et il faut avoir tranché **avant** le jour même :
+Source Xtream sur `http://localhost:18081`, identifiants quelconques. Deux séries,
+trois films, trois chaînes — tout inventé.
 
-1. **Un abonnement réel.** Ce qui marche aujourd'hui, et qui impose la règle
-   ci-dessous.
-2. **Un `player_api.php` ajouté au banc.** Le bon investissement, non chiffré, à
-   faire une fois pour tous les sprints suivants.
+**Et c'est mieux qu'un abonnement réel, pas seulement plus commode.** La série de
+démonstration `Les Falaises` a deux saisons **et un trou à l'épisode 3**, ce qu'un
+catalogue réel ne garantit pas ; l'acte 4 a besoin d'une fin de saison, et le banc
+la fournit toujours au même endroit. Un des épisodes n'a pas de titre, ce qui rend
+« Épisode 4 » visible plutôt que raconté.
 
-> **Si c'est un abonnement réel : rien n'est enregistré.** Pas de capture, pas
-> d'enregistrement d'écran, pas de titre noté dans un compte rendu. La démo se
-> regarde, elle ne s'archive pas (AGENTS.md §1, CLAUDE.md règle 2). C'est
-> inhabituel et il faut le dire à la salle en ouverture, en une phrase, plutôt que
-> d'avoir à refuser une demande de capture au milieu.
+**Et la règle du contenu cesse d'être en tension.** Il n'y a plus de raison de
+brancher un catalogue plein de titres que tout le monde reconnaît, donc plus de
+moment où quelqu'un demande une capture qu'il faut refuser. Si une démo se joue
+quand même sur un abonnement réel, la règle d'origine tient : on regarde, on
+n'archive pas (AGENTS.md §1, CLAUDE.md règle 2).
 
+**Ce que le banc ne fournit toujours pas : un fichier qu'un lecteur décode.** Ce que
+servent `/movie/` et `/series/` sont des octets MPEG-TS sous un nom de film. Tout se
+démontre jusqu'à la lecture — la grille, la fiche, l'arbre, le focus, le décompte —
+et **l'image elle-même demande un vrai fichier préparé à la main**, comme au sprint
+5. C'est ce qui reste de la dette n° 4.
 **Choisir la série de démonstration à l'avance**, et en prendre une qui a **au
 moins deux saisons**. L'acte 4 a besoin d'une fin de saison pour montrer
 l'enchaînement, et l'acte 3 a besoin d'un sélecteur de saison pour exister.
@@ -300,7 +306,7 @@ Cliquer sur « Voir tous les favoris » :
 
 | Panne | Repli |
 |---|---|
-| Le panel Xtream ne répond pas | **Il n'y a pas de repli.** C'est pour ça que la préparation le vérifie |
+| Le panel Xtream ne répond pas | `docker compose --profile bench up -d`, et vérifier `curl localhost:18081/player_api.php`. Sans lui il n'y a pas de démo, ce qui est pourquoi la préparation le vérifie |
 | La fiche met plus de dix secondes à charger | C'est le vrai comportement d'un premier chargement — le dire, ne pas relancer. C'est l'acte 3 |
 | L'arbre ne charge pas du tout | Montrer « Épisodes indisponibles » et son bouton : c'est le comportement voulu, pas une panne de la démo |
 | Le décompte ne s'arrête pas à l'appui | **Ne pas insister devant la salle.** Le noter, passer à l'acte 5 |

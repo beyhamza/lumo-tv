@@ -140,9 +140,14 @@ opération seule).
 source passée en `ERROR` parce que son catalogue de films n'a pas répondu est
 rouge.
 
-> **Ce cas n'a aucun test automatisé**, et c'est signalé plutôt que masqué : rien
-> dans le dépôt n'exerce `IngestionService`. C'est le cas de recette le plus
-> important de la section.
+> **Ce cas n'avait aucun test automatisé, et il en a cinq depuis le 31 août 2026.**
+> `IngestionServiceIntegrationTest` parcourt la synchronisation en entier contre
+> les fixtures du banc, et l'un de ses cas est précisément celui-ci : un catalogue
+> qui échoue ne doit pas emporter sa source.
+>
+> Il reste le cas de recette le plus important de la section, pour une raison qui a
+> changé : ce que la CI ne peut pas faire est de le jouer contre le panel de
+> quelqu'un.
 
 ---
 
@@ -559,13 +564,14 @@ recevables et traçables. « Probablement bon » ne l'est pas.
 
 Écrit ici plutôt que découvert plus tard.
 
-- **`IngestionService` n'a aucun test automatisé.** R-206 est sa seule
-  vérification, et elle est manuelle. C'est de la dette, pas un oubli de cette
-  recette — voir [`dette.md`](./dette.md).
-- **Le banc d'essai ne sert pas de vrai fichier de film ni de serveur sans
-  `Range`.** Six cas en dépendent (§1). Les ajouter au banc est un chiffrage à
-  faire ; en attendant, ils se jouent avec un serveur improvisé ou ne se jouent
-  pas.
+- **`IngestionService` avait zéro test automatisé ; il en a cinq depuis le
+  31 août 2026.** Cette ligne est gardée plutôt que supprimée parce que le trou a
+  coûté un vrai bug — la contrainte `source_sync_step_check` a fait finir en
+  `ERROR` toute source Xtream pendant deux sprints — et que le signaler ici deux
+  fois n'a servi à rien tant que personne ne l'a fermé.
+- **Le banc d'essai ne sert toujours pas de vrai fichier vidéo ni de serveur sans
+  `Range`.** Six cas en dépendent (§1). Le panel Xtream qui manquait aussi a été
+  livré le 31 août 2026 ; ces deux-là restent, et sont moins chers.
 - **Aucun sélecteur de source sur Android.** Les deux applications lisent la
   première source du compte. C'est ce qui rend R-210 et R-250 lourds à jouer, et
   c'est une limite du produit plutôt que de cette recette — antérieure à ce sprint,

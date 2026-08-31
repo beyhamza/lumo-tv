@@ -1,15 +1,16 @@
 # Dette assumée
 
-Cinq chantiers sont volontairement repoussés : un vrai client OAuth Google, le
-webhook Stripe, la recette des sprints 1 et 2, un banc d'essai qui ne sert pas ce
-que les sprints testent, et `IngestionService` sans aucun test. **Ce ne sont pas des
-oublis, ce sont des décisions** — et la différence entre les deux tient à un seul
-fait : une décision est écrite quelque part, avec ce qui la rouvrirait.
+Quatre chantiers sont volontairement repoussés : un vrai client OAuth Google, le
+webhook Stripe, la recette des sprints 1 et 2, et deux trous du banc d'essai.
+**Ce ne sont pas des oublis, ce sont des décisions** — et la différence entre les
+deux tient à un seul fait : une décision est écrite quelque part, avec ce qui la
+rouvrirait.
 
-**Les deux dernières sont arrivées par le bas plutôt que par un arbitrage**, et
-elles sont écrites ici pour cesser de l'être : la quatrième s'est signalée deux
-sprints de suite en rendant une recette injouable, et la cinquième a coûté un vrai
-bug chez de vrais utilisateurs.
+> **Une dette a été fermée le 31 août 2026** : `IngestionService` n'avait aucun
+> test, et il en a cinq. Elle avait été écrite ici la veille, après avoir coûté un
+> vrai bug ; la fermer a demandé de fermer **la moitié** de la quatrième d'abord,
+> parce qu'on ne teste pas une ingestion Xtream sans panel Xtream. Sa section a été
+> supprimée plutôt que barrée, comme le demande la dernière règle de ce document.
 
 C'est ce document. Il se relit **à l'ouverture de chaque sprint**, avant d'écrire les
 tâches, parce que c'est le seul moment où corriger le cap coûte encore peu.
@@ -20,15 +21,14 @@ pas, et n'a pas de date.
 
 ---
 
-## État au 30 août 2026
+## État au 31 août 2026
 
 | Dette | État réel | Ce qui la rouvrira |
 |---|---|---|
 | Client OAuth Google | Le code des trois surfaces existe et **n'a jamais tourné contre un vrai client** — il n'y en a dans aucun build | Un sprint dédié, ou le jour où quelqu'un s'inscrit |
 | Webhook Stripe | `SRV-10` à 80 %. Ouvrir une session marche ; **un paiement réussi n'accorde rien** | La décision 1 d'[`api-gaps.md`](../design/api-gaps.md) |
 | Recette sprints 1 et 2 | **Partiellement jouée**, sans rapport de session. **0 story sur 10** en Definition of Done | Une session de recette avec un rapport, cas par cas |
-| Banc d'essai incomplet | **Aucun panel Xtream fonctionnel**, aucun vrai fichier de film, aucun serveur sans `Range`. Deux sprints de suite, le banc ne sert pas ce que le sprint teste | Une tâche de banc, chiffrée. En attendant : un abonnement réel, ce qui met la règle du contenu sous tension |
-| `IngestionService` sans test | **Zéro test automatisé** sur la classe qui orchestre toute la synchronisation. A laissé passer un bug pendant deux sprints | Une tâche de test dédiée, avec un panel de banc (dette n° 4) |
+| Banc d'essai incomplet | **Le panel Xtream existe depuis le 31 août 2026.** Restent deux trous : aucun vrai fichier vidéo, aucun serveur sans `Range` | Une tâche de banc, chiffrée. En attendant, six cas de lecture des sprints 5 et 6 ne se jouent pas |
 
 ---
 
@@ -133,76 +133,41 @@ pas les 40 cas en retard — c'est ce que ce document est là pour rappeler.
 
 ---
 
-## 4. Le banc d'essai ne sert pas ce que les sprints testent
+## 4. Le banc d'essai, et les deux trous qui restent
 
-**Ce qui existe.** `apps/web/e2e/bench/` sert des playlists M3U — valide, vide,
-malformée, surdimensionnée —, un flux HLS décodable avec et sans en-tête CORS, et
-deux endpoints Xtream. Pour les sprints 1 à 4, cela suffisait.
+**Ce qui a été fermé le 31 août 2026 :** le banc sert un panel Xtream qui répond.
+Onze fixtures inventées, les six appels qu'émet `XtreamClient`, et les deux fiches
+adressées par identifiant. `player_api.php` est servi par nginx — un `map` sur
+l'action, un fichier — et non par PHP.
 
-**Ce qui manque, et depuis quand :**
+**Il est strict par construction**, et c'est ce qui lui donne sa valeur : les deux
+actions adressées par identifiant lisent deux noms de paramètre différents
+(`vod_id` et `series_id`), donc le nom du fichier se construit à partir de celui que
+l'action est censée envoyer. Une requête qui envoie l'autre nomme un fichier absent
+et tombe sur `wrong-id.json` — un tableau vide avec un `200`, ce que répond un vrai
+panel strict. **Ce n'est pas une hypothèse** : le client adressait une série par
+`vod_id`, et ça marchait parce que les panels essayés acceptent les deux.
+
+**Ce qui reste, et c'est la moitié de l'ancienne dette :**
 
 | Manque | Signalé au | Ce que ça rend injouable |
 |---|---|---|
-| Un vrai fichier vidéo progressif | sprint 5 | Six cas de lecture de film. Les fixtures `/film/*.mp4` sont **des octets MPEG-TS sous un nom de film** — assez pour l'ADR 0009 qui classe sur l'URL, pas un conteneur qu'un lecteur décode |
-| Un serveur qui ignore `Range` | sprint 5 | `R-242`, `R-264`, `R-277`. Le banc répond `206` correctement, ce qui est la bonne nouvelle et le problème |
-| **Un panel Xtream qui répond** | sprint 6 | **Les sections 3 à 8 de la recette du sprint 6.** Les deux endpoints Xtream du banc sont `/xtream-401/` et `/xtream-garbage/` : deux pannes. Aucun `player_api.php` ne répond `get_series` |
+| Un vrai fichier vidéo progressif | sprint 5 | Six cas de lecture. `/film/*.mp4` et ce que servent `/movie/` et `/series/` sont **des octets MPEG-TS sous un nom de film** — assez pour l'ADR 0009, qui classe sur l'URL ; pas un conteneur qu'un lecteur décode |
+| Un serveur qui ignore `Range` | sprint 5 | `R-242`, `R-264`, `R-277`, `R-328`. Le banc répond `206` correctement, ce qui est la bonne nouvelle et le problème |
 
-**Pourquoi le troisième change la nature du problème.** Les deux premiers rendaient
-des cas injouables. Le troisième rend **une story entière** injouable : les séries
-sont Xtream uniquement ([`adr/0010`](../adr/0010-series-are-xtream-only.md)), donc
-sans panel il n'y a ni recette ni démo du sprint 6.
+**Ce que le panel a changé pour les recettes.** Les sections 3 à 8 de
+[`sprint-06-recette.md`](./sprint-06-recette.md) étaient intégralement injouables
+sans abonnement réel ; elles le sont maintenant contre le banc, sauf les cas de
+lecture réelle. La règle du contenu (`AGENTS.md` §1) cesse du même coup d'être sous
+tension : on ne branche plus un catalogue plein de titres que tout le monde
+reconnaît pour vérifier un arbre de saisons.
 
-**Et il met la règle du contenu sous tension.** Le seul moyen actuel est un
-abonnement réel, c'est-à-dire un catalogue plein de titres que tout le monde
-reconnaît, au moment précis où quelqu'un voudra joindre une capture « pour montrer le
-rendu ». AGENTS.md §1 ne se suspend pas, et c'est plus facile à tenir avec un banc
-qu'avec de la discipline.
-
-**Ce qu'il faudrait**, et ce n'est pas chiffré : un `player_api.php` qui réponde aux
-six appels qu'émet `XtreamClient`, avec un arbre inventé de deux séries — dont **une
-à deux saisons avec un trou dans la numérotation**, parce que c'est le cas que
-`NextEpisodeTest` couvre en JVM et que personne n'a jamais vu à l'écran.
-
-**Ce qui le rouvrira :** le prochain sprint qui a de la place. Chaque sprint qui
-passe sans le faire ajoute une recette qui ne se joue qu'à moitié.
+**Ce qui rouvrira le reste :** la première recette qui bute sur un des six cas de
+lecture. Les deux manques sont anciens, connus, et moins chers que le premier —
+un fichier généré localement et un petit serveur qui répond `200` quel que soit
+l'offset.
 
 ---
-
-## 5. `IngestionService` n'a aucun test
-
-**Ce qui existe.** 253 tests côté API. Aucun ne traverse `IngestionService`, la
-classe qui orchestre la synchronisation d'une source de bout en bout : connexion,
-authentification, chaînes, films, séries, EPG, et la gestion des échecs partiels.
-
-**Ce que ça a coûté, et ce n'est pas hypothétique.** La contrainte
-`source_sync_step_check` énumérait les valeurs valides de `sync_step`. Elle n'a
-jamais appris `PARSING_VOD` (sprint 5) ni `PARSING_SERIES` (sprint 6).
-`markSyncStep` levait donc une `DataIntegrityViolationException` — **pas** une
-`IngestionException` — et contournait le gestionnaire dont tout le rôle est
-d'empêcher l'échec d'un catalogue de faire échouer sa source.
-
-**Résultat : toute source Xtream synchronisée depuis la fin du sprint 5 finissait en
-`ERROR` et perdait ses chaînes avec ses films**, en accusant le fournisseur
-(`SOURCE_UNREACHABLE`). Le défaut a été trouvé en utilisant le produit, pas en le
-testant.
-
-**Ce qui a été fait.** `0017-sync-step-values.sql` élargit la contrainte et répare
-les sources cassées ; `SyncStepConstraintTest` itère sur `SyncStep.values()` au lieu
-d'énumérer, donc une valeur ajoutée au contrat fait échouer le test tant que la
-migration ne suit pas. **Cette classe de bug est fermée.**
-
-**Ce qui ne l'est pas.** Rien ne teste `IngestionService` lui-même. La recette du
-sprint 5 §11 le disait déjà, celle du sprint 6 le redit en §12, et `R-300` est
-aujourd'hui sa seule vérification — manuelle, et elle demande un panel de banc
-qui n'existe pas (dette n° 4). **Les deux dettes se tiennent** : fermer la
-cinquième proprement demande la quatrième.
-
-**Ce qui le rouvrira :** la prochaine fois qu'une étape de synchronisation est
-ajoutée. Il n'y a pas de raison de croire que la troisième fois se passera mieux que
-les deux premières.
-
----
-
 ## Les cinq règles qui empêchent la dette de grossir
 
 Elles coûtent presque rien maintenant et très cher plus tard. Elles valent pour tout
@@ -235,9 +200,12 @@ recette d'un bloc.
 **5. Une valeur ajoutée à une énumération du contrat s'accompagne du test qui
 itère dessus.** Pas de la liste écrite à la main quelque part : du test qui parcourt
 `values()`. C'est ce qui aurait attrapé `PARSING_VOD` au sprint 5 au lieu de le
-laisser casser deux sprints de synchronisations. La règle est née de la dette n° 5 et
-elle est ici plutôt que dans un commentaire, parce qu'un commentaire ne se relit pas
-à l'ouverture d'un sprint.
+laisser casser deux sprints de synchronisations.
+
+La règle est née d'une dette qui est maintenant fermée, et elle lui survit : c'est
+le propre d'une règle. `SyncStepConstraintTest` la tient pour `SyncStep`, et
+`IngestionServiceIntegrationTest` tient le chemin en dessous — remettre l'ancienne
+contrainte fait rougir trois de ses cinq cas.
 
 ---
 
