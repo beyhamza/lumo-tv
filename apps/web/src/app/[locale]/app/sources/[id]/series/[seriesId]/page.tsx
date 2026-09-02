@@ -118,11 +118,22 @@ export default async function SeriesDetailPage({
   const series = detail.data.series;
   const seasons = detail.data.seasons;
 
-  // A season named in the URL that the panel no longer lists falls back to the
-  // first, rather than to an empty episode list that looks like a broken series.
+  // The season on screen: the one named in the URL, then **the first that has
+  // episodes**, then the first.
+  //
+  // "That has episodes" rather than simply "the first", because panels declare a
+  // season 0 — specials, or a bucket they never filled — and it sorts before
+  // season 1. A series with eight full seasons opened on an empty season 0, which
+  // reads exactly like the series having none. Found on a real catalogue.
+  //
+  // The empty season is still listed. A season the panel declares is one a viewer
+  // should see; it is just not where the page opens. And a season named in the URL
+  // is honoured even when empty — that is somebody's own choice.
   const requested = Number.parseInt(single(query.season) ?? "", 10);
   const open =
-    seasons.find((season) => season.season_number === requested) ?? seasons[0];
+    seasons.find((season) => season.season_number === requested) ??
+    seasons.find((season) => season.episodes.length > 0) ??
+    seasons[0];
 
   // By episode id, because every row below asks the same question about itself
   // and a list would be a scan per row down a fifty-episode season.

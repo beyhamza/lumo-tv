@@ -346,18 +346,30 @@ data class SeriesDetailState(
     /**
      * The season on screen.
      *
-     * **The first one, until somebody picks another.** A selector that opened on
-     * nothing would be a decision imposed on somebody who has not asked for one —
-     * they came to see the episodes, and the first season is the answer that needs
-     * no input.
+     * **The first one that has episodes, until somebody picks another.** A selector
+     * that opened on nothing would be a decision imposed on somebody who has not
+     * asked for one — they came to see the episodes.
      *
-     * A season number in [openedSeason] that the tree no longer lists falls back to
-     * the first rather than to an empty episode list that reads as a broken series.
+     * <h2>Why "that has episodes" and not simply "the first"</h2>
+     *
+     * Panels declare a **season 0** — specials, pilots, a bucket they never filled —
+     * and it sorts before season 1. A real series with eight full seasons opened on
+     * an empty season 0, which reads exactly like the series having no episodes at
+     * all. Found on a real catalogue, not in a test.
+     *
+     * The empty season is still **listed**: a season the panel declares is a season
+     * a viewer should see, and hiding it would be deciding on their behalf. It is
+     * just not what the screen opens on.
+     *
+     * A season number in [openedSeason] is honoured **even when empty** — that one
+     * is a choice somebody made, and overriding it would be the screen arguing.
      */
     val openSeason: tv.lumo.android.core.data.model.Season?
         get() {
             val seasons = (tree as? SeriesTree.Loaded)?.seasons.orEmpty()
-            return seasons.firstOrNull { it.seasonNumber == openedSeason } ?: seasons.firstOrNull()
+            return seasons.firstOrNull { it.seasonNumber == openedSeason }
+                ?: seasons.firstOrNull { it.episodes.isNotEmpty() }
+                ?: seasons.firstOrNull()
         }
 
     /**
