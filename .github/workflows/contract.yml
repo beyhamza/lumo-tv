@@ -123,8 +123,11 @@ jobs:
           # fires on its own source is one the first person to meet it turns off.
           #
           # Four alphanumerics after the `=` is the line. A real credential clears
-          # it (`username=ASYGSZV`); a format string does not, because the next
-          # character is a quote; and a one-letter placeholder does not either.
+          # it — panels issue seven or eight characters — while a format string
+          # does not, because the next character is a quote, and a one-letter
+          # placeholder does not either. No example of a real one is written here:
+          # this comment is in the repository too, and a guard that carries the
+          # thing it forbids is a guard that has already failed once.
           found=$(git grep -nIE 'player_api\.php\?[^ ]*(username|password)=[A-Za-z0-9]{4,}|get\.php\?[^ ]*type=m3u_plus' \
                    -- . ':!packages/contracts/openapi.yaml' ':!docs/**' ':!.github/**' || true)
           if [ -n "$found" ]; then
