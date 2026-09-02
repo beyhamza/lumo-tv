@@ -80,6 +80,24 @@ browsers without MSE — iOS Safari among them — and desktop Safari needs CORS
 Chrome. That narrows who this option works for, which is the sort of thing this ADR
 exists to say out loud.
 
+**Amended a second time, and this one is not about the network.** Everything above
+weighs whether the browser can *reach* the stream. It can reach a stream and still be
+unable to play half of it: a media element decodes the picture and the sound
+separately, and Chromium ships no **AC-3 / E-AC-3** decoder — Dolby is licensed and
+Chromium does not pay it. The H.264 picture then plays perfectly while the browser
+puts its own volume control in the muted state, which is the cruellest shape this
+failure takes: somebody presses the mute button and nothing happens, because there is
+nothing to unmute. Measured on a real catalogue by sampling six series at random out
+of 49 437: **roughly a third of the episodes carry Dolby Digital as their only audio
+track.** That is a third of a catalogue that plays silently in a browser and correctly
+in the applications, and it is a larger group than mixed content on some panels.
+
+It gets a named sentence like the rest. Reading it takes three browser-specific
+properties, because `HTMLMediaElement.audioTracks` — the standard way to ask — is not
+implemented in Chrome, which is precisely the browser without the decoder; see
+`lib/playback/audibility`. Transcoding is the obvious fix and it is the same refusal
+as above, one layer down: re-encoding somebody's stream is serving its bytes.
+
 The applications remain the real players. That matches what the product is: a website
 that manages an account and two applications that watch television.
 

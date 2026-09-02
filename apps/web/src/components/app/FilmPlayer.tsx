@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { saveEpisodeProgress, saveFilmProgress } from "@/actions/playback";
+import { advanceMs, audibility } from "@/lib/playback/audibility";
 import { savableProgress } from "@/lib/playback/progress";
 
 /**
@@ -38,6 +39,25 @@ import { savableProgress } from "@/lib/playback/progress";
  * and without a word beside it that reads as a player that has stopped working.
  * It gets its own message rather than being folded into "unavailable", which is
  * what the task asked for and the reason it asked.
+ *
+ * <h2>Sound the browser cannot decode</h2>
+ *
+ * The picture and the sound fail separately, and only one of them is loud about
+ * it. A third of a real catalogue carries **Dolby Digital** — AC-3 or E-AC-3 —
+ * as its only audio track; Chromium ships no decoder for either. The H.264
+ * picture then plays perfectly and the browser puts its own volume control in
+ * the muted state, so what somebody sees is a film playing behind a mute button
+ * that looks pressed. Pressing it does nothing, because there is nothing to
+ * unmute.
+ *
+ * That gets a sentence, for the same reason everything else here does. The
+ * reading is in `lib/playback/audibility`, along with why it takes three
+ * browser-specific properties to ask a question the standard has an answer for.
+ *
+ * **Channels are deliberately not covered.** `ChannelPlayer` plays through
+ * `hls.js` and MSE, where these properties mean something different enough that
+ * carrying the rule across would be shipping untested behaviour rather than
+ * sharing tested behaviour.
  *
  * <h2>Where somebody stopped (S5-11)</h2>
  *
@@ -115,6 +135,14 @@ export function FilmPlayer({
   const [failure, setFailure] = useState<Failure | null>(null);
   const [maxConnections, setMaxConnections] = useState<number | null>(null);
   const [seekable, setSeekable] = useState<boolean | null>(null);
+  /**
+   * Whether this browser is getting any sound out of the file.
+   *
+   * <p>State because a line depends on it, and it settles: `audibility` answers
+   * the same thing on every tick once it has an answer, and React re-renders
+   * nothing when a `useState` setter is handed the value it already holds.
+   */
+  const [sound, setSound] = useState<"audible" | "silent" | "unknown">("unknown");
   const [started, setStarted] = useState(false);
   /**
    * Where this playback was told to start.
@@ -132,6 +160,16 @@ export function FilmPlayer({
    * `<video>` that is drawing frames.
    */
   const position = useRef({ positionMs: 0, durationMs: null as number | null });
+
+  /**
+   * Media that has genuinely played, and where it was when last looked at.
+   *
+   * <p>A ref for the same reason as `position` — it moves several times a second
+   * and nothing renders from it. It is *not* elapsed clock time: a stalled panel
+   * would run the clock without a frame of sound ever having been possible, and
+   * declare silence over a file nobody has heard yet.
+   */
+  const played = useRef({ totalMs: 0, atMs: 0 });
 
   const save = useCallback(() => {
     // Nothing to file a row under. Nothing is written rather than something
@@ -158,6 +196,11 @@ export function FilmPlayer({
 
     async function start() {
       setFailure(null);
+      // A different file, or the same one from the beginning: nothing learnt
+      // about the last playback applies, and a stale "no sound" line under a
+      // film that has sound is the exact mistake this feature is meant to avoid.
+      setSound("unknown");
+      played.current = { totalMs: 0, atMs: 0 };
 
       let payload: { url: string; maxConnections: number | null };
       try {
@@ -282,10 +325,36 @@ export function FilmPlayer({
         }}
         onTimeUpdate={(event) => {
           const video = event.currentTarget;
+          const positionMs = video.currentTime * 1000;
           position.current = {
-            positionMs: video.currentTime * 1000,
+            positionMs,
             durationMs: Number.isFinite(video.duration) ? video.duration * 1000 : null,
           };
+
+          // Asked here rather than on `loadedmetadata` because the reading
+          // Chromium offers is a count of decoded bytes, which says nothing
+          // until decoding has run. The three properties are read through an
+          // unknown-keyed view: two of them exist in one engine each, and typing
+          // them onto `HTMLVideoElement` would be claiming a standard that is
+          // precisely what is missing here.
+          const readings = video as unknown as {
+            audioTracks?: { length: number };
+            mozHasAudio?: boolean;
+            webkitAudioDecodedByteCount?: number;
+          };
+          played.current = {
+            totalMs: played.current.totalMs + advanceMs(played.current.atMs, positionMs),
+            atMs: positionMs,
+          };
+          setSound(
+            audibility({
+              audioTrackCount: readings.audioTracks?.length,
+              hasAudio: readings.mozHasAudio,
+              audioBytesDecoded: readings.webkitAudioDecodedByteCount,
+              playedMs: played.current.totalMs,
+              muted: video.muted,
+            }),
+          );
         }}
         // A pause is the single most likely moment for somebody to walk away, so
         // it is worth a write of its own rather than waiting up to thirty
@@ -311,6 +380,17 @@ export function FilmPlayer({
           and a line confirming it would be noise on every film that behaves. */}
       {seekable === false && !failure ? (
         <p className="text-muted-foreground mt-2 text-sm">{t("filmsNoSeeking")}</p>
+      ) : null}
+
+      {/* Only on "silent". "unknown" is a browser that would not say, and a
+          hedged line under a film whose sound is fine is worse than nothing —
+          it sends somebody to install an application over a problem they do not
+          have. The apps line follows, as it does for mixed content, because
+          here too it is the answer rather than a consolation. */}
+      {sound === "silent" && !failure ? (
+        <p className="text-muted-foreground mt-2 text-sm">
+          {t("playerNoAudio")} {t("playerUseApps")}
+        </p>
       ) : null}
 
       {failure ? (
