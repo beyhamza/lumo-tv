@@ -57,4 +57,8 @@
     <string name="feature_vod_resume_at">Resume at %1$s</string>
     <string name="feature_vod_start_over">Start over</string>
     <string name="feature_vod_continue_watching">Continue watching</string>
+    <string name="feature_vod_audio_track">Audio track</string>
+    <string name="feature_vod_audio_track_number">Track %1$d</string>
+    <string name="feature_vod_audio_unsupported">This device cannot decode this track</string>
+    <string name="feature_vod_audio_track_hint">Press UP to change the audio track.</string>
 </resources>

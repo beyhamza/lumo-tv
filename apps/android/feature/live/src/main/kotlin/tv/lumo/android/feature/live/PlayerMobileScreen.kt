@@ -17,9 +17,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -29,9 +33,11 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import tv.lumo.android.core.designsystem.component.LumoAudioTrackSheet
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.player.PlaybackState
 import tv.lumo.android.core.player.ui.LumoVideoSurface
+import tv.lumo.android.core.player.ui.asChoices
 
 /**
  * Watching a channel on the phone (US-09).
@@ -65,6 +71,12 @@ fun PlayerMobileScreen(
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val audioTracks by viewModel.audioTracks.collectAsStateWithLifecycle()
+
+    // Local to the screen. Which sheet is open is not something the player or the
+    // view model has an opinion about, and a choice that survived a rotation would
+    // reopen a list over a picture somebody had come back to watch.
+    var pickingAudio by remember { mutableStateOf(false) }
 
     // Keyed on the channel: opening a different one restarts, turning the phone
     // does not.
@@ -106,6 +118,39 @@ fun PlayerMobileScreen(
             // what makes that wait look like a wait rather than a failure.
             state.playback is PlaybackState.Buffering ||
                 state.playback is PlaybackState.Idle -> CircularProgressIndicator()
+        }
+
+        // The one control on a screen that deliberately has none, and it appears
+        // only for a channel that carries a choice — which is why it is drawn
+        // rather than hidden behind a tap that would have to be taught. A channel
+        // with one audio track shows nothing and the screen is what it was.
+        if (audioTracks.size > 1 && state.failure == null) {
+            TextButton(
+                onClick = { pickingAudio = true },
+                modifier = Modifier.align(Alignment.TopEnd),
+            ) {
+                Text(
+                    text = stringResource(R.string.feature_live_audio_track),
+                    color = Color.White,
+                )
+            }
+        }
+
+        if (pickingAudio) {
+            // `resources` rather than `stringResource`: the fallback name is
+            // resolved inside a plain lambda, which is not a composable scope.
+            val resources = LocalContext.current.resources
+            LumoAudioTrackSheet(
+                title = stringResource(R.string.feature_live_audio_track),
+                tracks = audioTracks.asChoices(
+                    unnamed = { position ->
+                        resources.getString(R.string.feature_live_audio_track_number, position)
+                    },
+                    unsupported = stringResource(R.string.feature_live_audio_unsupported),
+                ),
+                onSelect = viewModel::selectAudioTrack,
+                onDismiss = { pickingAudio = false },
+            )
         }
     }
 }

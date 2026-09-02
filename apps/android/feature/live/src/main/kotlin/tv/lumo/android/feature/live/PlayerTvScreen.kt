@@ -26,6 +26,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -35,12 +41,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
+import tv.lumo.android.core.designsystem.component.LumoTvAudioTrackSheet
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.tv.lumoTvFocus
 import tv.lumo.android.core.designsystem.tv.tvOverscan
 import tv.lumo.android.core.player.ui.LumoVideoSurface
+import tv.lumo.android.core.player.ui.asChoices
 
 /**
  * Watching a channel on a television (US-10).
@@ -76,6 +84,7 @@ fun PlayerTvScreen(
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val audioTracks by viewModel.audioTracks.collectAsStateWithLifecycle()
 
     LaunchedEffect(channelId) { viewModel.start(channelId) }
 
@@ -91,6 +100,13 @@ fun PlayerTvScreen(
     BackHandler { onBack(channelId) }
 
     var infoVisible by remember { mutableStateOf(false) }
+
+    // A layer of its own rather than a second flag on the bar: this one takes
+    // focus and the bar never does, so the two are not the same kind of thing.
+    var pickingAudio by remember { mutableStateOf(false) }
+    // Two languages on a channel is the ordinary case, not the exception —
+    // which makes this the surface where the picker is most often useful.
+    val canPickAudio = audioTracks.size > 1
     var activityTick by remember { mutableIntStateOf(0) }
 
     // Keyed on the tick as well as on visibility: every press restarts the five
@@ -121,6 +137,18 @@ fun PlayerTvScreen(
             // `clickable`: it takes the D-pad without pretending the whole screen
             // is a button.
             .focusable()
+            // UP opens the audio tracks. The centre key is the bar and nothing
+            // else here is bound, so the direction is free — and the bar names
+            // it, because no remote has a key labelled "audio".
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                if (event.key != Key.DirectionUp || !canPickAudio) {
+                    return@onPreviewKeyEvent false
+                }
+                pickingAudio = true
+                infoVisible = false
+                true
+            }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -143,7 +171,27 @@ fun PlayerTvScreen(
                 retryFocus = retry,
             )
 
-            infoVisible -> InfoBar(channelName)
+            infoVisible -> InfoBar(channelName, audioHint = canPickAudio)
+        }
+
+        if (pickingAudio) {
+            val resources = LocalContext.current.resources
+            LumoTvAudioTrackSheet(
+                title = stringResource(R.string.feature_live_audio_track),
+                tracks = audioTracks.asChoices(
+                    unnamed = { position ->
+                        resources.getString(R.string.feature_live_audio_track_number, position)
+                    },
+                    unsupported = stringResource(R.string.feature_live_audio_unsupported),
+                ),
+                onSelect = viewModel::selectAudioTrack,
+                onDismiss = {
+                    pickingAudio = false
+                    // The picture takes the keys back. Without this the remote
+                    // would be pointing at a panel that no longer exists.
+                    runCatching { surface.requestFocus() }
+                },
+            )
         }
     }
 }
@@ -164,25 +212,39 @@ private fun LumoVideo(viewModel: PlayerViewModel) {
  * drawn outside that margin may simply not exist for some viewers.
  */
 @Composable
-private fun InfoBar(channelName: String?) {
+private fun InfoBar(channelName: String?, audioHint: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .tvOverscan(),
         contentAlignment = Alignment.BottomStart,
     ) {
-        Text(
-            text = channelName ?: stringResource(R.string.feature_live_tv_unknown_channel),
-            style = MaterialTheme.typography.titleLarge,
-            color = LumoColors.OnDark,
+        Column(
             modifier = Modifier
                 .clip(LumoShapes.medium)
                 // Opaque rather than a scrim over the picture: a name read at
                 // three metres against moving video is a name read twice.
                 .background(LumoColors.SurfaceRaised)
-                .padding(horizontal = LumoSpacing.lg, vertical = LumoSpacing.md)
-                .semantics { liveRegion = LiveRegionMode.Polite },
-        )
+                .padding(horizontal = LumoSpacing.lg, vertical = LumoSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+        ) {
+            Text(
+                text = channelName ?: stringResource(R.string.feature_live_tv_unknown_channel),
+                style = MaterialTheme.typography.titleLarge,
+                color = LumoColors.OnDark,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+
+            // Only where there is something to open. Naming a key that does
+            // nothing would be worse than saying nothing at all.
+            if (audioHint) {
+                Text(
+                    text = stringResource(R.string.feature_live_audio_track_hint),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = LumoColors.OnDarkMuted,
+                )
+            }
+        }
     }
 }
 

@@ -78,4 +78,8 @@
       devices (M5). Not a rail: see docs/design/tv-focus-map.md.
     -->
     <string name="feature_live_recent">Recently watched</string>
+    <string name="feature_live_audio_track">Audio track</string>
+    <string name="feature_live_audio_track_number">Track %1$d</string>
+    <string name="feature_live_audio_unsupported">This device cannot decode this track</string>
+    <string name="feature_live_audio_track_hint">Press UP to change the audio track.</string>
 </resources>

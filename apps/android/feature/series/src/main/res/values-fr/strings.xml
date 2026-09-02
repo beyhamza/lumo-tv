@@ -49,4 +49,8 @@
     <string name="feature_series_tv_back_hint">Appuyez sur RETOUR pour revenir à la série.</string>
     <string name="feature_series_continue_watching">Reprendre</string>
     <string name="feature_series_season_episode">S%1$d E%2$d</string>
+    <string name="feature_series_audio_track">Piste audio</string>
+    <string name="feature_series_audio_track_number">Piste %1$d</string>
+    <string name="feature_series_audio_unsupported">Cet appareil ne sait pas décoder cette piste</string>
+    <string name="feature_series_audio_track_hint">Appuyez sur HAUT pour changer de piste audio.</string>
 </resources>

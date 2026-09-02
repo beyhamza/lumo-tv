@@ -21,6 +21,7 @@ import tv.lumo.android.core.data.model.EpisodePlaybackTarget
 import tv.lumo.android.core.data.repository.PlaybackRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.data.repository.SeriesRepository
+import tv.lumo.android.core.player.AudioTrack
 import tv.lumo.android.core.player.LumoPlayer
 import tv.lumo.android.core.player.PlaybackError
 import tv.lumo.android.core.player.PlaybackProgress
@@ -189,6 +190,18 @@ class EpisodePlayerViewModel @Inject constructor(
         open(episodeId, currentTitle)
     }
 
+    /**
+     * The audio tracks of what is playing, and the way to change which one plays.
+     *
+     * Passed straight through rather than folded into the screen's state: the
+     * list changes when a container header is read and when a choice is made,
+     * which is a handful of times per stream, while the state above changes
+     * several times a second. One flow would recompose the picker at the tick
+     * rate of a progress bar.
+     */
+    val audioTracks: StateFlow<List<AudioTrack>> = player.audioTracks
+
+    fun selectAudioTrack(id: String) = player.selectAudioTrack(id)
     fun seekTo(positionMs: Long) = player.seekTo(positionMs)
 
     fun togglePlayPause() {

@@ -31,8 +31,30 @@ interface LumoPlayer {
      */
     val progress: StateFlow<PlaybackProgress>
 
+    /**
+     * The audio tracks the loaded stream carries.
+     *
+     * Empty until the stream has been opened far enough to know, and empty again
+     * between streams — a picker drawn from a stale list would offer a language
+     * belonging to the previous episode.
+     *
+     * A flow rather than a getter because the answer arrives *after* playback
+     * starts: a container declares its tracks when its header is read, which on
+     * a slow panel is a second or two into the picture.
+     */
+    val audioTracks: StateFlow<List<AudioTrack>>
+
     /** Loads a stream and starts playing it. Replaces whatever was playing. */
     fun play(request: PlaybackRequest)
+
+    /**
+     * Plays a different audio track of the current stream.
+     *
+     * Ignored for an [id] the current stream does not carry, and ignored for a
+     * track whose [AudioTrack.playable] is false — see that field for why
+     * choosing one would end the film rather than change its language.
+     */
+    fun selectAudioTrack(id: String)
 
     /**
      * Moves within the current stream.
@@ -72,6 +94,44 @@ data class PlaybackRequest(
 ) {
     override fun toString(): String = "PlaybackRequest(title=$title, isLive=$isLive)"
 }
+
+/**
+ * One audio track of the stream being played.
+ *
+ * <h2>Why this exists</h2>
+ *
+ * IPTV files routinely carry two or three: the original, the dub, sometimes an
+ * audio description. Until now the player took whichever one the muxer happened
+ * to put first, and somebody who wanted the other one had no way to ask.
+ *
+ * <h2>Nothing here is interpreted</h2>
+ *
+ * [language], [label] and [mimeType] are what the container declares, passed
+ * through. A stream that says `fre` and a stream that says `fra` both arrive as
+ * they are; deciding they mean the same thing is a screen's problem, and getting
+ * it wrong here would be wrong everywhere at once.
+ *
+ * @property id stable for as long as this stream is loaded, and no longer. It
+ *              identifies a position in the container, not a language, so it
+ *              must not be persisted and re-applied to a different episode.
+ * @property playable whether **this device** can decode it, which is not a
+ *              property of the file. Many phones ship no AC-3 decoder while
+ *              nearly every television does, so the same episode has a choosable
+ *              French track on one and an unplayable one on the other. Offered
+ *              rather than hidden: "your telephone cannot decode this track" is
+ *              an answer, and a track that silently is not in the list is the
+ *              mystery this whole thread started with.
+ */
+data class AudioTrack(
+    val id: String,
+    val language: String?,
+    val label: String?,
+    /** Media3's own mime type — `audio/ac3`, `audio/mp4a-latm`. Never the panel's word. */
+    val mimeType: String?,
+    val channelCount: Int?,
+    val selected: Boolean,
+    val playable: Boolean,
+)
 
 sealed interface PlaybackState {
     data object Idle : PlaybackState

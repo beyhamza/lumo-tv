@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -39,10 +40,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
+import tv.lumo.android.core.designsystem.component.LumoAudioTrackSheet
 import tv.lumo.android.core.player.PlaybackProgress
 import tv.lumo.android.core.player.PlaybackState
 import tv.lumo.android.core.player.SeekAvailability
 import tv.lumo.android.core.player.ui.LumoVideoSurface
+import tv.lumo.android.core.player.ui.asChoices
 
 /**
  * Watching an episode on the phone (US-15).
@@ -80,6 +83,12 @@ fun EpisodePlayerMobileScreen(
     viewModel: EpisodePlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val audioTracks by viewModel.audioTracks.collectAsStateWithLifecycle()
+
+    // Local to the screen. Which sheet is open is not something the player or the
+    // view model has an opinion about, and a choice that survived a rotation would
+    // reopen a list over a picture somebody had come back to watch.
+    var pickingAudio by remember { mutableStateOf(false) }
 
     // Keyed on the episode: opening a different one restarts, turning the phone
     // does not — the Activity declares `configChanges` and the player is a
@@ -147,7 +156,30 @@ fun EpisodePlayerMobileScreen(
                 playing = state.playback is PlaybackState.Playing,
                 onSeek = viewModel::seekTo,
                 onTogglePlay = viewModel::togglePlayPause,
+                // Only when there is a choice to make. One track is not a
+                // decision, and a control that opens a list of one wastes both a
+                // tap and the width it sits in.
+                onPickAudio = { pickingAudio = true }.takeIf { audioTracks.size > 1 },
                 modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+
+        if (pickingAudio) {
+            // `resources` rather than `stringResource`: the fallback name is
+            // resolved inside a plain lambda, which is not a composable scope. The
+            // position is only known while the list is being walked, so it cannot
+            // be resolved before the call either.
+            val resources = LocalContext.current.resources
+            LumoAudioTrackSheet(
+                title = stringResource(R.string.feature_series_audio_track),
+                tracks = audioTracks.asChoices(
+                    unnamed = { position ->
+                        resources.getString(R.string.feature_series_audio_track_number, position)
+                    },
+                    unsupported = stringResource(R.string.feature_series_audio_unsupported),
+                ),
+                onSelect = viewModel::selectAudioTrack,
+                onDismiss = { pickingAudio = false },
             )
         }
 
@@ -240,6 +272,8 @@ private fun Controls(
     playing: Boolean,
     onSeek: (Long) -> Unit,
     onTogglePlay: () -> Unit,
+    /** Null when the stream carries one track or none — there is nothing to choose. */
+    onPickAudio: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     // Nothing to draw for a live stream, and this screen never plays one — the
@@ -288,15 +322,26 @@ private fun Controls(
                 color = Color.White,
             )
 
-            TextButton(onClick = onTogglePlay) {
-                Text(
-                    text = if (playing) {
-                        stringResource(R.string.feature_series_pause)
-                    } else {
-                        stringResource(R.string.feature_series_resume)
-                    },
-                    color = Color.White,
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.xs)) {
+                onPickAudio?.let { pick ->
+                    TextButton(onClick = pick) {
+                        Text(
+                            text = stringResource(R.string.feature_series_audio_track),
+                            color = Color.White,
+                        )
+                    }
+                }
+
+                TextButton(onClick = onTogglePlay) {
+                    Text(
+                        text = if (playing) {
+                            stringResource(R.string.feature_series_pause)
+                        } else {
+                            stringResource(R.string.feature_series_resume)
+                        },
+                        color = Color.White,
+                    )
+                }
             }
         }
 

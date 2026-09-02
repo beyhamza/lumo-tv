@@ -42,4 +42,8 @@
     <string name="feature_live_tv_favorite_hint">Maintenez OK pour choisir les groupes de favoris</string>
 
     <string name="feature_live_recent">Repris</string>
+    <string name="feature_live_audio_track">Piste audio</string>
+    <string name="feature_live_audio_track_number">Piste %1$d</string>
+    <string name="feature_live_audio_unsupported">Cet appareil ne sait pas décoder cette piste</string>
+    <string name="feature_live_audio_track_hint">Appuyez sur HAUT pour changer de piste audio.</string>
 </resources>

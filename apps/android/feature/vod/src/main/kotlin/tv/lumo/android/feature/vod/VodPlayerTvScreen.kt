@@ -33,6 +33,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -48,9 +49,11 @@ import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.tv.lumoTvFocus
 import tv.lumo.android.core.designsystem.tv.tvOverscan
+import tv.lumo.android.core.designsystem.component.LumoTvAudioTrackSheet
 import tv.lumo.android.core.player.PlaybackProgress
 import tv.lumo.android.core.player.SeekAvailability
 import tv.lumo.android.core.player.ui.LumoVideoSurface
+import tv.lumo.android.core.player.ui.asChoices
 
 /**
  * Watching a film on a television (US-13).
@@ -94,6 +97,7 @@ fun VodPlayerTvScreen(
     viewModel: VodPlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val audioTracks by viewModel.audioTracks.collectAsStateWithLifecycle()
 
     LaunchedEffect(filmId) { viewModel.start(filmId, sourceId, title, resumeFromMs) }
 
@@ -108,6 +112,11 @@ fun VodPlayerTvScreen(
     BackHandler(onBack = onBack)
 
     var overlay by remember { mutableStateOf(Overlay.None) }
+
+    // A layer of its own rather than a third `Overlay` value: this one takes
+    // focus and the bar never does, so the two cannot be the same kind of thing.
+    var pickingAudio by remember { mutableStateOf(false) }
+    val canPickAudio = audioTracks.size > 1
     var activityTick by remember { mutableIntStateOf(0) }
 
     // Keyed on the tick as well as on the overlay: every press restarts the five
@@ -141,6 +150,17 @@ fun VodPlayerTvScreen(
             // find nothing on a full-screen picture, and be silently dropped.
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+
+                // UP opens the audio tracks, and only when there is a choice to
+                // make. It is the one direction this screen has never used —
+                // LEFT and RIGHT seek, CENTRE opens the bar — so nothing is taken
+                // away from anybody, and the bar names the key so it is not a
+                // gesture somebody has to be told about.
+                if (event.key == Key.DirectionUp && canPickAudio) {
+                    pickingAudio = true
+                    overlay = Overlay.None
+                    return@onPreviewKeyEvent true
+                }
 
                 val step = when (event.key) {
                     Key.DirectionLeft -> -SEEK_STEP_MILLIS
@@ -179,6 +199,28 @@ fun VodPlayerTvScreen(
             overlay != Overlay.None -> OverlayBar(
                 title = title.takeIf { overlay == Overlay.Info },
                 progress = state.progress,
+                audioHint = canPickAudio,
+            )
+        }
+
+        if (pickingAudio) {
+            val resources = LocalContext.current.resources
+            LumoTvAudioTrackSheet(
+                title = stringResource(R.string.feature_vod_audio_track),
+                tracks = audioTracks.asChoices(
+                    unnamed = { position ->
+                        resources.getString(R.string.feature_vod_audio_track_number, position)
+                    },
+                    unsupported = stringResource(R.string.feature_vod_audio_unsupported),
+                ),
+                onSelect = viewModel::selectAudioTrack,
+                onDismiss = {
+                    pickingAudio = false
+                    // The picture takes the keys back. Without this the remote
+                    // would be pointing at a panel that no longer exists, and the
+                    // next press would go nowhere.
+                    runCatching { surface.requestFocus() }
+                },
             )
         }
     }
@@ -201,7 +243,7 @@ private enum class Overlay { None, Info, Progress }
  * position nobody has.
  */
 @Composable
-private fun OverlayBar(title: String?, progress: PlaybackProgress) {
+private fun OverlayBar(title: String?, progress: PlaybackProgress, audioHint: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -239,6 +281,17 @@ private fun OverlayBar(title: String?, progress: PlaybackProgress) {
                 style = MaterialTheme.typography.labelLarge,
                 color = LumoColors.OnDarkMuted,
             )
+
+            // Only where there is something to open. A television has no key
+            // labelled "audio", so the one that does it has to be named — and
+            // naming a key that does nothing would be worse than saying nothing.
+            if (audioHint) {
+                Text(
+                    text = stringResource(R.string.feature_vod_audio_track_hint),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = LumoColors.OnDarkMuted,
+                )
+            }
 
             // The sentence this task asks for, next to the bar it explains. A bar
             // that does not move without saying why is the defect; a bar that is

@@ -11,6 +11,13 @@ android {
 dependencies {
     implementation(projects.core.common)
 
+    // The audio-track picker is drawn by the design system, and the mapping from
+    // a Media3 track to a row it can draw lives here rather than in each of the
+    // three features that plays something. `settings.gradle.kts` forbids a
+    // feature depending on a feature; it does not forbid this, and the
+    // alternative is the same label logic written three times.
+    api(projects.core.designsystem)
+
     // Media3 stays behind LumoPlayer. Nothing outside this module imports
     // androidx.media3 — that is what lets the phone and the television share one
     // playback implementation and what would let the engine be replaced.

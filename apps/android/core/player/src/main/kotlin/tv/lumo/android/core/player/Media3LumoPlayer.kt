@@ -7,6 +7,9 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.TrackGroup
+import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.ExoPlayer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -48,6 +51,22 @@ internal class Media3LumoPlayer @Inject constructor(
 
     private val _progress = MutableStateFlow(PlaybackProgress())
     override val progress: StateFlow<PlaybackProgress> = _progress.asStateFlow()
+
+    private val _audioTracks = MutableStateFlow<List<AudioTrack>>(emptyList())
+    override val audioTracks: StateFlow<List<AudioTrack>> = _audioTracks.asStateFlow()
+
+    /**
+     * Where each published [AudioTrack] actually lives in the current stream.
+     *
+     * An override has to name a `TrackGroup` and an index inside it; an
+     * identifier a screen can pass around cannot be either of those. So the map
+     * is rebuilt on every `onTracksChanged` and holds only what is loaded right
+     * now — which is also what makes a stale id from the previous episode
+     * resolve to nothing instead of to whatever occupies that slot today.
+     */
+    private var trackSlots: Map<String, TrackSlot> = emptyMap()
+
+    private data class TrackSlot(val group: TrackGroup, val index: Int, val playable: Boolean)
 
     private var currentTitle: String? = null
     private var isLive: Boolean = true
@@ -99,6 +118,13 @@ internal class Media3LumoPlayer @Inject constructor(
         isLive = request.isLive
         seekInFlight = false
         positionBeforeSeek = 0L
+        // Both cleared before the new stream, not after. An override belongs to
+        // the container it was chosen in: carried over, it would pick "the second
+        // audio track" of the next episode, which is a different language or does
+        // not exist. Choosing a language once and having it stick across episodes
+        // is a real want, and a real feature — it is a preference expressed in
+        // languages, not an index, and it is not this.
+        clearAudioSelection()
         _state.value = PlaybackState.Buffering
         _progress.value = PlaybackProgress(
             seek = if (request.isLive) SeekAvailability.LIVE else SeekAvailability.UNKNOWN,
@@ -142,6 +168,30 @@ internal class Media3LumoPlayer @Inject constructor(
         _progress.update { it.copy(positionMs = positionMs) }
     }
 
+    /**
+     * Plays another audio track of the current stream.
+     *
+     * <p><b>An unplayable track is refused rather than attempted</b>, and that is
+     * the one judgement call in here. An explicit override is honoured by the
+     * track selector even when the device has no decoder for it, and the result
+     * is not silence — it is a renderer failure that ends the film. Somebody who
+     * asked to hear the French track would lose the picture as well.
+     *
+     * <p>Refusing is not the player arguing, because nothing is hidden: the track
+     * is in [audioTracks] with `playable = false`, the screen draws it and says
+     * why, and "this device has no decoder for that track" is an answer somebody
+     * can act on — which is more than the silence that started all of this.
+     */
+    override fun selectAudioTrack(id: String) {
+        val slot = trackSlots[id] ?: return
+        if (!slot.playable) return
+
+        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+            .buildUpon()
+            .setOverrideForType(TrackSelectionOverride(slot.group, slot.index))
+            .build()
+    }
+
     override fun pause() {
         exoPlayer.playWhenReady = false
     }
@@ -156,8 +206,27 @@ internal class Media3LumoPlayer @Inject constructor(
         exoPlayer.clearMediaItems()
         currentTitle = null
         seekInFlight = false
+        clearAudioSelection()
         _state.value = PlaybackState.Idle
         _progress.value = PlaybackProgress()
+    }
+
+    /**
+     * Forgets the tracks of a stream that is no longer loaded, and the choice
+     * made among them.
+     *
+     * Both halves matter. An empty list is what stops a picker drawing the
+     * previous episode's languages over the next one's picture; dropping the
+     * override is what stops "the second track" following somebody from a film
+     * into a channel.
+     */
+    private fun clearAudioSelection() {
+        trackSlots = emptyMap()
+        _audioTracks.value = emptyList()
+        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+            .buildUpon()
+            .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
+            .build()
     }
 
     override fun release() {
@@ -184,6 +253,45 @@ internal class Media3LumoPlayer @Inject constructor(
                 Player.STATE_ENDED -> PlaybackState.Ended
                 else -> PlaybackState.Idle
             }
+        }
+
+        /**
+         * The audio tracks of the stream, each time the answer changes.
+         *
+         * <p>Fires when the container's header has been read, and again after an
+         * override — which is why `selected` is taken from Media3 rather than
+         * remembered here: the selector has the last word, and a screen showing a
+         * tick beside a track the player did not take would be lying.
+         */
+        override fun onTracksChanged(tracks: Tracks) {
+            val slots = LinkedHashMap<String, TrackSlot>()
+            val published = ArrayList<AudioTrack>()
+
+            for ((groupIndex, group) in tracks.groups.withIndex()) {
+                if (group.type != C.TRACK_TYPE_AUDIO) continue
+                for (index in 0 until group.length) {
+                    // Position in the container, not a language: it is stable for
+                    // this stream and meaningless for the next one, which is
+                    // exactly what `AudioTrack.id` promises.
+                    val id = "$groupIndex:$index"
+                    val format = group.getTrackFormat(index)
+                    val playable = group.isTrackSupported(index)
+
+                    slots[id] = TrackSlot(group.mediaTrackGroup, index, playable)
+                    published += AudioTrack(
+                        id = id,
+                        language = format.language,
+                        label = format.label,
+                        mimeType = format.sampleMimeType,
+                        channelCount = format.channelCount.takeIf { it > 0 },
+                        selected = group.isTrackSelected(index),
+                        playable = playable,
+                    )
+                }
+            }
+
+            trackSlots = slots
+            _audioTracks.value = published
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
