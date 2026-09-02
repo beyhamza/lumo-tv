@@ -328,8 +328,37 @@ public class XtreamClient {
      * <p>Package-private rather than inline so the parsing can be tested against
      * real panel bodies without a socket.
      */
+    /**
+     * Turns one {@code get_series_info} answer into seasons.
+     *
+     * <p><b>Returns null when the answer is not a series sheet at all</b>, and that
+     * guard is the whole difference between two things a screen must never
+     * confuse: a panel that lists a series with no seasons, and a panel that did
+     * not answer.
+     *
+     * <p>Without it, an empty body — or {@code []}, or any unrelated JSON — walks
+     * straight through: {@code path("seasons")} and {@code path("episodes")} both
+     * yield missing nodes, both loops run zero times, and an <b>empty list comes
+     * back as a successful answer</b>. The caller then stores it and stamps
+     * {@code tree_fetched_at}, so a moment of transport failure becomes a recorded
+     * fact — "this series has no episodes" — cached for six hours.
+     *
+     * <p>That is exactly what happened: a panel answering 0 bytes to a malformed
+     * request left a series with eight seasons showing "no episode listed" on all
+     * three clients, and retrying could not help because the emptiness was cached.
+     *
+     * <p>The test is what the sheet is made of rather than what it contains: an
+     * object carrying at least one of {@code info}, {@code seasons} or
+     * {@code episodes}. A panel that genuinely lists nothing still sends those keys
+     * — that case is real, it has a screen of its own, and this keeps it.
+     */
     private List<XtreamSeason> readTree(JsonNode root, String host, String username,
                                         String password) {
+        if (root == null || !root.isObject()
+                || (!root.has("info") && !root.has("seasons") && !root.has("episodes"))) {
+            return null;
+        }
+
         Map<Integer, XtreamSeason> seasons = new LinkedHashMap<>();
 
         // Declared seasons first, so their artwork and their announced count are

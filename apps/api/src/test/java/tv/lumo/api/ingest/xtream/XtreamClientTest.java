@@ -65,7 +65,7 @@ class XtreamClientTest {
                     // way is what let `get_series_info&vod_id=` ship. See
                     // `XtreamClient.playerApiWithId`.
                     : query.contains("action=get_series_info")
-                            ? (query.contains("series_id=") ? SERIES_INFO : WRONG_ID)
+                            ? seriesSheetFor(query)
                     : query.contains("action=get_vod_info")
                             ? (query.contains("vod_id=") ? VOD_INFO : WRONG_ID)
                     : query.contains("action=get_series") ? SERIES
@@ -227,6 +227,38 @@ class XtreamClientTest {
     }
 
     @Test
+    @DisplayName("une réponse vide n'est pas une série sans épisodes")
+    void treatsAnEmptyBodyAsNoAnswer() {
+        // A panel answering 0 bytes. Before the guard, `path("seasons")` and
+        // `path("episodes")` both yielded missing nodes, both loops ran zero times,
+        // and an EMPTY LIST came back as a successful answer — which the caller
+        // stored and stamped. A series with eight seasons then showed "no episode
+        // listed" on all three clients, and retrying could not help: the emptiness
+        // was cached for six hours.
+        assertThat(client.fetchSeriesInfo(host, "user", "pass", "empty-body")).isNull();
+    }
+
+    @Test
+    @DisplayName("un tableau à la place d'une fiche n'est pas une série sans épisodes")
+    void treatsAnArrayAsNoAnswer() {
+        // `[]` is what several panels answer for an identifier they did not
+        // receive. It parses, so nothing throws; it is simply not a sheet.
+        assertThat(client.fetchSeriesInfo(host, "user", "pass", "array")).isNull();
+    }
+
+    @Test
+    @DisplayName("une série que le panel déclare vide reste un fait, pas une panne")
+    void keepsAGenuinelyEmptySeries() {
+        // The other side of the guard, and the reason it tests the sheet's SHAPE
+        // rather than its contents. A panel that lists a series and declares no
+        // season sends `info`, `seasons` and `episodes` — empty, but present. That
+        // is worth storing, and a screen already says so in its own words.
+        assertThat(client.fetchSeriesInfo(host, "user", "pass", "no-season"))
+                .isNotNull()
+                .isEmpty();
+    }
+
+    @Test
     @DisplayName("`get_series_info` s'adresse par `series_id`, pas par `vod_id`")
     void addressesASeriesByItsOwnParameter() {
         // The panel behind this test refuses anything else, and it refuses the way
@@ -353,6 +385,39 @@ class XtreamClientTest {
 
     private static final String SERIES_CATEGORIES = """
             [{"category_id":"20","category_name":"Drame","parent_id":0}]
+            """;
+
+    /**
+     * The shapes a panel actually answers a series sheet request with.
+     *
+     * <p>Three of them are not sheets, and telling them apart from a sheet that
+     * declares nothing is what {@code readTree} exists to do. Getting it wrong
+     * turned a transport failure into a stored fact for six hours.
+     */
+    private static String seriesSheetFor(String query) {
+        if (!query.contains("series_id=")) {
+            return WRONG_ID;
+        }
+        if (query.contains("series_id=empty-body")) {
+            return "";
+        }
+        if (query.contains("series_id=array")) {
+            return "[]";
+        }
+        if (query.contains("series_id=no-season")) {
+            return NO_SEASON_SHEET;
+        }
+        return SERIES_INFO;
+    }
+
+    /**
+     * A panel that lists a series and declares nothing under it.
+     *
+     * <p>Rare and real, and it must stay distinguishable from an answer that is
+     * not a sheet: this one is a fact worth storing, and a screen says so.
+     */
+    private static final String NO_SEASON_SHEET = """
+            {"info":{"name":"Le Phare","plot":""},"seasons":[],"episodes":{}}
             """;
 
     /**
