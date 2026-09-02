@@ -284,6 +284,37 @@ class XtreamClientTest {
     }
 
     @Test
+    @DisplayName("le codec audio est relevé tel quel, et son absence n'est pas un silence")
+    void readsTheAudioCodec() {
+        // Why an ingestion cares about a codec at all: a browser decodes picture
+        // and sound separately, and none of them ships a Dolby Digital decoder. An
+        // episode in `ac3` plays perfectly and silently behind a mute button that
+        // does nothing. Roughly a third of a real catalogue is in that state, so
+        // the web client warns before playing rather than three seconds after —
+        // and it can only do that if this value is carried.
+        List<XtreamClient.XtreamSeason> tree =
+                client.fetchSeriesInfo(host, "user", "pass", "9001");
+
+        XtreamClient.XtreamEpisode dolby = tree.get(0).episodes().get(0);
+        assertThat(dolby.audioCodec()).isEqualTo("ac3");
+        assertThat(dolby.audioChannels()).isEqualTo(2);
+
+        // Verbatim, both of them. Mapping `ac3` to something like "unsupported"
+        // here would freeze one client's limits into the ingestion: a television
+        // decodes this file, and what a player handles changes with the year.
+        XtreamClient.XtreamEpisode ordinary = tree.get(1).episodes().get(0);
+        assertThat(ordinary.audioCodec()).isEqualTo("aac");
+        assertThat(ordinary.audioChannels()).isEqualTo(6);
+
+        // And the case that must not become a warning: a panel that says nothing.
+        // Null is "not known", never "no sound" — a client reading it stays quiet,
+        // which is what it did before this field existed.
+        XtreamClient.XtreamEpisode silentSheet = tree.get(0).episodes().get(1);
+        assertThat(silentSheet.audioCodec()).isNull();
+        assertThat(silentSheet.audioChannels()).isNull();
+    }
+
+    @Test
     @DisplayName("l'arbre vient des épisodes, et une saison déclarée vide reste une saison")
     void readsTheTree() {
         List<XtreamClient.XtreamSeason> tree =
@@ -471,11 +502,13 @@ class XtreamClientTest {
                         {"season_number":3,"episode_count":"8","cover":null}],
              "episodes":{
                "1":[{"id":"1001","episode_num":1,"title":"Le départ","season":1,
-                     "container_extension":"mkv","info":{"duration_secs":"2700"}},
+                     "container_extension":"mkv","info":{"duration_secs":"2700",
+                     "audio":{"codec_name":"ac3","channels":2}}},
                     {"id":"1003","episode_num":"3","title":null,"season":1,
                      "container_extension":"mkv","info":{"duration_secs":""}}],
                "2":[{"id":"2001","episode_num":1,"title":"La côte",
-                     "container_extension":"mp4","info":{"duration_secs":"2650"}},
+                     "container_extension":"mp4","info":{"duration_secs":"2650",
+                     "audio":{"codec_name":"aac","channels":6}}},
                     {"id":"2002","episode_num":2,"title":"Sans extension",
                      "info":{}}]}}
             """;

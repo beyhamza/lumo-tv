@@ -249,7 +249,9 @@ public class XtreamSeriesTreeSource implements SeriesTreeSource {
                         episode.durationSeconds(),
                         episode.plot(),
                         episode.streamUrl(),
-                        episode.containerExtension()));
+                        episode.containerExtension(),
+                        episode.audioCodec(),
+                        episode.audioChannels()));
             }
             seasons.add(new CatalogWriteRepository.SeasonUpsert(
                     season.seasonNumber(), season.episodeCount(), season.posterUrl(), episodes));

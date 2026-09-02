@@ -268,7 +268,7 @@
     "playerBlocked": "Your provider does not allow playback from a browser: it refuses the request, or does not answer.",
     "playerUnplayable": "The stream was reached but this browser could not decode it.",
     "playerUnsupported": "This browser cannot play this kind of stream.",
-    "playerNoAudio": "This browser can play none of this stream's audio tracks: the picture decodes, the sound does not exist as far as it is concerned. It is nearly always Dolby Digital (AC-3 or E-AC-3), which Chrome, Edge and Firefox do not ship.",
+    "playerNoAudio": "This browser can decode none of this video's audio tracks: the picture plays, the sound does not. It is nearly always Dolby Digital (AC-3 or E-AC-3), which Chrome, Edge and Firefox do not ship.",
     "playerUseApps": "The Android and Android TV applications have no such limit: they open the stream directly.",
     "playerMaxConnections": "Your subscription allows {count} simultaneous stream(s).",
     "catalogueFavoritesAll": "All favourites",

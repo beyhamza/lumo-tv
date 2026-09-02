@@ -29,10 +29,20 @@ export function EpisodePlayer({
   name,
   resumeFromMs,
   resumeLabel,
+  audioCodec,
 }: {
   episodeId: string;
   sourceId: string;
   name: string;
+  /**
+   * The audio codec the panel named for this episode, straight from the tree.
+   *
+   * <p>An episode has this and a film does not, and the difference is where the
+   * value comes from rather than a decision made here: one `get_series_info`
+   * describes every episode of a series, while a film's detail is a call per
+   * film that the ingestion deliberately does not make.
+   */
+  audioCodec: string | null;
   /**
    * Where to start, **chosen on the page around this component**. Zero is the
    * beginning, and it is somebody's answer to a question they were asked.
@@ -50,6 +60,7 @@ export function EpisodePlayer({
       resumeLabel={resumeLabel}
       playbackPath="episode"
       itemType="EPISODE"
+      audioCodec={audioCodec}
     />
   );
 }

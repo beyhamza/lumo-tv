@@ -441,8 +441,9 @@ public class CatalogWriteRepository {
         jdbcTemplate.update("""
                 INSERT INTO episode (id, series_id, season_id, source_id, external_id,
                                      season_number, episode_number, name, duration_seconds,
-                                     plot, stream_url, container_extension)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                     plot, stream_url, container_extension,
+                                     audio_codec, audio_channels)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (series_id, external_id) WHERE external_id IS NOT NULL
                 DO UPDATE SET season_id           = EXCLUDED.season_id,
                               season_number       = EXCLUDED.season_number,
@@ -451,10 +452,13 @@ public class CatalogWriteRepository {
                               duration_seconds    = EXCLUDED.duration_seconds,
                               plot                = EXCLUDED.plot,
                               stream_url          = EXCLUDED.stream_url,
-                              container_extension = EXCLUDED.container_extension
+                              container_extension = EXCLUDED.container_extension,
+                              audio_codec         = EXCLUDED.audio_codec,
+                              audio_channels      = EXCLUDED.audio_channels
                 """, UUID.randomUUID(), seriesId, seasonId, sourceId, e.externalId(),
                 e.seasonNumber(), e.episodeNumber(), e.name(), e.durationSeconds(),
-                e.plot(), e.streamUrl(), e.containerExtension());
+                e.plot(), e.streamUrl(), e.containerExtension(),
+                e.audioCodec(), e.audioChannels());
     }
 
     private void deleteSeasonsNotIn(UUID seriesId, List<UUID> seen) {
@@ -486,10 +490,16 @@ public class CatalogWriteRepository {
                                List<EpisodeUpsert> episodes) {
     }
 
-    /** @param streamUrl sensitive; written, never logged (AGENTS.md §5) */
+    /**
+     * @param streamUrl sensitive; written, never logged (AGENTS.md §5)
+     * @param audioCodec the panel's own word for the audio codec, or null when it
+     *                   does not say. Null is "not known", never "no sound".
+     * @param audioChannels the channel count of that track, when stated
+     */
     public record EpisodeUpsert(String externalId, int seasonNumber, int episodeNumber,
                                 String name, Integer durationSeconds, String plot,
-                                String streamUrl, String containerExtension) {
+                                String streamUrl, String containerExtension,
+                                String audioCodec, Integer audioChannels) {
     }
     public record VodUpsert(UUID id, UUID categoryId, String externalId, String name,
                             String posterUrl, Integer year, Integer durationSeconds,

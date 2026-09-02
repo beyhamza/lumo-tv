@@ -268,7 +268,7 @@
     "playerBlocked": "Votre fournisseur n'autorise pas la lecture depuis un navigateur : il refuse la requête ou ne répond pas.",
     "playerUnplayable": "Le flux a été atteint mais n'a pas pu être décodé par ce navigateur.",
     "playerUnsupported": "Ce navigateur ne sait pas lire ce type de flux.",
-    "playerNoAudio": "Ce navigateur ne sait lire aucune des pistes audio de ce flux : l'image est décodée, le son n'existe pas de son point de vue. C'est presque toujours du Dolby Digital (AC-3 ou E-AC-3), que Chrome, Edge et Firefox n'embarquent pas.",
+    "playerNoAudio": "Ce navigateur ne sait décoder aucune des pistes audio de cette vidéo : l'image passe, le son non. C'est presque toujours du Dolby Digital (AC-3 ou E-AC-3), que Chrome, Edge et Firefox n'embarquent pas.",
     "playerUseApps": "Les applications Android et Android TV n'ont pas cette limite : elles ouvrent le flux directement.",
     "playerMaxConnections": "Votre abonnement autorise {count} lecture(s) simultanée(s).",
     "catalogueFavoritesAll": "Tous les favoris",

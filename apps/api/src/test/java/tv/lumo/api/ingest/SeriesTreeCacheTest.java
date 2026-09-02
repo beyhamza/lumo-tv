@@ -252,6 +252,10 @@ class SeriesTreeCacheTest {
 
     private static XtreamClient.XtreamEpisode episode(String id, int season, int number) {
         return new XtreamClient.XtreamEpisode(id, season, number, "Episode " + number,
-                2700, null, "https://stream.example/series/" + id + ".mkv", "mkv");
+                2700, null, "https://stream.example/series/" + id + ".mkv", "mkv",
+                // Null, because this test is about caching a tree and a panel that
+                // states no codec is the ordinary case. What happens to the value
+                // is XtreamClientTest's subject.
+                null, null);
     }
 }

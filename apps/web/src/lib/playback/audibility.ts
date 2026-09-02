@@ -88,6 +88,77 @@ export function audibility(reading: {
 }
 
 /**
+ * Whether a browser decodes a codec the server named, before anything is played.
+ *
+ * <h2>Why this exists beside {@link audibility} rather than instead of it</h2>
+ *
+ * The two answer the same question at two different moments, and neither
+ * replaces the other. This one is available **before a single byte is fetched**,
+ * because the panel states the codec in the sheet the episode tree comes from —
+ * so somebody can be told before they press play instead of three seconds into a
+ * silent film. But it only knows what the panel said, which is often nothing and
+ * occasionally wrong. `audibility` knows what actually happened, and is the only
+ * one that can answer for a source that declared nothing.
+ *
+ * <h2>A deny list, not an allow list, and that is the whole design</h2>
+ *
+ * Only codecs **known** to be undecodable return `false`. Anything unrecognised
+ * returns `null`, and the page says nothing — the same default the rest of this
+ * module takes, for the same reason: warning somebody whose sound works fine
+ * sends them to install an application over a problem they do not have. An allow
+ * list would do exactly that to every codec nobody thought of.
+ *
+ * @param codec what the panel called it, echoed by the contract — `ac3`, `aac`
+ * @returns `false` when no browser decodes it, `true` when they all do, `null`
+ *          when there is no reason to have an opinion
+ */
+export function browserDecodes(codec: string | null | undefined): boolean | null {
+  if (!codec) return null;
+  const name = codec.trim().toLowerCase();
+  if (UNDECODABLE.has(name)) return false;
+  if (DECODABLE.has(name)) return true;
+  return null;
+}
+
+/**
+ * The codecs no browser ships, and why each is on the list.
+ *
+ * <p>The Dolby family — `ac3`, `eac3` and the spellings panels use for them — is
+ * the reason this file exists: Dolby licenses per device, and a browser given
+ * away to billions of them does not pay it. DTS is the same story with a
+ * different rights holder, and `truehd` / `mlp` are the lossless formats that
+ * ride along in the same containers.
+ *
+ * <p>Verified rather than assumed, on this machine, against the three engines
+ * this product meets: Chromium 152, Edge 152 and Firefox 154 all answer the
+ * empty string to `canPlayType('audio/mp4; codecs="ac-3"')` and to its `ec-3`
+ * form. Edge is worth naming because Windows itself does license Dolby, and one
+ * could reasonably expect it to be the exception. It is not.
+ */
+const UNDECODABLE = new Set([
+  "ac3",
+  "ac-3",
+  "eac3",
+  "ec-3",
+  "e-ac-3",
+  "a52",
+  "dts",
+  "dca",
+  "dts-hd",
+  "truehd",
+  "mlp",
+]);
+
+/**
+ * The codecs every current browser does decode.
+ *
+ * <p>Present so this function can say `true` rather than only `false` — a caller
+ * that wants to state the good case has something to test, instead of reading a
+ * `null` that also means "no idea". Nothing depends on it today.
+ */
+const DECODABLE = new Set(["aac", "mp3", "mp4a", "opus", "vorbis", "flac"]);
+
+/**
  * How much media must have played before zero decoded bytes means anything.
  *
  * <p>Three seconds. A browser decodes audio ahead of the picture, so a stream

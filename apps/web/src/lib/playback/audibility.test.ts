@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { advanceMs, audibility, SILENCE_AFTER_MS } from "./audibility";
+import { advanceMs, audibility, browserDecodes, SILENCE_AFTER_MS } from "./audibility";
 
 /**
  * The rule that decides whether the page says "this browser has no sound for
@@ -110,5 +110,60 @@ describe("advanceMs", () => {
 
   it("counts nothing across a seek backwards", () => {
     expect(advanceMs(1_204_000, 4_000)).toBe(0);
+  });
+});
+
+/**
+ * The codec the server names, read before anything is played.
+ *
+ * <h2>The asymmetry these tests exist to hold</h2>
+ *
+ * This is a deny list on purpose. A codec nobody thought of must produce silence
+ * from the page, not a warning — the cost of a false warning is somebody being
+ * told to install an application over a problem they do not have, and the cost of
+ * a missed one is the page behaving exactly as it did before this function
+ * existed.
+ */
+describe("browserDecodes", () => {
+  it("knows the Dolby family is not decoded, in the spellings panels use", () => {
+    // Verified on this machine rather than assumed: Chromium 152, Edge 152 and
+    // Firefox 154 all answer "" to canPlayType for ac-3 and ec-3.
+    for (const codec of ["ac3", "ac-3", "eac3", "ec-3", "e-ac-3", "a52"]) {
+      expect(browserDecodes(codec)).toBe(false);
+    }
+  });
+
+  it("knows DTS and TrueHD are not either", () => {
+    for (const codec of ["dts", "dca", "dts-hd", "truehd", "mlp"]) {
+      expect(browserDecodes(codec)).toBe(false);
+    }
+  });
+
+  it("knows the ordinary ones are", () => {
+    for (const codec of ["aac", "mp3", "opus", "vorbis", "flac"]) {
+      expect(browserDecodes(codec)).toBe(true);
+    }
+  });
+
+  it("reads what a panel actually sends, whatever its case and spacing", () => {
+    expect(browserDecodes("  AC3 ")).toBe(false);
+    expect(browserDecodes("EAC3")).toBe(false);
+  });
+
+  it("has no opinion about a codec it does not recognise", () => {
+    // The load-bearing case. A deny list means anything new is unknown, and
+    // unknown must stay quiet rather than guess — an allow list would warn on
+    // every codec nobody thought of.
+    expect(browserDecodes("ac4")).toBeNull();
+    expect(browserDecodes("something-new")).toBeNull();
+  });
+
+  it("has no opinion when the server said nothing", () => {
+    // Null is the ordinary case, not an edge one: panels state this
+    // inconsistently, and every episode ingested before the field existed has
+    // none until the next synchronisation.
+    expect(browserDecodes(null)).toBeNull();
+    expect(browserDecodes(undefined)).toBeNull();
+    expect(browserDecodes("")).toBeNull();
   });
 });

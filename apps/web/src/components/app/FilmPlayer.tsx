@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { saveEpisodeProgress, saveFilmProgress } from "@/actions/playback";
-import { advanceMs, audibility } from "@/lib/playback/audibility";
+import { advanceMs, audibility, browserDecodes } from "@/lib/playback/audibility";
 import { savableProgress } from "@/lib/playback/progress";
 
 /**
@@ -50,8 +50,12 @@ import { savableProgress } from "@/lib/playback/progress";
  * that looks pressed. Pressing it does nothing, because there is nothing to
  * unmute.
  *
- * That gets a sentence, for the same reason everything else here does. The
- * reading is in `lib/playback/audibility`, along with why it takes three
+ * That gets a sentence, for the same reason everything else here does, and it
+ * gets it **twice over**: the panel names the codec in the sheet an episode tree
+ * comes from, so the contract carries it and the line can be read before
+ * anything is fetched; and the element is watched while it plays, which is the
+ * only answer available for the many sources that declare nothing. The reading
+ * is in `lib/playback/audibility`, along with why it takes three
  * browser-specific properties to ask a question the standard has an answer for.
  *
  * **Channels are deliberately not covered.** `ChannelPlayer` plays through
@@ -85,6 +89,7 @@ export function FilmPlayer({
   resumeLabel,
   playbackPath = "vod",
   itemType = "VOD",
+  audioCodec = null,
 }: {
   filmId: string;
   /**
@@ -118,6 +123,15 @@ export function FilmPlayer({
    * words in its comments, and the day one learnt something the other would not.
    */
   playbackPath?: "vod" | "episode";
+  /**
+   * The audio codec the panel named, from the contract — `ac3`, `aac`, or null.
+   *
+   * <p>The whole point of it being here is **when** it is available: before a
+   * byte is fetched, so somebody is told before they press play rather than
+   * three seconds into a silent film. What the element later reports still has
+   * the last word for anything this does not know, which is most sources.
+   */
+  audioCodec?: string | null;
   /**
    * Which table the saved position belongs to (S6-08).
    *
@@ -382,12 +396,19 @@ export function FilmPlayer({
         <p className="text-muted-foreground mt-2 text-sm">{t("filmsNoSeeking")}</p>
       ) : null}
 
-      {/* Only on "silent". "unknown" is a browser that would not say, and a
-          hedged line under a film whose sound is fine is worse than nothing —
-          it sends somebody to install an application over a problem they do not
-          have. The apps line follows, as it does for mixed content, because
-          here too it is the answer rather than a consolation. */}
-      {sound === "silent" && !failure ? (
+      {/* Two ways of knowing the same thing, and the earlier one is worth its
+          own path: the codec the panel named is here before anything is fetched,
+          so this line can be read *before* pressing play, while what the element
+          reports arrives three seconds in and is the only answer for the many
+          sources that declare nothing.
+
+          Neither says anything when unsure. "unknown" is a browser that would
+          not tell, and an unrecognised codec is a codec nobody thought of — a
+          hedged line under a film whose sound is fine sends somebody to install
+          an application over a problem they do not have. The apps line follows,
+          as it does for mixed content, because here too it is the answer rather
+          than a consolation. */}
+      {(browserDecodes(audioCodec) === false || sound === "silent") && !failure ? (
         <p className="text-muted-foreground mt-2 text-sm">
           {t("playerNoAudio")} {t("playerUseApps")}
         </p>

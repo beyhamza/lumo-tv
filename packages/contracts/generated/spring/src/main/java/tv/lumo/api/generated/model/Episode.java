@@ -39,6 +39,10 @@ public class Episode {
 
   private @Nullable String plot = null;
 
+  private @Nullable String audioCodec = null;
+
+  private @Nullable Integer audioChannels = null;
+
   public Episode() {
     super();
   }
@@ -227,6 +231,44 @@ public class Episode {
     this.plot = plot;
   }
 
+  public Episode audioCodec(@Nullable String audioCodec) {
+    this.audioCodec = audioCodec;
+    return this;
+  }
+
+  /**
+   * The audio codec of this episode, **echoed verbatim** — `ac3`, `eac3`, `aac`, `dts`. Whatever the panel calls it, never reinterpreted, for the reason `Channel.quality` is not: deciding what a provider meant is a decision this layer does not get to make.  **It is here so a client can warn before playing rather than after.** A browser decodes picture and sound separately, and no browser ships a Dolby Digital decoder — so an episode in `ac3` plays perfectly and silently, behind a mute button that does nothing. On a real catalogue that is roughly a third of the episodes. The web client says so on the episode before it is opened; the applications ignore this field entirely, because they decode it.  **This is not the server deciding what a client can play.** It is a fact about the file. Which codecs a given player handles is that player's business and changes with the browser, the device and the year — computing it here would freeze one client's limits into the contract.  **Null is normal and means \"not known\"**, not \"no audio\": panels state it inconsistently, and every episode ingested before this field existed has none until the next synchronisation. A client that finds null says nothing. 
+   * @return audioCodec
+   */
+  
+  @JsonProperty("audio_codec")
+  public @Nullable String getAudioCodec() {
+    return audioCodec;
+  }
+
+  public void setAudioCodec(@Nullable String audioCodec) {
+    this.audioCodec = audioCodec;
+  }
+
+  public Episode audioChannels(@Nullable Integer audioChannels) {
+    this.audioChannels = audioChannels;
+    return this;
+  }
+
+  /**
+   * Channel count of that track — `2`, `6` — when the panel states one. Carried beside the codec because it is the other half of the same sentence a client may want to write, and it arrives in the same tree for free. 
+   * @return audioChannels
+   */
+  
+  @JsonProperty("audio_channels")
+  public @Nullable Integer getAudioChannels() {
+    return audioChannels;
+  }
+
+  public void setAudioChannels(@Nullable Integer audioChannels) {
+    this.audioChannels = audioChannels;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -244,12 +286,14 @@ public class Episode {
         Objects.equals(this.episodeNumber, episode.episodeNumber) &&
         Objects.equals(this.name, episode.name) &&
         Objects.equals(this.durationSeconds, episode.durationSeconds) &&
-        Objects.equals(this.plot, episode.plot);
+        Objects.equals(this.plot, episode.plot) &&
+        Objects.equals(this.audioCodec, episode.audioCodec) &&
+        Objects.equals(this.audioChannels, episode.audioChannels);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, seriesId, sourceId, externalId, seasonNumber, episodeNumber, name, durationSeconds, plot);
+    return Objects.hash(id, seriesId, sourceId, externalId, seasonNumber, episodeNumber, name, durationSeconds, plot, audioCodec, audioChannels);
   }
 
   @Override
@@ -265,6 +309,8 @@ public class Episode {
     sb.append("    name: ").append(toIndentedString(name)).append("\n");
     sb.append("    durationSeconds: ").append(toIndentedString(durationSeconds)).append("\n");
     sb.append("    plot: ").append(toIndentedString(plot)).append("\n");
+    sb.append("    audioCodec: ").append(toIndentedString(audioCodec)).append("\n");
+    sb.append("    audioChannels: ").append(toIndentedString(audioChannels)).append("\n");
     sb.append("}");
     return sb.toString();
   }

@@ -31,6 +31,8 @@ import com.squareup.moshi.JsonClass
  * @param name Episode title, when the panel has one. **Null far more often than for a film**, and a client shows \"Episode 4\" rather than an empty line — the number is always there, the title is not. 
  * @param durationSeconds Length of *this* episode, when the source states one. This is what a client uses to decide an episode is finished, never `Series.episode_run_time`. 
  * @param plot Episode synopsis, when the panel supplies one. It arrives with the tree, so unlike a film's it costs no extra call — one `get_series_info` returns every episode's. 
+ * @param audioCodec The audio codec of this episode, **echoed verbatim** — `ac3`, `eac3`, `aac`, `dts`. Whatever the panel calls it, never reinterpreted, for the reason `Channel.quality` is not: deciding what a provider meant is a decision this layer does not get to make.  **It is here so a client can warn before playing rather than after.** A browser decodes picture and sound separately, and no browser ships a Dolby Digital decoder — so an episode in `ac3` plays perfectly and silently, behind a mute button that does nothing. On a real catalogue that is roughly a third of the episodes. The web client says so on the episode before it is opened; the applications ignore this field entirely, because they decode it.  **This is not the server deciding what a client can play.** It is a fact about the file. Which codecs a given player handles is that player's business and changes with the browser, the device and the year — computing it here would freeze one client's limits into the contract.  **Null is normal and means \"not known\"**, not \"no audio\": panels state it inconsistently, and every episode ingested before this field existed has none until the next synchronisation. A client that finds null says nothing. 
+ * @param audioChannels Channel count of that track — `2`, `6` — when the panel states one. Carried beside the codec because it is the other half of the same sentence a client may want to write, and it arrives in the same tree for free. 
  */
 
 
@@ -67,7 +69,15 @@ data class Episode (
 
     /* Episode synopsis, when the panel supplies one. It arrives with the tree, so unlike a film's it costs no extra call — one `get_series_info` returns every episode's.  */
     @Json(name = "plot")
-    val plot: kotlin.String? = null
+    val plot: kotlin.String? = null,
+
+    /* The audio codec of this episode, **echoed verbatim** — `ac3`, `eac3`, `aac`, `dts`. Whatever the panel calls it, never reinterpreted, for the reason `Channel.quality` is not: deciding what a provider meant is a decision this layer does not get to make.  **It is here so a client can warn before playing rather than after.** A browser decodes picture and sound separately, and no browser ships a Dolby Digital decoder — so an episode in `ac3` plays perfectly and silently, behind a mute button that does nothing. On a real catalogue that is roughly a third of the episodes. The web client says so on the episode before it is opened; the applications ignore this field entirely, because they decode it.  **This is not the server deciding what a client can play.** It is a fact about the file. Which codecs a given player handles is that player's business and changes with the browser, the device and the year — computing it here would freeze one client's limits into the contract.  **Null is normal and means \"not known\"**, not \"no audio\": panels state it inconsistently, and every episode ingested before this field existed has none until the next synchronisation. A client that finds null says nothing.  */
+    @Json(name = "audio_codec")
+    val audioCodec: kotlin.String? = null,
+
+    /* Channel count of that track — `2`, `6` — when the panel states one. Carried beside the codec because it is the other half of the same sentence a client may want to write, and it arrives in the same tree for free.  */
+    @Json(name = "audio_channels")
+    val audioChannels: kotlin.Int? = null
 
 ) {
 

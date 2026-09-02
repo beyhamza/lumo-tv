@@ -496,7 +496,8 @@ public class CatalogReadRepository {
                 SELECT se.season_number, se.episode_count, se.poster_url,
                        e.id AS episode_id, e.series_id, e.source_id, e.external_id,
                        e.season_number AS episode_season_number, e.episode_number,
-                       e.name AS episode_name, e.duration_seconds, e.plot AS episode_plot
+                       e.name AS episode_name, e.duration_seconds, e.plot AS episode_plot,
+                       e.audio_codec, e.audio_channels
                   FROM season se
                   LEFT JOIN episode e ON e.season_id = se.id
                  WHERE se.series_id = :seriesId
@@ -532,7 +533,8 @@ public class CatalogReadRepository {
         return jdbc.sql("""
                 SELECT e.id AS episode_id, e.series_id, e.source_id, e.external_id,
                        e.season_number AS episode_season_number, e.episode_number,
-                       e.name AS episode_name, e.duration_seconds, e.plot AS episode_plot
+                       e.name AS episode_name, e.duration_seconds, e.plot AS episode_plot,
+                       e.audio_codec, e.audio_channels
                   FROM episode e
                   JOIN source s ON s.id = e.source_id
                  WHERE e.source_id = :sourceId
@@ -623,6 +625,10 @@ public class CatalogReadRepository {
         episode.setName(rs.getString("episode_name"));
         episode.setDurationSeconds(rs.getObject("duration_seconds", Long.class));
         episode.setPlot(rs.getString("episode_plot"));
+        // Verbatim, both of them. What a browser can decode is the browser's
+        // business — see the contract's note on this field.
+        episode.setAudioCodec(rs.getString("audio_codec"));
+        episode.setAudioChannels(rs.getObject("audio_channels", Integer.class));
         return episode;
     }
 

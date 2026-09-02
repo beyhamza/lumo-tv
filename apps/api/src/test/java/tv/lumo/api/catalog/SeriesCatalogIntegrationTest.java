@@ -192,6 +192,41 @@ class SeriesCatalogIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("le codec audio traverse la base tel quel, et son absence reste nulle")
+    void carriesTheAudioCodec() {
+        // It exists so a browser can warn before playing: none of them decodes
+        // Dolby Digital, so an episode in `ac3` plays perfectly and silently. The
+        // round trip is worth a test because nothing else catches a mistyped
+        // column — `rs.getString` fails at runtime, in front of somebody.
+        jdbc.sql("""
+                UPDATE episode SET audio_codec = 'ac3', audio_channels = 6
+                 WHERE id = :id
+                """).param("id", episodeS1E1).update();
+
+        List<Episode> found = catalog.findEpisodes(
+                sourceId, user.id(), List.of(episodeS1E1, episodeS1E2), 0, 50);
+
+        assertThat(found).filteredOn(e -> e.getId().equals(episodeS1E1)).singleElement()
+                .satisfies(episode -> {
+                    assertThat(episode.getAudioCodec()).isEqualTo("ac3");
+                    assertThat(episode.getAudioChannels()).isEqualTo(6);
+                });
+
+        // The ordinary case, and the one that must never become a warning: a
+        // panel that said nothing. Null is "not known", not "no sound".
+        assertThat(found).filteredOn(e -> e.getId().equals(episodeS1E2)).singleElement()
+                .satisfies(episode -> {
+                    assertThat(episode.getAudioCodec()).isNull();
+                    assertThat(episode.getAudioChannels()).isNull();
+                });
+
+        // And through the tree, which is a different query with the same columns
+        // — the one the series page actually reads.
+        assertThat(catalog.findTree(seriesId).get(0).getEpisodes().get(0).getAudioCodec())
+                .isEqualTo("ac3");
+    }
+
+    @Test
     @DisplayName("an episode's stream URL is readable one at a time, by its owner only")
     void playbackIsScopedToTheOwner() {
         UserRow stranger = insertUser();

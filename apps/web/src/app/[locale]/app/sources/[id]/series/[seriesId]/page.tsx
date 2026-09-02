@@ -175,6 +175,7 @@ export default async function SeriesDetailPage({
             resumeLabel={
               resumeAt > 0 ? t("filmsResumeAt", { at: asClock(resumeAt) }) : null
             }
+            audioCodec={episode.audio_codec ?? null}
           />
         </NextIntlClientProvider>
       ) : null}

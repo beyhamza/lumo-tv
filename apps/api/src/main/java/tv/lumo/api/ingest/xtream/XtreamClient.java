@@ -323,13 +323,10 @@ public class XtreamClient {
     }
 
     /**
-     * Turns one {@code get_series_info} body into seasons.
-     *
-     * <p>Package-private rather than inline so the parsing can be tested against
-     * real panel bodies without a socket.
-     */
-    /**
      * Turns one {@code get_series_info} answer into seasons.
+     *
+     * <p>A method of its own rather than inline, so the parsing can be tested
+     * against real panel bodies without a socket.
      *
      * <p><b>Returns null when the answer is not a series sheet at all</b>, and that
      * guard is the whole difference between two things a screen must never
@@ -426,6 +423,11 @@ public class XtreamClient {
         }
 
         JsonNode info = node.path("info");
+        // The sheet carries an ffprobe dump of ONE audio stream, not of all of
+        // them. So this is "the codec of the track the panel describes", which is
+        // enough to warn somebody and not enough to offer them a choice — the
+        // choice belongs to a player that can read the file itself.
+        JsonNode audio = info.path("audio");
         return new XtreamEpisode(
                 episodeId,
                 season,
@@ -436,7 +438,9 @@ public class XtreamClient {
                 parseSeconds(readText(info.path("duration_secs"))),
                 readText(info.path("plot")),
                 buildEpisodeStreamUrl(host, username, password, episodeId, extension),
-                extension);
+                extension,
+                readText(audio.path("codec_name")),
+                parseInt(readText(audio.path("channels"))));
     }
 
     /**
@@ -720,10 +724,18 @@ public class XtreamClient {
                                List<XtreamEpisode> episodes) {
     }
 
-    /** @param streamUrl sensitive; must not be logged (AGENTS.md §5) */
+    /**
+     * @param streamUrl sensitive; must not be logged (AGENTS.md §5)
+     * @param audioCodec what the panel calls the audio codec — {@code ac3},
+     *                   {@code aac}, {@code dts} — echoed and never interpreted.
+     *                   Null when the sheet does not say, which is common and
+     *                   means "not known" rather than "no sound".
+     * @param audioChannels the channel count of that track, when stated
+     */
     public record XtreamEpisode(String externalId, int seasonNumber, int episodeNumber,
                                 String name, Integer durationSeconds, String plot,
-                                String streamUrl, String containerExtension) {
+                                String streamUrl, String containerExtension,
+                                String audioCodec, Integer audioChannels) {
     }
 
     public record XtreamVodStream(String externalId, String name, String posterUrl,
