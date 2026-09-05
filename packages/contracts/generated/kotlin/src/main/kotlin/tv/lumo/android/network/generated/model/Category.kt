@@ -29,7 +29,7 @@ import com.squareup.moshi.JsonClass
  * @param contentType 
  * @param position Display order within the source.
  * @param externalId Identifier used by the origin panel or playlist.  One value is assigned by Lumo rather than by the source: `m3u:__unclassified__` is the group that collects M3U entries with no `group-title` (US-07). It is the only category the server invents, so it is the only one whose `name` is not the user's own wording — clients render their own translation when they see this identifier and fall back to `name` otherwise. 
- * @param channelCount Channels in this category. Derived, not stored on the entity. Renders \"N channels\" next to each category (US-08). 
+ * @param channelCount Items in this category — channels, films or series, according to `content_type`. Derived, not stored on the entity. Renders \"N\" next to each category (US-08). The name predates the film and series catalogues and is kept: renaming a field is a breaking change for three clients, a description is not. 
  */
 
 
@@ -55,7 +55,7 @@ data class Category (
     @Json(name = "external_id")
     val externalId: kotlin.String? = null,
 
-    /* Channels in this category. Derived, not stored on the entity. Renders \"N channels\" next to each category (US-08).  */
+    /* Items in this category — channels, films or series, according to `content_type`. Derived, not stored on the entity. Renders \"N\" next to each category (US-08). The name predates the film and series catalogues and is kept: renaming a field is a breaking change for three clients, a description is not.  */
     @Json(name = "channel_count")
     val channelCount: kotlin.Int? = null
 

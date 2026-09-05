@@ -1858,8 +1858,11 @@ export interface components {
             position: number;
             /**
              * Format: int32
-             * @description Channels in this category. Derived, not stored on the entity. Renders
-             *     "N channels" next to each category (US-08).
+             * @description Items in this category — channels, films or series, according to
+             *     `content_type`. Derived, not stored on the entity. Renders "N" next to
+             *     each category (US-08). The name predates the film and series
+             *     catalogues and is kept: renaming a field is a breaking change for
+             *     three clients, a description is not.
              */
             channel_count?: number | null;
         };

@@ -12,6 +12,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tv.lumo.api.auth.UserRepository;
 import tv.lumo.api.auth.UserRow;
+import tv.lumo.api.generated.model.Category;
+import tv.lumo.api.generated.model.ContentType;
 import tv.lumo.api.generated.model.Episode;
 import tv.lumo.api.generated.model.Season;
 import tv.lumo.api.generated.model.Series;
@@ -50,6 +52,7 @@ class SeriesCatalogIntegrationTest extends PostgresIntegrationTest {
 
     private UserRow user;
     private UUID sourceId;
+    private UUID drama;
     private UUID seriesId;
     private UUID episodeS1E1;
     private UUID episodeS1E2;
@@ -59,7 +62,7 @@ class SeriesCatalogIntegrationTest extends PostgresIntegrationTest {
     void createOneTree() {
         user = insertUser();
         sourceId = insertSource(user);
-        UUID drama = insertCategory(sourceId, "Drame");
+        drama = insertCategory(sourceId, "Drame");
         seriesId = insertSeries(sourceId, "Les Falaises", drama, 0);
 
         UUID seasonOne = insertSeason(seriesId, 1, 2);
@@ -80,6 +83,18 @@ class SeriesCatalogIntegrationTest extends PostgresIntegrationTest {
         assertThat(found).extracting(Series::getName)
                 .containsExactly("Les Falaises", "Le Phare");
         assertThat(catalog.countSeries(sourceId, user.id(), null, null, null)).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("a series category counts its series, not their episodes")
+    void aSeriesCategoryCountsItsSeries() {
+        // One series, three episodes: the chip next to "Drame" must say 1. The
+        // same query used to look at the channel table for every kind of
+        // category and said 0 here, as it did for films.
+        List<Category> categories = catalog.findCategories(sourceId, user.id(), ContentType.SERIES);
+
+        assertThat(categories).extracting(Category::getId).containsExactly(drama);
+        assertThat(categories.getFirst().getChannelCount()).isEqualTo(1);
     }
 
     @Test

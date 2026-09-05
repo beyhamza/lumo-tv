@@ -12,6 +12,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tv.lumo.api.auth.UserRepository;
 import tv.lumo.api.auth.UserRow;
+import tv.lumo.api.generated.model.Category;
+import tv.lumo.api.generated.model.ContentType;
 import tv.lumo.api.generated.model.SourceKind;
 import tv.lumo.api.generated.model.VodItem;
 import tv.lumo.api.source.SourceRepository;
@@ -80,6 +82,18 @@ class VodCatalogIntegrationTest extends PostgresIntegrationTest {
 
         assertThat(films).extracting(VodItem::getId).containsExactly(first, second);
         assertThat(catalog.countVod(sourceId, user.id(), null, null, null)).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("a film category counts its films, not the channels of the source")
+    void aFilmCategoryCountsItsFilms() {
+        // Seen on a television: every film and series category read "(0)" while
+        // thousands of items sat behind it, because the count only ever looked at
+        // the channel table. The source here has one channel and two films.
+        List<Category> categories = catalog.findCategories(sourceId, user.id(), ContentType.VOD);
+
+        assertThat(categories).extracting(Category::getId).containsExactly(actionId);
+        assertThat(categories.getFirst().getChannelCount()).isEqualTo(2);
     }
 
     @Test

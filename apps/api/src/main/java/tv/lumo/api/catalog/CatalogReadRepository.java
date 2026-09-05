@@ -45,7 +45,14 @@ public class CatalogReadRepository {
     public List<Category> findCategories(UUID sourceId, UUID userId, ContentType contentType) {
         return jdbc.sql("""
                 SELECT c.id, c.source_id, c.external_id, c.name, c.content_type, c.position,
-                       (SELECT count(*) FROM channel ch WHERE ch.category_id = c.id) AS channel_count
+                       -- What a category holds depends on what kind it is. Counting
+                       -- the channel table alone gave every film and series category
+                       -- a "(0)" next to a name that had thousands of items behind it.
+                       CASE c.content_type
+                           WHEN 'VOD'    THEN (SELECT count(*) FROM vod_item v  WHERE v.category_id = c.id)
+                           WHEN 'SERIES' THEN (SELECT count(*) FROM series se   WHERE se.category_id = c.id)
+                           ELSE               (SELECT count(*) FROM channel ch  WHERE ch.category_id = c.id)
+                       END AS channel_count
                   FROM category c
                   JOIN source s ON s.id = c.source_id
                  WHERE c.source_id = :sourceId
