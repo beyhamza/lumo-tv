@@ -18,6 +18,7 @@ import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.core.designsystem.component.LumoTvNavRail
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.feature.live.PlayerDestination
+import tv.lumo.android.feature.series.EpisodePlayerDestination
 import tv.lumo.android.feature.vod.VodPlayerDestination
 import tv.lumo.androidtv.navigation.LumoTvNavHost
 import tv.lumo.androidtv.navigation.TvDestinations
@@ -99,7 +100,13 @@ fun LumoTvApp(
  * the panel, and what it feeds is the decision of whether a rail of focus targets
  * sits down the left of somebody's film.
  */
-private val PLAYER_ROUTES = setOf(PlayerDestination.route, VodPlayerDestination.route)
+private val PLAYER_ROUTES = setOf(
+    PlayerDestination.route,
+    VodPlayerDestination.route,
+    // Added after being forgotten: an episode played with the rail down its left,
+    // a stack of focus targets over the picture that US-10 says must be alone.
+    EpisodePlayerDestination.route,
+)
 
 /**
  * Same top-level behaviour as the phone, for the same reason: BACK from any

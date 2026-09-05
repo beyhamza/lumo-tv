@@ -20,6 +20,7 @@ import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.core.designsystem.component.LumoMobileNavBar
 import tv.lumo.android.feature.live.PlayerDestination
+import tv.lumo.android.feature.series.EpisodePlayerDestination
 import tv.lumo.android.feature.vod.VodPlayerDestination
 import tv.lumo.android.navigation.LumoMobileNavHost
 import tv.lumo.android.navigation.MobileDestinations
@@ -111,7 +112,13 @@ fun LumoMobileApp(
  * fills the panel — and the condition it feeds is the one that decides whether a
  * strip of our chrome sits across somebody's film.
  */
-private val PLAYER_ROUTES = setOf(PlayerDestination.route, VodPlayerDestination.route)
+private val PLAYER_ROUTES = setOf(
+    PlayerDestination.route,
+    VodPlayerDestination.route,
+    // The third player, missed when it was added: without it the bottom bar sat
+    // across an episode while the two other players had the screen to themselves.
+    EpisodePlayerDestination.route,
+)
 
 /**
  * Moves between top-level destinations without stacking them.
