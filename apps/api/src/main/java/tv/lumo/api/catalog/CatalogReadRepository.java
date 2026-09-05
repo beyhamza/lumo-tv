@@ -48,10 +48,20 @@ public class CatalogReadRepository {
                        -- What a category holds depends on what kind it is. Counting
                        -- the channel table alone gave every film and series category
                        -- a "(0)" next to a name that had thousands of items behind it.
+                       --
+                       -- Each subquery repeats the source: the three item indexes
+                       -- start with source_id, and a predicate on category_id alone
+                       -- cannot use them. Measured on a panel of 141k films and 141
+                       -- categories, that difference is 204 s of sequential scans
+                       -- against under a second of index-only scans — the former
+                       -- is a television's 30 s timeout, several times over.
                        CASE c.content_type
-                           WHEN 'VOD'    THEN (SELECT count(*) FROM vod_item v  WHERE v.category_id = c.id)
-                           WHEN 'SERIES' THEN (SELECT count(*) FROM series se   WHERE se.category_id = c.id)
-                           ELSE               (SELECT count(*) FROM channel ch  WHERE ch.category_id = c.id)
+                           WHEN 'VOD' THEN (SELECT count(*) FROM vod_item v
+                                             WHERE v.source_id = c.source_id AND v.category_id = c.id)
+                           WHEN 'SERIES' THEN (SELECT count(*) FROM series se
+                                                WHERE se.source_id = c.source_id AND se.category_id = c.id)
+                           ELSE (SELECT count(*) FROM channel ch
+                                  WHERE ch.source_id = c.source_id AND ch.category_id = c.id)
                        END AS channel_count
                   FROM category c
                   JOIN source s ON s.id = c.source_id
