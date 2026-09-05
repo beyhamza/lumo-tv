@@ -108,7 +108,13 @@ private fun Waiting(step: ActivationStep.Waiting) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(
-            modifier = Modifier.widthIn(max = 900.dp),
+            // Weighted, so the QR is measured first and the text takes what is
+            // left. Without the weight the column claimed its full 900.dp on a
+            // 1080p panel — 960.dp wide, 864.dp inside the overscan — and pushed
+            // the QR off the right edge, under a sentence that said to scan it.
+            modifier = Modifier
+                .weight(1f)
+                .widthIn(max = 900.dp),
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
         ) {
             Text(

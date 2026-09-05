@@ -241,17 +241,15 @@ internal class Media3LumoPlayer @Inject constructor(
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (playbackState == Player.STATE_READY) onReady()
 
-            _state.value = when (playbackState) {
-                Player.STATE_BUFFERING -> PlaybackState.Buffering
-                Player.STATE_READY ->
-                    if (exoPlayer.playWhenReady) {
-                        PlaybackState.Playing(currentTitle)
-                    } else {
-                        PlaybackState.Paused
-                    }
-
-                Player.STATE_ENDED -> PlaybackState.Ended
-                else -> PlaybackState.Idle
+            // Folded over the current state rather than assigned: a failure
+            // arrives as two callbacks, and the second one must not erase the
+            // first. See [afterExoPlayerState].
+            _state.update { current ->
+                current.afterExoPlayerState(
+                    playbackState = playbackState,
+                    playWhenReady = exoPlayer.playWhenReady,
+                    title = currentTitle,
+                )
             }
         }
 
