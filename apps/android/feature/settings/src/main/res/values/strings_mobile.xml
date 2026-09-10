@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the M6 settings screen (mobile mock-up, artboard 22). The
+  French set lives in values-fr/strings_mobile.xml and ships at the same time
+  (AGENTS.md §4); lint fails the build on a missing translation.
+
+  Section labels are written in capitals here rather than transformed at the
+  call site: Compose has no text transform, and upper-casing is locale-sensitive.
+-->
+<resources>
+    <string name="feature_settings_account_title">Your account</string>
+
+    <string name="feature_settings_section_sources">SOURCES</string>
+    <string name="feature_settings_my_sources">My sources</string>
+    <plurals name="feature_settings_sources_active">
+        <item quantity="one">%d active</item>
+        <item quantity="other">%d active</item>
+    </plurals>
+    <string name="feature_settings_auto_sync">Automatic refresh</string>
+
+    <string name="feature_settings_section_devices">DEVICES</string>
+    <string name="feature_settings_devices_connected">Connected devices</string>
+    <string name="feature_settings_pair_tv">Pair a television</string>
+
+    <string name="feature_settings_section_application">APPLICATION</string>
+    <string name="feature_settings_language">Language</string>
+    <string name="feature_settings_mobile_data">Play on mobile data</string>
+    <!--
+      Two rows the mock-up draws and no contract or preference backs yet. They
+      are on screen so the layout is complete, and say so rather than pretend.
+    -->
+    <string name="feature_settings_mock_missing">[mock] missing data</string>
+
+    <!-- Brand and product URL: not translated. -->
+    <string name="feature_settings_footer" translatable="false">lumo v%1$s · lumo.tv</string>
+    <string name="feature_settings_unknown_value" translatable="false">—</string>
+    <string name="feature_settings_chevron" translatable="false">›</string>
+</resources>

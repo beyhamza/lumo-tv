@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the M1 onboarding (mobile mock-up, artboards 01 to 03).
+  The French set lives in values-fr/strings_mobile.xml and ships at the same
+  time (AGENTS.md §4); lint fails the build on a missing translation.
+-->
+<resources>
+    <string name="feature_onboarding_page1_title">The TV you already have, done right.</string>
+    <string name="feature_onboarding_page1_body">Lumo sells no channels. It plays the ones you already have access to, with an interface that does them justice.</string>
+
+    <string name="feature_onboarding_page2_title">Bring your source</string>
+    <string name="feature_onboarding_page2_body">Your TV provider gave you a link or credentials. That is your source. Paste it into Lumo: your channels appear.</string>
+
+    <string name="feature_onboarding_page3_title">On every screen</string>
+    <string name="feature_onboarding_page3_body">Phone, television, browser: your source and your watch history follow you everywhere, typed once.</string>
+
+    <string name="feature_onboarding_skip">Skip</string>
+    <string name="feature_onboarding_next">Continue</string>
+    <string name="feature_onboarding_start">Get started</string>
+    <!-- Read by an accessibility service in place of the page dots. -->
+    <string name="feature_onboarding_page_of">Page %1$d of %2$d</string>
+</resources>

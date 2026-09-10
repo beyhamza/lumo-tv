@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_auth_email_caption">ADRESSE E-MAIL</string>
+    <string name="feature_auth_password_caption">MOT DE PASSE</string>
+    <string name="feature_auth_display_name_caption">NOM AFFICHÉ</string>
+</resources>

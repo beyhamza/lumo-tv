@@ -1,9 +1,26 @@
+import tv.lumo.buildlogic.lumoEnv
+
 plugins {
     alias(libs.plugins.lumo.android.feature)
 }
 
 android {
     namespace = "tv.lumo.android.feature.settings"
+
+    buildFeatures {
+        // For one field: the page a television's QR code points at (US-05).
+        // It comes from `.env` at build time, like the Google client ID in
+        // feature:auth, because it differs between a local stack and production.
+        buildConfig = true
+    }
+
+    defaultConfig {
+        buildConfigField(
+            "String",
+            "ACTIVATION_URL",
+            "\"${lumoEnv("LUMO_ACTIVATION_URL", default = "https://lumo.tv/activate")}\"",
+        )
+    }
 }
 
 dependencies {

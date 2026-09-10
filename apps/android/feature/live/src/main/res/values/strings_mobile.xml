@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the M4 channel list (mobile mock-up, artboard 15). The
+  French set lives in values-fr/strings_mobile.xml and ships at the same time
+  (AGENTS.md §4); lint fails the build on a missing translation.
+-->
+<resources>
+    <!--
+      The mock-up heads the list "Chaînes" where the tab says "Direct": the tab
+      names the place, the heading names what is on it.
+    -->
+    <string name="feature_live_channels_heading">Channels</string>
+    <string name="feature_live_search">Search</string>
+    <!--
+      The search screen is still a placeholder (see MobileDestinations in
+      app-mobile). The button is drawn because the mock-up draws it, and says so
+      when tapped rather than opening a room nobody has built.
+    -->
+    <string name="feature_live_search_mock">[mock] screen not implemented</string>
+
+    <!-- Glyphs: the product has no icon set yet, as the nav bar explains. -->
+    <string name="feature_live_subtitle_join" translatable="false">%1$s · %2$s</string>
+    <string name="feature_live_glyph_search" translatable="false">⌕</string>
+    <string name="feature_live_glyph_refresh" translatable="false">↻</string>
+    <string name="feature_live_glyph_chevron" translatable="false">›</string>
+</resources>

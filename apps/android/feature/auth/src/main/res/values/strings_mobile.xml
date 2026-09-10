@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the M1 sign-in and sign-up screens (mobile mock-up,
+  artboards 04 and 05). The French set lives in values-fr/strings_mobile.xml and
+  ships at the same time (AGENTS.md §4); lint fails the build on a missing
+  translation.
+
+  Field captions are written in capitals rather than transformed at the call
+  site: Compose has no text transform, and upper-casing is locale-sensitive.
+-->
+<resources>
+    <string name="feature_auth_email_caption">EMAIL ADDRESS</string>
+    <string name="feature_auth_password_caption">PASSWORD</string>
+    <string name="feature_auth_display_name_caption">DISPLAY NAME</string>
+    <!-- A placeholder address, never a real one (AGENTS.md §1). -->
+    <string name="feature_auth_email_placeholder" translatable="false">you@example.com</string>
+</resources>

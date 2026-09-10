@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_settings_account_title">Votre compte</string>
+
+    <string name="feature_settings_section_sources">SOURCES</string>
+    <string name="feature_settings_my_sources">Mes sources</string>
+    <plurals name="feature_settings_sources_active">
+        <item quantity="one">%d active</item>
+        <item quantity="other">%d actives</item>
+    </plurals>
+    <string name="feature_settings_auto_sync">Actualisation automatique</string>
+
+    <string name="feature_settings_section_devices">APPAREILS</string>
+    <string name="feature_settings_devices_connected">Appareils connectés</string>
+    <string name="feature_settings_pair_tv">Associer une télévision</string>
+
+    <string name="feature_settings_section_application">APPLICATION</string>
+    <string name="feature_settings_language">Langue</string>
+    <string name="feature_settings_mobile_data">Lecture sur données mobiles</string>
+    <string name="feature_settings_mock_missing">[mock] données manquantes</string>
+</resources>

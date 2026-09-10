@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_onboarding_page1_title">La télé que vous avez déjà, en mieux.</string>
+    <string name="feature_onboarding_page1_body">Lumo ne vend pas de chaînes. Il lit celles auxquelles vous avez déjà accès, avec une interface qui leur rend justice.</string>
+
+    <string name="feature_onboarding_page2_title">Apportez votre source</string>
+    <string name="feature_onboarding_page2_body">Votre fournisseur TV vous a remis un lien ou des identifiants. C\'est votre source. Collez-la dans Lumo : vos chaînes apparaissent.</string>
+
+    <string name="feature_onboarding_page3_title">Sur tous vos écrans</string>
+    <string name="feature_onboarding_page3_body">Téléphone, télévision, navigateur : votre source et votre historique de lecture vous suivent partout, sans double saisie.</string>
+
+    <string name="feature_onboarding_skip">Passer</string>
+    <string name="feature_onboarding_next">Continuer</string>
+    <string name="feature_onboarding_start">Commencer</string>
+    <string name="feature_onboarding_page_of">Page %1$d sur %2$d</string>
+</resources>

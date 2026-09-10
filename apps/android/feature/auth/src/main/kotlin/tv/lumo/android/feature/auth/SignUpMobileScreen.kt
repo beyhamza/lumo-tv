@@ -1,21 +1,9 @@
 package tv.lumo.android.feature.auth
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,14 +17,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.network.generated.model.Locale
 
 /**
- * Creating an account (US-01).
+ * Creating an account (US-01), in the same clothes as the sign-in screen
+ * (M1 mock-up, mobile artboard 04): the mark, a title, captioned fields, a pill.
  *
  * <h2>The rule is shown before it is broken</h2>
  *
@@ -56,6 +43,12 @@ import tv.lumo.android.network.generated.model.Locale
  * address has an account. The contract protects the same secret from the other
  * side, by answering in constant time; saying it plainly in the message would
  * give back what the timing was hidden to protect.
+ *
+ * <h2>No strength meter</h2>
+ *
+ * The mock-up draws four bars and a verdict. The contract has one rule — ten
+ * characters — and a meter that graded anything beyond it would be this screen
+ * inventing a policy the server does not hold. The rule is stated instead.
  */
 @Composable
 fun SignUpMobileScreen(
@@ -67,46 +60,40 @@ fun SignUpMobileScreen(
     val locale = currentLocale()
     val submit = { viewModel.submit(locale) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(LumoSpacing.lg),
-        verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+    MobileAuthScaffold(
+        modifier = modifier,
+        footer = {
+            TextButton(onClick = onSignIn, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.feature_auth_have_account),
+                    color = mobileLinkColor(),
+                )
+            }
+        },
     ) {
-        Text(
-            text = stringResource(R.string.feature_auth_sign_up_title),
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        Text(
-            text = stringResource(R.string.feature_auth_sign_up_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        MobileAuthHeading(
+            title = stringResource(R.string.feature_auth_sign_up_title),
+            subtitle = stringResource(R.string.feature_auth_sign_up_subtitle),
         )
 
-        OutlinedTextField(
+        MobileFormField(
+            caption = stringResource(R.string.feature_auth_email_caption),
             value = state.email,
             onValueChange = viewModel::onEmailChange,
-            label = { Text(stringResource(R.string.feature_auth_email_label)) },
-            singleLine = true,
+            placeholder = stringResource(R.string.feature_auth_email_placeholder),
             enabled = !state.submitting,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next,
             ),
-            modifier = Modifier.fillMaxWidth(),
         )
 
         val tooShort = state.passwordTooShort == true
 
-        OutlinedTextField(
+        MobileFormField(
+            caption = stringResource(R.string.feature_auth_password_caption),
             value = state.password,
             onValueChange = viewModel::onPasswordChange,
-            label = { Text(stringResource(R.string.feature_auth_password_label)) },
-            singleLine = true,
             enabled = !state.submitting,
             isError = tooShort,
             visualTransformation = PasswordVisualTransformation(),
@@ -119,21 +106,18 @@ fun SignUpMobileScreen(
             supportingText = {
                 Text(stringResource(R.string.feature_auth_password_rule))
             },
-            modifier = Modifier.fillMaxWidth(),
         )
 
-        OutlinedTextField(
+        MobileFormField(
+            caption = stringResource(R.string.feature_auth_display_name_caption),
             value = state.displayName,
             onValueChange = viewModel::onDisplayNameChange,
-            label = { Text(stringResource(R.string.feature_auth_display_name_label)) },
-            singleLine = true,
             enabled = !state.submitting,
             supportingText = {
                 Text(stringResource(R.string.feature_auth_display_name_hint))
             },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { submit() }),
-            modifier = Modifier.fillMaxWidth(),
         )
 
         state.failure?.let { failure ->
@@ -145,30 +129,17 @@ fun SignUpMobileScreen(
             )
         }
 
-        Button(
+        PillButton(
+            label = stringResource(R.string.feature_auth_sign_up_submit),
             onClick = submit,
             enabled = state.canSubmit,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (state.submitting) {
-                CircularProgressIndicator(
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(LumoSpacing.md),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            } else {
-                Text(stringResource(R.string.feature_auth_sign_up_submit))
-            }
-        }
+            busy = state.submitting,
+        )
 
         // The same button as the sign-in screen, and the same flow: a first
         // Google sign-in creates the account, so putting it only on the other
         // screen would ask the user to guess which of the two they need.
         GoogleSignInButton()
-
-        TextButton(onClick = onSignIn, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.feature_auth_have_account))
-        }
     }
 }
 
