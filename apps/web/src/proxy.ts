@@ -2,6 +2,7 @@ import createIntlMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { routing } from "@/i18n/routing";
 import { sessionCookieName } from "@/lib/env";
+import { PATHNAME_HEADER } from "@/lib/http/pathname-header";
 import {
   isAccessTokenStale,
   sealSession,
@@ -36,6 +37,10 @@ import { refreshSession } from "@/lib/session/refresh";
 const handleI18n = createIntlMiddleware(routing);
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
+  // For the account rail's current-section mark (see lib/http/pathname-header).
+  // Set before next-intl builds its response, which copies the request headers
+  // into the one it forwards.
+  request.headers.set(PATHNAME_HEADER, request.nextUrl.pathname);
   const response = handleI18n(request);
 
   // A locale redirect ends the request; there is no session work to do on a

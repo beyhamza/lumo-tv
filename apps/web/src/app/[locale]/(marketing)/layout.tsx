@@ -38,7 +38,7 @@ export default async function MarketingLayout({
       <main id="main" className="flex-1">
         {children}
       </main>
-      <SiteFooter />
+      <SiteFooter locale={locale as Locale} />
     </>
   );
 }

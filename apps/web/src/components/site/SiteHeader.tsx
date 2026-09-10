@@ -1,9 +1,11 @@
 import { getTranslations } from "next-intl/server";
+import { Wordmark } from "@/components/site/Wordmark";
 import { hrefFor } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 
 /**
- * The marketing header.
+ * The marketing header (W1, docs/design/web-sprint-1.md): logotype,
+ * `Features` · `Pricing` · `Guides`, then `Sign in` and the filled CTA.
  *
  * A Server Component with no interactivity at all — the language switch is two
  * links, not a dropdown, and navigation uses plain anchors rather than a
@@ -11,13 +13,18 @@ import { routing, type Locale } from "@/i18n/routing";
  * JavaScript onto pages whose entire purpose is to render fast from a CDN with
  * nothing blocking (docs/architecture.md §4). A content page entered from a
  * search result gains nothing from client-side routing.
+ *
+ * `Features` and `Pricing` are sections of the landing page, so from a guide
+ * they are links back to `/#features` and `/#pricing` rather than anchors that
+ * would go nowhere.
  */
 export async function SiteHeader({ locale }: { locale: Locale }) {
   const t = await getTranslations("Nav");
   const brand = await getTranslations("Brand");
+  const home = hrefFor(locale, "/");
 
   return (
-    <header className="border-border/60 border-b">
+    <header className="border-border border-b">
       <a
         href="#main"
         className="focus:bg-primary focus:text-primary-foreground sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded-md focus:px-3 focus:py-2"
@@ -27,15 +34,18 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
 
       <nav
         aria-label={brand("name")}
-        className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-4"
+        className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-x-7 gap-y-2 px-6 py-5 sm:px-10 lg:px-16"
       >
-        <a
-          href={hrefFor(locale, "/")}
-          className="text-base font-semibold tracking-tight"
-        >
-          {brand("name")}
+        <a href={home} className="mr-2 inline-flex">
+          <Wordmark />
         </a>
 
+        <a href={`${home}#features`} className="text-muted-foreground hover:text-foreground text-sm">
+          {t("features")}
+        </a>
+        <a href={`${home}#pricing`} className="text-muted-foreground hover:text-foreground text-sm">
+          {t("pricing")}
+        </a>
         <a
           href={hrefFor(locale, "/guides")}
           className="text-muted-foreground hover:text-foreground text-sm"
@@ -53,9 +63,9 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
           </a>
           <a
             href={hrefFor(locale, "/register")}
-            className="bg-primary text-primary-foreground rounded-lg px-3 py-1.5 text-sm font-medium"
+            className="bg-primary text-primary-foreground inline-flex h-11 items-center rounded-full px-5 text-sm font-semibold"
           >
-            {t("register")}
+            {t("tryFree")}
           </a>
         </div>
       </nav>
