@@ -82,6 +82,9 @@ class ActivationViewModel @Inject constructor(
                             // screen and approve.
                             verificationUriComplete = code.verificationUriComplete.toString(),
                             verificationUri = code.verificationUri.toString(),
+                            // Wall-clock, so the screen can count down without
+                            // being told when it started looking.
+                            expiresAtMillis = System.currentTimeMillis() + code.expiresIn * 1_000L,
                         ),
                     )
                 }
@@ -139,6 +142,8 @@ sealed interface ActivationStep {
         val userCode: String,
         val verificationUriComplete: String,
         val verificationUri: String,
+        /** When the code stops being accepted; a new one is requested by then. */
+        val expiresAtMillis: Long,
     ) : ActivationStep
 
     /** The user refused on their phone. */

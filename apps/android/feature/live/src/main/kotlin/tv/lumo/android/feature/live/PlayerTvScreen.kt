@@ -2,15 +2,22 @@ package tv.lumo.android.feature.live
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -36,44 +44,52 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
+import tv.lumo.android.core.designsystem.component.LumoMockMissingData
+import tv.lumo.android.core.designsystem.component.LumoMockNotImplemented
 import tv.lumo.android.core.designsystem.component.LumoTvAudioTrackSheet
+import tv.lumo.android.core.designsystem.component.LumoTvButton
 import tv.lumo.android.core.designsystem.theme.LumoColors
-import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
-import tv.lumo.android.core.designsystem.tv.lumoTvFocus
+import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.tv.tvOverscan
 import tv.lumo.android.core.player.ui.LumoVideoSurface
 import tv.lumo.android.core.player.ui.asChoices
 
 /**
- * Watching a channel on a television (US-10).
+ * The television player (US-09, US-10), laid out as `TV4 — Lecteur`.
  *
- * The focus map for this screen is `docs/design/tv-focus-map.md`.
+ * <h2>At rest, nothing but the picture</h2>
  *
- * <h2>At rest there is nothing on the picture</h2>
+ * Full screen, no chrome, and the rail is gone (`LumoTvApp` hides it on this
+ * route). The picture itself takes the focus, so the D-pad has somewhere to be:
+ * `OK` opens the bar, `UP` the audio picker when there is more than one track,
+ * `BACK` leaves. The bar closes on its own after five seconds without a press.
  *
- * No bar, no gradient, no logo. That is the requirement and it is the right one:
- * this is the screen somebody sits in front of for an hour, and everything drawn
- * over the picture is drawn over the thing they came for.
+ * <h2>The bar, as the canvas draws it</h2>
  *
- * <h2>OK brings the bar, and five seconds of stillness takes it away</h2>
+ * Number, name, what is on and what is next, a progress bar, `DIRECT`, and a row
+ * of pills: pause, subtitles, quality, guide. Of those, the programme and its
+ * progress are the guide the server does not serve yet, and subtitles, quality
+ * and the guide are screens that do not exist: each is on the bar and says so
+ * with the shared `[mock]` badge, rather than being left off and looking like a
+ * decision.
  *
- * Five seconds of **inactivity**, not five seconds: any key press restarts the
- * clock, so somebody reading the channel name slowly does not have it taken away
- * mid-sentence.
+ * Pause is real. It is not timeshift (v2): a paused live stream resumes at the
+ * live edge or thereabouts, which is what the button honestly does.
  *
- * <h2>The screen is focusable even though it holds no control</h2>
+ * <h2>When playback has failed</h2>
  *
- * It has to be: a television screen with no focus target leaves `BACK` as the only
- * key that does anything (US-10), and this one needs `OK` as well. So the surface
- * itself takes focus, and the D-pad has somewhere to be. When playback has failed
- * the retry button takes over as the target, because then there *is* something to
- * press.
+ * The picture is replaced by `TV6 — erreur de flux`: what happened, and two
+ * answers, `Réessayer` and `Chaîne suivante`. The focus lands on the first, so
+ * one press of OK is the obvious recovery. A silent black screen is exactly what
+ * an unhandled player error looks like, and US-09 forbids it.
  */
 @Composable
 fun PlayerTvScreen(
@@ -89,25 +105,25 @@ fun PlayerTvScreen(
     LaunchedEffect(channelId) { viewModel.start(channelId) }
 
     DisposableEffect(Unit) {
-        // Stop, not release: the player is the process's one codec, and stopping
-        // is what clears the credential-bearing URL out of it.
         onDispose { viewModel.stop() }
     }
 
-    // BACK returns to the grid **and says which channel was being watched**, so
-    // the list comes back with the remote already on it rather than at the top of
-    // a catalogue of fifteen thousand.
-    BackHandler { onBack(channelId) }
-
     var infoVisible by remember { mutableStateOf(false) }
-
-    // A layer of its own rather than a second flag on the bar: this one takes
-    // focus and the bar never does, so the two are not the same kind of thing.
     var pickingAudio by remember { mutableStateOf(false) }
-    // Two languages on a channel is the ordinary case, not the exception —
-    // which makes this the surface where the picker is most often useful.
+    // Which pill said "[mock]" last, so the notice sits next to the bar rather
+    // than interrupting it.
+    var mockNotice by remember { mutableStateOf(false) }
     val canPickAudio = audioTracks.size > 1
     var activityTick by remember { mutableIntStateOf(0) }
+
+    // The channel the player knows beats the one the route named: after
+    // "next channel" they differ, and the bar must say where we are now.
+    val currentId = state.channel?.id ?: channelId
+    val currentName = state.channel?.name ?: channelName
+
+    BackHandler {
+        if (infoVisible) infoVisible = false else onBack(currentId)
+    }
 
     // Keyed on the tick as well as on visibility: every press restarts the five
     // seconds instead of letting the first one run out under somebody's thumb.
@@ -115,17 +131,25 @@ fun PlayerTvScreen(
         if (!infoVisible) return@LaunchedEffect
         delay(INFO_BAR_TIMEOUT_MILLIS)
         infoVisible = false
+        mockNotice = false
     }
 
     val surface = remember { FocusRequester() }
     val retry = remember { FocusRequester() }
+    val pause = remember { FocusRequester() }
     val failed = state.failure != null
 
-    LaunchedEffect(failed) {
-        // Whichever of the two is the real target right now. Requesting focus on
-        // a composable that is not there throws, which is why this follows the
-        // state rather than running once.
-        if (failed) retry.requestFocus() else surface.requestFocus()
+    LaunchedEffect(failed, infoVisible) {
+        // Whichever of the three is the real target right now. Requesting focus
+        // on a composable that is not there throws, which is why this follows
+        // the state rather than running once.
+        runCatching {
+            when {
+                failed -> retry.requestFocus()
+                infoVisible -> pause.requestFocus()
+                else -> surface.requestFocus()
+            }
+        }
     }
 
     Box(
@@ -137,25 +161,41 @@ fun PlayerTvScreen(
             // `clickable`: it takes the D-pad without pretending the whole screen
             // is a button.
             .focusable()
-            // UP opens the audio tracks. The centre key is the bar and nothing
-            // else here is bound, so the direction is free — and the bar names
-            // it, because no remote has a key labelled "audio".
+            // Keys are read here, on the way down, rather than on whichever
+            // child holds the focus: the video surface is an Android view that
+            // takes the focus for itself on some sets, and OK pressed on it
+            // would otherwise reach nothing.
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                if (event.key != Key.DirectionUp || !canPickAudio) {
-                    return@onPreviewKeyEvent false
+                // Any key while the bar is up restarts its five seconds: moving
+                // along the pills is activity, and a bar that vanishes under a
+                // thumb halfway to "Guide" is a bar that was not listening.
+                if (infoVisible) activityTick++
+                when (event.key) {
+                    Key.DirectionUp -> {
+                        if (!canPickAudio || infoVisible || failed) return@onPreviewKeyEvent false
+                        pickingAudio = true
+                        true
+                    }
+
+                    Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
+                        // The centre key on the picture opens the bar. Once the
+                        // bar is up the focus is on its pills, and OK is theirs.
+                        if (infoVisible || failed || pickingAudio) return@onPreviewKeyEvent false
+                        infoVisible = true
+                        activityTick++
+                        true
+                    }
+
+                    else -> false
                 }
-                pickingAudio = true
-                infoVisible = false
-                true
             }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
             ) {
-                // The centre key. It only ever opens the bar — pressing it again
-                // while the bar is up restarts its clock, which is what somebody
-                // still reading expects.
+                // The centre key on the picture. It only ever opens the bar —
+                // once the bar is up the focus is on its pills, and OK is theirs.
                 infoVisible = true
                 activityTick++
             },
@@ -166,12 +206,29 @@ fun PlayerTvScreen(
         when {
             failed -> Failure(
                 failure = state.failure!!,
-                channelName = channelName,
+                channelName = currentName,
                 onRetry = viewModel::retry,
+                onNext = viewModel::next,
                 retryFocus = retry,
             )
 
-            infoVisible -> InfoBar(channelName, audioHint = canPickAudio)
+            infoVisible -> InfoBar(
+                channelName = currentName,
+                channelNumber = state.channel?.number,
+                quality = state.channel?.quality,
+                paused = state.paused,
+                audioHint = canPickAudio,
+                mockNotice = mockNotice,
+                pauseFocus = pause,
+                onPause = {
+                    viewModel.togglePause()
+                    activityTick++
+                },
+                onMock = {
+                    mockNotice = true
+                    activityTick++
+                },
+            )
         }
 
         if (pickingAudio) {
@@ -187,8 +244,6 @@ fun PlayerTvScreen(
                 onSelect = viewModel::selectAudioTrack,
                 onDismiss = {
                     pickingAudio = false
-                    // The picture takes the keys back. Without this the remote
-                    // would be pointing at a panel that no longer exists.
                     runCatching { surface.requestFocus() }
                 },
             )
@@ -204,113 +259,233 @@ private fun LumoVideo(viewModel: PlayerViewModel) {
     )
 }
 
-/**
- * The information bar.
- *
- * Inside the overscan margin, unlike the picture: a television crops its edges,
- * and the video is *supposed* to reach them while a channel name is not. Anything
- * drawn outside that margin may simply not exist for some viewers.
- */
 @Composable
-private fun InfoBar(channelName: String?, audioHint: Boolean) {
+private fun InfoBar(
+    channelName: String?,
+    channelNumber: Int?,
+    quality: String?,
+    paused: Boolean,
+    audioHint: Boolean,
+    mockNotice: Boolean,
+    pauseFocus: FocusRequester,
+    onPause: () -> Unit,
+    onMock: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            // Ink fading up from the bottom, so the bar reads over any picture
+            // without an opaque slab across a third of it.
+            .background(
+                Brush.verticalGradient(
+                    0f to Color.Transparent,
+                    0.6f to Color.Transparent,
+                    1f to LumoColors.Ink.copy(alpha = 0.92f),
+                ),
+            )
             .tvOverscan(),
         contentAlignment = Alignment.BottomStart,
     ) {
         Column(
-            modifier = Modifier
-                .clip(LumoShapes.medium)
-                // Opaque rather than a scrim over the picture: a name read at
-                // three metres against moving video is a name read twice.
-                .background(LumoColors.SurfaceRaised)
-                .padding(horizontal = LumoSpacing.lg, vertical = LumoSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
         ) {
-            Text(
-                text = channelName ?: stringResource(R.string.feature_live_tv_unknown_channel),
-                style = MaterialTheme.typography.titleLarge,
-                color = LumoColors.OnDark,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // The number, in the monospaced face the canvas gives every
+                // technical figure.
+                Box(
+                    modifier = Modifier
+                        .size(width = 96.dp, height = 64.dp)
+                        .clip(LumoTvShapes.small)
+                        .background(LumoColors.SurfaceRaised),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = channelNumber?.let { "%03d".format(it) } ?: "—",
+                        style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
+                        color = LumoColors.OnDarkMuted,
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+                ) {
+                    Text(
+                        text = channelName ?: stringResource(R.string.feature_live_tv_unknown_channel),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = LumoColors.OnDark,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                    // « 21:00 – 22:00 · Généralistes · HD · Ensuite : Météo » —
+                    // the guide is not served yet; the quality is real.
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        LumoMockMissingData(scale = TV_TYPE_SCALE)
+                        quality?.let {
+                            Text(
+                                text = "· $it",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = LumoColors.OnDarkMuted,
+                            )
+                        }
+                    }
+                }
+
+                LiveBadge()
+            }
+
+            // The programme's progress: track only, the guide being what it is.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(LumoTvShapes.pill)
+                    .background(LumoColors.SurfaceRaised),
             )
 
-            // Only where there is something to open. Naming a key that does
-            // nothing would be worse than saying nothing at all.
-            if (audioHint) {
-                Text(
-                    text = stringResource(R.string.feature_live_audio_track_hint),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = LumoColors.OnDarkMuted,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LumoTvButton(
+                    text = stringResource(
+                        if (paused) R.string.feature_live_tv_resume else R.string.feature_live_tv_pause,
+                    ),
+                    onClick = onPause,
+                    primary = true,
+                    focusRequester = pauseFocus,
                 )
+                LumoTvButton(text = stringResource(R.string.feature_live_tv_subtitles), onClick = onMock)
+                LumoTvButton(text = stringResource(R.string.feature_live_tv_quality), onClick = onMock)
+                LumoTvButton(text = stringResource(R.string.feature_live_tv_guide), onClick = onMock)
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+                ) {
+                    if (mockNotice) LumoMockNotImplemented(scale = TV_TYPE_SCALE)
+                    Text(
+                        text = if (audioHint) {
+                            stringResource(R.string.feature_live_tv_player_hints)
+                        } else {
+                            stringResource(R.string.feature_live_tv_back_hint)
+                        },
+                        style = MaterialTheme.typography.labelLarge,
+                        color = LumoColors.OnDarkMuted,
+                    )
+                }
             }
         }
     }
 }
 
+/** « ● DIRECT » — the canvas's red pill, in the charter's `danger`. */
+@Composable
+private fun LiveBadge() {
+    Row(
+        modifier = Modifier
+            .border(2.dp, LumoColors.Error.copy(alpha = 0.5f), LumoTvShapes.pill)
+            .background(LumoColors.Error.copy(alpha = 0.12f), LumoTvShapes.pill)
+            .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .clip(CircleShape)
+                .background(LumoColors.Error),
+        )
+        Text(
+            text = stringResource(R.string.feature_live_tv_live_badge),
+            style = MaterialTheme.typography.labelLarge,
+            color = LumoColors.Error,
+        )
+    }
+}
+
 /**
- * Playback failed, and there is something to say and possibly something to press.
- *
- * Same sentences as the phone — they come from the same [PlayerFailure] — at the
- * television scale and inside the overscan margin.
+ * Playback failed, and there is something to say and two things to press.
  */
 @Composable
 private fun Failure(
     failure: PlayerFailure,
     channelName: String?,
     onRetry: () -> Unit,
+    onNext: () -> Unit,
     retryFocus: FocusRequester,
 ) {
-    var focused by remember { mutableStateOf(false) }
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .tvOverscan()
-            .padding(LumoSpacing.xxl),
-        verticalArrangement = Arrangement.spacedBy(LumoSpacing.md, Alignment.CenterVertically),
+            .background(LumoColors.Ink)
+            .tvOverscan(),
+        contentAlignment = Alignment.Center,
     ) {
-        channelName?.let {
-            Text(text = it, style = MaterialTheme.typography.titleLarge, color = LumoColors.OnDarkMuted)
-        }
-
-        Text(
-            text = failure.tvMessage(),
-            style = MaterialTheme.typography.displayMedium,
-            color = LumoColors.OnDark,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
-        )
-
-        Text(
-            text = stringResource(R.string.feature_live_tv_back_hint),
-            style = MaterialTheme.typography.bodyLarge,
-            color = LumoColors.OnDarkMuted,
-        )
-
-        if (failure.isRetryable()) {
+        Column(
+            modifier = Modifier
+                .width(FAILURE_WIDTH)
+                .clip(LumoTvShapes.large)
+                .background(LumoColors.Surface)
+                .padding(LumoSpacing.xxl),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+        ) {
             Text(
-                text = stringResource(R.string.feature_live_player_retry),
-                style = MaterialTheme.typography.titleLarge,
-                color = if (focused) LumoColors.OnAccent else LumoColors.OnDark,
-                modifier = Modifier
-                    .focusRequester(retryFocus)
-                    .onFocusChanged { focused = it.isFocused }
-                    .lumoTvFocus(focused)
-                    .clip(LumoShapes.medium)
-                    .background(if (focused) LumoColors.Accent else LumoColors.SurfaceRaised)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onRetry,
-                    )
-                    .padding(horizontal = LumoSpacing.xl, vertical = LumoSpacing.md)
-                    .fillMaxWidth(fraction = 0.4f),
+                text = "⚠",
+                style = MaterialTheme.typography.displayMedium,
+                color = LumoColors.Error,
             )
+            channelName?.let {
+                Text(text = it, style = MaterialTheme.typography.labelLarge, color = LumoColors.OnDarkMuted)
+            }
+            Text(
+                text = stringResource(R.string.feature_live_tv_failure_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = LumoColors.OnDark,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+            )
+            Text(
+                text = failure.tvMessage(),
+                style = MaterialTheme.typography.bodyLarge,
+                color = LumoColors.OnDarkMuted,
+            )
+            Spacer(modifier = Modifier.height(LumoSpacing.sm))
+            Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md)) {
+                if (failure.isRetryable()) {
+                    LumoTvButton(
+                        text = stringResource(R.string.feature_live_player_retry),
+                        onClick = onRetry,
+                        primary = true,
+                        focusRequester = retryFocus,
+                    )
+                    LumoTvButton(
+                        text = stringResource(R.string.feature_live_tv_next_channel),
+                        onClick = onNext,
+                    )
+                } else {
+                    LumoTvButton(
+                        text = stringResource(R.string.feature_live_tv_next_channel),
+                        onClick = onNext,
+                        primary = true,
+                        focusRequester = retryFocus,
+                    )
+                }
+            }
         }
     }
 }
 
-/** The same wording as the phone, resolved here because this is the TV surface. */
 @Composable
 private fun PlayerFailure.tvMessage(): String = when (this) {
     is PlayerFailure.Unreachable -> stringResource(R.string.feature_live_player_unreachable)
@@ -328,5 +503,8 @@ private fun PlayerFailure.tvMessage(): String = when (this) {
     PlayerFailure.Unexpected -> stringResource(R.string.feature_live_player_unexpected)
 }
 
-/** Five seconds of inactivity, as US-10 asks. */
 private const val INFO_BAR_TIMEOUT_MILLIS = 5_000L
+private val FAILURE_WIDTH = 760.dp
+
+/** `platforms.tv.typeScale` — what the mock badge grows by on a television. */
+private const val TV_TYPE_SCALE = 1.75f

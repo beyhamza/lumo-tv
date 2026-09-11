@@ -13,7 +13,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.PlaybackTarget
+import tv.lumo.android.core.data.repository.CatalogueRepository
 import tv.lumo.android.core.data.repository.PlaybackRepository
 import tv.lumo.android.core.player.AudioTrack
 import tv.lumo.android.core.player.LumoPlayer
@@ -51,23 +53,28 @@ import tv.lumo.android.network.generated.model.ErrorCode
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     private val playback: PlaybackRepository,
+    private val catalogue: CatalogueRepository,
     /** Exposed for the video surface, which needs the instance rather than its state. */
     val player: LumoPlayer,
 ) : ViewModel() {
 
     private val _failure = MutableStateFlow<PlayerFailure?>(null)
     private val _target = MutableStateFlow<PlaybackTarget?>(null)
+    private val _channel = MutableStateFlow<Channel?>(null)
+    private val _paused = MutableStateFlow(false)
     private var channelId: String? = null
     private var recorded = false
 
     val state: StateFlow<PlayerUiState> =
-        combine(player.state, _failure, _target) { playback, failure, target ->
+        combine(player.state, _failure, _target, _channel, _paused) { playback, failure, target, channel, paused ->
             PlayerUiState(
                 playback = playback,
                 // A failure this screen produced outranks the player's own: it
                 // has a code behind it, and the player's is always UNKNOWN when
                 // the stream never started.
                 failure = failure ?: (playback as? PlaybackState.Failed)?.error?.asPlayerFailure(target),
+                channel = channel,
+                paused = paused,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -91,6 +98,7 @@ class PlayerViewModel @Inject constructor(
     fun start(channelId: String) {
         if (this.channelId == channelId) return
         this.channelId = channelId
+        viewModelScope.launch { _channel.value = catalogue.channel(channelId) }
         open(channelId)
     }
 
@@ -99,8 +107,35 @@ class PlayerViewModel @Inject constructor(
         open(channelId)
     }
 
+    /**
+     * « Chaîne suivante » on a stream that stopped: the channel after this one
+     * in the source's order, played in place. At the end of the list nothing
+     * happens, which the screen already says by staying where it is.
+     */
+    fun next() {
+        val channelId = channelId ?: return
+        viewModelScope.launch {
+            val next = catalogue.nextChannel(channelId) ?: return@launch
+            start(next.id)
+        }
+    }
+
+    /**
+     * Pause and resume, on a live stream. Not timeshift (v2, AGENTS.md §6): a
+     * paused live stream resumes at or near the live edge, which is what the
+     * button honestly does.
+     */
+    fun togglePause() {
+        // Our own flag rather than the player's state: Media3 reports "paused"
+        // while it rebuffers a live stream too, and a button that read that
+        // would resume a stream nobody had paused.
+        if (_paused.value) player.resume() else player.pause()
+        _paused.update { !it }
+    }
+
     private fun open(channelId: String) {
         _failure.value = null
+        _paused.value = false
         recorded = false
 
         viewModelScope.launch {
@@ -143,6 +178,8 @@ class PlayerViewModel @Inject constructor(
     fun stop() {
         player.stop()
         _target.value = null
+        _channel.value = null
+        channelId = null
     }
 
     private companion object {
@@ -153,6 +190,10 @@ class PlayerViewModel @Inject constructor(
 data class PlayerUiState(
     val playback: PlaybackState = PlaybackState.Idle,
     val failure: PlayerFailure? = null,
+    /** The channel being played, from the cache: name, number, quality for the bar. */
+    val channel: Channel? = null,
+    /** The viewer pressed pause; the picture is held until they press again. */
+    val paused: Boolean = false,
 )
 
 /** What this screen can say, and what it offers when it says it. */

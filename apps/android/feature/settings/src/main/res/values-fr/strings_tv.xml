@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_settings_tv_menu_sources">Sources</string>
+    <string name="feature_settings_tv_menu_account">Compte</string>
+    <string name="feature_settings_tv_menu_playback">Lecture</string>
+    <string name="feature_settings_tv_menu_language">Langue</string>
+    <string name="feature_settings_tv_menu_about">À propos</string>
+
+    <string name="feature_settings_tv_sources_hint">Les sources se gèrent depuis votre téléphone ou lumo.tv — jamais de saisie ici.</string>
+    <string name="feature_settings_tv_sources_none">Aucune source pour l\'instant. Ajoutez-en une depuis votre téléphone ou lumo.tv.</string>
+    <string name="feature_settings_tv_source_summary">%1$s · %2$d chaînes · vérifiée %3$s</string>
+    <string name="feature_settings_tv_source_unsynced">%1$s · pas encore synchronisée</string>
+    <string name="feature_settings_tv_source_error">En erreur — corrigez-la depuis lumo.tv</string>
+    <string name="feature_settings_tv_status_active">Active</string>
+    <string name="feature_settings_tv_status_error">Erreur</string>
+    <string name="feature_settings_tv_status_syncing">Synchronisation</string>
+    <string name="feature_settings_tv_status_pending">En attente</string>
+    <string name="feature_settings_tv_sync_now">Actualiser les listes maintenant</string>
+    <string name="feature_settings_tv_sync_started">Actualisation lancée</string>
+    <string name="feature_settings_tv_auto_sync">Actualisation automatique</string>
+    <string name="feature_settings_tv_press_ok">OK ›</string>
+
+    <string name="feature_settings_tv_account_signed_in">Connecté en tant que %1$s</string>
+    <string name="feature_settings_tv_account_devices">Appareils connectés</string>
+    <string name="feature_settings_tv_account_sign_out">Déconnecter cette télévision</string>
+
+    <string name="feature_settings_tv_playback_quality">Qualité préférée</string>
+    <string name="feature_settings_tv_playback_subtitles">Sous-titres</string>
+    <string name="feature_settings_tv_playback_audio">Langue audio</string>
+
+    <string name="feature_settings_tv_language_value">Suit la langue du téléviseur</string>
+
+    <string name="feature_settings_tv_about_version">lumo tv v%1$s</string>
+    <string name="feature_settings_tv_about_site">lumo.tv</string>
+</resources>

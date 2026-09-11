@@ -80,6 +80,8 @@ class SettingsViewModel @Inject constructor(
                 autoSync = more.autoSync,
                 autoSyncPending = more.autoSyncPending,
                 deviceCount = more.deviceCount,
+                sources = more.sources,
+                syncing = more.syncing,
                 activationUrl = BuildConfig.ACTIVATION_URL,
                 appVersion = more.appVersion,
             )
@@ -158,11 +160,31 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * « Actualiser les listes maintenant » — one synchronisation per source,
+     * started and left to the server. Failure is not reported: the source card
+     * shows the server's own state on the next read, which is the truthful
+     * outcome, and a set with nothing to type has nothing to correct.
+     */
+    fun syncNow() {
+        val current = details.value
+        if (current.syncing || current.sourceIds.isEmpty()) return
+
+        details.update { it.copy(syncing = true) }
+
+        viewModelScope.launch {
+            current.sourceIds.forEach { id -> sources.sync(id) }
+            loadSources()
+            details.update { it.copy(syncing = false) }
+        }
+    }
+
     private fun loadSources() {
         viewModelScope.launch {
             val list = sources.sources().valueOrNull() ?: return@launch
             details.update {
                 it.copy(
+                    sources = list,
                     sourceCount = list.size,
                     sourceIds = list.map { source -> source.id.toString() },
                     autoSync = autoSyncOf(list),
@@ -197,6 +219,8 @@ class SettingsViewModel @Inject constructor(
 
 /** What is read after the session, kept apart so a sign-out drops it in one move. */
 private data class SettingsDetails(
+    val sources: List<Source> = emptyList(),
+    val syncing: Boolean = false,
     val sourceCount: Int? = null,
     val sourceIds: List<String> = emptyList(),
     val autoSync: Boolean? = null,
@@ -225,6 +249,10 @@ data class SettingsUiState(
     val autoSyncPending: Boolean = false,
     /** How many devices hold a session on this account, this one included. */
     val deviceCount: Int? = null,
+    /** The sources themselves, for a surface that draws them as cards (TV5). */
+    val sources: List<Source> = emptyList(),
+    /** A manual synchronisation is running. */
+    val syncing: Boolean = false,
     /** Where a television is paired from a phone — `LUMO_ACTIVATION_URL`. */
     val activationUrl: String = "",
     /** `versionName` of the running application. Null only if the package is unreadable. */

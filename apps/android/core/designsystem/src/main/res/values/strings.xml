@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The two labels that mark, on a real screen, what the mock-ups draw and the
+      product cannot yet feed: a value the API does not carry, or a screen that
+      does not exist behind a control. Visible on purpose, identical everywhere,
+      and the first thing to delete when the data arrives.
+    -->
+    <string name="lumo_mock_missing_data">[mock] missing data</string>
+    <string name="lumo_mock_not_implemented">[mock] screen not implemented</string>
+</resources>

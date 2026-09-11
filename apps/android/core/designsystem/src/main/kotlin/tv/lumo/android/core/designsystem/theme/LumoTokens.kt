@@ -93,6 +93,15 @@ object LumoColors {
     val Accent = Color(0xFF6EE7F0)
 
     /**
+     * `color.accent-violet` — the second stop of `gradient-brand`.
+     *
+     * Only ever seen next to [Accent], in the brand disc and in a progress
+     * fill: the charter reserves the gradient for the mark, the focus and
+     * progression, and forbids it as a background.
+     */
+    val AccentViolet = Color(0xFFA78BFA)
+
+    /**
      * Derived: [Accent] under the charter's `surface-3` overlay, 13 % toward
      * [Ink].
      *
@@ -150,17 +159,29 @@ object LumoSpacing {
 }
 
 /**
- * `radius.sm`, `radius.md`, `radius.lg` — 8 / 14 / 20.
- *
- * The charter also says *"TV : radius × 1.5"*, because viewing distance flattens
- * the perception of a curve. That is not expressible here: one object serves both
- * applications, and a second, TV-scaled set is a new name rather than a new
- * value. Left for the TV screens that will need it (S2-13).
+ * `radius.sm`, `radius.md`, `radius.lg` — 8 / 14 / 20, as the charter writes
+ * them and as the phone uses them.
  */
 object LumoShapes {
     val small = RoundedCornerShape(8.dp)
     val medium = RoundedCornerShape(14.dp)
     val large = RoundedCornerShape(20.dp)
+    val pill = RoundedCornerShape(999.dp)
+}
+
+/**
+ * The same three radii × 1.5 — *"TV : radius × 1.5 (distance de visionnage
+ * aplatit la perception des courbes)"*, `radius.$note` in the token file.
+ *
+ * A second object rather than a parameter: every television surface takes its
+ * shapes from here and nowhere else, so a TV screen that imports [LumoShapes]
+ * is a screen that forgot which panel it is drawn on.
+ */
+object LumoTvShapes {
+    val small = RoundedCornerShape(12.dp)
+    val medium = RoundedCornerShape(21.dp)
+    val large = RoundedCornerShape(30.dp)
+    val pill = RoundedCornerShape(999.dp)
 }
 
 /**
@@ -172,16 +193,18 @@ object LumoShapes {
  * colour-blind viewer, scale alone is invisible in a dense grid, and a shadow
  * alone vanishes against a bright poster. Three cues survive all three cases.
  *
- * <h2>One thing the charter and the architecture do not agree on</h2>
+ * <h2>Elevation is a lighter surface, not a shadow</h2>
  *
  * The charter's elevation principle reads *"Transparence superposée, jamais
- * d'ombre portée"*, and `lumoTvFocus` draws a drop shadow. Read strictly, the two
- * conflict; read as the same idea in two vocabularies, the charter's "elevation"
- * is a lighter surface and satisfies the architecture's third cue without a
- * shadow at all.
+ * d'ombre portée"*, and for a while `lumoTvFocus` drew a drop shadow anyway —
+ * a disagreement S2-00 left open. It is settled the charter's way: the third
+ * cue is the focused element stepping up one surface level
+ * ([LumoColors.Surface] → [LumoColors.SurfaceRaised]), which is what every TV
+ * component does on focus, and no shadow is drawn anywhere on the television.
  *
- * S2-00 changes values, not structure, so nothing is decided here — but it is
- * worth deciding before the TV grid is built on it (S2-13).
+ * The same rule keeps cyan out of any fill. A focused rail item or chip is
+ * outlined in cyan on a raised surface; it is never a cyan block, because a grid
+ * of cyan tiles makes the focused one impossible to find.
  */
 object LumoFocus {
     const val Scale = 1.08f
@@ -194,7 +217,8 @@ object LumoFocus {
      */
     val BorderWidth = 3.dp
 
-    val Elevation = 16.dp
+    /** `elevation.focus.outlineOffset` — the gap between the element and its outline. */
+    val BorderOffset = 3.dp
 
     /** `motion.duration-fast` — attached to the D-pad press, still readable. */
     const val AnimationMillis = 120

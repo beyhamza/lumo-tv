@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- TV3 — the channel grid and its preview panel. -->
+    <string name="feature_live_tv_now">Now: %1$s</string>
+    <string name="feature_live_tv_next_program">Next: %1$s</string>
+    <string name="feature_live_tv_preview">preview — %1$s</string>
+    <string name="feature_live_tv_grid_hints">OK: watch · LEFT: categories</string>
+
+    <!-- TV4 — the player overlay. -->
+    <string name="feature_live_tv_live_badge">LIVE</string>
+    <string name="feature_live_tv_pause">Pause</string>
+    <string name="feature_live_tv_resume">Play</string>
+    <string name="feature_live_tv_subtitles">Subtitles</string>
+    <string name="feature_live_tv_quality">Quality</string>
+    <string name="feature_live_tv_guide">Guide</string>
+    <string name="feature_live_tv_player_hints">UP: audio track · BACK: channels</string>
+
+    <!-- TV6 — a stream that stopped. -->
+    <string name="feature_live_tv_failure_title">Stream interrupted</string>
+    <string name="feature_live_tv_failure_body">The channel stopped answering. The others are still available.</string>
+    <string name="feature_live_tv_next_channel">Next channel</string>
+</resources>

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
@@ -15,26 +14,26 @@ import androidx.compose.ui.unit.dp
 import tv.lumo.android.core.designsystem.theme.LUMO_TV_OVERSCAN_FRACTION
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoFocus
-import tv.lumo.android.core.designsystem.theme.LumoShapes
+import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 
 /**
- * The focus signature every focusable element on the television wears.
+ * The television focus signature (docs/architecture.md §3): scale, a cyan
+ * outline, and — the caller's part — a lighter surface. Three cues, so that a
+ * washed-out panel, a colour-blind viewer and a dense grid each still leave two.
  *
- * Scale **and** border **and** elevation, together, as
- * docs/architecture.md §3 requires. Any one of them alone fails on some real
- * setup: colour and border wash out on a badly calibrated panel, scale is easy
- * to miss in a dense grid, elevation disappears over bright artwork. Applying
- * all three from one modifier is also what stops each screen from inventing its
- * own idea of what "focused" looks like.
+ * No shadow. The charter's elevation is layered transparency, never a drop
+ * shadow (`elevation.$principle`), and the third cue is the surface step the
+ * caller draws on focus: `LumoColors.Surface` at rest, `LumoColors.SurfaceRaised`
+ * when focused. Every TV component does exactly that.
  *
- * Test it with a remote control on a real device, never with a mouse on the
- * emulator (backlog, Definition of Done): a mouse produces hover, not focus, and
- * hover hides exactly the bugs this modifier exists to prevent.
+ * The outline sits [LumoFocus.BorderOffset] outside the content, as the charter's
+ * `outlineOffset` says: a border drawn flush against a card's edge reads as part
+ * of the card, one drawn a few pixels out reads as a cursor around it.
  */
 @Composable
 fun Modifier.lumoTvFocus(
     focused: Boolean,
-    shape: Shape = LumoShapes.medium,
+    shape: Shape = LumoTvShapes.medium,
 ): Modifier {
     val scale by animateFloatAsState(
         targetValue = if (focused) LumoFocus.Scale else 1f,
@@ -47,26 +46,14 @@ fun Modifier.lumoTvFocus(
             scaleX = scale
             scaleY = scale
         }
-        .shadow(
-            elevation = if (focused) LumoFocus.Elevation else 0.dp,
-            shape = shape,
-            clip = false,
-        )
         .border(
-            width = if (focused) LumoFocus.BorderWidth else 0.dp,
+            width = LumoFocus.BorderWidth,
             color = if (focused) LumoColors.Accent else LumoColors.Outline.copy(alpha = 0f),
             shape = shape,
         )
+        .padding(LumoFocus.BorderOffset)
 }
 
-/**
- * The 5 % margin a television crops.
- *
- * Measured against the actual screen rather than hard-coded in dp, because a
- * 1080p set and a 4K set report different sizes and both crop proportionally.
- * Apply it to the outermost container of every TV screen: anything outside it
- * may be physically invisible on a viewer's set.
- */
 @Composable
 fun Modifier.tvOverscan(): Modifier = tvOverscanEdges(
     start = true,
@@ -76,12 +63,11 @@ fun Modifier.tvOverscan(): Modifier = tvOverscanEdges(
 )
 
 /**
- * Overscan on chosen edges only.
+ * Overscan on the chosen edges only.
  *
- * The side rail needs it on its outer three edges but not on the one that faces
- * the content, where the gap would just be wasted width. A full-bleed video
- * surface needs it on none at all — the picture is supposed to reach the edge of
- * the panel; only the controls drawn over it have to stay inside the safe area.
+ * A screen applies it on its outer edges, and a rail or a panel on the edges
+ * that touch the bezel — never on the edge facing another element, where the
+ * margin would be wasted width.
  */
 @Composable
 fun Modifier.tvOverscanEdges(

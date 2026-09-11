@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import tv.lumo.android.core.designsystem.theme.LumoColors
-import tv.lumo.android.core.designsystem.theme.LumoShapes
+import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.tv.lumoTvFocus
 
@@ -105,7 +105,7 @@ fun LumoTvAudioTrackSheet(
         Column(
             modifier = Modifier
                 .width(SHEET_WIDTH)
-                .clip(LumoShapes.large)
+                .clip(LumoTvShapes.large)
                 .background(LumoColors.Surface)
                 .padding(LumoSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
@@ -157,8 +157,8 @@ private fun TrackRow(
         modifier = modifier
             .fillMaxWidth()
             .onFocusChanged { focused = it.isFocused }
-            .lumoTvFocus(focused, shape = LumoShapes.small)
-            .clip(LumoShapes.small)
+            .lumoTvFocus(focused, shape = LumoTvShapes.small)
+            .clip(LumoTvShapes.small)
             .background(if (focused) LumoColors.Accent else LumoColors.SurfaceRaised)
             // `enabled = false` also removes the row from the focus order, which
             // is what makes a remote skip it rather than stop on a row whose

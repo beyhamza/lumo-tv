@@ -32,7 +32,7 @@ import androidx.tv.material3.Text
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.designsystem.component.LumoPoster
 import tv.lumo.android.core.designsystem.theme.LumoColors
-import tv.lumo.android.core.designsystem.theme.LumoShapes
+import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.tv.lumoTvFocus
 import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
@@ -203,7 +203,7 @@ private fun TvActionButton(
             )
             .onFocusChanged { focused = it.isFocused }
             .lumoTvFocus(focused)
-            .clip(LumoShapes.medium)
+            .clip(LumoTvShapes.medium)
             .background(if (focused) LumoColors.Accent else LumoColors.SurfaceRaised)
             .clickable(
                 enabled = enabled,

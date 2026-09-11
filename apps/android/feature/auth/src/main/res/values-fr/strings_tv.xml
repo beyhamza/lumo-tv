@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_auth_tv_headline">Associez cette télé à votre compte</string>
+    <string name="feature_auth_tv_instruction_short">Sur votre téléphone ou votre ordinateur, rendez-vous sur %1$s et saisissez ce code :</string>
+    <string name="feature_auth_tv_expires">Expire dans %1$s — se valide tout seul.</string>
+    <string name="feature_auth_tv_qr_caption">ou scannez, même destination</string>
+</resources>

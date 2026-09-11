@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import tv.lumo.android.core.designsystem.theme.LumoColors
-import tv.lumo.android.core.designsystem.theme.LumoShapes
+import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.tv.lumoTvFocus
 
@@ -106,7 +106,7 @@ fun LumoTvFavoriteGroupSheet(
         Column(
             modifier = Modifier
                 .width(SHEET_WIDTH)
-                .clip(LumoShapes.large)
+                .clip(LumoTvShapes.large)
                 .background(LumoColors.Surface)
                 .padding(LumoSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
@@ -149,8 +149,8 @@ private fun GroupRow(
         modifier = modifier
             .fillMaxWidth()
             .onFocusChanged { focused = it.isFocused }
-            .lumoTvFocus(focused, shape = LumoShapes.small)
-            .clip(LumoShapes.small)
+            .lumoTvFocus(focused, shape = LumoTvShapes.small)
+            .clip(LumoTvShapes.small)
             .background(if (focused) LumoColors.Accent else LumoColors.SurfaceRaised)
             // `clickable` makes the row focusable and binds the centre key at
             // once. A checkbox with its own handler would be a second target on a

@@ -47,7 +47,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
 import tv.lumo.android.core.designsystem.theme.LumoColors
-import tv.lumo.android.core.designsystem.theme.LumoShapes
+import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.tv.lumoTvFocus
 import tv.lumo.android.core.designsystem.tv.tvOverscan
@@ -327,7 +327,7 @@ private fun UpNextCard(
                 .focusRequester(focusRequester)
                 .onFocusChanged { focused = it.isFocused }
                 .lumoTvFocus(focused)
-                .clip(LumoShapes.medium)
+                .clip(LumoTvShapes.medium)
                 // Opaque rather than a scrim: text read at three metres against
                 // moving video is text read twice.
                 .background(if (focused) LumoColors.Accent else LumoColors.SurfaceRaised)
@@ -377,7 +377,7 @@ private fun OverlayBar(title: String?, progress: PlaybackProgress, audioHint: Bo
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(LumoShapes.medium)
+                .clip(LumoTvShapes.medium)
                 .background(LumoColors.SurfaceRaised)
                 .padding(horizontal = LumoSpacing.lg, vertical = LumoSpacing.md),
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
@@ -453,7 +453,7 @@ private fun ProgressBar(progress: PlaybackProgress) {
         modifier = Modifier
             .fillMaxWidth()
             .height(BAR_HEIGHT)
-            .clip(LumoShapes.small)
+            .clip(LumoTvShapes.small)
             .background(LumoColors.Surface),
     ) {
         Box(
@@ -517,7 +517,7 @@ private fun TvFailure(
                     .focusRequester(retryFocus)
                     .onFocusChanged { focused = it.isFocused }
                     .lumoTvFocus(focused)
-                    .clip(LumoShapes.medium)
+                    .clip(LumoTvShapes.medium)
                     .background(if (focused) LumoColors.Accent else LumoColors.SurfaceRaised)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },

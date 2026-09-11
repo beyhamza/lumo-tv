@@ -44,7 +44,7 @@ import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.designsystem.component.LumoPoster
 import tv.lumo.android.core.designsystem.theme.LumoColors
-import tv.lumo.android.core.designsystem.theme.LumoShapes
+import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.tv.lumoTvFocus
 import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
@@ -397,7 +397,7 @@ private fun EpisodeRow(
             .fillMaxWidth()
             .onFocusChanged { focused = it.isFocused }
             .lumoTvFocus(focused)
-            .clip(LumoShapes.medium)
+            .clip(LumoTvShapes.medium)
             .background(if (focused) LumoColors.SurfaceRaised else LumoColors.Surface)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -439,7 +439,7 @@ private fun EpisodeRow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(BAR_HEIGHT)
-                        .clip(LumoShapes.small)
+                        .clip(LumoTvShapes.small)
                         .background(LumoColors.Surface),
                 ) {
                     Box(
@@ -488,7 +488,7 @@ private fun TvButton(label: String, focusRequester: FocusRequester, onClick: () 
             .focusRequester(focusRequester)
             .onFocusChanged { focused = it.isFocused }
             .lumoTvFocus(focused)
-            .clip(LumoShapes.medium)
+            .clip(LumoTvShapes.medium)
             .background(if (focused) LumoColors.Accent else LumoColors.SurfaceRaised)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },

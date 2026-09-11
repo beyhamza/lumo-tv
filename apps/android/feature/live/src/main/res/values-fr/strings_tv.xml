@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_live_tv_now">En ce moment : %1$s</string>
+    <string name="feature_live_tv_next_program">Ensuite : %1$s</string>
+    <string name="feature_live_tv_preview">aperçu — %1$s</string>
+    <string name="feature_live_tv_grid_hints">OK : regarder · ← : catégories</string>
+
+    <string name="feature_live_tv_live_badge">DIRECT</string>
+    <string name="feature_live_tv_pause">Pause</string>
+    <string name="feature_live_tv_resume">Lecture</string>
+    <string name="feature_live_tv_subtitles">Sous-titres</string>
+    <string name="feature_live_tv_quality">Qualité</string>
+    <string name="feature_live_tv_guide">Guide</string>
+    <string name="feature_live_tv_player_hints">HAUT : piste audio · RETOUR : chaînes</string>
+
+    <string name="feature_live_tv_failure_title">Flux interrompu</string>
+    <string name="feature_live_tv_failure_body">La chaîne ne répond plus. Les autres restent disponibles.</string>
+    <string name="feature_live_tv_next_channel">Chaîne suivante</string>
+</resources>

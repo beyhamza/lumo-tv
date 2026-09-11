@@ -1,13 +1,22 @@
 package tv.lumo.androidtv.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import tv.lumo.android.core.designsystem.component.LumoWordmark
+import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -46,14 +55,10 @@ fun LumoTvApp(
     val startRoute = tvStartRoute(startState)
 
     if (startRoute == null) {
-        // Ink rather than nothing: a television draws black between frames
-        // anyway, and a background that matches the theme means the first real
-        // frame does not arrive as a flash.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(LumoColors.Ink),
-        )
+        // The splash of the TV canvas: the mark, and three dots that say
+        // something is being read. No focus, no interaction — the session is
+        // being decrypted and the graph will replace this on its own.
+        Splash()
         return
     }
 
@@ -89,6 +94,39 @@ fun LumoTvApp(
                 startDestination = startRoute,
                 modifier = Modifier.fillMaxSize(),
             )
+        }
+    }
+}
+
+/**
+ * `TV1 — Splash` in the canvas: the mark centred on ink, a row of three dots
+ * under it with the first one lit. It is on screen for the time it takes to read
+ * an encrypted DataStore, which is short enough that the dots do not animate —
+ * a loader that has time to spin is a loader that should not exist.
+ */
+@Composable
+private fun Splash() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LumoColors.Ink),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(LumoSpacing.xl),
+        ) {
+            LumoWordmark(height = 88.dp)
+            Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
+                repeat(3) { index ->
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(if (index == 0) LumoColors.Accent else LumoColors.SurfaceRaised),
+                    )
+                }
+            }
         }
     }
 }

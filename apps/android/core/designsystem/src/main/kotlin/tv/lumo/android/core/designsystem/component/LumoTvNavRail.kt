@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Text
 import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.designsystem.theme.LumoColors
-import tv.lumo.android.core.designsystem.theme.LumoShapes
+import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.theme.LumoTypeScale
 import tv.lumo.android.core.designsystem.tv.lumoTvFocus
@@ -81,20 +81,24 @@ private fun LumoTvNavRailItem(
     var focused by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
 
+    // Focus is the cyan outline and the raised surface; selection is cyan ink.
+    // Neither is ever a cyan fill: the charter keeps the accent out of
+    // backgrounds, and a rail whose focused item is a cyan block gives the same
+    // look to "the remote is here" and to "this is open".
     Text(
         text = stringResource(destination.titleRes),
         style = LumoTypeScale.tv.label,
         color = when {
-            focused -> LumoColors.OnAccent
             selected -> LumoColors.Accent
+            focused -> LumoColors.OnDark
             else -> LumoColors.OnDarkMuted
         },
         modifier = Modifier
             .fillMaxWidth()
             .onFocusChanged { focused = it.isFocused }
-            .lumoTvFocus(focused, shape = LumoShapes.small)
-            .clip(LumoShapes.small)
-            .background(if (focused) LumoColors.Accent else LumoColors.SurfaceRaised)
+            .lumoTvFocus(focused, shape = LumoTvShapes.small)
+            .clip(LumoTvShapes.small)
+            .background(if (focused) LumoColors.SurfaceRaised else LumoColors.Surface)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -104,5 +108,8 @@ private fun LumoTvNavRailItem(
     )
 }
 
-// Wide enough that the start overscan margin does not eat the label.
-private val RAIL_WIDTH = 320.dp
+// Wide enough that the start overscan margin does not eat the label, and no
+// wider: the canvas has no rail at all, so every dp given to this column is a
+// dp taken from screens drawn for the full panel. 220 dp leaves the content
+// 1 384 px of a 1080p panel — enough for a sub-menu and its panel side by side.
+private val RAIL_WIDTH = 220.dp

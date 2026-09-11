@@ -44,7 +44,7 @@ import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.designsystem.component.LumoPoster
 import tv.lumo.android.core.designsystem.theme.LumoColors
-import tv.lumo.android.core.designsystem.theme.LumoShapes
+import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.tv.lumoTvFocus
 import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
@@ -320,8 +320,8 @@ internal fun TvCategoryChip(label: String, selected: Boolean, onClick: () -> Uni
         },
         modifier = Modifier
             .onFocusChanged { focused = it.isFocused }
-            .lumoTvFocus(focused, shape = LumoShapes.small)
-            .clip(LumoShapes.small)
+            .lumoTvFocus(focused, shape = LumoTvShapes.small)
+            .clip(LumoTvShapes.small)
             .background(
                 when {
                     focused -> LumoColors.Accent
@@ -364,7 +364,7 @@ private fun FilmCard(
             .width(CARD_WIDTH)
             .onFocusChanged { focused = it.isFocused }
             .lumoTvFocus(focused)
-            .clip(LumoShapes.medium)
+            .clip(LumoTvShapes.medium)
             .clickable(
                 enabled = film != null,
                 interactionSource = interactionSource,

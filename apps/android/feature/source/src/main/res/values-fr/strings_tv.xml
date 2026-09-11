@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_source_tv_none_title">Aucune source configurée</string>
+    <string name="feature_source_tv_none_body">Ajoutez votre source depuis votre téléphone ou lumo.tv — elle apparaîtra ici automatiquement.</string>
+    <string name="feature_source_tv_show_code">Afficher le code d\'association</string>
+
+    <string name="feature_source_tv_managed_elsewhere">Les sources se gèrent depuis votre téléphone ou lumo.tv — jamais de saisie ici.</string>
+    <string name="feature_source_tv_summary">%1$s · %2$d chaînes · vérifiée %3$s</string>
+    <string name="feature_source_tv_summary_unsynced">%1$s · pas encore synchronisée</string>
+    <string name="feature_source_tv_expires">Abonnement jusqu\'au %1$s</string>
+    <string name="feature_source_tv_status_active">Active</string>
+    <string name="feature_source_tv_status_error">Erreur</string>
+    <string name="feature_source_tv_status_syncing">Synchronisation</string>
+    <string name="feature_source_tv_status_pending">En attente</string>
+    <string name="feature_source_tv_error_hint">Corrigez-la depuis lumo.tv ou votre téléphone.</string>
+</resources>

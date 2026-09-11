@@ -189,6 +189,23 @@ class CatalogueRepository @Inject internal constructor(
     suspend fun cachedChannelCount(sourceId: String): Int =
         withContext(io) { channelDao.countForSource(sourceId) }
 
+    /** One channel from the cache, or null for an id a re-synchronisation dropped. */
+    suspend fun channel(id: String): Channel? =
+        withContext(io) { channelDao.byId(id)?.asChannel() }
+
+    /**
+     * The channel after [id] in its source's order, or null at the end of the
+     * list.
+     *
+     * The order is the source's, not the grid's current filter: a player does
+     * not know which category the viewer came from, and the source order is the
+     * one thing both the grid and the player agree on.
+     */
+    suspend fun nextChannel(id: String): Channel? = withContext(io) {
+        val current = channelDao.byId(id) ?: return@withContext null
+        channelDao.nextAfter(current.sourceId, current.position, current.name)?.asChannel()
+    }
+
     /** Drops one source's cache, for a source the user just deleted. */
     suspend fun forget(sourceId: String) = withContext(io) {
         channelDao.deleteBySource(sourceId)

@@ -21,7 +21,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Text
 import tv.lumo.android.core.designsystem.theme.LumoColors
-import tv.lumo.android.core.designsystem.theme.LumoShapes
+import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.theme.LumoTypeScale
 import tv.lumo.android.core.designsystem.tv.lumoTvFocus
@@ -68,7 +68,7 @@ fun LumoTvPlaceholder(
                         Modifier
                             .onFocusChanged { focused = it.isFocused }
                             .lumoTvFocus(focused)
-                            .clip(LumoShapes.large)
+                            .clip(LumoTvShapes.large)
                             .background(LumoColors.SurfaceRaised)
                             // `clickable` both makes this focusable and binds
                             // the D-pad centre key. Adding `focusable()` as well
@@ -79,7 +79,7 @@ fun LumoTvPlaceholder(
                                 onClick = onClick,
                             )
                     } else {
-                        Modifier.clip(LumoShapes.large).background(LumoColors.SurfaceRaised)
+                        Modifier.clip(LumoTvShapes.large).background(LumoColors.SurfaceRaised)
                     },
                 )
                 .padding(LumoSpacing.xl),

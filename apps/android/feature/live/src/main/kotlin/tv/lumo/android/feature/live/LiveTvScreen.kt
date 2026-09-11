@@ -11,14 +11,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
@@ -34,10 +35,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.LazyPagingItems
@@ -51,44 +56,34 @@ import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.FavoriteGroup
 import tv.lumo.android.core.designsystem.component.LumoFavoriteGroupChoice
+import tv.lumo.android.core.designsystem.component.LumoMockMissingData
 import tv.lumo.android.core.designsystem.component.LumoTvFavoriteGroupSheet
 import tv.lumo.android.core.designsystem.theme.LumoColors
-import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
+import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.tv.lumoTvFocus
 import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
 
 /**
- * The channels, on a television (US-08).
+ * `TV3 — Grille de chaînes`: a preview panel on the left that follows the
+ * focus, a four-column grid on the right, the category chips above it and one
+ * line of key hints at the bottom.
  *
- * The focus map for this screen — what has focus on arrival and where every
- * direction leads from every zone — is `docs/design/tv-focus-map.md`. It is a
- * deliverable of `S2-13` in its own right, and the reason is the commonest defect
- * in television applications: a control no sequence of key presses reaches.
+ * <h2>What the panel can and cannot say</h2>
  *
- * <h2>Horizontal, because a television is</h2>
+ * The canvas gives it a programme in progress, its time slot and a progress
+ * bar. The product has a channel and a category; the programme guide is in the
+ * contract (`GET /channels/{id}/epg`) but the server's `epg` package is empty in
+ * v1 (`apps/api/AGENTS.md` §2). So the panel draws the slot as the canvas does
+ * and labels the programme `[mock] données manquantes` — the honest version of
+ * the design, and the first thing to replace when the guide arrives.
  *
- * Categories run across the top and channels fill a horizontal grid below — rows
- * that scroll sideways, not a column that scrolls down. A vertical list on a
- * 16:9 panel wastes two thirds of the width and turns every journey into a long
- * run of `DOWN` presses.
+ * <h2>Focus</h2>
  *
- * A grid rather than one rail per category, and that is a real choice: rails look
- * more like a television and cap what each one holds, and a capped rail is a rail
- * whose eight-hundredth channel cannot be reached at all. The category strip picks
- * the shelf; the grid pages through **all** of it (US-08 asks for fluid past five
- * hundred, and Paging reads windows out of SQLite either way).
- *
- * <h2>Focus is the cursor, and it is never only a colour</h2>
- *
- * `Modifier.lumoTvFocus` puts scale, border and elevation together, because any
- * one of them alone fails on some real setup: colour washes out on a badly
- * calibrated panel or for a colour-blind viewer, scale is easy to miss in a dense
- * grid, elevation disappears over bright artwork.
- *
- * Selection is drawn differently from focus. Focus is where the remote is;
- * selection is which category is open. Collapsing them makes the screen look as
- * though it has navigated when the viewer is only looking around.
+ * Arrival lands on the first channel, a return from the player on the channel
+ * that was being watched (US-10). `LEFT` from the first column reaches the rail;
+ * `UP` from the first row reaches the chips. The preview follows whichever card
+ * has the focus, and never takes it: it is a mirror, not a control.
  */
 @Composable
 fun LiveTvScreen(
@@ -105,9 +100,6 @@ fun LiveTvScreen(
         modifier = modifier
             .fillMaxSize()
             .background(LumoColors.Ink)
-            // Not on the leading edge: the rail is there and has already paid for
-            // that margin. Doubling it would be wasted width on the one axis a
-            // television has least of after the rail takes its share.
             .tvOverscanEdges(top = true, end = true, bottom = true),
     ) {
         when (state.step) {
@@ -142,9 +134,6 @@ fun LiveTvScreen(
             )
         }
 
-        // Over the grid rather than instead of it, and inside the same `Box` so it
-        // takes the focus while it is open. A television has one screen; a layer
-        // that replaced the grid would read as having navigated somewhere.
         state.sheetChannel?.let { channel ->
             val inGroups = state.groupsOf(channel.id)
             LumoTvFavoriteGroupSheet(
@@ -177,25 +166,17 @@ private fun Browsing(
     returnedChannelId: String?,
     onReturnHandled: () -> Unit,
 ) {
-    // Arrival focus. The grid rather than the category strip: somebody who turns
-    // the television on wants a channel, and the shelf they are already on is the
-    // right one. Reaching the categories is one `UP` away; reaching a channel from
-    // the categories would have been one `DOWN` plus a decision nobody asked for.
     val focusTarget = remember { FocusRequester() }
     val gridState = rememberLazyGridState()
     var focusIndex by remember { mutableIntStateOf(0) }
+    // The channel the panel describes: whichever card holds the focus, and the
+    // first one before any card has had it.
+    var previewed by remember { mutableStateOf<Channel?>(null) }
 
-    // Coming back from the player. US-10 asks for the list to return **positioned
-    // on the channel that was being watched**, and a catalogue of fifteen thousand
-    // that comes back at the top has lost the viewer's place — the ten presses to
-    // get back to where they were are the whole cost of having left.
     LaunchedEffect(returnedChannelId, channels.itemCount) {
         val target = returnedChannelId ?: return@LaunchedEffect
         val index = channels.itemSnapshotList.items.indexOfFirst { it.id == target }
 
-        // Not among the windows Paging currently holds — the list was rebuilt, or
-        // the channel was dropped by a re-synchronisation. The first card keeps
-        // the focus, which is where an arrival would have put it anyway.
         if (index < 0) return@LaunchedEffect
 
         focusIndex = index
@@ -205,10 +186,13 @@ private fun Browsing(
 
     LaunchedEffect(focusIndex, channels.itemCount) {
         if (channels.itemCount == 0) return@LaunchedEffect
-        // The card may not be composed yet on the frame this runs: an empty grid
-        // or a scroll still settling. Failing to focus is recoverable — the D-pad
-        // still works — and throwing would take the screen down.
         runCatching { focusTarget.requestFocus() }
+    }
+
+    LaunchedEffect(channels.itemCount, state.filter) {
+        if (previewed == null || channels.itemSnapshotList.items.none { it.id == previewed?.id }) {
+            previewed = channels.itemSnapshotList.items.firstOrNull()
+        }
     }
 
     Column(
@@ -216,6 +200,7 @@ private fun Browsing(
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
     ) {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -224,9 +209,6 @@ private fun Browsing(
                 style = MaterialTheme.typography.displayMedium,
                 color = LumoColors.OnDark,
             )
-            // The offline indicator, discreet here too — and it has to be legible
-            // at three metres, which is why it is the label scale rather than a
-            // caption nobody would read (US-08).
             if (state.origin == DataOrigin.Cache) {
                 Text(
                     text = stringResource(R.string.feature_live_offline),
@@ -236,75 +218,172 @@ private fun Browsing(
             }
         }
 
-        Filters(
-            // Only groups that hold something: an empty group's chip filters onto
-            // nothing, and a grid that goes blank after an OK reads as a breakage
-            // rather than as an empty shelf.
-            groups = state.groupsWithChannels,
-            categories = state.categories,
-            filter = state.filter,
-            hasRecent = state.recent.isNotEmpty(),
-            onSelectCategory = onSelectCategory,
-            onSelectGroup = onSelectGroup,
-            onSelectRecent = onSelectRecent,
-        )
-
-        LazyHorizontalGrid(
-            // Two rows: three would put the bottom one under the overscan margin
-            // on a 1080p panel once the cards are large enough to read at three
-            // metres, and a row nobody can see is a row nobody can focus.
-            rows = GridCells.Fixed(2),
-            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
-            state = gridState,
-            contentPadding = PaddingValues(LumoSpacing.sm),
-            modifier = Modifier.fillMaxSize(),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.xl),
         ) {
-            items(
-                count = channels.itemCount,
-                key = channels.itemKey { it.id },
-            ) { index ->
-                val channel = channels[index]
-                ChannelCard(
-                    channel = channel,
-                    favorited = channel != null && state.isFavorited(channel.id),
-                    onPlay = onPlay,
-                    onFavorite = onFavorite,
-                    // One requester, moved to whichever card is the target: the
-                    // first on arrival, the one just watched on the way back.
-                    modifier = if (index == focusIndex) {
-                        Modifier.focusRequester(focusTarget)
-                    } else {
-                        Modifier
-                    },
+            Preview(
+                channel = previewed,
+                categoryName = previewed?.categoryId?.let { id ->
+                    state.categories.firstOrNull { it.id == id }?.name
+                },
+                // Three parts in ten, as the canvas divides its width — a fixed
+                // width would be right on one panel and wrong on every other.
+                modifier = Modifier.weight(PREVIEW_SHARE),
+            )
+
+            Column(
+                modifier = Modifier.weight(1f - PREVIEW_SHARE),
+                verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+            ) {
+                Filters(
+                    groups = state.groupsWithChannels,
+                    categories = state.categories,
+                    filter = state.filter,
+                    hasRecent = state.recent.isNotEmpty(),
+                    onSelectCategory = onSelectCategory,
+                    onSelectGroup = onSelectGroup,
+                    onSelectRecent = onSelectRecent,
                 )
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(GRID_COLUMNS),
+                    horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+                    state = gridState,
+                    contentPadding = PaddingValues(LumoSpacing.sm),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(
+                        count = channels.itemCount,
+                        key = channels.itemKey { it.id },
+                    ) { index ->
+                        val channel = channels[index]
+                        ChannelCard(
+                            channel = channel,
+                            favorited = channel != null && state.isFavorited(channel.id),
+                            onPlay = onPlay,
+                            onFavorite = onFavorite,
+                            onFocused = { previewed = it },
+                            // One requester, moved to whichever card is the target:
+                            // the first on arrival, the one just watched on the way
+                            // back.
+                            modifier = if (index == focusIndex) {
+                                Modifier.focusRequester(focusTarget)
+                            } else {
+                                Modifier
+                            },
+                        )
+                    }
+                }
             }
         }
+
+        Text(
+            text = stringResource(R.string.feature_live_tv_grid_hints),
+            style = MaterialTheme.typography.labelLarge,
+            color = LumoColors.OnDarkMuted,
+        )
     }
 }
 
 /**
- * The strip above the grid: everything, then the user's groups, then the source's
- * categories.
+ * The left panel of the canvas: a picture of the channel, its name, what is on,
+ * when, and how far along.
  *
- * `UP` from the grid lands here, `DOWN` goes back. Every chip is reachable with
- * `LEFT`/`RIGHT`, and "All" is first because it is what the screen opens on: a
- * catalogue that starts inside somebody's first category is a catalogue that hides
- * the rest.
- *
- * <h2>A group is a chip, not a rail (S4-06)</h2>
- *
- * The television's whole way into favourites, and it costs no new focus zone.
- * `S2-13` ruled against rails on this screen — a rail caps what it holds, and its
- * eight-hundredth channel cannot be reached at all — and a group filters this grid
- * in exactly the way a category does. So the [tv-focus-map](../../../../../../../../docs/design/tv-focus-map.md)
- * entry for *Chaînes* stays true word for word: `LEFT`/`RIGHT` walk the strip,
- * `DOWN` enters the grid, `OK` filters.
- *
- * Groups come **before** the categories, separated by spacing rather than by a
- * section label: the strip has no room for a line of headings, and the things the
- * user named themselves are the ones they are looking for.
+ * The picture is the logo, since a television has no still of a live stream;
+ * the programme and the slot are the guide the server does not serve yet, said
+ * as such rather than invented.
  */
+@Composable
+private fun Preview(channel: Channel?, categoryName: String?, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .clip(LumoTvShapes.medium)
+                .background(LumoColors.SurfaceRaised),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (channel?.logoUrl != null) {
+                SubcomposeAsyncImage(
+                    model = channel.logoUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    loading = { PreviewCaption(channel) },
+                    error = { PreviewCaption(channel) },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(LumoSpacing.xl),
+                )
+            } else {
+                PreviewCaption(channel)
+            }
+        }
+
+        Text(
+            text = channel?.name.orEmpty(),
+            style = MaterialTheme.typography.titleLarge,
+            color = LumoColors.OnDark,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        // « En ce moment : Journal du soir » — the programme is the guide, and
+        // the guide is not served yet. The badge stands for the programme and
+        // for its slot at once: one badge, not two, in a panel this narrow.
+        Text(
+            text = stringResource(R.string.feature_live_tv_now, ""),
+            style = MaterialTheme.typography.bodyLarge,
+            color = LumoColors.OnDark,
+        )
+        LumoMockMissingData(scale = TV_BADGE_SCALE)
+
+        // « Généralistes · HD » — the category and the quality are real.
+        Text(
+            text = listOfNotNull(categoryName, channel?.quality).joinToString(" · "),
+            style = MaterialTheme.typography.labelLarge,
+            color = LumoColors.OnDarkMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        // The progress of a programme nobody knows the length of: the track is
+        // drawn, the fill stays at zero.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(LumoTvShapes.pill)
+                .background(LumoColors.SurfaceRaised),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(fraction = 0f)
+                    .height(6.dp)
+                    .background(Brush.horizontalGradient(listOf(LumoColors.Accent, LumoColors.AccentViolet))),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PreviewCaption(channel: Channel?) {
+    Text(
+        text = stringResource(R.string.feature_live_tv_preview, channel?.name.orEmpty()),
+        style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
+        color = LumoColors.OnDarkMuted,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(LumoSpacing.md),
+    )
+}
+
 @Composable
 private fun Filters(
     groups: List<FavoriteGroup>,
@@ -326,9 +405,6 @@ private fun Filters(
                 onClick = { onSelectCategory(null) },
             )
         }
-        // Second, and only when there is something in it. What was watched
-        // recently is what somebody turning the television on is most often
-        // reaching for, and it is the one shelf they did not have to build.
         if (hasRecent) {
             item {
                 CategoryChip(
@@ -346,8 +422,6 @@ private fun Filters(
             )
         }
         if (groups.isNotEmpty()) {
-            // The visual break between what the user named and what the provider
-            // did. A heading would cost a line the strip does not have.
             item { Spacer(modifier = Modifier.size(LumoSpacing.lg)) }
         }
         items(categories, key = { "category-" + it.id }) { category ->
@@ -362,7 +436,11 @@ private fun Filters(
     }
 }
 
-
+/**
+ * A chip is selected or focused, and the two are drawn apart: selection is the
+ * light pill of the canvas (`Toutes`), focus is the shared outline. Neither is
+ * a cyan fill.
+ */
 @Composable
 private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
@@ -372,45 +450,30 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
         text = label,
         style = MaterialTheme.typography.labelLarge,
         color = when {
-            focused -> LumoColors.OnAccent
-            selected -> LumoColors.Accent
+            selected -> LumoColors.OnAccent
+            focused -> LumoColors.OnDark
             else -> LumoColors.OnDarkMuted
         },
         modifier = Modifier
             .onFocusChanged { focused = it.isFocused }
-            .lumoTvFocus(focused, shape = LumoShapes.small)
-            .clip(LumoShapes.small)
+            .lumoTvFocus(focused, shape = LumoTvShapes.pill)
+            .clip(LumoTvShapes.pill)
             .background(
                 when {
-                    focused -> LumoColors.Accent
-                    selected -> LumoColors.SurfaceRaised
+                    selected -> LumoColors.OnDark
+                    focused -> LumoColors.SurfaceRaised
                     else -> LumoColors.Surface
                 },
             )
-            // `clickable` makes it focusable and binds the centre key at once.
-            // Adding `focusable()` as well would put two focus targets on one chip.
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.sm),
     )
 }
 
 /**
- * One channel, as a card the remote can land on.
- *
- * A null card is a window Paging has not loaded yet. It is drawn at full size so
- * the grid keeps its shape, and it is **not** focusable: a card the D-pad can stop
- * on and that has no channel behind it is a dead end that appears and disappears
- * as the user scrolls.
- *
- * <h2>`OK` plays, a long `OK` files (S4-07)</h2>
- *
- * And there is no second button on the card, deliberately. A grid holds hundreds
- * of these; a favourite control drawn beside the name would give each card two
- * focus targets and double the length of every horizontal journey — for an action
- * somebody performs on a given channel roughly once in their life. `OK` keeps
- * doing what US-10 says it does.
- *
- * The heart is drawn, never focusable: it is the state, not a control.
+ * One cell of the grid, as the canvas draws it: the name, and the number under
+ * it in a monospaced face. The logo lives in the panel — at four columns a
+ * card is read by its name, and a logo that small is a smudge.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -419,18 +482,22 @@ private fun ChannelCard(
     favorited: Boolean,
     onPlay: (channelId: String, name: String?) -> Unit,
     onFavorite: (Channel) -> Unit,
+    onFocused: (Channel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var focused by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
 
-    Row(
+    Column(
         modifier = modifier
-            .width(CARD_WIDTH)
+            .fillMaxWidth()
             .height(CARD_HEIGHT)
-            .onFocusChanged { focused = it.isFocused }
+            .onFocusChanged {
+                focused = it.isFocused
+                if (it.isFocused && channel != null) onFocused(channel)
+            }
             .lumoTvFocus(focused)
-            .clip(LumoShapes.medium)
+            .clip(LumoTvShapes.medium)
             .background(if (focused) LumoColors.SurfaceRaised else LumoColors.Surface)
             .combinedClickable(
                 enabled = channel != null,
@@ -440,85 +507,38 @@ private fun ChannelCard(
                 onLongClickLabel = stringResource(R.string.feature_live_tv_favorite_hint),
             ) { channel?.let { onPlay(it.id, it.name) } }
             .padding(LumoSpacing.md),
-        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs, Alignment.CenterVertically),
     ) {
-        Logo(channel)
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+        // Smaller than body, and two lines: the canvas names its channels in
+        // nine characters, real playlists in twenty-five.
+        Text(
+            text = channel?.name.orEmpty(),
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 22.sp, lineHeight = 28.sp),
+            color = if (focused) LumoColors.OnDark else LumoColors.OnDarkMuted,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = channel?.name.orEmpty(),
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (focused) LumoColors.OnDark else LumoColors.OnDarkMuted,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            // The provider's own number, and never `position`: this is the one a
-            // viewer knows by heart and would type on a remote if they could.
             channel?.number?.let { number ->
                 Text(
-                    text = number.toString(),
+                    text = "%03d".format(number),
+                    style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
+                    color = if (focused) LumoColors.Accent else LumoColors.OnDarkMuted,
+                )
+            }
+            if (favorited) {
+                Text(
+                    text = "♥",
                     style = MaterialTheme.typography.labelLarge,
-                    color = LumoColors.OnDarkMuted,
+                    color = LumoColors.Accent,
                 )
             }
         }
-
-        // Drawn state, not a control: no focus target, nothing to press. At three
-        // metres an action with no visible result is an action nobody knows
-        // happened, and this is that result.
-        if (favorited) {
-            Text(
-                text = "♥",
-                style = MaterialTheme.typography.titleMedium,
-                color = LumoColors.Accent,
-            )
-        }
-    }
-}
-
-/**
- * The logo the user's own playlist advertises, or the channel's initial.
- *
- * Lumo ships no artwork (AGENTS.md §1), and a logo that fails to load — many are
- * served over `http`, which ADR 0008 permits but a provider can still refuse —
- * falls back to the same letter rather than to an empty square.
- */
-@Composable
-private fun Logo(channel: Channel?) {
-    val size = 64.dp
-
-    if (channel?.logoUrl == null) {
-        Initial(channel, size)
-        return
-    }
-
-    SubcomposeAsyncImage(
-        model = channel.logoUrl,
-        contentDescription = null,
-        loading = { Initial(channel, size) },
-        error = { Initial(channel, size) },
-        modifier = Modifier.size(size).clip(LumoShapes.small),
-    )
-}
-
-@Composable
-private fun Initial(channel: Channel?, size: Dp) {
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(LumoShapes.small)
-            .background(LumoColors.SurfaceRaised),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = channel?.name?.take(1)?.uppercase().orEmpty(),
-            style = MaterialTheme.typography.titleLarge,
-            color = LumoColors.OnDarkMuted,
-        )
     }
 }
 
@@ -546,11 +566,18 @@ private fun Centered(content: @Composable () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
 }
 
+// Four columns, as the canvas: three metres away a name is still readable at
+// this width on a 1080p panel, and a fifth column would not be.
+private const val GRID_COLUMNS = 4
+private val CARD_HEIGHT = 128.dp
+
+/** The preview panel's share of the content width, as on the canvas. */
+private const val PREVIEW_SHARE = 0.30f
+
 /**
- * Card size, chosen for three metres rather than for density.
- *
- * Wide enough for two lines of a channel name at the TV body scale, tall enough
- * that two rows fill the panel without either falling into the overscan margin.
+ * The badge at the label step, not the TV scale: the preview column is 183 dp
+ * on a 1080p panel, and the nineteen monospaced characters of the badge only
+ * fit it unscaled. It is read up close by whoever is checking the gap, never
+ * from the sofa.
  */
-private val CARD_WIDTH = 360.dp
-private val CARD_HEIGHT = 120.dp
+private const val TV_BADGE_SCALE = 1.0f

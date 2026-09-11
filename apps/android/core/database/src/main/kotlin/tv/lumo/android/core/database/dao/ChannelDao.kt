@@ -58,6 +58,25 @@ interface ChannelDao {
     @Query("SELECT * FROM channel WHERE id = :id")
     fun observe(id: String): Flow<ChannelEntity?>
 
+    @Query("SELECT * FROM channel WHERE id = :id")
+    suspend fun byId(id: String): ChannelEntity?
+
+    /**
+     * The channel after this one in the source's own order — the order every
+     * listing here uses, `position` then `name` — so that "next channel" on the
+     * player lands where `DOWN` in the full grid would.
+     */
+    @Query(
+        """
+        SELECT * FROM channel
+        WHERE source_id = :sourceId
+          AND (position > :position OR (position = :position AND name > :name))
+        ORDER BY position, name
+        LIMIT 1
+        """,
+    )
+    suspend fun nextAfter(sourceId: String, position: Int, name: String): ChannelEntity?
+
     @Query("SELECT count(*) FROM channel WHERE source_id = :sourceId")
     suspend fun countForSource(sourceId: String): Int
 
