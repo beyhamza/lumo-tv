@@ -1,0 +1,60 @@
+# Roadmap 0.2.0
+
+Date de cadrage : 15 septembre 2026. Statut : cadrage produit en cours.
+
+## Objectif
+
+Rendre Lumo agréable à utiliser au quotidien sur web, Android mobile et Android TV.
+Les trois surfaces ont la même priorité ; leurs interactions sont adaptées à leur
+mode d'utilisation. Le périmètre complet, les estimations et les sprints restent à fixer.
+
+## Périmètre validé en discussion
+
+- Une source active, mémorisée par appareil, avec changement rapide.
+- Un accueil organisé en Continuer, Favoris, Direct.
+- Reprise immédiate depuis Continuer, accès secondaire à la fiche, retrait de la
+  rangée sans perdre la progression.
+- Tous les favoris de la source active et lancement immédiat d'une chaîne.
+- Chaînes récentes dans Direct, programme en cours si disponible, accès au catalogue
+  et au guide.
+- Navigation adaptée aux trois surfaces et états d'accueil explicités.
+
+Le détail fait foi dans [les décisions](decisions.md). Les stories ci-dessous
+décrivent la cible validée, pas des fonctionnalités déjà livrées.
+
+| Story | Résultat attendu |
+|---|---|
+| [US-017](../../backlog/stories/US-017-home-navigation.md) | Se repérer et ouvrir son accueil |
+| [US-018](../../backlog/stories/US-018-active-source.md) | Parcourir une source à la fois |
+| [US-019](../../backlog/stories/US-019-continue-watching.md) | Reprendre un film ou une série |
+| [US-020](../../backlog/stories/US-020-home-live.md) | Retrouver ses chaînes favorites et récentes |
+
+## Discussions suivantes
+
+1. Direct et guide : réutiliser [US-16 et le sprint 7](../../backlog/sprint-07.md).
+2. Recherche unifiée dans la source active.
+3. Bibliothèque : favoris, groupes et éventuelle liste à regarder.
+4. Confort du lecteur, sources et réglages.
+5. Connexion Google et éventuelle commercialisation.
+
+Ces sujets sont candidats : leur présence ici ne vaut pas validation détaillée.
+Les fonctions réservées à la v2 dans `AGENTS.md` restent hors périmètre.
+
+## Organisation documentaire
+
+Les décisions sont consignées au fil de la discussion, puis traduites en stories.
+Les écrans seront produits à la demande de l'utilisateur et reliés aux stories.
+L'état des lieux par surface devra distinguer implémentation et recette avant
+estimation. Les sprints seront découpés ensuite, avec démo et recette à chaque sprint.
+Les backlogs existants restent l'historique ; ils ne sont ni renumérotés ni dupliqués.
+
+## Dépendances déjà identifiées
+
+- US-019 : le retrait sans perte de progression n'est pas couvert par le contrat
+  actuel. Sa persistance et son comportement entre appareils demandent un arbitrage.
+- US-020 : l'EPG par chaîne existe ; la lecture groupée dépend du cadrage du sprint 7.
+- L'ordre des favoris entre groupes et le traitement des doublons restent à préciser.
+- Aucune évolution du contrat ni de l'architecture n'est autorisée par ces documents.
+
+La version ne sera pas déclarée prête sur la seule base de pourcentages de code :
+les recettes existantes et la [dette documentée](../../backlog/dette.md) seront revues.
