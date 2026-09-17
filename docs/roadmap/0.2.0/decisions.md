@@ -263,3 +263,15 @@ liées, notamment progression et future liste À regarder, reste à vérifier et
 
 Voir [US-025](../../backlog/stories/US-025-general-settings.md) pour les dépendances
 et les cas particuliers restant à préciser, dont le changement de réseau en lecture.
+
+## Objectif de sortie — validé le 17 septembre 2026
+
+- La 0.2.0 reste gratuite ; aucune ouverture des paiements n'est prévue pour cette version.
+- Reporter le chantier de configuration et validation Google, ainsi que les autres
+  connexions tierces. L'utilisateur souhaite se concentrer sur les fonctions du lecteur.
+- Google et Stripe ne sont pas des critères bloquants de sortie 0.2.0 ; leur dette
+  reste ouverte, sans être déclarée résolue.
+- Conserver comme base le compte existant par email et l'activation TV. Aucun mode
+  sans compte ni changement des quotas ou droits d'accès n'est décidé ici.
+- Dans la recette 0.2.0, marquer les cas Google hors périmètre ; maintenir la recette
+  des parcours retenus et les vérifications transverses.

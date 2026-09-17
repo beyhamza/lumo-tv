@@ -24,12 +24,22 @@ pas, et n'a pas de date.
 
 ---
 
-## État au 31 août 2026
+## État documenté au 31 août 2026 — arbitrage produit du 17 septembre 2026
+
+**Périmètre 0.2.0 décidé avec l'utilisateur : version gratuite, sans chantier Google
+ni autre connexion tierce, sans ouverture des paiements.** Google et Stripe restent
+des dettes reportées et ne bloquent pas cette version. Leur état technique ci-dessous
+n'a pas été réaudité à cette occasion. Voir la [roadmap 0.2.0](../roadmap/0.2.0/README.md).
+
+La recette 0.2.0 utilisera les parcours de compte existants par email et l'activation
+TV ; les cas Google seront explicitement hors périmètre, pas marqués réussis.
+Ce report ne dispense pas des autres recettes ni des contrôles transverses et ne
+clôture pas rétroactivement les stories historiques.
 
 | Dette | État réel | Ce qui la rouvrira |
 |---|---|---|
-| Client OAuth Google | Le code des trois surfaces existe et **n'a jamais tourné contre un vrai client** — il n'y en a dans aucun build | Un sprint dédié, ou le jour où quelqu'un s'inscrit |
-| Webhook Stripe | `SRV-10` à 80 %. Ouvrir une session marche ; **un paiement réussi n'accorde rien** | La décision 1 d'[`api-gaps.md`](../design/api-gaps.md) |
+| Client OAuth Google | Le code des trois surfaces existe et **n'a jamais tourné contre un vrai client** — il n'y en a dans aucun build | Une décision explicite de réintroduire Google dans une version future |
+| Webhook Stripe | `SRV-10` à 80 %. Ouvrir une session marche ; **un paiement réussi n'accorde rien** | Une décision de commercialiser, avec arbitrage de la décision 1 d'[`api-gaps.md`](../design/api-gaps.md), avant toute ouverture des paiements |
 | Recette sprints 1 et 2 | **Partiellement jouée**, sans rapport de session. **0 story sur 10** en Definition of Done | Une session de recette avec un rapport, cas par cas |
 
 ---

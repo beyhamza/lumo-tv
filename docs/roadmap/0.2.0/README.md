@@ -9,6 +9,21 @@ Rendre Lumo agréable à utiliser au quotidien sur web, Android mobile et Androi
 Les trois surfaces ont la même priorité ; leurs interactions sont adaptées à leur
 mode d'utilisation. Le périmètre complet, les estimations et les sprints restent à fixer.
 
+## Objectif de sortie validé
+
+La 0.2.0 est une version gratuite enrichie. La configuration et la validation de
+Google ou d'autres connexions tierces sont reportées, ainsi que l'ouverture des
+paiements et le chantier Stripe. Ces travaux ne bloquent pas cette version.
+
+Le parcours de compte existant par email et l'activation TV restent la base de
+travail ; cette décision n'introduit pas un mode sans compte. Les parcours de sortie
+ne doivent pas orienter vers un paiement ou une connexion tierce non opérationnels.
+
+La gratuité ne décide pas de nouveaux quotas et ne change pas les droits d'accès.
+Les dettes Google et Stripe restent tracées, sans être déclarées résolues. Les
+recettes applicables aux parcours retenus restent requises ; les cas Google sont
+explicitement hors périmètre de la recette 0.2.0.
+
 ## Périmètre validé en discussion
 
 - Une source active, mémorisée par appareil, avec changement rapide.
@@ -52,7 +67,7 @@ décrivent la cible validée, pas des fonctionnalités déjà livrées.
 
 ## Discussions suivantes
 
-1. Objectif de sortie : version gratuite enrichie ou commercialisable, et connexion Google.
+1. État des lieux des fonctions existantes et découpage des travaux de la 0.2.0 gratuite.
 2. Bibliothèque : détails d'interaction et cas particuliers des parcours validés.
 3. Cas particuliers des réglages et du lecteur, puis critères de sortie.
 4. Écrans et détails d'interaction des parcours validés, notamment Direct, guide et recherche.
