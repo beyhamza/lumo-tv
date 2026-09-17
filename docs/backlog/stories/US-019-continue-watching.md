@@ -21,7 +21,23 @@ afin de les reprendre rapidement.
 - La section disparaît lorsqu'elle ne contient aucun élément.
 - Les actions sont accessibles sur les trois surfaces, y compris au D-pad, en FR/EN.
 
-## Couverture API et travail existant
+## Parcours depuis les fiches — complément validé le 17 septembre 2026
+
+- Film jamais commencé : Regarder.
+- Film commencé : Reprendre avec progression, et action secondaire Recommencer.
+- Film terminé : Revoir lance depuis le début.
+- Série avec épisode en cours : Reprendre indique la saison et l'épisode.
+- Si l'épisode précédent est terminé : proposer Regarder l'épisode suivant,
+  lorsqu'un suivant est disponible.
+- Chaque épisode reste sélectionnable ; un épisode commencé propose Reprendre
+  ou Recommencer cet épisode.
+- Recommencer un épisode conserve les progressions des autres épisodes.
+- L'accueil Continuer conserve sa reprise immédiate, sans question intermédiaire.
+
+Ce complément précise la transition entre l'accueil et les fiches des sprints
+5 et 6. Les seuils de lecture commencée ou terminée restent à confirmer séparément.
+
+## Couverture contractuelle
 
 `GET /me/progress` et les résolutions de films et épisodes existent. Les sprints
 5 et 6 décrivent la reprise entre appareils et le regroupement par série : partir

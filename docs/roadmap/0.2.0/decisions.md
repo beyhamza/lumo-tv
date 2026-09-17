@@ -180,3 +180,17 @@ Voir [US-023](../../backlog/stories/US-023-player-preferences.md) pour les capac
 
 Voir le [complément à US-15](../../design/0.2.0/episode-continuation.md), qui reprend
 le sprint 6 et identifie les écarts à vérifier avant planification.
+
+## Reprise depuis les fiches — validée le 17 septembre 2026
+
+- Film jamais commencé : Regarder ; commencé : Reprendre avec progression et
+  Recommencer ; terminé : Revoir depuis le début.
+- Série : Reprendre avec saison et épisode en cours, ou Regarder l'épisode suivant
+  si le précédent est terminé et qu'un suivant est disponible.
+- Chaque épisode reste sélectionnable ; un épisode commencé propose Reprendre ou
+  Recommencer cet épisode, sans modifier les progressions des autres épisodes.
+- L'enchaînement vers un épisode déjà commencé reprend sa position avec un bref
+  message Reprise à… ; l'accueil Continuer lance toujours directement la lecture.
+
+Ces règles complètent US-019 et le cadrage d'enchaînement. Les critères de fin
+restent à confirmer avant implémentation.

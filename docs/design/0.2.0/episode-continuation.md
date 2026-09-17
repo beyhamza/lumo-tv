@@ -19,6 +19,8 @@ pas une deuxième story pour l'enchaînement déjà décrit dans le backlog.
 - Le dernier épisode d'une saison passe à la saison suivante lorsqu'un épisode
   est disponible.
 - À la fin du dernier épisode disponible, revenir à la fiche de la série.
+- Si l'épisode suivant est déjà commencé, reprendre sa position et afficher
+  brièvement « Reprise à… » avec la position concernée.
 - Libellés FR/EN et actions utilisables au tactile, au clavier et au D-pad.
 
 ## Articulation avec l'existant
@@ -37,7 +39,7 @@ de préférences par appareil avant implémentation.
 - Emplacement du réglage et portée lors d'un changement de compte.
 - Focus initial de la carte de fin et comportement des commandes Retour.
 - Erreur lors du lancement du suivant et disparition d'un épisode du catalogue.
-- Épisode suivant déjà commencé : position de départ à préciser avec la reprise.
+- Épisode suivant déjà terminé : comportement à préciser avec les critères de fin.
 - Épisodes numérotés avec des trous ou saisons vides : conserver les règles métier
   existantes et vérifier leur cohérence avec le parcours retenu.
 
@@ -48,5 +50,7 @@ par interaction. Vérifier le mode désactivé, la persistance locale et l'indé
 de deux appareils, le passage de saison et la fin du dernier épisode disponible.
 Réutiliser les fixtures et recettes du sprint 6, avec une télécommande réelle pour
 la TV. L'absence d'épisode suivant ne doit pas créer de décompte.
+Vérifier aussi que le suivant déjà commencé reprend sa position et affiche le
+message de reprise.
 
 Référence : [décisions produit](../../roadmap/0.2.0/decisions.md).
