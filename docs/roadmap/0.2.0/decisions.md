@@ -206,3 +206,17 @@ Ces règles complètent US-019 et le cadrage d'enchaînement.
 
 La mesure de lecture effective et sa propagation restent à cadrer techniquement
 dans US-019, distinctement de la position de lecture.
+
+## Mes sources — organisation validée le 17 septembre 2026
+
+- Page accessible depuis le sélecteur et les réglages.
+- Nom, type M3U ou Xtream, état, contenus disponibles et nombres lorsqu'ils sont connus.
+- Dernière synchronisation et avancement pendant une synchronisation.
+- Mobile/web : ajout et gestion complète, Utiliser cette source, Renommer, Actualiser,
+  Supprimer et Actualisation automatique.
+- TV : changement de source et actualisation ; guidage vers téléphone/web pour
+  l'ajout et les modifications.
+- En cas d'erreur, explication et action adaptée.
+
+Voir [US-024](../../backlog/stories/US-024-source-management.md) pour les données
+existantes et les détails d'action restant à préciser.

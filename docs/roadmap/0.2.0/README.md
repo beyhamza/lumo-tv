@@ -29,6 +29,8 @@ mode d'utilisation. Le périmètre complet, les estimations et les sprints reste
   de langue et activation des sous-titres mémorisées par appareil.
 - Enchaînement des épisodes avec lecture automatique désactivable par appareil
   et décompte annulable.
+- Mes sources : état et gestion complète sur mobile/web, changement et actualisation
+  sur TV avec guidage vers les autres surfaces pour les modifications.
 
 Le détail fait foi dans [les décisions](decisions.md). Les stories ci-dessous
 décrivent la cible validée, pas des fonctionnalités déjà livrées.
@@ -44,10 +46,11 @@ décrivent la cible validée, pas des fonctionnalités déjà livrées.
 | [US-021](../../backlog/stories/US-021-unified-search.md) | Rechercher chaînes, films et séries dans la source active |
 | [US-022](../../backlog/stories/US-022-library-watchlist.md) | Retrouver sa bibliothèque et enregistrer films et séries pour plus tard |
 | [US-023](../../backlog/stories/US-023-player-preferences.md) | Choisir audio, sous-titres et qualité pendant la lecture |
+| [US-024](../../backlog/stories/US-024-source-management.md) | Comprendre l'état de ses sources et les gérer |
 
 ## Discussions suivantes
 
-1. Sources et réglages.
+1. Sources : détails des actions validées, puis réglages.
 2. Bibliothèque : détails d'interaction et cas particuliers des parcours validés.
 3. Connexion Google et éventuelle commercialisation.
 4. Écrans et détails d'interaction des parcours validés, notamment Direct, guide et recherche.
