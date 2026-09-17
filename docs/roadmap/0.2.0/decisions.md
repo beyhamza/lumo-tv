@@ -108,3 +108,17 @@ interactions encore ouvertes et le complément à US-16. La grille horaire TV
 
 Voir [US-021](../../backlog/stories/US-021-unified-search.md) pour la couverture
 contractuelle et les détails restant à spécifier.
+
+## Bibliothèque et liste à regarder — validées le 17 septembre 2026
+
+- Deux sections dans la source active : Chaînes favorites et À regarder.
+- Chaînes favorites rassemble les favoris et leurs groupes personnalisés.
+- À regarder rassemble films et séries, avec filtres Tous, Films et Séries.
+- Ajouter à ma liste depuis une fiche ; une série est enregistrée dans son ensemble.
+- Liste partagée entre les appareils, ajouts les plus récents en premier.
+- Sélectionner une carte ouvre sa fiche ; le retrait est manuel.
+- Commencer ou terminer une lecture ne retire pas l'élément de la liste.
+- Continuer dépend des lectures ; À regarder dépend des choix explicites de l'utilisateur.
+
+Voir [US-022](../../backlog/stories/US-022-library-watchlist.md). La liste de films
+et séries nécessite une évolution contractuelle à définir avant implémentation.

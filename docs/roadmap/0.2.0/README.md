@@ -23,6 +23,8 @@ mode d'utilisation. Le périmètre complet, les estimations et les sprints reste
 - Direct avec vues Chaînes et Guide : grille horaire sur TV/web, liste sur mobile.
 - Recherche unifiée par nom et titre dans la source active, résultats regroupés
   par type, sans historique des recherches.
+- Bibliothèque avec chaînes favorites et liste À regarder de films et séries,
+  partagée entre appareils et filtrée sur la source active.
 
 Le détail fait foi dans [les décisions](decisions.md). Les stories ci-dessous
 décrivent la cible validée, pas des fonctionnalités déjà livrées.
@@ -35,10 +37,11 @@ décrivent la cible validée, pas des fonctionnalités déjà livrées.
 | [US-019](../../backlog/stories/US-019-continue-watching.md) | Reprendre un film ou une série |
 | [US-020](../../backlog/stories/US-020-home-live.md) | Retrouver ses chaînes favorites et récentes |
 | [US-021](../../backlog/stories/US-021-unified-search.md) | Rechercher chaînes, films et séries dans la source active |
+| [US-022](../../backlog/stories/US-022-library-watchlist.md) | Retrouver sa bibliothèque et enregistrer films et séries pour plus tard |
 
 ## Discussions suivantes
 
-1. Bibliothèque : favoris, groupes et éventuelle liste à regarder.
+1. Bibliothèque : préciser l'organisation des groupes et les détails de la liste validée.
 2. Confort du lecteur, sources et réglages.
 3. Connexion Google et éventuelle commercialisation.
 4. Écrans et détails d'interaction des parcours validés, notamment Direct, guide et recherche.
@@ -61,6 +64,7 @@ Les backlogs existants restent l'historique ; ils ne sont ni renumérotés ni du
   actuel. Le masquage partagé est validé ; le lot contractuel reste à définir.
 - US-020 : l'EPG par chaîne existe ; la lecture groupée dépend du cadrage du sprint 7.
 - US-16 : la grille horaire TV est un ajout au sprint 7, à découper et estimer.
+- US-022 : la liste à regarder de films et séries nécessite un lot contractuel explicite.
 - L'ordre des favoris entre groupes et le traitement des doublons restent à préciser.
 - Aucune évolution du contrat ni de l'architecture n'est autorisée par ces documents.
 
