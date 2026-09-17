@@ -34,8 +34,8 @@ produit ; il ne remplace ni le contrat ni les ADR.
 ## Points encore ouverts
 
 - Retrait de Continuer : éventuelle restauration manuelle et modalités de synchronisation.
-- Favoris : portée du retrait depuis la vue agrégée et déplacement dans un groupe
-  contenant plusieurs sources.
+- Favoris : déplacement dans un groupe contenant plusieurs sources et erreurs
+  partielles lors du retrait de plusieurs appartenances.
 - Source mémorisée supprimée : choix de la source de remplacement.
 - Cartes Continuer : seuils de début/fin et choix de l'épisode à reprendre, à confronter
   aux règles déjà livrées au sprint 6.
@@ -136,4 +136,17 @@ et séries nécessite une évolution contractuelle à définir avant implémenta
   menu Déplacer avant / après sur TV.
 
 US-020 définit l'agrégation ; US-022 reprend la gestion existante des groupes.
-Les conséquences des retraits et suppressions restent à préciser dans les parcours.
+Les actions d'ajout et de retrait sont définies ci-dessous.
+
+## Ajout et retrait dans la bibliothèque — validés le 17 septembre 2026
+
+- Ajouter une chaîne l'enregistre dans le groupe par défaut ; Organiser permet
+  ensuite de choisir ses groupes.
+- Retirer depuis un groupe retire uniquement cette appartenance.
+- Depuis l'accueil ou Tous les favoris, Retirer de tous mes favoris demande
+  confirmation et retire la chaîne de tous ses groupes.
+- Supprimer un groupe personnalisé transfère ses favoris au groupe par défaut ;
+  cette conséquence est expliquée dans la confirmation.
+- Le groupe par défaut est renommable, mais non supprimable.
+- Pour les films et séries, Ajouter à ma liste devient Dans ma liste après ajout ;
+  sélectionner à nouveau retire l'élément, sans modifier la progression.

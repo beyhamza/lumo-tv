@@ -37,6 +37,19 @@ séries que j'ai enregistrés, afin de choisir facilement quoi regarder plus tar
 - Les libellés sont disponibles en FR/EN et les actions accessibles au clavier,
   au tactile ou au D-pad selon la surface.
 
+### Ajout et retrait
+
+- Ajouter une chaîne aux favoris l'ajoute immédiatement au groupe par défaut ;
+  Organiser permet ensuite de choisir ses groupes.
+- Retirer depuis un groupe supprime uniquement cette appartenance.
+- Depuis Tous les favoris ou l'accueil, Retirer de tous mes favoris demande une
+  confirmation puis retire la chaîne de tous ses groupes.
+- Supprimer un groupe personnalisé conserve ses chaînes favorites et les transfère
+  au groupe par défaut ; la confirmation explique cette conséquence.
+- Le groupe par défaut est renommable, mais non supprimable.
+- Après ajout d'un film ou d'une série, Ajouter à ma liste devient Dans ma liste.
+  Sélectionner à nouveau le bouton retire l'élément sans toucher à sa progression.
+
 ## Couverture API et dépendances
 
 Le contrat actuel expose des favoris de chaînes et leurs groupes. `Favorite`
@@ -52,18 +65,18 @@ toute évolution approuvée.
 Le réordonnancement des groupes et de leurs favoris est couvert par le contrat.
 Les groupes appartiennent au compte, pas à une source. Le contrat prévoit qu'une
 suppression de groupe conserve ses favoris en les transférant au groupe par défaut,
-qui n'est lui-même pas supprimable. Préciser la présentation de ces règles lors
-du cadrage des actions, sans modifier leur sémantique implicitement.
+qui n'est lui-même pas supprimable. Les gestes validés ci-dessus reprennent ces règles.
+Le retrait de tous les groupes correspond à plusieurs appartenances : vérifier
+la gestion des échecs partiels avec les opérations existantes avant implémentation.
 
 ## Avant planification
 
 - Spécifier les états vide, chargement, erreur et hors ligne.
-- Préciser l'état du bouton après ajout, la suppression et les retours d'action.
+- Préciser les retours d'action en cours et en erreur, notamment le retrait de
+  plusieurs appartenances lorsqu'une opération échoue.
 - Définir le comportement d'un élément retiré du catalogue après synchronisation.
 - Définir les modifications concurrentes et la propagation aux appareils hors ligne.
 - Préciser les filtres lorsque la source ne propose qu'un seul type de contenu.
-- Préciser les actions de retrait d'une chaîne depuis un groupe et depuis la vue
-  agrégée, ainsi que le message de suppression d'un groupe.
 - Préciser le déplacement dans une liste filtrée par source, lorsque des favoris
   d'autres sources occupent des positions intermédiaires dans le groupe partagé.
 
@@ -74,5 +87,8 @@ série, filtrage par source et par type, ordre des ajouts, ouverture des fiches 
 retrait partagé. Vérifier que lecture et fin de lecture ne retirent pas l'élément.
 Confirmer que la série apparaît comme une seule entrée. Prévoir les trois surfaces,
 une session TV à la télécommande et les libellés FR/EN.
+Vérifier aussi l'ajout au groupe par défaut, Organiser, le retrait d'un seul groupe,
+le retrait confirmé de tous les groupes et la suppression d'un groupe sans perte
+de favoris. Vérifier le bouton Dans ma liste et la conservation de la progression.
 
 Référence : [décisions produit](../../roadmap/0.2.0/decisions.md).
