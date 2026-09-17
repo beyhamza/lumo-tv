@@ -1,7 +1,7 @@
 # US-019 — Reprendre un film ou une série depuis l'accueil
 
-Statut : besoin validé ; retrait de la rangée en attente d'arbitrage de persistance
-et de couverture contractuelle. Version cible : 0.2.0.
+Statut : besoin validé, complété le 17 septembre 2026 ; retrait de la rangée en
+attente de couverture contractuelle. Version cible : 0.2.0.
 Surfaces : web, Android mobile, Android TV.
 
 ## Besoin
@@ -16,6 +16,8 @@ afin de les reprendre rapidement.
 - L'action principale reprend immédiatement la lecture à la progression conservée.
 - Voir la fiche ouvre les détails du film ou permet de choisir un épisode.
 - Retirer de Continuer masque la carte sans effacer sa progression.
+- Le retrait s'applique à tous les appareils du compte.
+- Relancer le contenu fait réapparaître sa carte dans Continuer.
 - La section disparaît lorsqu'elle ne contient aucun élément.
 - Les actions sont accessibles sur les trois surfaces, y compris au D-pad, en FR/EN.
 
@@ -27,18 +29,21 @@ de cette implémentation, puis vérifier les écarts avec la cible.
 
 Le contrat actuel ne porte aucun état de masquage de Continuer. Une progression
 ne doit pas être remise à zéro pour simuler un retrait. Aucun endpoint n'est
-inventé ici. Conformément à `AGENTS.md` §3, l'implémentation de ce retrait attend
-l'arbitrage utilisateur et, si nécessaire, un lot contractuel explicite.
+inventé ici. Le masquage partagé et le retour après une nouvelle lecture ont été
+validés le 17 septembre 2026. Conformément à `AGENTS.md` §3, l'implémentation de ce
+retrait attend un lot contractuel explicite.
 
 ## Questions avant implémentation
 
-- Le masquage est-il propre à l'appareil ou partagé sur le compte ?
-- Une nouvelle lecture fait-elle réapparaître la carte ?
 - Faut-il une restauration manuelle ?
+- Comment propager le retrait aux appareils temporairement hors ligne et traiter
+  une lecture concurrente ?
 - Quelles règles existantes déterminent une lecture commencée ou terminée et
   l'épisode à reprendre ? Les confirmer avant de fixer les cas de recette.
 
-La recette vérifiera notamment que retirer une carte conserve la position retrouvée
-depuis la fiche. Les erreurs de résolution et les contenus supprimés restent à spécifier.
+La recette vérifiera sur deux appareils que retirer une carte la masque sur les
+deux, conserve la position retrouvée depuis la fiche, puis qu'une nouvelle lecture
+la fait réapparaître. Les erreurs de résolution et les contenus supprimés restent
+à spécifier.
 
 Référence : [décisions produit](../../roadmap/0.2.0/decisions.md).

@@ -1,6 +1,7 @@
 # Roadmap 0.2.0
 
-Date de cadrage : 15 septembre 2026. Statut : cadrage produit en cours.
+Date de cadrage : 15 septembre 2026. Mise à jour : 17 septembre 2026.
+Statut : cadrage produit en cours.
 
 ## Objectif
 
@@ -13,7 +14,8 @@ mode d'utilisation. Le périmètre complet, les estimations et les sprints reste
 - Une source active, mémorisée par appareil, avec changement rapide.
 - Un accueil organisé en Continuer, Favoris, Direct.
 - Reprise immédiate depuis Continuer, accès secondaire à la fiche, retrait de la
-  rangée sans perdre la progression.
+  rangée sur tous les appareils sans perdre la progression, réapparition après
+  une nouvelle lecture.
 - Tous les favoris de la source active et lancement immédiat d'une chaîne.
 - Chaînes récentes dans Direct, programme en cours si disponible, accès au catalogue
   et au guide.
@@ -51,7 +53,7 @@ Les backlogs existants restent l'historique ; ils ne sont ni renumérotés ni du
 ## Dépendances déjà identifiées
 
 - US-019 : le retrait sans perte de progression n'est pas couvert par le contrat
-  actuel. Sa persistance et son comportement entre appareils demandent un arbitrage.
+  actuel. Le masquage partagé est validé ; le lot contractuel reste à définir.
 - US-020 : l'EPG par chaîne existe ; la lecture groupée dépend du cadrage du sprint 7.
 - L'ordre des favoris entre groupes et le traitement des doublons restent à préciser.
 - Aucune évolution du contrat ni de l'architecture n'est autorisée par ces documents.

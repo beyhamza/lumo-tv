@@ -1,6 +1,6 @@
 # Décisions produit — 0.2.0
 
-Validées en conversation le 15 septembre 2026. Ce document consigne des décisions
+Validées en conversation le 15 septembre 2026, complétées le 17 septembre 2026. Ce document consigne des décisions
 produit ; il ne remplace ni le contrat ni les ADR.
 
 ## Accueil et navigation validés
@@ -33,8 +33,7 @@ produit ; il ne remplace ni le contrat ni les ADR.
 
 ## Points encore ouverts
 
-- Retrait de Continuer : masquage local ou partagé entre appareils, retour de la carte
-  après une nouvelle lecture et éventuelle restauration manuelle.
+- Retrait de Continuer : éventuelle restauration manuelle et modalités de synchronisation.
 - Favoris : ordre d'ensemble entre groupes et chaîne présente dans plusieurs groupes.
 - Source mémorisée supprimée : choix de la source de remplacement.
 - Cartes Continuer : seuils de début/fin et choix de l'épisode à reprendre, à confronter
@@ -43,3 +42,12 @@ produit ; il ne remplace ni le contrat ni les ADR.
   focus TV et représentation des destinations sans contenu : à préciser avec les écrans.
 
 Ces points ne sont pas des critères validés implicitement.
+
+## Complément validé le 17 septembre 2026 — Continuer
+
+- Retirer une carte la masque sur tous les appareils du compte.
+- La progression est conservée.
+- Relancer le contenu fait réapparaître sa carte dans Continuer.
+
+Le besoin de masquage partagé nécessite un lot contractuel explicite avant
+implémentation. La décision produit ne définit pas sa forme technique.
