@@ -22,6 +22,9 @@ pas une deuxième story pour l'enchaînement déjà décrit dans le backlog.
 - Si l'épisode suivant est déjà commencé, reprendre sa position et afficher
   brièvement « Reprise à… » avec la position concernée.
 - Libellés FR/EN et actions utilisables au tactile, au clavier et au D-pad.
+- Le décompte démarre uniquement à la fin réellement atteinte par le lecteur.
+  Le seuil de plus de 95 % utilisé pour Continuer ne coupe jamais la lecture et
+  ne déclenche pas l'enchaînement.
 
 ## Articulation avec l'existant
 

@@ -47,7 +47,7 @@ décrivent la cible validée, pas des fonctionnalités déjà livrées.
 
 ## Discussions suivantes
 
-1. Lecteur : reprise depuis les fiches, puis sources et réglages.
+1. Sources et réglages.
 2. Bibliothèque : détails d'interaction et cas particuliers des parcours validés.
 3. Connexion Google et éventuelle commercialisation.
 4. Écrans et détails d'interaction des parcours validés, notamment Direct, guide et recherche.
@@ -68,6 +68,7 @@ Les backlogs existants restent l'historique ; ils ne sont ni renumérotés ni du
 
 - US-019 : le retrait sans perte de progression n'est pas couvert par le contrat
   actuel. Le masquage partagé est validé ; le lot contractuel reste à définir.
+  La mesure de 30 secondes de lecture effective et son partage sont aussi à examiner.
 - US-020 : l'EPG par chaîne existe ; la lecture groupée dépend du cadrage du sprint 7.
 - US-16 : la grille horaire TV est un ajout au sprint 7, à découper et estimer.
 - US-022 : la liste à regarder de films et séries nécessite un lot contractuel explicite.

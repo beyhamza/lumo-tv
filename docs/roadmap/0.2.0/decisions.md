@@ -37,8 +37,8 @@ produit ; il ne remplace ni le contrat ni les ADR.
 - Favoris : déplacement dans un groupe contenant plusieurs sources et erreurs
   partielles lors du retrait de plusieurs appartenances.
 - Source mémorisée supprimée : choix de la source de remplacement.
-- Cartes Continuer : seuils de début/fin et choix de l'épisode à reprendre, à confronter
-  aux règles déjà livrées au sprint 6.
+- Cartes Continuer : mesure des 30 secondes entre sessions/appareils, réapparition
+  après retrait et cas des contenus très courts ou du suivant non commencé.
 - Nombre de cartes, comportement des chargements et erreurs partielles, retour du
   focus TV et représentation des destinations sans contenu : à préciser avec les écrans.
 
@@ -192,5 +192,17 @@ le sprint 6 et identifie les écarts à vérifier avant planification.
 - L'enchaînement vers un épisode déjà commencé reprend sa position avec un bref
   message Reprise à… ; l'accueil Continuer lance toujours directement la lecture.
 
-Ces règles complètent US-019 et le cadrage d'enchaînement. Les critères de fin
-restent à confirmer avant implémentation.
+Ces règles complètent US-019 et le cadrage d'enchaînement.
+
+## Apparition dans Continuer et fin — validées le 17 septembre 2026
+
+- Apparition après 30 secondes de lecture effective, progression conservée dès le début.
+- Conserver le seuil contractuel de plus de 95 % de la durée : le film quitte
+  Continuer et propose Revoir ; la série propose l'épisode suivant s'il existe,
+  ou quitte Continuer après le dernier épisode disponible terminé.
+- Sans durée connue, conserver la reprise avec retrait manuel possible.
+- Le seuil de 95 % ne coupe pas la lecture et ne déclenche pas le suivant : le
+  décompte attend la fin réellement atteinte par le lecteur.
+
+La mesure de lecture effective et sa propagation restent à cadrer techniquement
+dans US-019, distinctement de la position de lecture.
