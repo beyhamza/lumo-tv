@@ -220,3 +220,17 @@ dans US-019, distinctement de la position de lecture.
 
 Voir [US-024](../../backlog/stories/US-024-source-management.md) pour les données
 existantes et les détails d'action restant à préciser.
+
+## Actualisation des sources — validée le 17 septembre 2026
+
+- Étapes réelles de synchronisation, sans pourcentage approximatif.
+- Catalogue existant consultable pendant l'actualisation ; bouton Actualisation
+  en cours pour éviter les doubles lancements.
+- Réussite : compteurs disponibles et date de mise à jour.
+- Échec : conserver le catalogue précédent lorsqu'il est disponible, expliquer
+  le problème et proposer Réessayer.
+- Indiquer le délai d'attente lorsqu'il est imposé par le serveur.
+- Actualisation automatique partagée pour la source sur tout le compte.
+
+US-024 porte ces critères et la vérification d'accès au catalogue précédent dans
+les états de synchronisation et d'erreur.
