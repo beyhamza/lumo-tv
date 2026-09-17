@@ -77,6 +77,14 @@ implémentation. La décision produit ne définit pas sa forme technique.
 - Un guide ancien conserve ses programmes et indique sa date de mise à jour.
 - Une erreur de chargement conserve les données affichées et propose Réessayer.
 - La consultation des programmes passés est informative, sans replay.
+- Chaînes et Guide partagent Toutes, Favoris et catégories ; changer de vue conserve
+  le filtre. La recherche de chaînes par nom conserve également le filtre actif.
+- Aucun résultat : proposer d'effacer la recherche ou de revenir à Toutes.
+- Première ouverture du Direct dans Chaînes, puis dernière vue mémorisée par appareil
+  et par source.
+- Depuis l'accueil, Toutes les chaînes ouvre Chaînes sans filtre ; Guide TV ouvre
+  Guide sur Maintenant. Une nouvelle entrée dans Guide revient sur Maintenant,
+  tandis qu'un retour du lecteur conserve la position précédente.
 
 Voir le [cadrage Direct et guide](../../design/0.2.0/direct-guide.md) pour les
 interactions encore ouvertes et le complément à US-16. La grille horaire TV

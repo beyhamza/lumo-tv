@@ -63,7 +63,20 @@ Ces libellés de cadrage seront traduits en FR/EN. Le message d'absence ne doit 
 attribuer une cause précise à une liste vide si les données ne permettent pas de
 la distinguer d'une erreur ou d'un créneau non couvert.
 
-## Lien avec le backlog
+### Filtres et ouverture — complément validé
+
+- Chaînes et Guide partagent les filtres Toutes, Favoris et catégories de la source.
+- Passer d'une vue à l'autre conserve le filtre actif.
+- La recherche du Direct porte sur le nom des chaînes et conserve le filtre actif.
+- Sans résultat, proposer d'effacer la recherche ou de revenir à Toutes.
+- La première ouverture de Direct présente Chaînes. Les ouvertures suivantes
+  retrouvent la dernière vue utilisée, mémorisée par appareil et par source.
+- Depuis l'accueil, Toutes les chaînes ouvre Chaînes sans filtre ; Guide TV ouvre
+  Guide sur Maintenant. Ces accès explicites priment sur la dernière vue mémorisée.
+- Une nouvelle entrée dans Guide revient sur Maintenant. Un retour du lecteur
+  conserve la position précédente ; ce retour n'est pas une nouvelle entrée.
+
+## Articulation avec US-16
 
 Ce cadrage complète [US-16 et le sprint 7](../../backlog/sprint-07.md), sans créer
 une deuxième story EPG. Le sprint 7 décrit une grille horaire uniquement sur le
@@ -82,7 +95,7 @@ la recette ; ce cadrage ne vaut pas validation de leur implémentation.
 
 - Programme qui se termine pendant que sa fiche est ouverte : mise à jour des actions.
 - Fraîcheur : seuil d'ancienneté et provenance de la date de mise à jour.
-- Filtres précis du Guide, conservation des filtres entre vues et vue par défaut.
+- Conservation du texte recherché entre vues et des filtres entre sessions.
 - Focus initial TV, déplacement entre cases de durées différentes et retour lecteur.
 - Chargement, pagination et affichage quand un logo manque.
 
