@@ -20,12 +20,14 @@ mode d'utilisation. Le périmètre complet, les estimations et les sprints reste
 - Chaînes récentes dans Direct, programme en cours si disponible, accès au catalogue
   et au guide.
 - Navigation adaptée aux trois surfaces et états d'accueil explicités.
+- Direct avec vues Chaînes et Guide : grille horaire sur TV/web, liste sur mobile.
 
 Le détail fait foi dans [les décisions](decisions.md). Les stories ci-dessous
 décrivent la cible validée, pas des fonctionnalités déjà livrées.
 
 | Story | Résultat attendu |
 |---|---|
+| [US-16](../../backlog/sprint-07.md), [complément 0.2.0](../../design/0.2.0/direct-guide.md) | Consulter le guide sur les trois surfaces |
 | [US-017](../../backlog/stories/US-017-home-navigation.md) | Se repérer et ouvrir son accueil |
 | [US-018](../../backlog/stories/US-018-active-source.md) | Parcourir une source à la fois |
 | [US-019](../../backlog/stories/US-019-continue-watching.md) | Reprendre un film ou une série |
@@ -33,13 +35,14 @@ décrivent la cible validée, pas des fonctionnalités déjà livrées.
 
 ## Discussions suivantes
 
-1. Direct et guide : réutiliser [US-16 et le sprint 7](../../backlog/sprint-07.md).
+1. Direct et guide : préciser les interactions du [cadrage validé](../../design/0.2.0/direct-guide.md).
 2. Recherche unifiée dans la source active.
 3. Bibliothèque : favoris, groupes et éventuelle liste à regarder.
 4. Confort du lecteur, sources et réglages.
 5. Connexion Google et éventuelle commercialisation.
 
-Ces sujets sont candidats : leur présence ici ne vaut pas validation détaillée.
+L'organisation du Direct et du guide est validée ; ses interactions restent à
+préciser. Les autres sujets sont candidats : leur présence ici ne vaut pas validation détaillée.
 Les fonctions réservées à la v2 dans `AGENTS.md` restent hors périmètre.
 
 ## Organisation documentaire
@@ -55,6 +58,7 @@ Les backlogs existants restent l'historique ; ils ne sont ni renumérotés ni du
 - US-019 : le retrait sans perte de progression n'est pas couvert par le contrat
   actuel. Le masquage partagé est validé ; le lot contractuel reste à définir.
 - US-020 : l'EPG par chaîne existe ; la lecture groupée dépend du cadrage du sprint 7.
+- US-16 : la grille horaire TV est un ajout au sprint 7, à découper et estimer.
 - L'ordre des favoris entre groupes et le traitement des doublons restent à préciser.
 - Aucune évolution du contrat ni de l'architecture n'est autorisée par ces documents.
 

@@ -51,3 +51,20 @@ Ces points ne sont pas des critères validés implicitement.
 
 Le besoin de masquage partagé nécessite un lot contractuel explicite avant
 implémentation. La décision produit ne définit pas sa forme technique.
+
+## Direct et guide — validés le 17 septembre 2026
+
+- Une destination Direct, deux vues Chaînes et Guide, pour la source active.
+- Chaînes : filtres Toutes, Favoris et catégories ; recherche par nom ; nom, logo
+  de la source et programme en cours si disponible.
+- Sélectionner une chaîne lance immédiatement la lecture ; revenir du lecteur
+  restitue la position et le filtre.
+- Guide TV et web : grille de chaînes en lignes et horaires en colonnes, adaptée
+  à la télécommande sur TV ; filtres et déplacement temporel sur le web.
+- Guide mobile : liste des programmes en cours, puis programme de la journée de
+  la chaîne sélectionnée.
+- Maintenant ramène au créneau actuel ; les chaînes sans guide restent dans Chaînes.
+
+Voir le [cadrage Direct et guide](../../design/0.2.0/direct-guide.md) pour les
+interactions encore ouvertes et le complément à US-16. La grille horaire TV
+étend le périmètre du sprint 7 et devra être estimée.
