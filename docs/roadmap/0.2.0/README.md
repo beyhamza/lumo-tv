@@ -21,6 +21,8 @@ mode d'utilisation. Le périmètre complet, les estimations et les sprints reste
   et au guide.
 - Navigation adaptée aux trois surfaces et états d'accueil explicités.
 - Direct avec vues Chaînes et Guide : grille horaire sur TV/web, liste sur mobile.
+- Recherche unifiée par nom et titre dans la source active, résultats regroupés
+  par type, sans historique des recherches.
 
 Le détail fait foi dans [les décisions](decisions.md). Les stories ci-dessous
 décrivent la cible validée, pas des fonctionnalités déjà livrées.
@@ -32,17 +34,17 @@ décrivent la cible validée, pas des fonctionnalités déjà livrées.
 | [US-018](../../backlog/stories/US-018-active-source.md) | Parcourir une source à la fois |
 | [US-019](../../backlog/stories/US-019-continue-watching.md) | Reprendre un film ou une série |
 | [US-020](../../backlog/stories/US-020-home-live.md) | Retrouver ses chaînes favorites et récentes |
+| [US-021](../../backlog/stories/US-021-unified-search.md) | Rechercher chaînes, films et séries dans la source active |
 
 ## Discussions suivantes
 
-1. Direct et guide : préciser les interactions du [cadrage validé](../../design/0.2.0/direct-guide.md).
-2. Recherche unifiée dans la source active.
-3. Bibliothèque : favoris, groupes et éventuelle liste à regarder.
-4. Confort du lecteur, sources et réglages.
-5. Connexion Google et éventuelle commercialisation.
+1. Bibliothèque : favoris, groupes et éventuelle liste à regarder.
+2. Confort du lecteur, sources et réglages.
+3. Connexion Google et éventuelle commercialisation.
+4. Écrans et détails d'interaction des parcours validés, notamment Direct, guide et recherche.
 
-L'organisation du Direct et du guide est validée ; ses interactions restent à
-préciser. Les autres sujets sont candidats : leur présence ici ne vaut pas validation détaillée.
+Les parcours validés conservent des détails d'interaction à préciser dans leurs
+documents. Les autres sujets sont candidats : leur présence ici ne vaut pas validation détaillée.
 Les fonctions réservées à la v2 dans `AGENTS.md` restent hors périmètre.
 
 ## Organisation documentaire

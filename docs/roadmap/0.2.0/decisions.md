@@ -89,3 +89,22 @@ implémentation. La décision produit ne définit pas sa forme technique.
 Voir le [cadrage Direct et guide](../../design/0.2.0/direct-guide.md) pour les
 interactions encore ouvertes et le complément à US-16. La grille horaire TV
 étend le périmètre du sprint 7 et devra être estimée.
+
+## Recherche unifiée — validée le 17 septembre 2026
+
+- Un champ pour le nom des chaînes et le titre des films et séries de la source active.
+- Résultats regroupés par type ; filtres Tous, Chaînes, Films, Séries selon le
+  contenu de la source ; accès à la liste complète d'un type en conservant la saisie.
+- Sélectionner une chaîne lance le direct ; un film ou une série ouvre sa fiche.
+- Accès en haut d'Explorer sur mobile, dans la navigation principale sur TV/web.
+- Actualisation automatique après une courte pause ; correspondance partielle,
+  insensible aux majuscules et minuscules.
+- Champ vide : invitation à rechercher. Aucun résultat : rappeler la saisie et la
+  source, proposer d'effacer. Erreur partielle : conserver les résultats disponibles
+  et permettre de réessayer la section concernée.
+- Pas d'historique des recherches ; le retour de fiche ou de lecteur conserve la
+  recherche en cours, son filtre et la position.
+- Sur TV, saisie avec le clavier à l'écran et navigation des résultats au D-pad.
+
+Voir [US-021](../../backlog/stories/US-021-unified-search.md) pour la couverture
+contractuelle et les détails restant à spécifier.
