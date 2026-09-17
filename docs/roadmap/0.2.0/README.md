@@ -25,6 +25,8 @@ mode d'utilisation. Le périmètre complet, les estimations et les sprints reste
   par type, sans historique des recherches.
 - Bibliothèque avec chaînes favorites et liste À regarder de films et séries,
   partagée entre appareils et filtrée sur la source active.
+- Choix audio, sous-titres et qualité selon les pistes accessibles ; préférences
+  de langue et activation des sous-titres mémorisées par appareil.
 
 Le détail fait foi dans [les décisions](decisions.md). Les stories ci-dessous
 décrivent la cible validée, pas des fonctionnalités déjà livrées.
@@ -38,11 +40,12 @@ décrivent la cible validée, pas des fonctionnalités déjà livrées.
 | [US-020](../../backlog/stories/US-020-home-live.md) | Retrouver ses chaînes favorites et récentes |
 | [US-021](../../backlog/stories/US-021-unified-search.md) | Rechercher chaînes, films et séries dans la source active |
 | [US-022](../../backlog/stories/US-022-library-watchlist.md) | Retrouver sa bibliothèque et enregistrer films et séries pour plus tard |
+| [US-023](../../backlog/stories/US-023-player-preferences.md) | Choisir audio, sous-titres et qualité pendant la lecture |
 
 ## Discussions suivantes
 
-1. Bibliothèque : préciser l'organisation des groupes et les détails de la liste validée.
-2. Confort du lecteur, sources et réglages.
+1. Lecteur : enchaînement des épisodes et reprise, puis sources et réglages.
+2. Bibliothèque : détails d'interaction et cas particuliers des parcours validés.
 3. Connexion Google et éventuelle commercialisation.
 4. Écrans et détails d'interaction des parcours validés, notamment Direct, guide et recherche.
 
@@ -65,6 +68,7 @@ Les backlogs existants restent l'historique ; ils ne sont ni renumérotés ni du
 - US-020 : l'EPG par chaîne existe ; la lecture groupée dépend du cadrage du sprint 7.
 - US-16 : la grille horaire TV est un ajout au sprint 7, à découper et estimer.
 - US-022 : la liste à regarder de films et séries nécessite un lot contractuel explicite.
+- US-023 : les capacités de sélection des pistes et variantes sont à vérifier par lecteur.
 - L'ordre agrégé et le dédoublonnage sont validés dans US-020 ; les gestes de retrait
   dans US-022. Le déplacement dans un groupe contenant plusieurs sources et les
   erreurs partielles restent à préciser.

@@ -150,3 +150,19 @@ Les actions d'ajout et de retrait sont définies ci-dessous.
 - Le groupe par défaut est renommable, mais non supprimable.
 - Pour les films et séries, Ajouter à ma liste devient Dans ma liste après ajout ;
   sélectionner à nouveau retire l'élément, sans modifier la progression.
+
+## Audio, sous-titres et qualité — validés le 17 septembre 2026
+
+- Menu Audio et sous-titres et réglage Qualité accessibles pendant la lecture.
+- Choix parmi les pistes disponibles, avec langue si renseignée ; sous-titres
+  désactivables et qualité Automatique par défaut.
+- Choix manuel de qualité seulement si plusieurs qualités sont accessibles au lecteur.
+- Indiquer simplement l'absence d'autre piste ou qualité.
+- Langues audio et sous-titres, ainsi que l'activation des sous-titres, mémorisées
+  par appareil ; choix indépendants entre téléphone et TV.
+- Langue audio absente : piste par défaut. Langue de sous-titres absente : aucune
+  activation automatique d'une autre langue.
+- Qualité manuelle limitée à la lecture en cours ; prochain contenu en Automatique.
+
+Voir [US-023](../../backlog/stories/US-023-player-preferences.md) pour les capacités
+à vérifier sur chaque lecteur et les détails restant à préciser.
