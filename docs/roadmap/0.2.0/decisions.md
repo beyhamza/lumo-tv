@@ -70,6 +70,13 @@ implémentation. La décision produit ne définit pas sa forme technique.
 - Fermer la fiche restitue la position sélectionnée dans le guide.
 - La fiche prend la forme d'un panneau latéral sur TV/web et d'un panneau depuis
   le bas sur mobile.
+- Le guide s'ouvre sur Maintenant et marque le programme en cours. Il propose
+  Aujourd'hui et les jours disponibles d'hier à J+3 ; Maintenant reste accessible.
+- Un créneau vide affiche « Aucun programme disponible sur ce créneau » ; un guide
+  absent est expliqué avec un accès Voir les chaînes.
+- Un guide ancien conserve ses programmes et indique sa date de mise à jour.
+- Une erreur de chargement conserve les données affichées et propose Réessayer.
+- La consultation des programmes passés est informative, sans replay.
 
 Voir le [cadrage Direct et guide](../../design/0.2.0/direct-guide.md) pour les
 interactions encore ouvertes et le complément à US-16. La grille horaire TV
