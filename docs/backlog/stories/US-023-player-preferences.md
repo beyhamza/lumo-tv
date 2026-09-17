@@ -5,6 +5,9 @@ Version cible : 0.2.0. Surfaces : web, Android mobile, Android TV, même priorit
 
 ## Besoin
 
+Planification proposée : S13.
+Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
+
 En tant qu'utilisateur, je veux choisir mes pistes et la qualité pendant la
 lecture, afin d'adapter l'expérience à mes préférences et à mon appareil.
 

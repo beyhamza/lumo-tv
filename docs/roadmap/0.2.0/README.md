@@ -7,7 +7,23 @@ Statut : cadrage produit en cours.
 
 Rendre Lumo agréable à utiliser au quotidien sur web, Android mobile et Android TV.
 Les trois surfaces ont la même priorité ; leurs interactions sont adaptées à leur
-mode d'utilisation. Le périmètre complet, les estimations et les sprints restent à fixer.
+mode d'utilisation. Le périmètre principal est validé et le découpage en sprints
+est proposé ; les estimations et détails ouverts restent à fixer.
+
+## Documents de planification
+
+| Document | Usage |
+|---|---|
+| [État des lieux](baseline.md) | Code repéré, fonctions réutilisables et écarts, sans confondre présence et recette |
+| [Plan de livraison](delivery-plan.md) | Sept sprints proposés, dépendances, affectation des stories et critères communs |
+| [Arbitrages ouverts](open-questions.md) | Lots contractuels et questions à fermer avant le sprint concerné |
+| [Recette de version](../../releases/0.2.0/acceptance.md) | Conditions de sortie et matrice de preuves à exécuter |
+| [Décisions produit](decisions.md) | Choix validés au fil de la discussion |
+
+Ordre proposé : **S8 Navigation/sources → S9 Guide → S10 Recherche → S11
+Bibliothèque → S12 Reprise → S13 Lecteur/réglages → S14 Sortie gratuite**.
+Le chantier EPG du sprint 7 est repris en S9, sans double comptage. Aucun de ces
+sprints n'a démarré ; leurs dates et charges ne sont pas engagées.
 
 ## Objectif de sortie validé
 
@@ -67,10 +83,10 @@ décrivent la cible validée, pas des fonctionnalités déjà livrées.
 
 ## Discussions suivantes
 
-1. État des lieux des fonctions existantes et découpage des travaux de la 0.2.0 gratuite.
-2. Bibliothèque : détails d'interaction et cas particuliers des parcours validés.
-3. Cas particuliers des réglages et du lecteur, puis critères de sortie.
-4. Écrans et détails d'interaction des parcours validés, notamment Direct, guide et recherche.
+1. Relecture du découpage proposé et préparation de S8 : C4/Q4, écrans et recette de départ.
+2. Écrans à produire à la demande de l'utilisateur, selon l'ordre des sprints.
+3. Arbitrages produit et contractuels du registre avant chaque lot dépendant.
+4. Estimation selon capacité et décisions fermées, puis réalisation et recette par sprint.
 
 Les parcours validés conservent des détails d'interaction à préciser dans leurs
 documents. Les autres sujets sont candidats : leur présence ici ne vaut pas validation détaillée.
@@ -80,8 +96,9 @@ Les fonctions réservées à la v2 dans `AGENTS.md` restent hors périmètre.
 
 Les décisions sont consignées au fil de la discussion, puis traduites en stories.
 Les écrans seront produits à la demande de l'utilisateur et reliés aux stories.
-L'état des lieux par surface devra distinguer implémentation et recette avant
-estimation. Les sprints seront découpés ensuite, avec démo et recette à chaque sprint.
+L'état des lieux distingue désormais présence dans le code et recette ; il devra
+être complété par les vérifications de chaque lot avant estimation définitive.
+Le découpage proposé comporte une démo et une recette à chaque sprint.
 Les backlogs existants restent l'historique ; ils ne sont ni renumérotés ni dupliqués.
 
 ## Dépendances déjà identifiées
@@ -93,8 +110,10 @@ Les backlogs existants restent l'historique ; ils ne sont ni renumérotés ni du
 - US-16 : la grille horaire TV est un ajout au sprint 7, à découper et estimer.
 - US-022 : la liste à regarder de films et séries nécessite un lot contractuel explicite.
 - US-023 : les capacités de sélection des pistes et variantes sont à vérifier par lecteur.
-- US-024 : expliciter les conséquences contractuelles de la suppression sur la
-  progression et la future liste À regarder.
+- US-024 : la cascade de suppression de progression est présente dans la migration
+  0015 ; la vérifier en intégration et compléter les descriptions contractuelles,
+  ainsi que la cascade de la future liste À regarder. C4 couvre aussi la lecture
+  de l'ancien catalogue pendant une synchronisation.
 - L'ordre agrégé et le dédoublonnage sont validés dans US-020 ; les gestes de retrait
   dans US-022. Le déplacement dans un groupe contenant plusieurs sources et les
   erreurs partielles restent à préciser.

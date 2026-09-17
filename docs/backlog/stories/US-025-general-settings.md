@@ -5,6 +5,9 @@ Version cible : 0.2.0. Surfaces : web, Android mobile, Android TV.
 
 ## Besoin
 
+Planification proposée : Rubriques initiales S8, clôture S13.
+Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
+
 En tant qu'utilisateur, je veux retrouver mes réglages dans des rubriques claires,
 afin d'adapter Lumo et de gérer mon compte et mes appareils.
 

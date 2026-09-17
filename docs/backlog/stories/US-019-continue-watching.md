@@ -6,6 +6,9 @@ Surfaces : web, Android mobile, Android TV.
 
 ## Besoin
 
+Planification proposée : S12 ; rails existants réutilisés en S8, sans clôture anticipée.
+Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
+
 En tant qu'utilisateur, je veux retrouver mes lectures commencées sur l'accueil,
 afin de les reprendre rapidement.
 

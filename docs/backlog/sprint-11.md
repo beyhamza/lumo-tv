@@ -1,0 +1,34 @@
+# Sprint 11 — Bibliothèque et liste à regarder
+
+Statut : proposé, non commencé. Taille relative : L.
+Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
+
+## Objectif
+
+Organiser ses chaînes et retrouver sur un autre appareil ses films/séries enregistrés.
+Stories : US-022, fin US-020 hors EPG, cascade finale US-024. Dépend de S8 ; C2, Q3/Q8
+à arbitrer. S9 apporte l'EPG nécessaire à la clôture complète US-020.
+
+## Tâches proposées
+
+| ID | Travail | Surface/dépendance |
+|---|---|---|
+| S11-00 | Préciser états, écritures concurrentes, contenus disparus et ordre des groupes multi-sources | Toutes, Q3/Q8 |
+| S11-01 | Faire approuver le contrat de liste À regarder, puis serveur, migrations et génération des clients | C2 ; avant branchement |
+| S11-02 | Réutiliser les groupes/favoris ; agréger sans doublon selon première occurrence et ordre partagé | Android/web |
+| S11-03 | Gestes Ajouter/Organiser, retrait local/global confirmé, suppression de groupe, réordonnancement accessible | Trois clients |
+| S11-04 | Liste films/séries, filtres, ordre par ajout, bouton Dans ma liste et fiche | Trois clients ; après S11-01 |
+| S11-05 | Propagation partagée, erreurs partielles et suppression de source y compris liste, progression et caches | API/clients |
+| S11-06 | Recette entre appareils ; vérifier favoris de source distincte et absence d'effet de la lecture sur la liste | Toutes |
+
+## Démo et sortie
+
+Créer deux groupes, placer une chaîne dans les deux : une seule carte agrégée,
+ordre actualisé après déplacement. Retirer une appartenance puis toutes avec
+confirmation. Supprimer un groupe sans perdre les favoris. Ajouter film et série
+sur téléphone, les retrouver sur web/TV ; la lecture ne retire rien. Supprimer une
+source de test et conserver les données de l'autre.
+
+Tests : identité/dédoublonnage, ordre, limites/isolation de compte, répétition des
+écritures, suppression et erreurs partielles. Fixtures neutres multi-sources et
+élément disparu. Checks contrat/API/Android/web. Clôture US-022 et compléments cités.

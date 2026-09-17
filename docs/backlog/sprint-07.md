@@ -1,5 +1,11 @@
 # Backlog — Sprint 7
 
+> **Planification 0.2.0 — 17 septembre 2026 :** ce chantier EPG est repris dans
+> [le sprint 9](sprint-09.md), avec les interactions validées et la grille horaire TV.
+> Le présent document conserve son périmètre et son estimation historiques ; ne pas
+> compter ses tâches en plus de S9. Les 34 points ci-dessous ne chiffrent pas toute
+> la cible 0.2.0. Voir le [plan de livraison](../roadmap/0.2.0/delivery-plan.md).
+
 ## Le guide des programmes
 
 > Un utilisateur regarde une chaîne et sait ce qui passe, ce qui suit, et ce qu'il

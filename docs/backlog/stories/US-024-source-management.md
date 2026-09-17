@@ -5,6 +5,9 @@ Version cible : 0.2.0. Surfaces : web, Android mobile, Android TV.
 
 ## Besoin
 
+Planification proposée : S8 ; complément de cascade de la liste À regarder en S11.
+Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
+
 En tant qu'utilisateur, je veux comprendre l'état de mes sources et les gérer,
 afin de retrouver leur contenu et de résoudre les problèmes de synchronisation.
 

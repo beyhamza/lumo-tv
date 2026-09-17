@@ -5,6 +5,9 @@ Surfaces : web, Android mobile, Android TV, même priorité.
 
 ## Besoin
 
+Planification proposée : S8 pour le socle ; clôture S12 après les compléments S9/S11.
+Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
+
 En tant qu'utilisateur, je veux un accueil et une navigation faciles à comprendre,
 afin de retrouver rapidement quoi regarder sur chacun de mes appareils.
 

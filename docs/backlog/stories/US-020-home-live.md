@@ -5,6 +5,9 @@ Surfaces : web, Android mobile, Android TV.
 
 ## Besoin
 
+Planification proposée : S8 pour l'accueil, S9 pour l'EPG, S11 pour l'agrégation et les gestes complets.
+Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
+
 En tant qu'utilisateur, je veux retrouver mes chaînes habituelles sur l'accueil,
 afin de lancer le direct rapidement.
 

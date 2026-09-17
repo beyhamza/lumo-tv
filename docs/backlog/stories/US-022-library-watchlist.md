@@ -6,6 +6,9 @@ Surfaces : web, Android mobile, Android TV, même priorité.
 
 ## Besoin
 
+Planification proposée : S11.
+Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
+
 En tant qu'utilisateur, je veux retrouver mes chaînes favorites et les films ou
 séries que j'ai enregistrés, afin de choisir facilement quoi regarder plus tard.
 

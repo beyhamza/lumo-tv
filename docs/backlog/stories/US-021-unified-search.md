@@ -5,6 +5,9 @@ Version cible : 0.2.0. Surfaces : web, Android mobile, Android TV, même priorit
 
 ## Besoin
 
+Planification proposée : S10.
+Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
+
 En tant qu'utilisateur, je veux rechercher une chaîne, un film ou une série depuis
 un seul champ, afin de retrouver rapidement un élément de ma source active.
 

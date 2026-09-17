@@ -5,6 +5,9 @@ Surfaces : web, Android mobile, Android TV.
 
 ## Besoin
 
+Planification proposée : S8.
+Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
+
 En tant qu'utilisateur ayant plusieurs sources, je veux choisir celle que je
 parcours, afin de garder un catalogue et un accueil compréhensibles.
 
