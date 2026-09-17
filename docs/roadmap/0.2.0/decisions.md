@@ -34,7 +34,8 @@ produit ; il ne remplace ni le contrat ni les ADR.
 ## Points encore ouverts
 
 - Retrait de Continuer : éventuelle restauration manuelle et modalités de synchronisation.
-- Favoris : ordre d'ensemble entre groupes et chaîne présente dans plusieurs groupes.
+- Favoris : portée du retrait depuis la vue agrégée et déplacement dans un groupe
+  contenant plusieurs sources.
 - Source mémorisée supprimée : choix de la source de remplacement.
 - Cartes Continuer : seuils de début/fin et choix de l'épisode à reprendre, à confronter
   aux règles déjà livrées au sprint 6.
@@ -122,3 +123,17 @@ contractuelle et les détails restant à spécifier.
 
 Voir [US-022](../../backlog/stories/US-022-library-watchlist.md). La liste de films
 et séries nécessite une évolution contractuelle à définir avant implémentation.
+
+## Organisation des favoris — validée le 17 septembre 2026
+
+- Groupes personnalisés : créer, renommer, supprimer, réordonner.
+- Dans un groupe : ajouter, retirer et réordonner les chaînes.
+- Une chaîne peut appartenir à plusieurs groupes.
+- Tous les favoris et l'accueil montrent chaque chaîne une seule fois : ordre
+  des groupes, puis des chaînes ; première occurrence retenue.
+- Les groupes sont partagés entre appareils et affichés pour la source active.
+- Réordonnancement par glisser-déposer et commandes accessibles sur mobile/web ;
+  menu Déplacer avant / après sur TV.
+
+US-020 définit l'agrégation ; US-022 reprend la gestion existante des groupes.
+Les conséquences des retraits et suppressions restent à préciser dans les parcours.

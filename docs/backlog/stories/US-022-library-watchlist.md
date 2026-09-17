@@ -15,6 +15,15 @@ séries que j'ai enregistrés, afin de choisir facilement quoi regarder plus tar
 - Les deux sections affichent uniquement les éléments de la source active.
 - Chaînes favorites donne accès à toutes les chaînes favorites et à leurs groupes
   personnalisés. Réutiliser US-12 et le travail des sprints 4 et 6.
+- Créer, renommer, supprimer et réordonner les groupes personnalisés ; ajouter,
+  retirer et réordonner les chaînes dans un groupe.
+- Une chaîne peut appartenir à plusieurs groupes. Tous les favoris et l'accueil
+  affichent chaque chaîne une seule fois : ordre des groupes puis des chaînes,
+  première occurrence retenue, selon US-020.
+- Les groupes sont partagés entre appareils et leur contenu affiché est filtré
+  sur la source active.
+- Mobile et web : glisser-déposer avec commandes accessibles de réordonnancement.
+  TV : commandes Déplacer avant / après accessibles à la télécommande.
 - À regarder contient les films et séries enregistrés, avec filtres Tous, Films,
   Séries.
 - Un bouton Ajouter à ma liste est disponible sur les fiches de films et séries.
@@ -40,6 +49,12 @@ ici. Ne pas détourner les favoris de chaînes ou la progression pour stocker ce
 liste. Vérifier le contrat avant implémentation et régénérer les clients après
 toute évolution approuvée.
 
+Le réordonnancement des groupes et de leurs favoris est couvert par le contrat.
+Les groupes appartiennent au compte, pas à une source. Le contrat prévoit qu'une
+suppression de groupe conserve ses favoris en les transférant au groupe par défaut,
+qui n'est lui-même pas supprimable. Préciser la présentation de ces règles lors
+du cadrage des actions, sans modifier leur sémantique implicitement.
+
 ## Avant planification
 
 - Spécifier les états vide, chargement, erreur et hors ligne.
@@ -47,8 +62,10 @@ toute évolution approuvée.
 - Définir le comportement d'un élément retiré du catalogue après synchronisation.
 - Définir les modifications concurrentes et la propagation aux appareils hors ligne.
 - Préciser les filtres lorsque la source ne propose qu'un seul type de contenu.
-- Finaliser l'ordre d'ensemble des favoris et les doublons entre groupes avec
-  US-020 ; la validation de cette story ne tranche pas ces questions.
+- Préciser les actions de retrait d'une chaîne depuis un groupe et depuis la vue
+  agrégée, ainsi que le message de suppression d'un groupe.
+- Préciser le déplacement dans une liste filtrée par source, lorsque des favoris
+  d'autres sources occupent des positions intermédiaires dans le groupe partagé.
 
 ## Recette à préparer
 

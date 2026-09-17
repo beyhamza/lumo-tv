@@ -65,7 +65,8 @@ Les backlogs existants restent l'historique ; ils ne sont ni renumérotés ni du
 - US-020 : l'EPG par chaîne existe ; la lecture groupée dépend du cadrage du sprint 7.
 - US-16 : la grille horaire TV est un ajout au sprint 7, à découper et estimer.
 - US-022 : la liste à regarder de films et séries nécessite un lot contractuel explicite.
-- L'ordre des favoris entre groupes et le traitement des doublons restent à préciser.
+- L'ordre agrégé des favoris et le dédoublonnage sont validés dans US-020 ; la portée
+  du retrait et le déplacement dans les groupes contenant plusieurs sources restent à préciser.
 - Aucune évolution du contrat ni de l'architecture n'est autorisée par ces documents.
 
 La version ne sera pas déclarée prête sur la seule base de pourcentages de code :
