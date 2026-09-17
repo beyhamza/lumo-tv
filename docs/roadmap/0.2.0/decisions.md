@@ -64,6 +64,12 @@ implémentation. La décision produit ne définit pas sa forme technique.
 - Guide mobile : liste des programmes en cours, puis programme de la journée de
   la chaîne sélectionnée.
 - Maintenant ramène au créneau actuel ; les chaînes sans guide restent dans Chaînes.
+- Sélectionner un programme ouvre une fiche compacte : titre, horaires et description
+  si disponible ; Regarder en direct pour le programme en cours, informations seules
+  pour les programmes passés et à venir.
+- Fermer la fiche restitue la position sélectionnée dans le guide.
+- La fiche prend la forme d'un panneau latéral sur TV/web et d'un panneau depuis
+  le bas sur mobile.
 
 Voir le [cadrage Direct et guide](../../design/0.2.0/direct-guide.md) pour les
 interactions encore ouvertes et le complément à US-16. La grille horaire TV
