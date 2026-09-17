@@ -3,6 +3,9 @@
 Statut : proposé, non commencé. Taille relative : L, estimation à faire après cadrage.
 Référence : [plan 0.2.0 et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
+[Première proposition d’écrans](../design/0.2.0/sprint-08-screens.md) disponible
+pour relecture ; disposition visuelle à valider, développement non commencé.
+
 ## Objectif
 
 Sur mobile, TV et web, ouvrir Lumo, choisir sa source et retrouver un accueil utile.
