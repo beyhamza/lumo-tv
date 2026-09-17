@@ -37,7 +37,18 @@ afin de retrouver leur contenu et de résoudre les problèmes de synchronisation
 - Actualisation automatique s'applique à la source sur tout le compte : une
   activation depuis le mobile bénéficie aussi au web et à la TV.
 
-## Couverture contractuelle et existant à réutiliser
+## Suppression — comportement validé
+
+- Demander confirmation en nommant la source concernée et ses conséquences.
+- Supprimer son catalogue de Lumo, ses favoris, progressions et éléments À regarder.
+- Conserver les autres sources et leurs données.
+- Préciser que l'opération ne résilie pas l'abonnement auprès du fournisseur.
+- Indiquer que réajouter la source ne restaure pas automatiquement ses données supprimées.
+- Si la source était active, sélectionner l'unique source restante, proposer un
+  choix s'il en reste plusieurs, ou revenir à Ajouter une source si aucune ne reste.
+- Appliquer cette règle lorsqu'un autre appareil constate la suppression, selon US-018.
+
+## Couverture API et existant à réutiliser
 
 Réutiliser US-06/US-07 et les parcours des sprints 2 et 3, puis mesurer les écarts
 avec cette cible. US-018 reste la référence pour la source active par appareil.
@@ -64,12 +75,17 @@ Cette story n'introduit aucun endpoint, aucune modification de chiffrement ni de
 droits d'accès. Toute évolution de ces éléments exige un cadrage explicite selon
 `AGENTS.md`. Les quotas éventuels continuent de venir du serveur.
 
+La suppression du catalogue et des favoris est déjà décrite dans le contrat.
+Vérifier et expliciter la suppression de la progression et de la future liste
+À regarder dans le lot contractuel correspondant avant implémentation. La cible
+validée ne constitue pas une preuve que toutes les cascades existent déjà.
+
 ## Avant planification
 
 - Détailler les libellés par étape et par code d'erreur, ainsi que la conservation
   du catalogue précédent lors d'une actualisation.
-- Définir la confirmation de suppression et ses conséquences sur les données liées.
-- Décider quoi afficher si la source active est supprimée depuis un autre appareil.
+- Détailler les erreurs de suppression, sa détection depuis un autre appareil et
+  le cas d'une lecture en cours ou d'un appareil temporairement hors ligne.
 - Définir l'accès guidé depuis la TV, sans confondre gestion de source et activation TV.
 - Auditer le formulaire existant avant de détailler la correction d'une source en erreur.
 - Préparer les états vide, hors ligne et de première ingestion incomplète.
@@ -84,5 +100,7 @@ Réutiliser les fixtures autorisées et les recettes existantes.
 Vérifier aussi les doubles lancements, le délai imposé par le serveur, la première
 ingestion sans catalogue préalable et l'échec d'une actualisation avec un catalogue
 déjà disponible. Une réussite doit actualiser les compteurs et la date affichée.
+Vérifier la suppression avec zéro, une et plusieurs sources restantes, la
+conservation des données des autres sources, et la réaction d'un second appareil.
 
 Référence : [décisions produit](../../roadmap/0.2.0/decisions.md).

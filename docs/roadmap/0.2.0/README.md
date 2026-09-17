@@ -50,7 +50,7 @@ décrivent la cible validée, pas des fonctionnalités déjà livrées.
 
 ## Discussions suivantes
 
-1. Sources : détails des actions validées, puis réglages.
+1. Réglages généraux.
 2. Bibliothèque : détails d'interaction et cas particuliers des parcours validés.
 3. Connexion Google et éventuelle commercialisation.
 4. Écrans et détails d'interaction des parcours validés, notamment Direct, guide et recherche.
@@ -76,6 +76,8 @@ Les backlogs existants restent l'historique ; ils ne sont ni renumérotés ni du
 - US-16 : la grille horaire TV est un ajout au sprint 7, à découper et estimer.
 - US-022 : la liste à regarder de films et séries nécessite un lot contractuel explicite.
 - US-023 : les capacités de sélection des pistes et variantes sont à vérifier par lecteur.
+- US-024 : expliciter les conséquences contractuelles de la suppression sur la
+  progression et la future liste À regarder.
 - L'ordre agrégé et le dédoublonnage sont validés dans US-020 ; les gestes de retrait
   dans US-022. Le déplacement dans un groupe contenant plusieurs sources et les
   erreurs partielles restent à préciser.

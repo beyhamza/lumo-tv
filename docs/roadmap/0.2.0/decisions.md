@@ -36,7 +36,6 @@ produit ; il ne remplace ni le contrat ni les ADR.
 - Retrait de Continuer : éventuelle restauration manuelle et modalités de synchronisation.
 - Favoris : déplacement dans un groupe contenant plusieurs sources et erreurs
   partielles lors du retrait de plusieurs appartenances.
-- Source mémorisée supprimée : choix de la source de remplacement.
 - Cartes Continuer : mesure des 30 secondes entre sessions/appareils, réapparition
   après retrait et cas des contenus très courts ou du suivant non commencé.
 - Nombre de cartes, comportement des chargements et erreurs partielles, retour du
@@ -234,3 +233,17 @@ existantes et les détails d'action restant à préciser.
 
 US-024 porte ces critères et la vérification d'accès au catalogue précédent dans
 les états de synchronisation et d'erreur.
+
+## Suppression d'une source — validée le 17 septembre 2026
+
+- Confirmation nommant la source et annonçant la suppression de son catalogue,
+  de ses favoris, progressions et éléments À regarder dans Lumo.
+- Les autres sources et leurs données sont conservées.
+- La confirmation précise que la suppression ne résilie pas l'abonnement du
+  fournisseur et qu'un nouvel ajout ne restaure pas automatiquement les données supprimées.
+- Source active supprimée : sélectionner l'unique source restante, demander de
+  choisir s'il en reste plusieurs, ou revenir à Ajouter une source si aucune ne reste.
+- Même règle lorsqu'un autre appareil constate cette suppression.
+
+US-018 et US-024 portent ces critères. La couverture contractuelle des données
+liées, notamment progression et future liste À regarder, reste à vérifier et compléter.

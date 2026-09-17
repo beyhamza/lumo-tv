@@ -1,6 +1,6 @@
 # US-018 — Parcourir une source à la fois
 
-Statut : besoin validé, cas de suppression à préciser. Version cible : 0.2.0.
+Statut : besoin et remplacement après suppression validés. Version cible : 0.2.0.
 Surfaces : web, Android mobile, Android TV.
 
 ## Besoin
@@ -17,6 +17,11 @@ parcours, afin de garder un catalogue et un accueil compréhensibles.
 - Revenir à une source conserve ses favoris et progressions.
 - Le choix est mémorisé sur l'appareil et retrouvé à la prochaine ouverture.
 - Changer de source sur un appareil ne change pas le choix d'un autre appareil.
+- Si la source active est supprimée : sélectionner l'unique source restante,
+  proposer un choix s'il en reste plusieurs, ou revenir à Ajouter une source
+  s'il n'en reste aucune.
+- Appliquer aussi cette règle lorsqu'un appareil constate une suppression effectuée
+  ailleurs. Une simple indisponibilité réseau ne prouve pas une suppression.
 - Le choix de source reste accessible au clavier et à la télécommande, avec des
   libellés FR/EN.
 
@@ -29,8 +34,8 @@ implémentation ; aucune nouvelle stratégie de stockage n'est décidée ici.
 
 ## Avant planification
 
-Préciser le comportement lorsque la source mémorisée a été supprimée et vérifier
-le périmètre par compte du choix mémorisé. Tester le changement avec deux sources
-de banc et deux appareils, sans contenu réel.
+Vérifier le périmètre par compte du choix mémorisé et la détection de suppression
+sur un autre appareil. Tester le changement avec des sources de banc et deux
+appareils, puis les cas zéro, une et plusieurs sources restantes, sans contenu réel.
 
 Référence : [décisions produit](../../roadmap/0.2.0/decisions.md).
