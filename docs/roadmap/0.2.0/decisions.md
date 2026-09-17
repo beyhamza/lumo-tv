@@ -247,3 +247,19 @@ les états de synchronisation et d'erreur.
 
 US-018 et US-024 portent ces critères. La couverture contractuelle des données
 liées, notamment progression et future liste À regarder, reste à vérifier et compléter.
+
+## Réglages généraux — validés le 17 septembre 2026
+
+- Cinq rubriques : Compte et appareils, Mes sources, Lecture, Application,
+  Aide et informations.
+- Compte et appareils : informations du compte, appareils connectés, déconnexion.
+- Lecture : préférences audio/sous-titres et lecture automatique du suivant.
+- Application : langue d'interface français/anglais.
+- Aide et informations : guides, version, confidentialité et conditions.
+- TV : réglages de lecture directement modifiables ; opérations de compte plus
+  longues guidées vers téléphone/web.
+- Mobile : Lecture sur données mobiles activée par défaut. Lorsqu'elle est
+  désactivée, lancement vidéo hors Wi-Fi bloqué avec explication ; catalogue consultable.
+
+Voir [US-025](../../backlog/stories/US-025-general-settings.md) pour les dépendances
+et les cas particuliers restant à préciser, dont le changement de réseau en lecture.

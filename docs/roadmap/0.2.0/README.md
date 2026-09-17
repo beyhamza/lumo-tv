@@ -31,6 +31,7 @@ mode d'utilisation. Le périmètre complet, les estimations et les sprints reste
   et décompte annulable.
 - Mes sources : état et gestion complète sur mobile/web, changement et actualisation
   sur TV avec guidage vers les autres surfaces pour les modifications.
+- Réglages en cinq rubriques et contrôle du lancement vidéo hors Wi-Fi sur mobile.
 
 Le détail fait foi dans [les décisions](decisions.md). Les stories ci-dessous
 décrivent la cible validée, pas des fonctionnalités déjà livrées.
@@ -47,12 +48,13 @@ décrivent la cible validée, pas des fonctionnalités déjà livrées.
 | [US-022](../../backlog/stories/US-022-library-watchlist.md) | Retrouver sa bibliothèque et enregistrer films et séries pour plus tard |
 | [US-023](../../backlog/stories/US-023-player-preferences.md) | Choisir audio, sous-titres et qualité pendant la lecture |
 | [US-024](../../backlog/stories/US-024-source-management.md) | Comprendre l'état de ses sources et les gérer |
+| [US-025](../../backlog/stories/US-025-general-settings.md) | Retrouver ses réglages et contrôler la lecture mobile |
 
 ## Discussions suivantes
 
-1. Réglages généraux.
+1. Objectif de sortie : version gratuite enrichie ou commercialisable, et connexion Google.
 2. Bibliothèque : détails d'interaction et cas particuliers des parcours validés.
-3. Connexion Google et éventuelle commercialisation.
+3. Cas particuliers des réglages et du lecteur, puis critères de sortie.
 4. Écrans et détails d'interaction des parcours validés, notamment Direct, guide et recherche.
 
 Les parcours validés conservent des détails d'interaction à préciser dans leurs
