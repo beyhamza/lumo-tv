@@ -27,12 +27,15 @@ mode d'utilisation. Le périmètre complet, les estimations et les sprints reste
   partagée entre appareils et filtrée sur la source active.
 - Choix audio, sous-titres et qualité selon les pistes accessibles ; préférences
   de langue et activation des sous-titres mémorisées par appareil.
+- Enchaînement des épisodes avec lecture automatique désactivable par appareil
+  et décompte annulable.
 
 Le détail fait foi dans [les décisions](decisions.md). Les stories ci-dessous
 décrivent la cible validée, pas des fonctionnalités déjà livrées.
 
 | Story | Résultat attendu |
 |---|---|
+| [US-15](../../backlog/sprint-06.md), [complément 0.2.0](../../design/0.2.0/episode-continuation.md) | Enchaîner les épisodes selon sa préférence locale |
 | [US-16](../../backlog/sprint-07.md), [complément 0.2.0](../../design/0.2.0/direct-guide.md) | Consulter le guide sur les trois surfaces |
 | [US-017](../../backlog/stories/US-017-home-navigation.md) | Se repérer et ouvrir son accueil |
 | [US-018](../../backlog/stories/US-018-active-source.md) | Parcourir une source à la fois |
@@ -44,7 +47,7 @@ décrivent la cible validée, pas des fonctionnalités déjà livrées.
 
 ## Discussions suivantes
 
-1. Lecteur : enchaînement des épisodes et reprise, puis sources et réglages.
+1. Lecteur : reprise depuis les fiches, puis sources et réglages.
 2. Bibliothèque : détails d'interaction et cas particuliers des parcours validés.
 3. Connexion Google et éventuelle commercialisation.
 4. Écrans et détails d'interaction des parcours validés, notamment Direct, guide et recherche.

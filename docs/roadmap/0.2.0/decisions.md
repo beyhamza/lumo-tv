@@ -166,3 +166,17 @@ Les actions d'ajout et de retrait sont définies ci-dessous.
 
 Voir [US-023](../../backlog/stories/US-023-player-preferences.md) pour les capacités
 à vérifier sur chaque lecteur et les détails restant à préciser.
+
+## Enchaînement des épisodes — validé le 17 septembre 2026
+
+- Lecture automatique du suivant activée par défaut, mémorisée par appareil.
+- À la fin d'un épisode, carte du suivant avec Lire maintenant et Retour à la série.
+- Mode automatique : décompte de 10 secondes sur TV, 5 secondes sur mobile/web.
+- Toute interaction avec les commandes annule le décompte ; Lire maintenant reste
+  disponible pour un lancement explicite.
+- Mode désactivé : proposition du suivant sans lancement automatique.
+- Passage à la saison suivante si un épisode est disponible ; retour à la fiche
+  de la série à la fin du dernier épisode disponible.
+
+Voir le [complément à US-15](../../design/0.2.0/episode-continuation.md), qui reprend
+le sprint 6 et identifie les écarts à vérifier avant planification.
