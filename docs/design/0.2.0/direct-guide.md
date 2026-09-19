@@ -2,7 +2,9 @@
 
 Organisation validée le 17 septembre 2026. Les interactions encore ouvertes sont
 listées explicitement. Première proposition interactive préparée le 19 septembre
-2026, à relire ; le développement du sprint 9 n’a pas commencé.
+2026. Présentation générale retenue après relecture en conversation le même jour ;
+le développement du sprint 9 n’a pas commencé. Cette validation ne clôt ni les
+arbitrages C1/Q5 ni la recette sur appareils réels.
 
 ## Parcours validé
 
@@ -95,7 +97,8 @@ la recette ; ce cadrage ne vaut pas validation de leur implémentation.
 ## Interactions encore à discuter
 
 La proposition du 19 septembre illustre les choix déjà validés, sans les soumettre
-à nouveau à approbation. Sa composition visuelle reste à discuter.
+à nouveau à approbation. Sa présentation générale est retenue ; les points ci-dessous
+restent ouverts avant implémentation.
 
 - Programme qui se termine pendant que sa fiche est ouverte : mise à jour des actions.
 - Fraîcheur : seuil d'ancienneté et provenance de la date de mise à jour.

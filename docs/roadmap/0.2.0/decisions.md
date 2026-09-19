@@ -305,7 +305,14 @@ est validée. Voir les [écrans du sprint 8](../../design/0.2.0/sprint-08-screen
 Cette validation porte sur l’accueil ; les autres écrans restent à relire et la
 recette sur appareils réels reste à effectuer.
 
-## Objectif de sortie — validé le 17 septembre 2026
+## Présentation Direct et Guide — retenue le 19 septembre 2026
+
+La présentation générale de la proposition interactive web, mobile et TV est
+retenue après relecture en conversation. Elle illustre les comportements déjà
+validés dans le [cadrage Direct et Guide](../../design/0.2.0/direct-guide.md).
+Les arbitrages C1/Q5 et la recette sur appareils réels restent à compléter.
+
+## Objectif de sortie — décision du 17 septembre 2026
 
 - La 0.2.0 reste gratuite ; aucune ouverture des paiements n'est prévue pour cette version.
 - Reporter le chantier de configuration et validation Google, ainsi que les autres

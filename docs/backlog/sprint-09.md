@@ -4,7 +4,8 @@ Statut : proposé, non commencé. Taille relative : XL.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 Première [proposition d’écrans](../design/0.2.0/direct-guide.md) préparée le
-19 septembre 2026 ; relecture visuelle à faire, réalisation non commencée.
+19 septembre 2026 ; présentation générale retenue en conversation, réalisation
+non commencée et recette réelle à effectuer.
 
 ## Objectif
 
