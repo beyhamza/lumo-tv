@@ -41,7 +41,8 @@ Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulem
   Vérifié le 19 septembre sur la pile Docker avec le banc, 21 contrôles sur 21 :
   actualisation en cours, échec avec ancien catalogue, délai serveur, suppression.
   La recette sur appareils reste celle de S8-07
-- [ ] S8-03 — source active mémorisée par appareil
+- [ ] S8-03 — **en cours** depuis le 19 septembre : règles de réalisation arrêtées dans
+  US-018 ; implémentation Android et web sur `feat/US-018-active-source`
 - [ ] S8-04 — navigation et accueil
 - [ ] S8-05 — Mes sources
 - [ ] S8-06 — rubriques Réglages, retrait des accès Google et paiement

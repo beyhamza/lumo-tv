@@ -41,6 +41,34 @@ Le contrat expose les sources et les catalogues par source. La progression accep
 La persistance du choix local sera confrontée aux mécanismes existants avant
 implémentation ; aucune nouvelle stratégie de stockage n'est décidée ici.
 
+## Règles de réalisation — arrêtées le 19 septembre 2026 (S8-03)
+
+Les points laissés à vérifier ci-dessous sont tranchés ainsi, à l'identique sur
+les trois surfaces. Aucune donnée nouvelle côté serveur : le choix ne quitte
+jamais l'appareil.
+
+| Situation, après un `GET /sources` **réussi** | Résultat |
+|---|---|
+| Aucune source | Parcours Ajouter une source |
+| Le choix mémorisé existe encore | Cette source |
+| Pas de choix valide, une seule source | Cette source, sans question |
+| Pas de choix valide, plusieurs sources | Demander ; ne jamais en choisir une en silence |
+
+- **Portée** : par appareil **et par compte**. Android : DataStore de préférences,
+  clé par identifiant de compte. Web : cookie httpOnly du navigateur, propre au
+  compte, écrit uniquement par une action serveur. Un second compte sur le même
+  appareil a son propre choix.
+- **Une panne ne prouve rien** : un `GET /sources` en échec conserve le choix. Seuls
+  une liste réussie où la source manque, ou un `404 SOURCE_NOT_FOUND` qui la nomme,
+  prouvent une suppression ([C4, P6](../../roadmap/0.2.0/c4-previous-catalogue.md)).
+- **Après ajout** (US-024) : la première source devient active sur l'appareil ;
+  une source supplémentaire ne prend pas la sélection.
+- **Au changement** : la rubrique ouverte est conservée, les filtres de l'ancienne
+  source sont remis à zéro, une fiche de l'ancienne source ramène au catalogue
+  correspondant de la nouvelle.
+- La vérification toutes les 60 secondes pendant une lecture (C4, D5) est réalisée
+  avec les lecteurs, en S8-05.
+
 ## Avant planification
 
 Vérifier le périmètre par compte du choix mémorisé et la détection de suppression
