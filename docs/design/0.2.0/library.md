@@ -52,10 +52,12 @@ Organiser demande au moins un groupe ; le retrait global utilise sa confirmation
 Cette présentation du dialogue reste une proposition visuelle.
 
 Le scénario d’erreur montre des données déjà disponibles et un réessai réussi
-simulé. Les erreurs d’écriture partielles, conflits entre appareils, contenus
-disparus et politique hors ligne ne sont pas tranchés par ce prototype : Q3/Q8
-restent ouverts. Il ne présente qu’une source ; le déplacement dans un groupe
-contenant plusieurs sources reste à préciser. C2 reste requis avant réalisation
+simulé. Ce prototype ne simule pas les groupes contenant plusieurs sources ni
+les retraits partiels. Le [complément Q3](favorite-organization-cases.md) consigne
+les règles validées ensuite : places des autres sources conservées et retraits
+réussis conservés avec réessai du reste. Leurs garanties techniques, les conflits
+entre appareils, contenus disparus et politique hors ligne restent à préciser.
+C2 reste requis avant réalisation
 de la liste À regarder ; aucun endpoint n’est défini par ces écrans.
 
 ## Vérifications

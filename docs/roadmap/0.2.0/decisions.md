@@ -34,8 +34,8 @@ produit ; il ne remplace ni le contrat ni les ADR.
 ## Points encore ouverts
 
 - Retrait de Continuer : éventuelle restauration manuelle et modalités de synchronisation.
-- Favoris : déplacement dans un groupe contenant plusieurs sources et erreurs
-  partielles lors du retrait de plusieurs appartenances.
+- Favoris : garanties de permutation avec les opérations unitaires, concurrence
+  et résultat inconnu. Ordre filtré et conservation des retraits réussis sont validés.
 - Cartes Continuer : garanties d’ordre des événements, réessais et propagation
   hors ligne à cadrer dans C3. Temps simultané, priorité de la lecture récente et
   maintien du masque face à une lecture déjà en cours sont validés le 19 septembre.
@@ -150,6 +150,22 @@ Les actions d'ajout et de retrait sont définies ci-dessous.
 - Le groupe par défaut est renommable, mais non supprimable.
 - Pour les films et séries, Ajouter à ma liste devient Dans ma liste après ajout ;
   sélectionner à nouveau retire l'élément, sans modifier la progression.
+
+## Favoris par source et retrait partiel — validés le 19 septembre 2026
+
+- Réordonner les chaînes de la source affichée conserve les places des chaînes
+  des autres sources dans le groupe complet. Exemple : A1, B1, A2 devient
+  A2, B1, A1 ; seules les places occupées par A changent.
+- Si Retirer de tous mes favoris réussit dans certains groupes seulement,
+  conserver ces retraits et proposer de réessayer les appartenances restantes.
+  Ne pas rétablir les appartenances déjà retirées.
+- Une appartenance restante maintient la chaîne dans l’agrégation, dont l’ordre
+  continue de dépendre de la première occurrence restante.
+
+Voir les [cas FO-01 à FO-12](../../design/0.2.0/favorite-organization-cases.md).
+Les garanties en cas de réordonnancement interrompu, de résultat réseau inconnu
+et de modifications concurrentes restent à vérifier avec les opérations existantes.
+Cette décision produit ne définit aucun nouvel endpoint ni garantie atomique.
 
 ## Audio, sous-titres et qualité — validés le 17 septembre 2026
 

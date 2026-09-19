@@ -23,6 +23,7 @@ est proposé ; les estimations et détails ouverts restent à fixer.
 | [Écrans Direct et Guide](../../design/0.2.0/direct-guide.md) | Présentation générale retenue sur web, mobile et TV ; arbitrages et recette réelle à compléter |
 | [Écrans Recherche](../../design/0.2.0/unified-search.md) | Proposition du sprint 10 : résultats, filtres, clavier TV et erreurs, à relire |
 | [Écrans Bibliothèque](../../design/0.2.0/library.md) | Présentation générale retenue : groupes, favoris, À regarder et retraits |
+| [Organisation des favoris](../../design/0.2.0/favorite-organization-cases.md) | Q3 : ordre par source et retrait partiel validés ; garanties à vérifier et cas de recette |
 | [Écrans Reprise et lecteur](../../design/0.2.0/resume-player.md) | Présentation générale retenue : Continuer, fiche, pistes, qualité et fin d’épisode |
 | [Écrans Réglages](../../design/0.2.0/settings.md) | Suite S13 : cinq rubriques, préférences par appareil et réseau mobile, à relire |
 | [Cas de référence Continuer](../../design/0.2.0/continue-watching-cases.md) | Préparation Q1/Q2 et C3 : règles acquises, arbitrages et propositions d’erreur |
@@ -123,8 +124,9 @@ Les backlogs existants restent l'historique ; ils ne sont ni renumérotés ni du
   ainsi que la cascade de la future liste À regarder. C4 couvre aussi la lecture
   de l'ancien catalogue pendant une synchronisation.
 - L'ordre agrégé et le dédoublonnage sont validés dans US-020 ; les gestes de retrait
-  dans US-022. Le déplacement dans un groupe contenant plusieurs sources et les
-  erreurs partielles restent à préciser.
+  dans US-022. L’ordre filtré préservant les places des autres sources et la
+  conservation des retraits réussis sont validés. Leurs garanties en cas de
+  concurrence, d’échec intermédiaire ou de résultat inconnu restent à vérifier.
 - Aucune évolution du contrat ni de l'architecture n'est autorisée par ces documents.
 
 La version ne sera pas déclarée prête sur la seule base de pourcentages de code :

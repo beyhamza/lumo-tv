@@ -75,16 +75,33 @@ qui n'est lui-même pas supprimable. Les gestes validés ci-dessus reprennent ce
 Le retrait de tous les groupes correspond à plusieurs appartenances : vérifier
 la gestion des échecs partiels avec les opérations existantes avant implémentation.
 
+## Ordre par source et retrait partiel — validés le 19 septembre 2026
+
+- Réordonner les chaînes de la source affichée modifie uniquement les places
+  occupées par cette source dans le groupe complet. Les chaînes des autres
+  sources conservent leur place : A1, B1, A2 devient A2, B1, A1.
+- Lors d’un retrait global partiellement réussi, conserver les retraits réussis
+  et proposer de réessayer les appartenances restantes. Ne pas rétablir celles
+  déjà retirées ni annoncer un retrait global réussi.
+- Tant qu’une appartenance subsiste, la chaîne reste favorite et figure dans
+  l’agrégation, selon sa première occurrence restante définie dans US-020.
+
+Voir les [cas FO-01 à FO-12](../../design/0.2.0/favorite-organization-cases.md).
+Le déplacement unitaire du contrat décale les positions dans le groupe complet ;
+vérifier la réalisation de la permutation filtrée et ses échecs intermédiaires.
+La validation produit ne promet pas une mutation atomique ni une nouvelle API.
+
 ## Avant planification
 
 - Spécifier les états vide, chargement, erreur et hors ligne.
-- Préciser les retours d'action en cours et en erreur, notamment le retrait de
-  plusieurs appartenances lorsqu'une opération échoue.
+- Préciser les retours d’action en cours, résultat inconnu et réessai, en appliquant
+  la conservation des retraits réussis désormais validée.
 - Définir le comportement d'un élément retiré du catalogue après synchronisation.
 - Définir les modifications concurrentes et la propagation aux appareils hors ligne.
 - Préciser les filtres lorsque la source ne propose qu'un seul type de contenu.
-- Préciser le déplacement dans une liste filtrée par source, lorsque des favoris
-  d'autres sources occupent des positions intermédiaires dans le groupe partagé.
+- Vérifier la permutation dans une liste filtrée avec les opérations existantes,
+  les échecs intermédiaires et la concurrence, sans déplacer les autres sources
+  dans le résultat final. Soumettre toute évolution contractuelle nécessaire.
 
 ## Recette à préparer
 
@@ -96,5 +113,8 @@ une session TV à la télécommande et les libellés FR/EN.
 Vérifier aussi l'ajout au groupe par défaut, Organiser, le retrait d'un seul groupe,
 le retrait confirmé de tous les groupes et la suppression d'un groupe sans perte
 de favoris. Vérifier le bouton Dans ma liste et la conservation de la progression.
+Ajouter les permutations avec sources entrelacées et vérifier les positions des
+autres sources. Simuler deux retraits réussis sur trois : seule l’appartenance
+restante est à réessayer, la chaîne reste agrégée jusqu’au retrait complet.
 
 Référence : [décisions produit](../../roadmap/0.2.0/decisions.md).

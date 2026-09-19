@@ -48,6 +48,12 @@ consultable. Les autres cas de Q7 attendent leurs arbitrages.
 
 Google OAuth et encaissement Stripe : **hors périmètre**, sans clôturer leurs dettes.
 
+R020-06 inclut les [cas d’organisation des favoris](../../design/0.2.0/favorite-organization-cases.md) :
+permutation de la source active en conservant les places des autres sources,
+retrait partiel avec conservation des réussites, réessai du reste et agrégation
+tant qu’une appartenance subsiste. Les garanties de concurrence restent à définir ;
+aucune recette n’est déclarée jouée.
+
 R020-08 reprend les [cas Continuer](../../design/0.2.0/continue-watching-cases.md),
 dont CW-17 à CW-19 validés le 19 septembre : cumul de 30 s entre sessions/appareils,
 réapparition au démarrage réel après retrait et suivant non commencé proposé.

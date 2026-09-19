@@ -36,6 +36,12 @@ Le contrat permet une même chaîne dans plusieurs groupes. Le dédoublonnage va
 concerne leur présentation agrégée : il ne retire aucune appartenance à un groupe.
 L'identité utilisée est celle de la chaîne, pas son nom affiché.
 
+Complément du 19 septembre 2026 : si un retrait global n’a réussi que dans
+certains groupes, conserver la chaîne dans l’agrégation tant qu’une appartenance
+subsiste ; sa première occurrence restante détermine sa place. Le réordonnancement
+dans une source conserve les places des autres sources dans le groupe complet,
+selon [US-022](US-022-library-watchlist.md).
+
 Le guide par chaîne existe. Pour les programmes de plusieurs cartes, reprendre
 [US-16 et le sprint 7](../sprint-07.md) : sa lecture groupée reste une dépendance
 contractuelle à traiter explicitement, sans multiplier les appels par carte.
