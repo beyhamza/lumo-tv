@@ -6,6 +6,9 @@ Surfaces : web, Android mobile, Android TV.
 
 ## Besoin
 
+Proposition de présentation : [écrans Reprise et lecteur](../../design/0.2.0/resume-player.md),
+S12-E01 à E03, à relire.
+
 Planification proposée : S12 ; rails existants réutilisés en S8, sans clôture anticipée.
 Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
 

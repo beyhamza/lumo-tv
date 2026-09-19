@@ -5,6 +5,9 @@ Version cible : 0.2.0. Surfaces : web, Android mobile, Android TV, même priorit
 
 ## Besoin
 
+Proposition de présentation : [écrans Reprise et lecteur](../../design/0.2.0/resume-player.md),
+S13-E01 à E03, à relire.
+
 Planification proposée : S13.
 Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
 

@@ -11,6 +11,10 @@ S12 ; décisions Q2/Q6/Q7 avant les tâches concernées.
 
 ## Tâches proposées
 
+Proposition d’écrans : [Reprise et lecteur](../design/0.2.0/resume-player.md).
+Les écrans S13-E01 à E04 illustrent les commandes et l’enchaînement ; ils ne
+valident pas les capacités des lecteurs ni les arbitrages Q2/Q6/Q7.
+
 | ID | Travail | Surface/dépendance |
 |---|---|---|
 | S13-00 | Matrice des capacités des lecteurs et fixtures autorisées multi-audio/sous-titres/variantes, dont pistes non supportées | Toutes ; avant promesse de parité |

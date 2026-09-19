@@ -1,6 +1,6 @@
 # Ma bibliothèque — proposition d’écrans 0.2.0
 
-Date : 19 septembre 2026. Statut : proposition à relire ; développement non commencé.
+Date : 19 septembre 2026. Statut : présentation générale retenue en conversation ; développement non commencé.
 
 Références : [US-022](../../backlog/stories/US-022-library-watchlist.md),
 [sprint 11](../../backlog/sprint-11.md), [décisions](../../roadmap/0.2.0/decisions.md).

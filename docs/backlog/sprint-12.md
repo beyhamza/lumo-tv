@@ -11,6 +11,9 @@ Stories : US-019, clôture US-017 après S9/S11. Dépend de S8 ; arbitrages C3, 
 
 ## Tâches proposées
 
+Proposition d’écrans : [Reprise et lecteur](../design/0.2.0/resume-player.md).
+Les écrans S12-E01 à E03 précisent la présentation ; C3 et Q1/Q2 restent ouverts.
+
 | ID | Travail | Surface/dépendance |
 |---|---|---|
 | S12-00 | Trancher lecture effective entre sessions, réapparition, contenu court, suivant non commencé et durée inconnue | Produit, Q1/Q2 |

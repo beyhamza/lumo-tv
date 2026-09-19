@@ -317,6 +317,13 @@ catégories dans une colonne défilante à gauche et conserver les cartes à dro
 La maquette révisée applique cette disposition sur TV/web ; son adaptation mobile
 compacte est une proposition, pas une nouvelle validation explicite.
 
+## Présentation Ma bibliothèque — retenue le 19 septembre 2026
+
+La présentation générale de [Ma bibliothèque](../../design/0.2.0/library.md)
+est retenue dans l’échange repris par l’utilisateur. Cette validation visuelle
+ne clôture ni C2, ni Q3/Q8, ni la recette sur appareils réels. La discussion
+suivante porte sur la reprise de lecture et le lecteur des sprints 12 et 13.
+
 ## Objectif de sortie — décision du 17 septembre 2026
 
 - La 0.2.0 reste gratuite ; aucune ouverture des paiements n'est prévue pour cette version.

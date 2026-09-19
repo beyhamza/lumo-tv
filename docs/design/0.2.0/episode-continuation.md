@@ -6,6 +6,9 @@ pas une deuxième story pour l'enchaînement déjà décrit dans le backlog.
 
 ## Comportement validé
 
+Présentation proposée : [Reprise et lecteur, S13-E04](resume-player.md).
+La composition de la carte et l’accès rapide au réglage restent à relire.
+
 - Lecture automatique de l'épisode suivant est activée par défaut et mémorisée
   par appareil. Le réglage d'un appareil ne modifie pas celui d'un autre.
 - À la fin d'un épisode, si un suivant est disponible, présenter sa carte avec
