@@ -40,6 +40,22 @@ afin de retrouver leur contenu et de résoudre les problèmes de synchronisation
 - Actualisation automatique s'applique à la source sur tout le compte : une
   activation depuis le mobile bénéficie aussi au web et à la TV.
 
+## Indisponibilité et hors ligne — validés le 19 septembre 2026
+
+- Conserver la source choisie sans basculer automatiquement vers une autre.
+- Afficher le dernier catalogue lorsqu’il est disponible, avec un message indiquant
+  qu’il peut être ancien. Cela ne garantit pas la disponibilité des flux vidéo.
+- Sans catalogue accessible, expliquer la situation et proposer Réessayer et
+  Changer de source ; respecter le délai serveur éventuel pour une nouvelle tentative.
+- Si le catalogue est partiellement accessible, conserver les parties disponibles
+  et signaler celles qui n’ont pas pu charger, sans les présenter comme vides.
+- Une panne ne supprime ni les favoris ni les progressions. Une indisponibilité
+  ne constitue pas une preuve de suppression de la source.
+
+La disponibilité locale dépend des capacités existantes à vérifier. Cette décision
+ne définit pas de nouveau cache persistant ni de téléchargement hors ligne ; C4
+et tout éventuel besoin d’ADR restent à cadrer avant implémentation.
+
 ## Suppression — comportement validé
 
 - Demander confirmation en nommant la source concernée et ses conséquences.

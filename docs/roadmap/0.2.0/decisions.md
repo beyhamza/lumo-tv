@@ -264,7 +264,19 @@ liées, notamment progression et future liste À regarder, reste à vérifier et
 Voir [US-025](../../backlog/stories/US-025-general-settings.md) pour les dépendances
 et les cas particuliers restant à préciser, dont le changement de réseau en lecture.
 
-## Changement de source — interaction validée le 19 septembre 2026
+## Source indisponible et hors ligne — validés le 19 septembre 2026
+
+- Conserver la source choisie, sans changement automatique.
+- Montrer le dernier catalogue disponible avec une indication de données potentiellement anciennes.
+- Sans catalogue accessible, expliquer la situation et proposer Réessayer et Changer de source.
+- En cas d’accès partiel, garder les parties disponibles et signaler celles non chargées.
+- Une panne ne supprime ni favoris ni progressions et ne prouve pas une suppression.
+
+Voir [US-024](../../backlog/stories/US-024-source-management.md). Les capacités de
+consultation et de cache restent à vérifier ; aucune lecture vidéo hors ligne
+ni nouvelle stratégie de persistance n’est décidée.
+
+## Changement de source — comportement validé le 19 septembre 2026
 
 - Nom de la source active visible ; accès au sélecteur avec plusieurs sources.
 - Dans le sélecteur : nom, état et coche pour la source active.
