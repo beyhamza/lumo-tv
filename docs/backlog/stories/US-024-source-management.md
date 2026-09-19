@@ -26,7 +26,18 @@ afin de retrouver leur contenu et de résoudre les problèmes de synchronisation
 - En cas d'erreur, expliquer le problème et proposer une action adaptée.
 - Les libellés sont disponibles en FR/EN et la partie TV est accessible au D-pad.
 
-## Actualisation — comportement validé
+## Après ajout — précisions validées le 19 septembre 2026
+
+- Première source : elle devient active sur l’appareil ; une fois le catalogue
+  prêt, proposer Découvrir mon catalogue.
+- Source supplémentaire : conserver la source active et proposer Utiliser cette source.
+- Pendant l’importation, permettre de quitter l’écran et de parcourir une autre source.
+- Après un échec d’importation d’une source créée, la conserver avec son erreur
+  et proposer Réessayer sans imposer un nouvel ajout.
+
+Ces précisions complètent les règles d’actualisation et d’erreur déjà validées.
+
+## Actualisation — règles validées
 
 - Afficher les étapes réelles fournies : récupération, traitement du catalogue,
   guide selon la synchronisation ; ne pas afficher un pourcentage approximatif.
