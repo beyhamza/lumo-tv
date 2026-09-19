@@ -41,7 +41,7 @@ import com.squareup.moshi.JsonClass
  * @param lastSyncedAt Last ingestion that **succeeded**. Unchanged by a failed attempt — see `last_error_at`. 
  * @param expiresAt Expiry of the user's Xtream account, as reported by the panel. Shown after a successful registration (US-06). Null for M3U sources. 
  * @param maxConnections Simultaneous streams the user's subscription allows, as reported by the panel. Null when unknown or not applicable. 
- * @param channelCount Channels ingested from this source. Derived, not stored on the entity. Null until the first successful ingestion; it is what \"we found N channels\" is rendered from (US-06, US-07). 
+ * @param channelCount Channels ingested from this source. Derived, not stored on the entity. Null until the first successful ingestion — that is, while `last_synced_at` is null — and present from then on in every status, so a source being refreshed still says how much it holds. It is what \"we found N channels\" is rendered from (US-06, US-07). 
  * @param categoryCount Categories ingested from this source. Derived and nullable on exactly the same terms as `channel_count`, with which it is displayed side by side on the success screen — \"1 248 chaînes · 96 catégories\". Half of that line was available; this is the other half. 
  */
 
@@ -105,7 +105,7 @@ data class Source (
     @Json(name = "max_connections")
     val maxConnections: kotlin.Int? = null,
 
-    /* Channels ingested from this source. Derived, not stored on the entity. Null until the first successful ingestion; it is what \"we found N channels\" is rendered from (US-06, US-07).  */
+    /* Channels ingested from this source. Derived, not stored on the entity. Null until the first successful ingestion — that is, while `last_synced_at` is null — and present from then on in every status, so a source being refreshed still says how much it holds. It is what \"we found N channels\" is rendered from (US-06, US-07).  */
     @Json(name = "channel_count")
     val channelCount: kotlin.Int? = null,
 

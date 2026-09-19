@@ -431,8 +431,18 @@ export interface paths {
         post?: never;
         /**
          * Delete a source and everything ingested from it
-         * @description Cascades: categories, channels, EPG programmes and favourites belonging
-         *     to this source are removed with it. Irreversible.
+         * @description Irreversible, and it takes everything that belongs to the source with
+         *     it: categories, channels, EPG programmes, films, series with their
+         *     seasons and episodes, favourites, recently watched channels and playback
+         *     progress. Nothing belonging to another source is touched.
+         *
+         *     Adding the same source again does not bring any of it back: ids are
+         *     minted at ingestion, so the favourites and positions that pointed at
+         *     the old ones have nothing left to point at.
+         *
+         *     For another device, the proof that a source is gone is `404
+         *     SOURCE_NOT_FOUND` on a call that names it, or its absence from a
+         *     successful `GET /sources`. A network failure proves nothing.
          */
         delete: operations["deleteSource"];
         options?: never;
@@ -458,7 +468,17 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Force a re-synchronisation */
+        /**
+         * Force a re-synchronisation
+         * @description Starts an ingestion the user asked for. The catalogue ingested before
+         *     stays readable while it runs, and if it fails.
+         *
+         *     Refusals are checked in this order: `404`, then `409` when one is
+         *     already running, then `429`. Only requests to this operation count
+         *     towards the `429`: the server's own automatic refresh does not, and
+         *     neither does the ingestion that follows a `PATCH` of the credentials —
+         *     correcting a password must never make anyone wait.
+         */
         post: operations["syncSource"];
         delete?: never;
         options?: never;
@@ -1241,6 +1261,14 @@ export interface components {
          *     `READY` → catalogue usable. `ERROR` → ingestion failed, see `error_code`.
          *
          *     Clients poll until `READY` or `ERROR`; those are the only terminal states.
+         *
+         *     The status describes the **latest attempt**, not whether there is a
+         *     catalogue. That is `last_synced_at`: once non-null, the catalogue
+         *     listings answer in every status. Reading a catalogue and playing from it
+         *     are two different permissions — playback is refused while an ingestion
+         *     is pending or running, and allowed again after a failed one unless the
+         *     failure is about the user's credentials or subscription (see the `409`
+         *     of the playback operations).
          * @enum {string}
          */
         SourceStatus: "PENDING" | "SYNCING" | "READY" | "ERROR";
@@ -1748,8 +1776,10 @@ export interface components {
             /**
              * Format: int32
              * @description Channels ingested from this source. Derived, not stored on the
-             *     entity. Null until the first successful ingestion; it is what "we
-             *     found N channels" is rendered from (US-06, US-07).
+             *     entity. Null until the first successful ingestion — that is, while
+             *     `last_synced_at` is null — and present from then on in every
+             *     status, so a source being refreshed still says how much it holds.
+             *     It is what "we found N channels" is rendered from (US-06, US-07).
              */
             channel_count?: number | null;
             /**
@@ -2837,8 +2867,16 @@ export interface components {
             };
         };
         /**
-         * @description The source has not finished ingesting (`SOURCE_NOT_READY`). The client
-         *     keeps polling `GET /sources/{id}`.
+         * @description No catalogue has been ingested from this source yet
+         *     (`SOURCE_NOT_READY`): `Source.last_synced_at` is null. The client keeps
+         *     polling `GET /sources/{id}`.
+         *
+         *     This is about the *first* ingestion only. Once one has succeeded the
+         *     catalogue stays readable whatever `status` says — during a
+         *     re-synchronisation and after a failed one — because ingestion updates
+         *     rows in place and never empties them. What is served then is the
+         *     previous catalogue, and `status`, `last_synced_at` and `last_error_at`
+         *     are what the client uses to say how old it may be.
          */
         SourceNotReady: {
             headers: {
@@ -3811,8 +3849,16 @@ export interface operations {
             /**
              * @description The source cannot serve playback right now:
              *
-             *     - `SOURCE_NOT_READY` — ingestion has not completed;
-             *     - `SOURCE_EXPIRED` — the user's Xtream account has expired;
+             *     - `SOURCE_NOT_READY` — an ingestion is pending or running, or none
+             *       has ever succeeded. A source in `ERROR` that still holds a
+             *       previous catalogue **does** play: a provider that was down at the
+             *       hour of the automatic refresh must not cost the user their
+             *       evening;
+             *     - `SOURCE_AUTH_FAILED` — the last ingestion failed because the
+             *       provider refused the credentials. The stream would be refused
+             *       too, and the useful message is that one;
+             *     - `SOURCE_EXPIRED` — the user's Xtream account has expired, as
+             *       reported by the panel or by the last ingestion;
              *     - `SOURCE_MAX_CONNECTIONS` — the subscription's simultaneous-stream
              *       limit is reached. The client explains that the *user's own*
              *       subscription caps concurrent streams (US-09).
@@ -3951,10 +3997,10 @@ export interface operations {
             };
             /**
              * @description The source cannot serve playback right now — `SOURCE_NOT_READY`,
-             *     `SOURCE_EXPIRED`, `SOURCE_MAX_CONNECTIONS`. The same three as for a
-             *     channel, and they mean the same things: a subscription's
-             *     simultaneous-stream limit counts a film exactly as it counts a
-             *     channel.
+             *     `SOURCE_AUTH_FAILED`, `SOURCE_EXPIRED`, `SOURCE_MAX_CONNECTIONS`.
+             *     The same four as for a channel, and they mean the same things: a
+             *     subscription's simultaneous-stream limit counts a film exactly as it
+             *     counts a channel.
              */
             409: {
                 headers: {
@@ -4056,6 +4102,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["SourceNotFound"];
+            409: components["responses"]["SourceNotReady"];
         };
     };
     getSeries: {
@@ -4093,7 +4140,6 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            409: components["responses"]["SourceNotReady"];
             /**
              * @description The user's panel could not be reached or refused
              *     (`SOURCE_UNREACHABLE`, `SOURCE_AUTH_FAILED`, `SOURCE_EXPIRED`), and
@@ -4150,9 +4196,10 @@ export interface operations {
             };
             /**
              * @description The source cannot serve playback right now — `SOURCE_NOT_READY`,
-             *     `SOURCE_EXPIRED`, `SOURCE_MAX_CONNECTIONS`. The same three as for a
-             *     channel and a film, meaning the same things: an episode counts against
-             *     a subscription's simultaneous-stream ceiling exactly as they do.
+             *     `SOURCE_AUTH_FAILED`, `SOURCE_EXPIRED`, `SOURCE_MAX_CONNECTIONS`.
+             *     The same four as for a channel and a film, meaning the same things:
+             *     an episode counts against a subscription's simultaneous-stream
+             *     ceiling exactly as they do.
              */
             409: {
                 headers: {
@@ -4530,6 +4577,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            404: components["responses"]["SourceNotFound"];
         };
     };
     listRecentChannels: {

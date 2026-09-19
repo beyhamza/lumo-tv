@@ -239,6 +239,7 @@ public interface UserdataApi {
      * @return The stored progress. (status code 200)
      *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
      *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
+     *         or No such source on this account (&#x60;SOURCE_NOT_FOUND&#x60;). (status code 404)
      */
     @RequestMapping(
         method = RequestMethod.PUT,

@@ -371,7 +371,7 @@ public class Source {
   }
 
   /**
-   * Channels ingested from this source. Derived, not stored on the entity. Null until the first successful ingestion; it is what \"we found N channels\" is rendered from (US-06, US-07). 
+   * Channels ingested from this source. Derived, not stored on the entity. Null until the first successful ingestion — that is, while `last_synced_at` is null — and present from then on in every status, so a source being refreshed still says how much it holds. It is what \"we found N channels\" is rendered from (US-06, US-07). 
    * @return channelCount
    */
   

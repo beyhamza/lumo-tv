@@ -20,7 +20,7 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * Ingestion lifecycle.  `PENDING` → accepted, not started. `SYNCING` → ingestion running. `READY` → catalogue usable. `ERROR` → ingestion failed, see `error_code`.  Clients poll until `READY` or `ERROR`; those are the only terminal states. 
+ * Ingestion lifecycle.  `PENDING` → accepted, not started. `SYNCING` → ingestion running. `READY` → catalogue usable. `ERROR` → ingestion failed, see `error_code`.  Clients poll until `READY` or `ERROR`; those are the only terminal states.  The status describes the **latest attempt**, not whether there is a catalogue. That is `last_synced_at`: once non-null, the catalogue listings answer in every status. Reading a catalogue and playing from it are two different permissions — playback is refused while an ingestion is pending or running, and allowed again after a failed one unless the failure is about the user's credentials or subscription (see the `409` of the playback operations). 
  *
  * Values: PENDING,SYNCING,READY,ERROR
  */

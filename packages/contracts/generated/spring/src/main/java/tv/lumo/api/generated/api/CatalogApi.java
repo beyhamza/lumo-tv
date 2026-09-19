@@ -74,7 +74,7 @@ public interface CatalogApi {
      * @return Playback details for this channel. (status code 200)
      *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
      *         or No such channel, or it does not belong to a source owned by the caller (&#x60;CHANNEL_NOT_FOUND&#x60;). Non-ownership is reported as &#x60;404&#x60;, not &#x60;403&#x60;, so the endpoint cannot be used to probe for channel ids.  (status code 404)
-     *         or The source cannot serve playback right now:  - &#x60;SOURCE_NOT_READY&#x60; — ingestion has not completed; - &#x60;SOURCE_EXPIRED&#x60; — the user&#39;s Xtream account has expired; - &#x60;SOURCE_MAX_CONNECTIONS&#x60; — the subscription&#39;s simultaneous-stream   limit is reached. The client explains that the *user&#39;s own*   subscription caps concurrent streams (US-09).  (status code 409)
+     *         or The source cannot serve playback right now:  - &#x60;SOURCE_NOT_READY&#x60; — an ingestion is pending or running, or none   has ever succeeded. A source in &#x60;ERROR&#x60; that still holds a   previous catalogue **does** play: a provider that was down at the   hour of the automatic refresh must not cost the user their   evening; - &#x60;SOURCE_AUTH_FAILED&#x60; — the last ingestion failed because the   provider refused the credentials. The stream would be refused   too, and the useful message is that one; - &#x60;SOURCE_EXPIRED&#x60; — the user&#39;s Xtream account has expired, as   reported by the panel or by the last ingestion; - &#x60;SOURCE_MAX_CONNECTIONS&#x60; — the subscription&#39;s simultaneous-stream   limit is reached. The client explains that the *user&#39;s own*   subscription caps concurrent streams (US-09).  (status code 409)
      */
     @RequestMapping(
         method = RequestMethod.GET,
@@ -95,7 +95,7 @@ public interface CatalogApi {
      * @return Playback details for this episode. (status code 200)
      *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
      *         or No such episode, or it does not belong to a source owned by the caller (&#x60;EPISODE_NOT_FOUND&#x60;). A &#x60;404&#x60; and not a &#x60;403&#x60;, so the endpoint cannot be used to probe for identifiers.  (status code 404)
-     *         or The source cannot serve playback right now — &#x60;SOURCE_NOT_READY&#x60;, &#x60;SOURCE_EXPIRED&#x60;, &#x60;SOURCE_MAX_CONNECTIONS&#x60;. The same three as for a channel and a film, meaning the same things: an episode counts against a subscription&#39;s simultaneous-stream ceiling exactly as they do.  (status code 409)
+     *         or The source cannot serve playback right now — &#x60;SOURCE_NOT_READY&#x60;, &#x60;SOURCE_AUTH_FAILED&#x60;, &#x60;SOURCE_EXPIRED&#x60;, &#x60;SOURCE_MAX_CONNECTIONS&#x60;. The same four as for a channel and a film, meaning the same things: an episode counts against a subscription&#39;s simultaneous-stream ceiling exactly as they do.  (status code 409)
      */
     @RequestMapping(
         method = RequestMethod.GET,
@@ -116,7 +116,6 @@ public interface CatalogApi {
      * @return The series and its tree. &#x60;plot&#x60; is null when the source supplied none.  (status code 200)
      *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
      *         or No such series on a source owned by the caller (&#x60;SERIES_NOT_FOUND&#x60;), reported as &#x60;404&#x60; and not &#x60;403&#x60; so the endpoint cannot be used to probe for identifiers.  (status code 404)
-     *         or The source has not finished ingesting (&#x60;SOURCE_NOT_READY&#x60;). The client keeps polling &#x60;GET /sources/{id}&#x60;.  (status code 409)
      *         or The user&#39;s panel could not be reached or refused (&#x60;SOURCE_UNREACHABLE&#x60;, &#x60;SOURCE_AUTH_FAILED&#x60;, &#x60;SOURCE_EXPIRED&#x60;), and no cached tree is available to serve instead.  **Distinct from &#x60;404&#x60; by design.** The series exists; what failed is the call that fills in its seasons. Retrying is the right advice, and a client that said \&quot;not found\&quot; here would give the wrong one.  (status code 503)
      */
     @RequestMapping(
@@ -158,7 +157,7 @@ public interface CatalogApi {
      * @return Playback details for this film. (status code 200)
      *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
      *         or No such film, or it does not belong to a source owned by the caller (&#x60;VOD_ITEM_NOT_FOUND&#x60;). Non-ownership is a &#x60;404&#x60; and not a &#x60;403&#x60;, so the endpoint cannot be used to probe for identifiers.  (status code 404)
-     *         or The source cannot serve playback right now — &#x60;SOURCE_NOT_READY&#x60;, &#x60;SOURCE_EXPIRED&#x60;, &#x60;SOURCE_MAX_CONNECTIONS&#x60;. The same three as for a channel, and they mean the same things: a subscription&#39;s simultaneous-stream limit counts a film exactly as it counts a channel.  (status code 409)
+     *         or The source cannot serve playback right now — &#x60;SOURCE_NOT_READY&#x60;, &#x60;SOURCE_AUTH_FAILED&#x60;, &#x60;SOURCE_EXPIRED&#x60;, &#x60;SOURCE_MAX_CONNECTIONS&#x60;. The same four as for a channel, and they mean the same things: a subscription&#39;s simultaneous-stream limit counts a film exactly as it counts a channel.  (status code 409)
      */
     @RequestMapping(
         method = RequestMethod.GET,
@@ -179,7 +178,7 @@ public interface CatalogApi {
      * @return Categories ordered by &#x60;position&#x60;, each with its channel count. (status code 200)
      *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
      *         or No such source on this account (&#x60;SOURCE_NOT_FOUND&#x60;). (status code 404)
-     *         or The source has not finished ingesting (&#x60;SOURCE_NOT_READY&#x60;). The client keeps polling &#x60;GET /sources/{id}&#x60;.  (status code 409)
+     *         or No catalogue has been ingested from this source yet (&#x60;SOURCE_NOT_READY&#x60;): &#x60;Source.last_synced_at&#x60; is null. The client keeps polling &#x60;GET /sources/{id}&#x60;.  This is about the *first* ingestion only. Once one has succeeded the catalogue stays readable whatever &#x60;status&#x60; says — during a re-synchronisation and after a failed one — because ingestion updates rows in place and never empties them. What is served then is the previous catalogue, and &#x60;status&#x60;, &#x60;last_synced_at&#x60; and &#x60;last_error_at&#x60; are what the client uses to say how old it may be.  (status code 409)
      */
     @RequestMapping(
         method = RequestMethod.GET,
@@ -207,7 +206,7 @@ public interface CatalogApi {
      *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
      *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
      *         or No such source on this account (&#x60;SOURCE_NOT_FOUND&#x60;). (status code 404)
-     *         or The source has not finished ingesting (&#x60;SOURCE_NOT_READY&#x60;). The client keeps polling &#x60;GET /sources/{id}&#x60;.  (status code 409)
+     *         or No catalogue has been ingested from this source yet (&#x60;SOURCE_NOT_READY&#x60;): &#x60;Source.last_synced_at&#x60; is null. The client keeps polling &#x60;GET /sources/{id}&#x60;.  This is about the *first* ingestion only. Once one has succeeded the catalogue stays readable whatever &#x60;status&#x60; says — during a re-synchronisation and after a failed one — because ingestion updates rows in place and never empties them. What is served then is the previous catalogue, and &#x60;status&#x60;, &#x60;last_synced_at&#x60; and &#x60;last_error_at&#x60; are what the client uses to say how old it may be.  (status code 409)
      */
     @RequestMapping(
         method = RequestMethod.GET,
@@ -239,7 +238,7 @@ public interface CatalogApi {
      *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
      *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
      *         or No such source on this account (&#x60;SOURCE_NOT_FOUND&#x60;). (status code 404)
-     *         or The source has not finished ingesting (&#x60;SOURCE_NOT_READY&#x60;). The client keeps polling &#x60;GET /sources/{id}&#x60;.  (status code 409)
+     *         or No catalogue has been ingested from this source yet (&#x60;SOURCE_NOT_READY&#x60;): &#x60;Source.last_synced_at&#x60; is null. The client keeps polling &#x60;GET /sources/{id}&#x60;.  This is about the *first* ingestion only. Once one has succeeded the catalogue stays readable whatever &#x60;status&#x60; says — during a re-synchronisation and after a failed one — because ingestion updates rows in place and never empties them. What is served then is the previous catalogue, and &#x60;status&#x60;, &#x60;last_synced_at&#x60; and &#x60;last_error_at&#x60; are what the client uses to say how old it may be.  (status code 409)
      */
     @RequestMapping(
         method = RequestMethod.GET,
@@ -271,7 +270,7 @@ public interface CatalogApi {
      *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
      *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
      *         or No such source on this account (&#x60;SOURCE_NOT_FOUND&#x60;). (status code 404)
-     *         or The source has not finished ingesting (&#x60;SOURCE_NOT_READY&#x60;). The client keeps polling &#x60;GET /sources/{id}&#x60;.  (status code 409)
+     *         or No catalogue has been ingested from this source yet (&#x60;SOURCE_NOT_READY&#x60;): &#x60;Source.last_synced_at&#x60; is null. The client keeps polling &#x60;GET /sources/{id}&#x60;.  This is about the *first* ingestion only. Once one has succeeded the catalogue stays readable whatever &#x60;status&#x60; says — during a re-synchronisation and after a failed one — because ingestion updates rows in place and never empties them. What is served then is the previous catalogue, and &#x60;status&#x60;, &#x60;last_synced_at&#x60; and &#x60;last_error_at&#x60; are what the client uses to say how old it may be.  (status code 409)
      */
     @RequestMapping(
         method = RequestMethod.GET,
@@ -301,6 +300,7 @@ public interface CatalogApi {
      *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
      *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
      *         or No such source on this account (&#x60;SOURCE_NOT_FOUND&#x60;). (status code 404)
+     *         or No catalogue has been ingested from this source yet (&#x60;SOURCE_NOT_READY&#x60;): &#x60;Source.last_synced_at&#x60; is null. The client keeps polling &#x60;GET /sources/{id}&#x60;.  This is about the *first* ingestion only. Once one has succeeded the catalogue stays readable whatever &#x60;status&#x60; says — during a re-synchronisation and after a failed one — because ingestion updates rows in place and never empties them. What is served then is the previous catalogue, and &#x60;status&#x60;, &#x60;last_synced_at&#x60; and &#x60;last_error_at&#x60; are what the client uses to say how old it may be.  (status code 409)
      */
     @RequestMapping(
         method = RequestMethod.GET,

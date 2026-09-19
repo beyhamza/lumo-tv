@@ -57,7 +57,7 @@ public interface SourcesApi {
 
     /**
      * DELETE /sources/{id} : Delete a source and everything ingested from it
-     * Cascades: categories, channels, EPG programmes and favourites belonging to this source are removed with it. Irreversible. 
+     * Irreversible, and it takes everything that belongs to the source with it: categories, channels, EPG programmes, films, series with their seasons and episodes, favourites, recently watched channels and playback progress. Nothing belonging to another source is touched.  Adding the same source again does not bring any of it back: ids are minted at ingestion, so the favourites and positions that pointed at the old ones have nothing left to point at.  For another device, the proof that a source is gone is &#x60;404 SOURCE_NOT_FOUND&#x60; on a call that names it, or its absence from a successful &#x60;GET /sources&#x60;. A network failure proves nothing. 
      *
      * @param id Resource identifier. (required)
      * @return Source and its ingested data deleted. (status code 204)
@@ -114,6 +114,7 @@ public interface SourcesApi {
 
     /**
      * POST /sources/{id}/sync : Force a re-synchronisation
+     * Starts an ingestion the user asked for. The catalogue ingested before stays readable while it runs, and if it fails.  Refusals are checked in this order: &#x60;404&#x60;, then &#x60;409&#x60; when one is already running, then &#x60;429&#x60;. Only requests to this operation count towards the &#x60;429&#x60;: the server&#39;s own automatic refresh does not, and neither does the ingestion that follows a &#x60;PATCH&#x60; of the credentials — correcting a password must never make anyone wait. 
      *
      * @param id Resource identifier. (required)
      * @return Accepted. The source is returned in &#x60;SYNCING&#x60;. (status code 202)

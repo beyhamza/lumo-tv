@@ -173,6 +173,7 @@ interface UserdataApi {
      *  - 200: The stored progress.
      *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
      *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
+     *  - 404: No such source on this account (`SOURCE_NOT_FOUND`).
      *
      * @param saveProgressRequest 
      * @return [PlaybackProgress]

@@ -47,7 +47,7 @@ interface CatalogApi {
      *  - 200: Playback details for this channel.
      *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
      *  - 404: No such channel, or it does not belong to a source owned by the caller (`CHANNEL_NOT_FOUND`). Non-ownership is reported as `404`, not `403`, so the endpoint cannot be used to probe for channel ids. 
-     *  - 409: The source cannot serve playback right now:  - `SOURCE_NOT_READY` — ingestion has not completed; - `SOURCE_EXPIRED` — the user's Xtream account has expired; - `SOURCE_MAX_CONNECTIONS` — the subscription's simultaneous-stream   limit is reached. The client explains that the *user's own*   subscription caps concurrent streams (US-09). 
+     *  - 409: The source cannot serve playback right now:  - `SOURCE_NOT_READY` — an ingestion is pending or running, or none   has ever succeeded. A source in `ERROR` that still holds a   previous catalogue **does** play: a provider that was down at the   hour of the automatic refresh must not cost the user their   evening; - `SOURCE_AUTH_FAILED` — the last ingestion failed because the   provider refused the credentials. The stream would be refused   too, and the useful message is that one; - `SOURCE_EXPIRED` — the user's Xtream account has expired, as   reported by the panel or by the last ingestion; - `SOURCE_MAX_CONNECTIONS` — the subscription's simultaneous-stream   limit is reached. The client explains that the *user's own*   subscription caps concurrent streams (US-09). 
      *
      * @param id Resource identifier.
      * @return [PlaybackInfo]
@@ -63,7 +63,7 @@ interface CatalogApi {
      *  - 200: Playback details for this episode.
      *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
      *  - 404: No such episode, or it does not belong to a source owned by the caller (`EPISODE_NOT_FOUND`). A `404` and not a `403`, so the endpoint cannot be used to probe for identifiers. 
-     *  - 409: The source cannot serve playback right now — `SOURCE_NOT_READY`, `SOURCE_EXPIRED`, `SOURCE_MAX_CONNECTIONS`. The same three as for a channel and a film, meaning the same things: an episode counts against a subscription's simultaneous-stream ceiling exactly as they do. 
+     *  - 409: The source cannot serve playback right now — `SOURCE_NOT_READY`, `SOURCE_AUTH_FAILED`, `SOURCE_EXPIRED`, `SOURCE_MAX_CONNECTIONS`. The same four as for a channel and a film, meaning the same things: an episode counts against a subscription's simultaneous-stream ceiling exactly as they do. 
      *
      * @param id Resource identifier.
      * @return [EpisodePlaybackInfo]
@@ -79,7 +79,6 @@ interface CatalogApi {
      *  - 200: The series and its tree. `plot` is null when the source supplied none. 
      *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
      *  - 404: No such series on a source owned by the caller (`SERIES_NOT_FOUND`), reported as `404` and not `403` so the endpoint cannot be used to probe for identifiers. 
-     *  - 409: The source has not finished ingesting (`SOURCE_NOT_READY`). The client keeps polling `GET /sources/{id}`. 
      *  - 503: The user's panel could not be reached or refused (`SOURCE_UNREACHABLE`, `SOURCE_AUTH_FAILED`, `SOURCE_EXPIRED`), and no cached tree is available to serve instead.  **Distinct from `404` by design.** The series exists; what failed is the call that fills in its seasons. Retrying is the right advice, and a client that said \"not found\" here would give the wrong one. 
      *
      * @param id Resource identifier.
@@ -111,7 +110,7 @@ interface CatalogApi {
      *  - 200: Playback details for this film.
      *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
      *  - 404: No such film, or it does not belong to a source owned by the caller (`VOD_ITEM_NOT_FOUND`). Non-ownership is a `404` and not a `403`, so the endpoint cannot be used to probe for identifiers. 
-     *  - 409: The source cannot serve playback right now — `SOURCE_NOT_READY`, `SOURCE_EXPIRED`, `SOURCE_MAX_CONNECTIONS`. The same three as for a channel, and they mean the same things: a subscription's simultaneous-stream limit counts a film exactly as it counts a channel. 
+     *  - 409: The source cannot serve playback right now — `SOURCE_NOT_READY`, `SOURCE_AUTH_FAILED`, `SOURCE_EXPIRED`, `SOURCE_MAX_CONNECTIONS`. The same four as for a channel, and they mean the same things: a subscription's simultaneous-stream limit counts a film exactly as it counts a channel. 
      *
      * @param id Resource identifier.
      * @return [VodPlaybackInfo]
@@ -127,7 +126,7 @@ interface CatalogApi {
      *  - 200: Categories ordered by `position`, each with its channel count.
      *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
      *  - 404: No such source on this account (`SOURCE_NOT_FOUND`).
-     *  - 409: The source has not finished ingesting (`SOURCE_NOT_READY`). The client keeps polling `GET /sources/{id}`. 
+     *  - 409: No catalogue has been ingested from this source yet (`SOURCE_NOT_READY`): `Source.last_synced_at` is null. The client keeps polling `GET /sources/{id}`.  This is about the *first* ingestion only. Once one has succeeded the catalogue stays readable whatever `status` says — during a re-synchronisation and after a failed one — because ingestion updates rows in place and never empties them. What is served then is the previous catalogue, and `status`, `last_synced_at` and `last_error_at` are what the client uses to say how old it may be. 
      *
      * @param id Resource identifier.
      * @param contentType Restrict to one content type. Omitted, every category is returned. (optional)
@@ -145,7 +144,7 @@ interface CatalogApi {
      *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
      *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
      *  - 404: No such source on this account (`SOURCE_NOT_FOUND`).
-     *  - 409: The source has not finished ingesting (`SOURCE_NOT_READY`). The client keeps polling `GET /sources/{id}`. 
+     *  - 409: No catalogue has been ingested from this source yet (`SOURCE_NOT_READY`): `Source.last_synced_at` is null. The client keeps polling `GET /sources/{id}`.  This is about the *first* ingestion only. Once one has succeeded the catalogue stays readable whatever `status` says — during a re-synchronisation and after a failed one — because ingestion updates rows in place and never empties them. What is served then is the previous catalogue, and `status`, `last_synced_at` and `last_error_at` are what the client uses to say how old it may be. 
      *
      * @param id Resource identifier.
      * @param categoryId Restrict to one category. (optional)
@@ -167,7 +166,7 @@ interface CatalogApi {
      *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
      *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
      *  - 404: No such source on this account (`SOURCE_NOT_FOUND`).
-     *  - 409: The source has not finished ingesting (`SOURCE_NOT_READY`). The client keeps polling `GET /sources/{id}`. 
+     *  - 409: No catalogue has been ingested from this source yet (`SOURCE_NOT_READY`): `Source.last_synced_at` is null. The client keeps polling `GET /sources/{id}`.  This is about the *first* ingestion only. Once one has succeeded the catalogue stays readable whatever `status` says — during a re-synchronisation and after a failed one — because ingestion updates rows in place and never empties them. What is served then is the previous catalogue, and `status`, `last_synced_at` and `last_error_at` are what the client uses to say how old it may be. 
      *
      * @param id Resource identifier.
      * @param categoryId Restrict to one category. Its &#x60;content_type&#x60; is &#x60;SERIES&#x60;. (optional)
@@ -189,7 +188,7 @@ interface CatalogApi {
      *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
      *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
      *  - 404: No such source on this account (`SOURCE_NOT_FOUND`).
-     *  - 409: The source has not finished ingesting (`SOURCE_NOT_READY`). The client keeps polling `GET /sources/{id}`. 
+     *  - 409: No catalogue has been ingested from this source yet (`SOURCE_NOT_READY`): `Source.last_synced_at` is null. The client keeps polling `GET /sources/{id}`.  This is about the *first* ingestion only. Once one has succeeded the catalogue stays readable whatever `status` says — during a re-synchronisation and after a failed one — because ingestion updates rows in place and never empties them. What is served then is the previous catalogue, and `status`, `last_synced_at` and `last_error_at` are what the client uses to say how old it may be. 
      *
      * @param id Resource identifier.
      * @param categoryId Restrict to one category. Its &#x60;content_type&#x60; is &#x60;VOD&#x60;. (optional)
@@ -211,6 +210,7 @@ interface CatalogApi {
      *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
      *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
      *  - 404: No such source on this account (`SOURCE_NOT_FOUND`).
+     *  - 409: No catalogue has been ingested from this source yet (`SOURCE_NOT_READY`): `Source.last_synced_at` is null. The client keeps polling `GET /sources/{id}`.  This is about the *first* ingestion only. Once one has succeeded the catalogue stays readable whatever `status` says — during a re-synchronisation and after a failed one — because ingestion updates rows in place and never empties them. What is served then is the previous catalogue, and `status`, `last_synced_at` and `last_error_at` are what the client uses to say how old it may be. 
      *
      * @param id Resource identifier.
      * @param ids The episodes to resolve. Repeatable, bounded at 100, unknown identifiers absent from the answer rather than an error.  **Send &#x60;size&#x60; with it**, for the reason repeated on every &#x60;ids&#x60; parameter in this document. 
