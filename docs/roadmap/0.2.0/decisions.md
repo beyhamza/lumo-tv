@@ -264,7 +264,17 @@ liées, notamment progression et future liste À regarder, reste à vérifier et
 Voir [US-025](../../backlog/stories/US-025-general-settings.md) pour les dépendances
 et les cas particuliers restant à préciser, dont le changement de réseau en lecture.
 
-## Disposition de l’accueil — validée le 19 septembre 2026
+## Changement de source — interaction validée le 19 septembre 2026
+
+- Nom de la source active visible ; accès au sélecteur avec plusieurs sources.
+- Dans le sélecteur : nom, état et coche pour la source active.
+- Application immédiate sans confirmation, uniquement sur l’appareil concerné.
+- Conserver la rubrique ouverte et réinitialiser les filtres propres à l’ancienne source.
+- Depuis une fiche, revenir au catalogue correspondant de la nouvelle source.
+
+Ces critères complètent [US-018](../../backlog/stories/US-018-active-source.md).
+
+## Disposition de l’accueil — validation visuelle du 19 septembre 2026
 
 La disposition Continuer, Favoris et Direct de la première proposition interactive
 est validée. Voir les [écrans du sprint 8](../../design/0.2.0/sprint-08-screens.md).

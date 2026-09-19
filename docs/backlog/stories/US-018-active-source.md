@@ -15,7 +15,13 @@ parcours, afin de garder un catalogue et un accueil compréhensibles.
 
 - Le nom de la source active est visible près du sélecteur.
 - Avec une seule source, son nom est affiché simplement.
+- Avec plusieurs sources, le sélecteur affiche leur nom, leur état et une coche
+  pour la source active. Le changement s’applique immédiatement, sans confirmation.
 - Changer de source actualise accueil, recherche, Direct, Films et Séries.
+- Conserver la rubrique ouverte lors du changement : depuis Films, afficher les
+  films de la nouvelle source. Réinitialiser les filtres propres à l’ancienne source.
+- Depuis une fiche de contenu, revenir au catalogue correspondant de la nouvelle
+  source ; ne pas conserver une fiche appartenant à l’ancienne source.
 - Continuer et Favoris ne montrent que les éléments de la source active.
 - Revenir à une source conserve ses favoris et progressions.
 - Le choix est mémorisé sur l'appareil et retrouvé à la prochaine ouverture.

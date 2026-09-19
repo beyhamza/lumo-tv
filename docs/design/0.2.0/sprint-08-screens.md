@@ -35,6 +35,12 @@ Continuer, Favoris et Direct a été validée le 19 septembre 2026.
 
 ## Adaptation aux surfaces
 
+Interaction du sélecteur validée le 19 septembre : nom, état, coche de la source
+active et changement immédiat. Conserver la rubrique ouverte, réinitialiser les
+filtres propres à l’ancienne source et quitter une fiche vers le catalogue
+correspondant. Ces critères complètent la proposition ; le prototype initial
+n’a pas été mis à jour pour simuler tous ces cas.
+
 - Web : navigation persistante, accueil aéré et gestion des sources dans la page.
 - Mobile : priorité à la reprise ; seconde carte Continuer compacte proposée pour
   limiter la hauteur ; actions de gestion accessibles au toucher.
