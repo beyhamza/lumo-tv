@@ -36,10 +36,11 @@ Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulem
 - [x] S8-01 — [lot C4](../roadmap/0.2.0/c4-previous-catalogue.md) cadré à partir du
   code réel, décisions D1 à D5 validées et reportées dans le registre, les
   décisions produit et US-024
-- [ ] S8-02 — **80 %** : contrat modifié, trois clients régénérés, gardes du
-  catalogue, compteurs, limite de synchronisation et 20 tests livrés ; build API
-  vert (287 tests). Reste la vérification sur la pile réelle avec le banc :
-  actualisation en cours, échec avec ancien catalogue, délai serveur
+- [x] S8-02 — contrat modifié, trois clients régénérés, gardes du catalogue,
+  compteurs, limite de synchronisation et 20 tests ; build API vert (287 tests).
+  Vérifié le 19 septembre sur la pile Docker avec le banc, 21 contrôles sur 21 :
+  actualisation en cours, échec avec ancien catalogue, délai serveur, suppression.
+  La recette sur appareils reste celle de S8-07
 - [ ] S8-03 — source active mémorisée par appareil
 - [ ] S8-04 — navigation et accueil
 - [ ] S8-05 — Mes sources

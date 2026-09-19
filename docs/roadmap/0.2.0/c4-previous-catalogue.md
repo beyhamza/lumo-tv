@@ -178,4 +178,11 @@ S8-01 : **100 %**. La suite est S8-02.
 - [x] `ManualSyncLimiter` et `lumo.rate-limit.manual-sync-interval`
   (`LUMO_MANUAL_SYNC_INTERVAL`, PT5M)
 - [x] Tests du §5 : 20 tests, build API vert
-- [ ] Vérification sur la pile Docker avec le banc (S8-07 la rejouera sur appareils)
+- [x] Vérification sur la pile Docker avec le banc, le 19 septembre 2026 : 21
+  contrôles sur 21 par l'API réelle — première ingestion, `429` avec
+  `Retry-After: 300`, consultation et compteurs en `SYNCING` avec lecture fermée,
+  `409 SOURCE_SYNC_IN_PROGRESS` avant le `429`, `PATCH` non compté, échec réel
+  (`SOURCE_INVALID_FORMAT`) avec ancien catalogue consultable et lecture ouverte,
+  lecture fermée en `SOURCE_AUTH_FAILED`, suppression puis `404 SOURCE_NOT_FOUND`.
+  L'état `SYNCING` a été écrit en base, l'ingestion du banc étant trop rapide
+  pour être observée. S8-07 rejouera ces cas sur appareils
