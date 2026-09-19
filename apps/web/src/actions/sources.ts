@@ -5,8 +5,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "@/i18n/navigation";
 import { api, problemCode } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-message";
+import { fetched } from "@/lib/api/fetched";
 import type { CreateSourceRequest, FieldError, SourceKind } from "@/lib/api/types";
 import { requireSession } from "@/lib/session/session";
+import {
+  forgetActiveSource,
+  readStoredSourceId,
+  rememberActiveSource,
+} from "@/lib/sources/active-source-store";
 
 /**
  * Registering and managing sources, from the web.
@@ -95,6 +101,13 @@ export async function createSource(
     auto_sync: true,
   };
 
+  // Asked before the POST, because afterwards the answer is always "at least
+  // one". Only a list that was actually fetched and actually empty counts: an
+  // API that did not answer has not said the account is empty, and guessing so
+  // would let an additional source steal the selection (US-024).
+  const before = await fetched(() => api(session.accessToken).GET("/sources", {}));
+  const isFirstSource = before.state === "ok" && before.data.items.length === 0;
+
   let result: { data?: { id: string }; error?: unknown };
 
   try {
@@ -116,9 +129,20 @@ export async function createSource(
     };
   }
 
+  // The first source becomes the one this browser browses; an additional one
+  // does not take the place of the source already in use (US-024, "Après
+  // ajout"). With a single source the resolver would pick it anyway — writing it
+  // down is for the day a second one arrives, so that day does not open on
+  // "choose a source" for somebody who never had a choice to make.
+  if (isFirstSource && result.data?.id) {
+    await rememberActiveSource(session.userId, result.data.id);
+  }
+
   // 202, not 201: the source exists and its catalogue does not. The detail page
   // is where the wait happens.
-  revalidatePath(`/${locale}/app/sources`);
+  // The layout, not only the list: the rail's source switcher is drawn from the
+  // same `GET /sources`, on every page of the zone.
+  revalidatePath(`/${locale}/app`, "layout");
   redirect({ href: `/app/sources/${result.data?.id}`, locale });
   return {};
 }
@@ -148,7 +172,9 @@ export async function updateSource(formData: FormData): Promise<void> {
   });
 
   revalidatePath(`/${locale}/app/sources/${id}`);
-  revalidatePath(`/${locale}/app/sources`);
+  // The layout, not only the list: the rail's source switcher is drawn from the
+  // same `GET /sources`, on every page of the zone.
+  revalidatePath(`/${locale}/app`, "layout");
   redirect({ href: `/app/sources/${id}`, locale });
 }
 
@@ -177,12 +203,25 @@ export async function deleteSource(formData: FormData): Promise<void> {
   const session = await requireSession();
   const id = String(formData.get("id") ?? "");
 
-  await api(session.accessToken).DELETE("/sources/{id}", {
+  const result = await api(session.accessToken).DELETE("/sources/{id}", {
     params: { path: { id } },
   });
 
+  // If this browser was browsing it, forget that, and let the next render decide
+  // again from what is left: the only one, a question, or "add a source"
+  // (US-018, US-024 "Suppression"). Only on a deletion the server confirmed — a
+  // refused or failed one leaves the source where it was, and the choice with it.
+  //
+  // Other browsers are not told, and do not need to be: their cookie now names
+  // a source absent from `GET /sources`, which resolves the same way.
+  if (!result.error && (await readStoredSourceId(session.userId)) === id) {
+    await forgetActiveSource(session.userId);
+  }
+
   // Categories, channels, guide rows and favourites went with it, by cascade.
-  revalidatePath(`/${locale}/app/sources`);
+  // The layout, not only the list: the rail's source switcher is drawn from the
+  // same `GET /sources`, on every page of the zone.
+  revalidatePath(`/${locale}/app`, "layout");
   redirect({ href: "/app/sources", locale });
 }
 

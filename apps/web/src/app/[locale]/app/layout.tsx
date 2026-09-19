@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { signOut } from "@/actions/auth";
+import { SourceSwitcher } from "@/components/app/SourceSwitcher";
 import { Wordmark } from "@/components/site/Wordmark";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
@@ -10,6 +11,7 @@ import { fetched } from "@/lib/api/fetched";
 import { PATHNAME_HEADER } from "@/lib/http/pathname-header";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
+import { loadActiveSource } from "@/lib/sources/active-source-store";
 import { cn } from "@/lib/utils";
 
 /**
@@ -32,7 +34,23 @@ import { cn } from "@/lib/utils";
  * stays in the rail rather than becoming unreachable.
  *
  * Note the absence of a `NextIntlClientProvider`: nothing in this shell is a
- * client component. Sign-out is a form posting to a Server Action.
+ * client component. Sign-out is a form posting to a Server Action, and so is
+ * every row of the source switcher.
+ *
+ * <h2>The active source (US-018)</h2>
+ *
+ * Under the logotype, the source this browser is browsing and the way to change
+ * it (`SourceSwitcher`); in the rail, above the account's sections, the three
+ * catalogues **of that source**. They are absent whenever no source is selected
+ * — none registered, a choice still owed, or an API that did not answer — because
+ * a "Films" entry has to lead to somebody's films, and a link built from a
+ * remembered id that was not confirmed by `GET /sources` is a link to a source
+ * that may have been deleted on another device.
+ *
+ * The catalogue routes themselves still answer for any source the account owns:
+ * My sources links to them, and opening one neither redirects nor changes the
+ * choice. A GET that rewrote a preference would be a preference changed by a
+ * prefetch.
  */
 export async function generateMetadata({
   params,
@@ -64,7 +82,16 @@ export default async function AppLayout({
   // The display name, and nothing else from the profile. `fetched` keeps an
   // API outage from taking the whole shell down: the card falls back to the
   // session's email, which is what it would show for a user with no name.
-  const me = await fetched(() => api(session.accessToken).GET("/me", {}));
+  //
+  // The active source is asked for alongside it rather than after it: the two
+  // are independent, and the rail should not cost two round trips in a row.
+  // Resolved once per request and shared with the pages that need it
+  // (`loadActiveSource` is memoised): the rail and, say, Favourites must not
+  // disagree about which source is active.
+  const [me, activeSource] = await Promise.all([
+    fetched(() => api(session.accessToken).GET("/me", {})),
+    loadActiveSource(session.accessToken, session.userId),
+  ]);
   const displayName =
     (me.state === "ok" ? me.data.display_name : null) ?? t("accountCardTitle");
   const initial = (
@@ -75,17 +102,42 @@ export default async function AppLayout({
     .charAt(0)
     .toUpperCase();
 
-  const links = [
+  const activeId = activeSource.state === "selected" ? activeSource.source.id : null;
+
+  // Always the three, whatever the source holds — the rule `CatalogueTabs`
+  // documents, learned the hard way: a hidden "Films" was read as a missing
+  // feature. A playlist has no series and its series page says so in the list,
+  // which an absent entry cannot.
+  const catalogueLinks = activeId
+    ? [
+        { href: `/app/sources/${activeId}/channels`, label: t("navLive") },
+        { href: `/app/sources/${activeId}/vod`, label: t("navFilms") },
+        { href: `/app/sources/${activeId}/series`, label: t("navSeries") },
+      ]
+    : [];
+
+  const accountLinks = [
     { href: "/app/sources", label: t("navSources") },
     { href: "/app/favorites", label: t("navFavorites") },
     { href: "/app/devices", label: t("navDevices") },
     { href: "/app/subscription", label: t("navSubscription") },
-  ] as const;
+  ];
 
-  const isCurrent = (href: string) => {
+  const isUnder = (href: string) => {
     const full = hrefFor(locale as Locale, href);
     return pathname === full || pathname.startsWith(`${full}/`);
   };
+
+  // One current entry, not two. The active source's catalogues live under
+  // `/app/sources/…`, so without this "Sources" would light up alongside
+  // "Films" and a screen reader would announce two current pages. Another
+  // source's catalogue, reached from My sources, still marks "Sources".
+  const inActiveCatalogue = catalogueLinks.some((link) => isUnder(link.href));
+  const links = [...catalogueLinks, ...accountLinks].map((link) => ({
+    ...link,
+    current:
+      isUnder(link.href) && !(inActiveCatalogue && link.href === "/app/sources"),
+  }));
 
   return (
     <div className="dark bg-background text-foreground flex min-h-full flex-1 flex-col md:flex-row">
@@ -94,9 +146,14 @@ export default async function AppLayout({
           <Wordmark />
         </a>
 
+        <SourceSwitcher
+          view={activeSource}
+          locale={locale as Locale}
+          pathname={pathname}
+        />
+
         <nav aria-label={t("metaTitle")} className="flex flex-row flex-wrap gap-1.5 md:flex-col">
-          {links.map((link) => {
-            const current = isCurrent(link.href);
+          {links.map(({ current, ...link }) => {
             return (
               <a
                 key={link.href}

@@ -6,17 +6,41 @@ import {
   defaultGroupLabel,
   groupLabel,
 } from "@/components/app/FavoriteGroups";
-import { Unavailable } from "@/components/app/Unavailable";
+import { EmptyState, Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api } from "@/lib/api/client";
-import type { Channel, Favorite, Source } from "@/lib/api/types";
+import type { Channel, Favorite } from "@/lib/api/types";
 import { resolveChannels } from "@/lib/catalogue/resolve-channels";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
+import { loadActiveSource } from "@/lib/sources/active-source-store";
 
 /**
- * The favourites of the whole account (US-12, S6-09).
+ * The favourites of the account, one source at a time (US-12, S6-09, US-018).
+ *
+ * <h2>One source at a time, and the groups are still the account's (US-018)</h2>
+ *
+ * Since S8-03 this browser browses one source — the active one — and this screen
+ * follows: it lists the favourites **of that source** and names it. The history
+ * below still holds where it matters. The route stays at the root of the zone
+ * and not under `sources/[id]`, because what it shows is decided by the active
+ * source and not by a path; and a group still belongs to the account and may
+ * hold channels of two subscriptions. What changed is that the two are no longer
+ * *listed* together: a mixed list under one source's name is the confusion
+ * US-018 exists to remove.
+ *
+ * The filter is applied here, after fetching — favourites carry `source_id` and
+ * the API has no parameter for it. **Nothing is deleted by it**: switch back and
+ * the other source's favourites are there, which the screen says in words so
+ * that nobody concludes from a shorter list that something was lost.
+ *
+ * When a choice of source is still owed, the screen asks for it rather than fall
+ * back to the mixed list; when the account has no source, it says how to add
+ * one; and when `GET /sources` did not answer, it is unavailable — an outage is
+ * not an empty account.
+ *
+ * <h2>How it got here</h2>
  *
  * <h2>This screen exists because the other one was quietly lying</h2>
  *
@@ -40,17 +64,17 @@ import { requireSession } from "@/lib/session/session";
  * under the back button, and **it works with no JavaScript**. The rule does not
  * lapse because the screen is new.
  *
- * <h2>Three requests, and the third is the one that is easy to forget</h2>
+ * <h2>Three requests, and the third is shared with the rail</h2>
  *
  * `GET /me/favorites` answers for the account but carries identifiers only.
- * Names and logos come from `GET /sources/{id}/channels?ids=` — one operation per
- * source — which is what `resolveChannels` is for, and where the `ids` ceiling has
- * to be a loop rather than a cut.
+ * Names and logos come from `GET /sources/{id}/channels?ids=`, which is what
+ * `resolveChannels` is for, and where the `ids` ceiling has to be a loop rather
+ * than a cut.
  *
- * `GET /sources` is the third, and it is not optional: the labels are in neither
- * of the other two answers, and without them this screen still would not say
- * where a channel comes from. That would be shipping the same defect under a new
- * route.
+ * `GET /sources` is the third. It used to label each row with where the channel
+ * came from; it now decides which source is active and gives the screen its
+ * name. It goes through `loadActiveSource`, memoised per request, so the layout's
+ * rail and this page share one call and cannot disagree.
  *
  * <h2>No player here</h2>
  *
@@ -94,33 +118,65 @@ export default async function FavoritesPage({
 
   const activeGroupId = single(query.group);
 
-  const [favorites, groups, sources] = await Promise.all([
+  const [favorites, groups, activeSource] = await Promise.all([
     api(session.accessToken).GET("/me/favorites", {}),
     api(session.accessToken).GET("/me/favorite-groups", {}),
-    // The "From *[source]*" line, and nothing else. Neither of the other two
-    // answers carries a source's label, and without it this screen would not say
-    // where a channel comes from — which is the defect it exists to fix.
-    api(session.accessToken).GET("/sources", {}),
+    // Which source this browser is browsing. The layout asked the same question
+    // for the rail; this is the same answer, not a second request.
+    loadActiveSource(session.accessToken, session.userId),
   ]);
 
-  if (!favorites.data || !groups.data) {
+  // An unanswered `GET /sources` is in this branch on purpose. It is not "no
+  // source" and it is not "choose one": it proves nothing, so it changes nothing.
+  if (!favorites.data || !groups.data || activeSource.state === "unavailable") {
     return <Unavailable />;
   }
 
+  if (activeSource.state === "none") {
+    return (
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("favoritesTitle")}</h1>
+        <div className="mt-8">
+          <EmptyState title={t("sourcesEmpty")} hint={t("sourcesEmptyHint")} />
+        </div>
+        <p className="mt-4">
+          <a
+            href={hrefFor(locale as Locale, "/app/sources/new")}
+            className="text-sm underline underline-offset-4"
+          >
+            {t("sourcesAddCta")}
+          </a>
+        </p>
+      </div>
+    );
+  }
+
+  if (activeSource.state === "needs-choice") {
+    // Not the mixed list "in the meantime". The switcher in the rail is already
+    // open on the same question; this says why the screen is waiting for it.
+    return (
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("favoritesTitle")}</h1>
+        <div className="mt-8">
+          <EmptyState title={t("favoritesChooseTitle")} hint={t("favoritesChooseBody")} />
+        </div>
+      </div>
+    );
+  }
+
+  const source = activeSource.source;
   const allFavorites = favorites.data.items;
   const favoriteGroups = groups.data.items;
-  const sourceNames = new Map(
-    (sources.data?.items ?? []).map((source: Source) => [source.id, source.label]),
-  );
 
   // The server keeps the order the user arranged, and nothing here re-sorts it.
+  const ofSource = allFavorites.filter((favorite) => favorite.source_id === source.id);
   const shown = activeGroupId
-    ? allFavorites.filter((favorite) => favorite.group_id === activeGroupId)
-    : allFavorites;
+    ? ofSource.filter((favorite) => favorite.group_id === activeGroupId)
+    : ofSource;
 
-  // One request per source, in batches of a hundred, in parallel. A group of
-  // three hundred channels across three sources is not three requests, and a
-  // `.slice()` here would truncate it with a `200` and no error.
+  // In batches of a hundred, in parallel. A group of three hundred channels is
+  // not one request, and a `.slice()` here would truncate it with a `200` and
+  // no error.
   const byId = await resolveChannels(
     shown.map((favorite) => ({
       sourceId: favorite.source_id,
@@ -146,7 +202,10 @@ export default async function FavoritesPage({
   return (
     <div>
       <h1 className="text-2xl font-semibold tracking-tight">{t("favoritesTitle")}</h1>
-      <p className="text-muted-foreground mt-2">{t("favoritesIntro")}</p>
+      <p className="text-muted-foreground mt-2">
+        {t("favoritesOfSource", { source: source.label })}
+      </p>
+      <p className="text-muted-foreground mt-1 text-sm">{t("favoritesIntro")}</p>
 
       <FavoriteGroups
         groups={favoriteGroups}
@@ -155,6 +214,9 @@ export default async function FavoritesPage({
           hrefFor(locale as Locale, `/app/favorites${queryString({ group: groupId })}`)
         }
         returnTo={returnTo}
+        // Counted across the account, not the active source, and that is not an
+        // oversight: this number only feeds the delete warning, and deleting a
+        // group moves **every** channel in it — the other sources' included.
         countInGroup={(groupId) =>
           allFavorites.filter((favorite) => favorite.group_id === groupId).length
         }
@@ -212,14 +274,6 @@ export default async function FavoritesPage({
                 >
                   {channel.name}
                 </a>
-                {/* The line the phone has had since S4-04, and the reason this
-                    screen exists: a group holds channels from two subscriptions,
-                    so which one a channel came from is not obvious. */}
-                <p className="text-muted-foreground truncate text-xs">
-                  {t("favoritesFromSource", {
-                    source: sourceNames.get(favorite.source_id) ?? t("favoritesUnknownSource"),
-                  })}
-                </p>
               </div>
 
               <form action={removeFavorite} className="shrink-0">

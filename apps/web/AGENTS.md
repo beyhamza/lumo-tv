@@ -132,6 +132,16 @@ possible dans l'arbre.
   vient de taper son mot de passe.
 - Le mot de passe Xtream n'apparaît nulle part : l'API ne le renvoie pas, et
   aucun écran ne l'affiche.
+- **La source active (US-018) est un cookie de ce navigateur, un par compte**
+  (`lumo_active_source_<userId>`, httpOnly, un an). Elle n'est jamais envoyée à
+  l'API et ne se synchronise pas : changer de source ici ne change rien sur la
+  TV. Elle se **lit** au rendu (`loadActiveSource`, mémoïsé par requête) et ne
+  s'**écrit** que dans une Server Action (`selectSource`, `createSource`,
+  `deleteSource`). La décision — aucune, sélectionnée, choix à faire — est une
+  fonction pure et testée (`lib/sources/active-source.ts`) ; elle ne reçoit
+  jamais une liste vide à la place d'un `GET /sources` en échec : une panne ne
+  prouve pas une suppression. La cible de redirection après un changement est
+  une liste blanche (`lib/sources/switch-target.ts`), pas un `next` nettoyé.
 
 ---
 
