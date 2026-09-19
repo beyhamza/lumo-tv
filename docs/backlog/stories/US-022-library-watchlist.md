@@ -93,10 +93,24 @@ La validation produit ne promet pas une mutation atomique ni une nouvelle API.
 
 ## Avant planification
 
+### À regarder : contenu indisponible — décision du 19 septembre 2026
+
+Un film ou une série disparu du catalogue après actualisation conserve sa carte
+dans À regarder, marquée Indisponible, avec retrait manuel. Une erreur réseau
+ne suffit pas à prouver cette disparition. La suppression confirmée de la source
+continue d’appliquer la cascade prévue dans US-024 ; elle ne laisse pas ces cartes.
+
+Voir [Q8 : états de la liste et cas WL-01 à WL-14](../../design/0.2.0/watchlist-states.md).
+Le retrait d’un élément indisponible doit rester possible sans dépendre du
+chargement de sa fiche ; cette couverture fait partie de C2 à définir.
+
+### Préparation restante
+
 - Spécifier les états vide, chargement, erreur et hors ligne.
 - Préciser les retours d’action en cours, résultat inconnu et réessai, en appliquant
   la conservation des retraits réussis désormais validée.
-- Définir le comportement d'un élément retiré du catalogue après synchronisation.
+- Définir les données affichables d’un élément indisponible et son éventuel
+  retour au catalogue ; la conservation de sa carte et le retrait manuel sont validés.
 - Définir les modifications concurrentes et la propagation aux appareils hors ligne.
 - Préciser les filtres lorsque la source ne propose qu'un seul type de contenu.
 - Vérifier la permutation dans une liste filtrée avec les opérations existantes,
@@ -116,5 +130,8 @@ de favoris. Vérifier le bouton Dans ma liste et la conservation de la progressi
 Ajouter les permutations avec sources entrelacées et vérifier les positions des
 autres sources. Simuler deux retraits réussis sur trois : seule l’appartenance
 restante est à réessayer, la chaîne reste agrégée jusqu’au retrait complet.
+Pour À regarder, ajouter la disparition confirmée d’un film et d’une série,
+le retrait sans fiche, l’erreur réseau qui ne prouve pas une disparition et la
+suppression de source. Les cas WL restent un plan de recette non exécuté.
 
 Référence : [décisions produit](../../roadmap/0.2.0/decisions.md).

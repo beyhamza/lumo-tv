@@ -1,0 +1,104 @@
+# À regarder — indisponibilité, hors ligne et conflits
+
+Date : 19 septembre 2026. Statut : cadrage Q8 en cours ; développement et recette non commencés.
+Références : [US-022](../../backlog/stories/US-022-library-watchlist.md),
+[bibliothèque](library.md), [sprint 11](../../backlog/sprint-11.md).
+
+## Décision validée : contenu disparu
+
+Lorsqu’un film ou une série enregistré disparaît du catalogue après actualisation,
+conserver sa carte dans À regarder, avec l’indication Indisponible et une action
+de retrait manuel. Une indisponibilité ne supprime ni le choix de l’utilisateur
+ni sa progression. La série reste enregistrée comme un ensemble.
+
+Une erreur réseau seule ne prouve pas la disparition du contenu. La suppression
+confirmée de la source suit le parcours US-024 déjà défini : les éléments de cette
+source sont supprimés de la liste. Conserver une carte indisponible ne s’applique
+donc pas à une source supprimée du compte.
+
+La représentation d’un contenu absent doit être couverte par C2 : la liste ne
+peut pas dépendre uniquement d’une fiche résolue avec succès. Définir quelles
+informations restent affichables et comment retirer cette entrée sans sa fiche,
+sans inventer ici de schéma de stockage ni de nouveau champ API.
+
+## Choix encore en discussion
+
+| Sujet | Proposition à valider |
+|---|---|
+| Hors ligne | Consulter la liste déjà disponible, avec message hors ligne ; attendre la reconnexion pour ajouter ou retirer |
+| Ajout et retrait concurrents | La dernière action acceptée par le serveur détermine l’appartenance à la liste |
+
+La consultation proposée ne promet pas une vidéo hors ligne ni une conservation
+persistante de la liste. Vérifier les capacités de chaque surface ; aucune
+stratégie de cache nouvelle n’est décidée par cet écran.
+
+## États proposés pour la présentation
+
+Ces compositions et libellés complètent la maquette ; ils restent à relire.
+
+| État | Présentation et actions proposées |
+|---|---|
+| Liste vide confirmée | « Votre liste est vide » et accès aux catalogues disponibles de la source active |
+| Filtre sans résultat | Garder les filtres et proposer Tous ; ne pas déclarer toute la liste vide |
+| Chargement initial | Indicateur de chargement ; ne pas afficher brièvement un faux état vide |
+| Chargement échoué | Explication et Réessayer ; conserver les éléments déjà disponibles |
+| Contenu disparu | Carte avec titre connu, Indisponible et Retirer de ma liste ; ne pas proposer une lecture qui exige une fiche absente |
+| Résultat d’écriture inconnu | « Modification non confirmée » ; vérifier l’état avant d’annoncer réussite ou échec définitif |
+| Écriture refusée | Conserver ou rétablir l’état confirmé, avec explication et réessai adapté |
+
+Pour une carte indisponible, proposer un panneau compact avec le titre connu et
+le retrait, utilisable au tactile, au clavier et au D-pad. Le panneau n’est pas
+une fausse fiche de catalogue. Garder le focus sur le déclencheur à la fermeture ;
+après retrait, proposer le voisin restant ou le titre de la section vide.
+
+## Cas de recette à préparer
+
+| ID | Scénario | Attente |
+|---|---|---|
+| WL-01 | Un film enregistré disparaît après actualisation confirmée | Carte conservée, Indisponible, retrait manuel accessible |
+| WL-02 | Une série enregistrée disparaît | Une seule carte de série indisponible, sans création de cartes par épisode |
+| WL-03 | Retrait manuel d’une carte indisponible | Retrait partagé après confirmation du serveur, progression indépendante |
+| WL-04 | Une requête de fiche échoue sur le réseau | Ne pas assimiler cette erreur à une disparition confirmée |
+| WL-05 | Suppression confirmée de la source | Appliquer la cascade de suppression de la liste prévue dans US-024/C2, sans cartes orphelines |
+| WL-06 | Perte de connexion avec liste déjà disponible | Comportement hors ligne selon l’arbitrage en cours |
+| WL-07 | Hors ligne sans liste accessible | Message d’indisponibilité de chargement, sans inventer une liste vide ni des données |
+| WL-08 | Retour de connexion après consultation d’une liste ancienne | Relire l’état partagé selon la politique retenue ; pas de succès de synchronisation présumé |
+| WL-09 | Ajout sur un appareil et retrait sur un autre | Appliquer l’arbitrage de conflit, dans les deux ordres d’acceptation |
+| WL-10 | Réponse perdue après une action peut-être acceptée | Résultat inconnu ; relecture et réessai à encadrer par C2 |
+| WL-11 | Plusieurs réessais d’un même ajout | Une seule entrée ; idempotence et effet sur le tri à spécifier dans C2 |
+| WL-12 | Une autre action intervient avant un réessai retardé | Éviter de confondre réessai technique et nouvelle intention ; garantie à définir dans C2 |
+| WL-13 | Lecture commencée ou terminée | L’élément reste dans À regarder, règle déjà validée |
+| WL-14 | Changement de source active | Afficher seulement la liste de cette source sans effacer l’autre |
+
+Exécuter sur les trois surfaces, FR/EN, avec deux comptes et deux sources de banc.
+Vérifier séparément disponibilité des métadonnées, appartenance à la liste,
+progression et accessibilité. Aucune ligne n’est actuellement déclarée jouée.
+
+## Préparation C2 et limites
+
+Le contrat actuel ne couvre pas la liste À regarder. Les décisions produit
+préparent S11-01 ; elles n’autorisent pas un endpoint improvisé ni le détournement
+des favoris de chaînes. C2 doit couvrir appartenance, tri, retrait sans fiche,
+contenu disparu, suppression de source et garanties de concurrence/réessai.
+
+Restent à préciser : retour d’un contenu au catalogue et rapprochement de son
+identité, données visibles après disparition, filtres avec un seul type de
+contenu, état initial sur un appareil sans données et réessais ambigus. Une
+évolution de persistance/cache suit la procédure ADR applicable.
+
+## Correspondance Plane — consultation du 19 septembre 2026
+
+[Page du sprint 11](http://localhost:8585/lumo-tv/projects/7c52f258-8226-4f83-a956-faac0a389773/pages/bdd1eb71-3b6e-4599-8d7d-7fcfae1115a3/).
+Lecture seule ; aucun statut, responsable, cycle ou contenu Plane modifié.
+
+| Référence | Élément Plane observé | Complément à reporter lors d’une synchronisation autorisée |
+|---|---|---|
+| US-022 | Élément 22, Backlog | Règles Q3 et décisions Q8 de cette discussion |
+| S11-00 | Élément 136, Backlog | Cas FO et WL ; séparer décisions acquises et garanties à vérifier |
+| C2 / S11-01 | Éléments 164 Todo / 137 Backlog | Retrait sans fiche, contenu indisponible et garanties de synchronisation |
+| S11-04/05/06 | Éléments 140/141/142, Backlog | États de liste, conflits et recette WL-01 à WL-14 |
+| Q3 / Q8 | Éléments 169 / 174, Todo | Q3 : décisions produit déjà consignées localement ; Q8 : décisions en cours |
+
+Cette correspondance est un instantané, pas une copie faisant autorité sur les
+statuts futurs. Le travail S8 de l’autre agent et les fichiers partagés de cadrage
+C4/Q4 ne sont pas modifiés dans ce lot documentaire.

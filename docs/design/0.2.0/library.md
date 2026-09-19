@@ -62,6 +62,11 @@ de la liste À regarder ; aucun endpoint n’est défini par ces écrans.
 
 ## Vérifications
 
+Le [complément Q8](watchlist-states.md) poursuit les états À regarder : carte
+conservée avec Indisponible et retrait manuel après disparition du catalogue,
+décision du 19 septembre. Hors ligne et concurrence restent en cours de cadrage.
+La maquette initiale ne simule pas ces nouveaux cas.
+
 Parcours contrôlés : dédoublonnage, retrait local puis global confirmé,
 appartenances multiples, déplacement dans un groupe, création/renommage,
 suppression avec conservation des chaînes et protection du groupe par défaut.

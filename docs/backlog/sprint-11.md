@@ -7,6 +7,9 @@ Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 19 septembre 2026 pour web, mobile et TV ; présentation générale retenue.
 Complément de cadrage : [ordre par source et retraits partiels](../design/0.2.0/favorite-organization-cases.md),
 pour S11-00/03/05/06 ; règles produit Q3 validées, garanties à vérifier, recette non exécutée.
+Suite : [À regarder — indisponibilité, hors ligne et conflits](../design/0.2.0/watchlist-states.md),
+pour S11-00/01/04/05/06. La carte d’un contenu disparu est conservée avec
+Indisponible et retrait manuel ; les autres arbitrages Q8 restent à compléter.
 
 ## Objectif
 
@@ -36,6 +39,9 @@ source de test et conserver les données de l'autre.
 Dans un groupe A1, B1, A2, déplacer A2 avant A1 : obtenir A2, B1, A1.
 Faire réussir deux retraits sur trois : conserver les réussites, réessayer le
 reste et garder la carte agrégée tant qu’une appartenance subsiste. Voir FO-01 à FO-12.
+Faire disparaître un film ou une série du catalogue après actualisation : garder
+sa carte À regarder marquée Indisponible et permettre son retrait sans fiche.
+Ne pas confondre disparition d’un contenu, erreur réseau et suppression de source.
 
 Tests : identité/dédoublonnage, ordre, limites/isolation de compte, répétition des
 écritures, suppression et erreurs partielles. Fixtures neutres multi-sources et
