@@ -3,6 +3,9 @@
 Statut : parcours validé le 17 septembre 2026, détails d'interaction à préparer.
 Version cible : 0.2.0. Surfaces : web, Android mobile, Android TV, même priorité.
 
+Première [proposition visuelle](../../design/0.2.0/unified-search.md) disponible
+depuis le 19 septembre 2026 ; ses choix de densité et de clavier restent à relire.
+
 ## Besoin
 
 Planification proposée : S10.

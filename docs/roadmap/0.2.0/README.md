@@ -21,6 +21,7 @@ est proposé ; les estimations et détails ouverts restent à fixer.
 | [Décisions produit](decisions.md) | Choix validés au fil de la discussion |
 | [Écrans du sprint 8](../../design/0.2.0/sprint-08-screens.md) | Première proposition accueil, navigation et sources sur les trois surfaces, à relire |
 | [Écrans Direct et Guide](../../design/0.2.0/direct-guide.md) | Présentation générale retenue sur web, mobile et TV ; arbitrages et recette réelle à compléter |
+| [Écrans Recherche](../../design/0.2.0/unified-search.md) | Proposition du sprint 10 : résultats, filtres, clavier TV et erreurs, à relire |
 
 Ordre proposé : **S8 Navigation/sources → S9 Guide → S10 Recherche → S11
 Bibliothèque → S12 Reprise → S13 Lecteur/réglages → S14 Sortie gratuite**.

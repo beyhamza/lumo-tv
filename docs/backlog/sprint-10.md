@@ -3,6 +3,9 @@
 Statut : proposé, non commencé. Taille relative : M.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
+[Proposition d’écrans](../design/0.2.0/unified-search.md) préparée le 19 septembre
+2026 pour les trois surfaces ; relecture visuelle et arbitrages Q9 à effectuer.
+
 ## Objectif
 
 Une saisie retrouve chaînes, films et séries de la source active sur les trois surfaces.
