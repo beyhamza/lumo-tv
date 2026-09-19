@@ -175,7 +175,8 @@ public class CatalogReadRepository {
      */
     public Optional<PlaybackRow> findStreamUrlOwnedBy(UUID channelId, UUID userId) {
         return jdbc.sql("""
-                SELECT ch.stream_url, s.max_connections, s.status, s.expires_at
+                SELECT ch.stream_url, s.max_connections, s.status, s.expires_at,
+                       s.error_code, s.last_synced_at
                   FROM channel ch
                   JOIN source s ON s.id = ch.source_id
                  WHERE ch.id = :channelId
@@ -187,7 +188,9 @@ public class CatalogReadRepository {
                         rs.getString("stream_url"),
                         rs.getObject("max_connections", Integer.class),
                         rs.getString("status"),
-                        rs.getObject("expires_at", OffsetDateTime.class)))
+                        rs.getObject("expires_at", OffsetDateTime.class),
+                        rs.getString("error_code"),
+                        rs.getObject("last_synced_at", OffsetDateTime.class)))
                 .optional();
     }
 
@@ -381,7 +384,8 @@ public class CatalogReadRepository {
      */
     public Optional<PlaybackRow> findVodStreamUrlOwnedBy(UUID vodItemId, UUID userId) {
         return jdbc.sql("""
-                SELECT v.stream_url, s.max_connections, s.status, s.expires_at
+                SELECT v.stream_url, s.max_connections, s.status, s.expires_at,
+                       s.error_code, s.last_synced_at
                   FROM vod_item v
                   JOIN source s ON s.id = v.source_id
                  WHERE v.id = :vodItemId
@@ -393,13 +397,20 @@ public class CatalogReadRepository {
                         rs.getString("stream_url"),
                         rs.getObject("max_connections", Integer.class),
                         rs.getString("status"),
-                        rs.getObject("expires_at", OffsetDateTime.class)))
+                        rs.getObject("expires_at", OffsetDateTime.class),
+                        rs.getString("error_code"),
+                        rs.getObject("last_synced_at", OffsetDateTime.class)))
                 .optional();
     }
 
-    /** @param streamUrl sensitive; must not be logged or cached anywhere shared */
+    /**
+     * @param streamUrl          sensitive; must not be logged or cached anywhere shared
+     * @param sourceErrorCode    why the last ingestion failed; null unless the source is in ERROR
+     * @param sourceLastSyncedAt last ingestion that succeeded; null means there is no catalogue yet
+     */
     public record PlaybackRow(String streamUrl, Integer maxConnections,
-                              String sourceStatus, OffsetDateTime sourceExpiresAt) {
+                              String sourceStatus, OffsetDateTime sourceExpiresAt,
+                              String sourceErrorCode, OffsetDateTime sourceLastSyncedAt) {
     }
 
     // ---- series -------------------------------------------------------------
@@ -593,7 +604,8 @@ public class CatalogReadRepository {
      */
     public Optional<PlaybackRow> findEpisodeStreamUrlOwnedBy(UUID episodeId, UUID userId) {
         return jdbc.sql("""
-                SELECT e.stream_url, s.max_connections, s.status, s.expires_at
+                SELECT e.stream_url, s.max_connections, s.status, s.expires_at,
+                       s.error_code, s.last_synced_at
                   FROM episode e
                   JOIN source s ON s.id = e.source_id
                  WHERE e.id = :episodeId
@@ -605,7 +617,9 @@ public class CatalogReadRepository {
                         rs.getString("stream_url"),
                         rs.getObject("max_connections", Integer.class),
                         rs.getString("status"),
-                        rs.getObject("expires_at", OffsetDateTime.class)))
+                        rs.getObject("expires_at", OffsetDateTime.class),
+                        rs.getString("error_code"),
+                        rs.getObject("last_synced_at", OffsetDateTime.class)))
                 .optional();
     }
 

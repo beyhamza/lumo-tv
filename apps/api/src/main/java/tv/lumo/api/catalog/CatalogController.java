@@ -15,6 +15,7 @@ import tv.lumo.api.generated.model.ChannelPage;
 import tv.lumo.api.generated.model.ContentType;
 import tv.lumo.api.generated.model.EpgProgrammeList;
 import tv.lumo.api.generated.model.ErrorCode;
+import tv.lumo.api.generated.model.IngestionErrorCode;
 import tv.lumo.api.generated.model.PlaybackInfo;
 import tv.lumo.api.generated.model.SourceStatus;
 import tv.lumo.api.generated.model.Episode;
@@ -364,15 +365,37 @@ public class CatalogController implements CatalogApi {
     }
 
     /**
-     * The two conflicts a source can raise at the moment of playback.
+     * The conflicts a source can raise at the moment of playback.
      *
-     * <p>Shared by the channel and the film paths rather than written twice: they
-     * are properties of the *source*, and a film hitting a different rule from a
-     * channel on the same subscription would be a bug on whichever side was
-     * changed last.
+     * <p>Shared by the channel, the film and the episode paths rather than written
+     * three times: they are properties of the *source*, and a film hitting a
+     * different rule from a channel on the same subscription would be a bug on
+     * whichever side was changed last.
+     *
+     * <p>Reading a catalogue and playing from it are two permissions (C4).
+     * Playback stays closed while an ingestion is pending or running. After a
+     * failed one it is open again, provided a catalogue was ingested before:
+     * the automatic refresh failing at night on a provider that was briefly down
+     * used to lock the user out of everything until the next success. Two
+     * failures keep it closed, because they are about the user's account and the
+     * stream would be refused anyway — and they answer with their own code, since
+     * "your credentials were refused" is the message that helps.
      */
     private void requirePlayableSource(CatalogReadRepository.PlaybackRow row) {
-        if (!SourceStatus.READY.getValue().equals(row.sourceStatus())) {
+        String status = row.sourceStatus();
+        boolean failedWithCatalogue = SourceStatus.ERROR.getValue().equals(status)
+                && row.sourceLastSyncedAt() != null;
+
+        if (failedWithCatalogue) {
+            if (IngestionErrorCode.SOURCE_AUTH_FAILED.getValue().equals(row.sourceErrorCode())) {
+                throw ApiException.conflict(ErrorCode.SOURCE_AUTH_FAILED,
+                        "The provider refused the credentials of this source");
+            }
+            if (IngestionErrorCode.SOURCE_EXPIRED.getValue().equals(row.sourceErrorCode())) {
+                throw ApiException.conflict(ErrorCode.SOURCE_EXPIRED,
+                        "The subscription with the provider has expired");
+            }
+        } else if (!SourceStatus.READY.getValue().equals(status)) {
             throw ApiException.conflict(ErrorCode.SOURCE_NOT_READY,
                     "The source has not finished ingesting");
         }
@@ -383,19 +406,27 @@ public class CatalogController implements CatalogApi {
     }
 
     /**
-     * Resolves the source and refuses to list a catalogue that is not there yet.
+     * Resolves the source and refuses to list a catalogue that was never there.
      *
-     * <p>Returning an empty list for a PENDING source would look identical to a
-     * source that genuinely has no channels, and the client would stop polling.
+     * <p>The test is {@code last_synced_at}, not the status (C4). Ingestion
+     * upserts in place and only reaps after a pass that succeeded, so once one
+     * has, the rows are there in every status — during a re-synchronisation and
+     * after a failed one — and refusing to serve them hid a catalogue that
+     * existed. The status describes the latest attempt; the client has it, and
+     * says "refreshing" or "this may be out of date" from it.
+     *
+     * <p>Before the first success the refusal stands: returning an empty list for
+     * a PENDING source would look identical to a source that genuinely has no
+     * channels, and the client would stop polling.
      */
     private void requireReadableSource(UUID sourceId, UUID userId) {
         SourceRepository.SourceRow source = sources.findOwned(sourceId, userId)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.SOURCE_NOT_FOUND,
                         "No such source on this account"));
 
-        if (source.status() != SourceStatus.READY) {
+        if (source.lastSyncedAt() == null) {
             throw new ApiException(HttpStatus.CONFLICT, ErrorCode.SOURCE_NOT_READY,
-                    "The source has not finished ingesting");
+                    "No catalogue has been ingested from this source yet");
         }
     }
 }

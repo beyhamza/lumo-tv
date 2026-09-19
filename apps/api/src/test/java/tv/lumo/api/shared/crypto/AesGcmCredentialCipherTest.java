@@ -110,7 +110,7 @@ class AesGcmCredentialCipherTest {
                 new LumoProperties.Web("http://localhost:3000"),
                 new LumoProperties.Cors(java.util.List.of()),
                 new LumoProperties.Ingest(4, 50, java.time.Duration.ofSeconds(10), 200, false),
-                new LumoProperties.RateLimit(5, 5),
+                new LumoProperties.RateLimit(5, 5, java.time.Duration.ofMinutes(5)),
                 new LumoProperties.AutoSync(false, java.time.Duration.ofHours(1), 12, 25),
                 new LumoProperties.Plans(new LumoProperties.Limits(1, 2),
                         new LumoProperties.Limits(null, null)),

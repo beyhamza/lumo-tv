@@ -121,6 +121,12 @@ services:
       # the bench is reached at the machine's address on the local network.
       LUMO_INGEST_ALLOW_PRIVATE_HOSTS: ${LUMO_INGEST_ALLOW_PRIVATE_HOSTS:-false}
 
+      # How long a source waits between two synchronisations its owner asked
+      # for (429 SOURCE_SYNC_RATE_LIMITED, Retry-After). Five minutes is what
+      # ships. A qualification run that needs "refresh, then refresh again to
+      # see the wait" keeps it; one that needs two refreshes in a row lowers it.
+      LUMO_MANUAL_SYNC_INTERVAL: ${LUMO_MANUAL_SYNC_INTERVAL:-PT5M}
+
       LUMO_CORS_ALLOWED_ORIGINS: ${LUMO_CORS_ALLOWED_ORIGINS:-http://localhost:3000}
 
       # Actuator: health only. Nothing else is exposed, in any environment.

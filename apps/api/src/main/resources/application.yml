@@ -139,6 +139,10 @@ lumo:
     # Sprint 1: 5 attempts per IP per minute on the sign-in surface (US-01, US-02).
     auth-attempts-per-minute: 5
     device-approve-attempts-per-minute: 5
+    # One synchronisation asked for by the user, per source, per interval. The
+    # wait that is left goes out as Retry-After with SOURCE_SYNC_RATE_LIMITED.
+    # The automatic refresh and a change of credentials do not count.
+    manual-sync-interval: ${LUMO_MANUAL_SYNC_INTERVAL:PT5M}
   auto-sync:
     # What Source.auto_sync actually does. Off, and the property is a switch
     # wired to nothing.

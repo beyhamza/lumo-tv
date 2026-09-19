@@ -544,7 +544,7 @@ class XtreamClientTest {
                 new LumoProperties.Web("http://localhost:3000"),
                 new LumoProperties.Cors(List.of()),
                 ingest,
-                new LumoProperties.RateLimit(5, 5),
+                new LumoProperties.RateLimit(5, 5, Duration.ofMinutes(5)),
                 new LumoProperties.AutoSync(false, Duration.ofHours(1), 12, 25),
                 new LumoProperties.Plans(new LumoProperties.Limits(1, 2),
                         new LumoProperties.Limits(null, null)),

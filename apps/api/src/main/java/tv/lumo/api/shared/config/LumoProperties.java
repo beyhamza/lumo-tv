@@ -23,7 +23,8 @@ import org.springframework.validation.annotation.Validated;
  * @param web        public web surface, for links sent by email or encoded in a QR code
  * @param cors       browser origins allowed to call this API
  * @param ingest     explicit backpressure for outbound calls (ADR 0005 §1)
- * @param rateLimit  abuse limits on the authentication surface
+ * @param rateLimit  abuse limits on the authentication surface, and the pace of
+ *                   the synchronisations a user asks for
  * @param autoSync   how often the server refreshes sources on the user's behalf
  * @param plans      what each subscription tier allows — the single place those
  *                   numbers exist anywhere in the product
@@ -90,9 +91,15 @@ public record LumoProperties(
         }
     }
 
+    /**
+     * @param manualSyncInterval how long a source waits between two synchronisations
+     *                           its owner asked for. Protects the user's own panel,
+     *                           not this server (ADR 0005)
+     */
     public record RateLimit(
             @Positive int authAttemptsPerMinute,
-            @Positive int deviceApproveAttemptsPerMinute
+            @Positive int deviceApproveAttemptsPerMinute,
+            @NotNull Duration manualSyncInterval
     ) {}
 
     /**

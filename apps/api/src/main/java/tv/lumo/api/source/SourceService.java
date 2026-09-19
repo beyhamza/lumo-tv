@@ -22,6 +22,7 @@ import tv.lumo.api.ingest.SourceUrl;
 import tv.lumo.api.ingest.xtream.XtreamClient;
 import tv.lumo.api.shared.crypto.CredentialCipher;
 import tv.lumo.api.shared.error.ApiException;
+import tv.lumo.api.shared.error.RateLimitedException;
 
 /**
  * Registering, updating and re-synchronising sources.
@@ -54,19 +55,22 @@ public class SourceService {
     private final CredentialCipher cipher;
     private final SourceMapper mapper;
     private final EntitlementService entitlements;
+    private final ManualSyncLimiter manualSyncs;
 
     public SourceService(SourceRepository sources,
                          IngestionService ingestion,
                          XtreamClient xtream,
                          CredentialCipher cipher,
                          SourceMapper mapper,
-                         EntitlementService entitlements) {
+                         EntitlementService entitlements,
+                         ManualSyncLimiter manualSyncs) {
         this.sources = sources;
         this.ingestion = ingestion;
         this.xtream = xtream;
         this.cipher = cipher;
         this.mapper = mapper;
         this.entitlements = entitlements;
+        this.manualSyncs = manualSyncs;
     }
 
     public List<Source> listOwned(UUID userId) {
@@ -167,18 +171,45 @@ public class SourceService {
         if (sources.delete(sourceId, userId) == 0) {
             throw ApiException.notFound(ErrorCode.SOURCE_NOT_FOUND, "No such source on this account");
         }
-        // Categories, channels, EPG rows and favourites go with it, by ON DELETE
+        // Everything ingested from it, and the favourites, recent channels and
+        // playback progress that point at it, go with it — by ON DELETE
         // CASCADE rather than by application code that could miss one.
         log.info("Source {} deleted", sourceId);
     }
 
+    /**
+     * Starts the synchronisation a user asked for.
+     *
+     * <p>Refusals in the order the contract gives them: no such source, one
+     * already running, then the pace. The order matters to the client — "already
+     * refreshing" is a state to show, "again in three minutes" is a wait, and a
+     * source that is doing the first must not be told the second.
+     */
     public Source sync(UUID sourceId, UUID userId) {
-        requireOwned(sourceId, userId);
+        SourceRepository.SourceRow source = requireOwned(sourceId, userId);
+        if (source.status() == SourceStatus.SYNCING) {
+            throw syncInProgress();
+        }
+
+        long retryAfterSeconds = manualSyncs.tryAcquire(sourceId);
+        if (retryAfterSeconds > 0) {
+            throw new RateLimitedException(ErrorCode.SOURCE_SYNC_RATE_LIMITED, retryAfterSeconds,
+                    "This source was synchronised moments ago");
+        }
+
+        // The status read above is a courtesy; markSyncing is the real guard. A
+        // caller that lost that race did not start anything, so it does not pay
+        // for the interval either.
         if (!ingestion.schedule(sourceId)) {
-            throw ApiException.conflict(ErrorCode.SOURCE_SYNC_IN_PROGRESS,
-                    "A synchronisation is already running for this source");
+            manualSyncs.release(sourceId);
+            throw syncInProgress();
         }
         return toApi(requireOwned(sourceId, userId));
+    }
+
+    private static ApiException syncInProgress() {
+        return ApiException.conflict(ErrorCode.SOURCE_SYNC_IN_PROGRESS,
+                "A synchronisation is already running for this source");
     }
 
     // ---- helpers ------------------------------------------------------------
@@ -211,13 +242,17 @@ public class SourceService {
     /**
      * Maps a row, counting its catalogue only once it has one.
      *
+     * <p>"Has one" is {@code last_synced_at}, not the status (C4): a source being
+     * refreshed, or whose refresh failed, still holds what it held, and a row
+     * that read "1 248 chaînes" must not go blank for the length of a sync.
+     *
      * <p>Both counts are null until the first successful ingestion, which is what
      * the contract says, and they are counted together: "1 248 chaînes ·
      * 96 catégories" is one line, and a source that could answer half of it would
      * be a source that renders half a line.
      */
     private Source toApi(SourceRepository.SourceRow row) {
-        boolean ingested = row.status() == SourceStatus.READY;
+        boolean ingested = row.lastSyncedAt() != null;
         return mapper.toApi(row,
                 ingested ? sources.countChannels(row.id()) : null,
                 ingested ? sources.countCategories(row.id()) : null);
