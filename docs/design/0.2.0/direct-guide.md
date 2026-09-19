@@ -1,7 +1,8 @@
 # Direct et guide — cadrage 0.2.0
 
 Organisation validée le 17 septembre 2026. Les interactions encore ouvertes sont
-listées explicitement. Les maquettes restent à produire à la demande de l'utilisateur.
+listées explicitement. Première proposition interactive préparée le 19 septembre
+2026, à relire ; le développement du sprint 9 n’a pas commencé.
 
 ## Parcours validé
 
@@ -93,6 +94,9 @@ la recette ; ce cadrage ne vaut pas validation de leur implémentation.
 
 ## Interactions encore à discuter
 
+La proposition du 19 septembre illustre les choix déjà validés, sans les soumettre
+à nouveau à approbation. Sa composition visuelle reste à discuter.
+
 - Programme qui se termine pendant que sa fiche est ouverte : mise à jour des actions.
 - Fraîcheur : seuil d'ancienneté et provenance de la date de mise à jour.
 - Conservation du texte recherché entre vues et des filtres entre sessions.
@@ -100,6 +104,44 @@ la recette ; ce cadrage ne vaut pas validation de leur implémentation.
 - Chargement, pagination et affichage quand un logo manque.
 
 Le replay, le timeshift et l'enregistrement restent hors périmètre selon `AGENTS.md`.
+
+## Proposition visuelle du 19 septembre 2026
+
+| Écran | Contenu | Tâche |
+|---|---|---|
+| S9-E01 Chaînes | Cartes avec nom, programme courant et progression ; sélection vers aperçu de lecture | S9-04 |
+| S9-E02 Guide web/TV | Grille sur deux heures, durées différentes, jours et retour Maintenant | S9-05 |
+| S9-E03 Guide mobile | Liste En ce moment, puis programmes de la journée d’une chaîne | S9-05 |
+| S9-E04 Programme | Fiche latérale web/TV et panneau depuis le bas mobile ; lecture uniquement pour le programme courant | S9-06 |
+| S9-E05 États | Guide absent, créneau incomplet, données anciennes, erreur conservant les données | S9-06 |
+
+Les trois surfaces partagent recherche par nom et filtres Toutes/Favoris/catégories.
+La maquette permet de les manipuler, de changer de jour, d’ouvrir une fiche et de
+revenir à sa case après l’aperçu de lecture. Une variante de densité aérée/compacte
+permet de comparer la présentation. La navigation hors Direct reste un contexte visuel.
+
+Toutes les chaînes et tous les programmes sont fictifs, sans logo ni URL de flux.
+L’horloge de démonstration est figée au 19 septembre 2026 à 20:25. Les jours sont
+alimentés artificiellement pour montrer la fenêtre prévue ; l’application devra
+respecter la disponibilité réelle. Les programmes longs sont tronqués visuellement
+aux limites du créneau tout en conservant leurs horaires dans la fiche.
+
+Le prototype est en français, sans API ni lecture réelle. La vue TV agrandie dans
+la conversation ne remplace pas la validation à trois mètres, les dimensions
+1920 × 1080, les marges de sécurité et la recette à la télécommande. À petite largeur,
+la grille se réorganise pour rester lisible ; ce repli n’est pas un écran TV cible.
+La journée mobile se déroule verticalement dans la conversation.
+
+Contrôles du prototype : filtres partagés, recherche sans résultat, programme courant
+avec action de lecture, programme futur sans lecture, retour du focus après aperçu,
+parcours mobile et changement d’états. Absence d’erreur JavaScript et de débordement
+horizontal contrôlée à 320, 390, 736 et 1024 px sur les trois variantes. Relecture
+visuelle des grilles web/TV et du panneau mobile effectuée.
+
+Restent notamment les tests applicatifs FR/EN, le lecteur réel, les gros catalogues,
+le clavier TV, la conservation intersessions et la fraîcheur réelle. L’horloge figée
+ne tranche pas le changement d’action lorsqu’un programme se termine. C1/Q5 restent
+ouverts dans le [registre](../../roadmap/0.2.0/open-questions.md).
 
 ## Recette à préparer
 

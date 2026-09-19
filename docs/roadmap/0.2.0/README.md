@@ -20,6 +20,7 @@ est proposé ; les estimations et détails ouverts restent à fixer.
 | [Recette de version](../../releases/0.2.0/acceptance.md) | Conditions de sortie et matrice de preuves à exécuter |
 | [Décisions produit](decisions.md) | Choix validés au fil de la discussion |
 | [Écrans du sprint 8](../../design/0.2.0/sprint-08-screens.md) | Première proposition accueil, navigation et sources sur les trois surfaces, à relire |
+| [Écrans Direct et Guide](../../design/0.2.0/direct-guide.md) | Proposition interactive du sprint 9 sur web, mobile et TV, à relire |
 
 Ordre proposé : **S8 Navigation/sources → S9 Guide → S10 Recherche → S11
 Bibliothèque → S12 Reprise → S13 Lecteur/réglages → S14 Sortie gratuite**.

@@ -3,6 +3,9 @@
 Statut : proposé, non commencé. Taille relative : XL.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
+Première [proposition d’écrans](../design/0.2.0/direct-guide.md) préparée le
+19 septembre 2026 ; relecture visuelle à faire, réalisation non commencée.
+
 ## Objectif
 
 Voir ce qui passe, consulter les programmes et lancer une chaîne depuis le Direct.
