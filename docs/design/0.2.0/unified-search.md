@@ -37,7 +37,13 @@ rubriques. L’état Champ vide montre l’entrée réelle sans historique. Le s
 Source avec chaînes seules illustre l’absence des filtres Films/Séries, distincte
 d’une recherche sans correspondance dans un catalogue qui possède ces types.
 
-## Choix de démonstration à arbitrer avec Q9
+## Choix de la maquette historique et suite Q9
+
+Les [règles d’interaction Q9](search-interactions.md) retiennent 350 ms et quatre
+résultats par rubrique ; les listes réelles par type utiliseront des pages de
+20. Elles fixent aussi le changement de source, les réponses tardives et le focus.
+La maquette initiale n’est pas modifiée par ce cadrage ; ses limites restent
+décrites ci-dessous.
 
 - Pause de saisie de 350 ms, utilisée uniquement pour simuler la mise à jour automatique.
 - Quatre résultats par rubrique dans Tous ; variante de deux résultats disponible
@@ -48,8 +54,9 @@ d’une recherche sans correspondance dans un catalogue qui possède ces types.
 - Voir les résultats masque ce clavier et place le focus sur le premier résultat.
   Le focus initial de l’application réelle et les actions sans résultat restent à préciser.
 
-Le changement de source en cours de requête, les réponses tardives, la pagination
-réelle et la parité avec la recherche locale Android restent à traiter dans Q9.
+Le changement de source en cours de requête, les réponses tardives et la pagination
+réelle sont spécifiés dans le complément Q9 ; leur réalisation et la parité avec
+la recherche locale Android restent à vérifier.
 La composition de la fiche de contenu complète sera étudiée séparément.
 
 ## Portée et vérifications

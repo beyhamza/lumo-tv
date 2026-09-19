@@ -1,6 +1,7 @@
 # US-021 — Rechercher dans ma source active
 
-Statut : parcours validé le 17 septembre 2026, détails d'interaction à préparer.
+Statut : parcours validé le 17 septembre 2026 ; interactions cadrées le 19 septembre,
+réalisation et recette non commencées.
 Version cible : 0.2.0. Surfaces : web, Android mobile, Android TV, même priorité.
 
 Première [proposition visuelle](../../design/0.2.0/unified-search.md) disponible
@@ -51,11 +52,17 @@ locales Android avec la sémantique contractuelle.
 
 ## Avant planification
 
-- Définir le délai de saisie, le nombre de résultats par section et la pagination.
-- Préciser le focus initial et le passage clavier/résultats sur TV.
-- Définir le comportement lors d'un changement de source pendant la recherche.
-- Vérifier que la réponse d'une ancienne saisie ne remplace pas la réponse courante.
-- Préparer les états de chargement, hors ligne et de source indisponible.
+Les [règles Q9 et cas SR-01 à SR-15](../../design/0.2.0/search-interactions.md)
+précisent la suite confiée à l’agent : délai 350 ms, quatre résultats par type
+dans Tous, pages de 20 sur demande, clavier de plateforme et focus stable.
+Au changement de source, garder le texte mais revenir à Tous/page 0 ; ignorer
+toute réponse de l’ancien contexte. Au changement de compte, vider le contexte.
+
+Avant réalisation, vérifier la parité de recherche Android/API, les capacités
+locales hors ligne, le comptage Unicode de la limite de 100 caractères et le
+clavier TV réel. Le descriptif contractuel de `q` des chaînes mentionne la
+tolérance aux fautes alors que les listes films/séries décrivent une sous-chaîne :
+vérifier et résoudre cette divergence avant de promettre une sémantique identique.
 
 ## Recette à préparer
 

@@ -9,7 +9,8 @@ Complément de cadrage : [ordre par source et retraits partiels](../design/0.2.0
 pour S11-00/03/05/06 ; règles produit Q3 validées, garanties à vérifier, recette non exécutée.
 Suite : [À regarder — indisponibilité, hors ligne et conflits](../design/0.2.0/watchlist-states.md),
 pour S11-00/01/04/05/06. La carte d’un contenu disparu est conservée avec
-Indisponible et retrait manuel ; les autres arbitrages Q8 restent à compléter.
+Indisponible et retrait manuel. Consultation seule hors ligne et dernière nouvelle
+action acceptée par le serveur retenues ; garanties de C2 à définir.
 
 ## Objectif
 

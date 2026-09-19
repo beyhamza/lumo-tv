@@ -93,26 +93,36 @@ La validation produit ne promet pas une mutation atomique ni une nouvelle API.
 
 ## Avant planification
 
-### À regarder : contenu indisponible — décision du 19 septembre 2026
+### À regarder : indisponibilité et synchronisation — décisions du 19 septembre 2026
 
 Un film ou une série disparu du catalogue après actualisation conserve sa carte
 dans À regarder, marquée Indisponible, avec retrait manuel. Une erreur réseau
 ne suffit pas à prouver cette disparition. La suppression confirmée de la source
 continue d’appliquer la cascade prévue dans US-024 ; elle ne laisse pas ces cartes.
 
-Voir [Q8 : états de la liste et cas WL-01 à WL-14](../../design/0.2.0/watchlist-states.md).
+Hors ligne, consulter seulement la liste déjà disponible avec une indication ;
+attendre la reconnexion pour ajouter ou retirer, sans file d’écritures différées.
+Relire l’état partagé à la reconnexion avant de réactiver les mutations.
+Entre nouvelles intentions concurrentes, la dernière action acceptée par le
+serveur décide. Un réessai technique ne constitue pas une nouvelle intention
+et ne modifie pas de nouveau le rang d’ajout.
+
+Voir [Q8 : états de la liste et cas WL-01 à WL-17](../../design/0.2.0/watchlist-states.md).
 Le retrait d’un élément indisponible doit rester possible sans dépendre du
 chargement de sa fiche ; cette couverture fait partie de C2 à définir.
 
 ### Préparation restante
 
-- Spécifier les états vide, chargement, erreur et hors ligne.
+- Réaliser les états vide, chargement, erreur et consultation seule hors ligne
+  selon le cadrage Q8, en vérifiant les capacités réellement disponibles.
 - Préciser les retours d’action en cours, résultat inconnu et réessai, en appliquant
   la conservation des retraits réussis désormais validée.
 - Définir les données affichables d’un élément indisponible et son éventuel
   retour au catalogue ; la conservation de sa carte et le retrait manuel sont validés.
-- Définir les modifications concurrentes et la propagation aux appareils hors ligne.
-- Préciser les filtres lorsque la source ne propose qu'un seul type de contenu.
+- Définir dans C2 les garanties d’ordre serveur, de réessai et de relecture à la
+  reconnexion ; ne pas transformer un réessai en nouvelle intention.
+- Les filtres suivent les types de la liste, cartes indisponibles comprises ;
+  omettre un sélecteur redondant lorsqu’un seul type est présent.
 - Vérifier la permutation dans une liste filtrée avec les opérations existantes,
   les échecs intermédiaires et la concurrence, sans déplacer les autres sources
   dans le résultat final. Soumettre toute évolution contractuelle nécessaire.
