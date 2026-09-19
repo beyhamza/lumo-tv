@@ -5,6 +5,9 @@ compte email et activation TV ; Google et paiements exclus par décision utilisa
 
 ## Préparation
 
+Voir le [plan d’exécution](execution-plan.md) pour les sessions de bout en bout,
+le format des preuves et le dossier de livraison à assembler en S14.
+
 - Build candidat identifié par commit, versions et configuration non secrète.
 - Téléphone Android réel, Android TV/box avec télécommande, navigateurs retenus
   identifiés par version. Couvrir Chromium et un parcours HLS natif si celui-ci est
@@ -37,6 +40,11 @@ celui de ce plan, pas une affirmation sur les recettes historiques.
 | R020-14 | Aucun contenu réel ajouté, aucun secret/URL sensible dans les preuves et logs | Tous | Non joué |
 | R020-15 | Pas de parcours Google/paiement non opérationnel exposé ; quotas existants non modifiés implicitement | S8/S14 | Non joué |
 | R020-16 | Mise à jour depuis version précédente, migrations, données conservées, catalogue et lecture toujours accessibles | S14 | Non joué |
+
+R020-12 inclut la pause après perte du Wi-Fi pendant une lecture, lorsque Lecture
+sur données mobiles est désactivée (décision du 19 septembre 2026). Vérifier le
+message, la position conservée et l’arrêt des requêtes média ; le catalogue reste
+consultable. Les autres cas de Q7 attendent leurs arbitrages.
 
 Google OAuth et encaissement Stripe : **hors périmètre**, sans clôturer leurs dettes.
 Chaque rapport conserve date, commit, surface/appareil, cas, résultat, preuve et

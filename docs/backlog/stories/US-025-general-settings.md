@@ -5,6 +5,9 @@ Version cible : 0.2.0. Surfaces : web, Android mobile, Android TV.
 
 ## Besoin
 
+Proposition d’écrans : [Réglages](../../design/0.2.0/settings.md), S13-E05 à E10,
+à relire. Les opérations de compte guidées depuis TV restent proposées.
+
 Planification proposée : Rubriques initiales S8, clôture S13.
 Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
 
@@ -31,6 +34,9 @@ de compte concernées avant de concevoir les écrans.
 - Si l'utilisateur désactive cette option, bloquer le lancement d'une vidéo hors
   Wi-Fi et afficher un message explicatif.
 - Le catalogue reste consultable.
+- Décision du 19 septembre 2026 : si le Wi-Fi se coupe pendant une vidéo alors
+  que cette option est désactivée, mettre la lecture en pause et demander de
+  retrouver le Wi-Fi. Vérifier la suspension effective des requêtes média.
 - Ne pas présenter cette option comme un mode hors ligne ou une interdiction de
   tout transfert de données : elle concerne la lecture vidéo.
 - Les libellés sont disponibles en FR/EN et les commandes sont accessibles selon
@@ -52,7 +58,9 @@ d'accès ou de modèle d'authentification n'est inclus dans cette story.
 
 - Préciser la portée par compte/appareil de la langue d'interface et sa valeur initiale.
 - Préciser la persistance du choix de réseau et son comportement au changement de compte.
-- Décider du passage Wi-Fi vers réseau mobile pendant une lecture déjà lancée.
+- Passage Wi-Fi vers réseau mobile : pause validée le 19 septembre 2026 lorsque
+  l’option est désactivée. Préciser la reprise au retour du Wi-Fi ; la proposition
+  de design conserve une reprise explicite, non encore validée.
 - Définir les cas Ethernet, VPN, réseau inconnu et Wi-Fi avec accès limité, sans
   supposer que Wi-Fi signifie gratuit ou illimité.
 - Détailler les actions sur les appareils et les opérations de compte guidées depuis TV.
@@ -65,5 +73,8 @@ les deux langues et la navigation TV. Sur mobile, vérifier le lancement vidéo 
 Wi-Fi et hors Wi-Fi, avec l'option activée puis désactivée, ainsi que la consultation
 du catalogue lorsque la lecture est bloquée. Inclure les lancements depuis
 l'accueil, les fiches et l'enchaînement automatique.
+Vérifier également la pause lors d’une perte du Wi-Fi pendant une lecture lorsque
+l’option est désactivée, la position conservée et l’absence de requêtes média
+qui continueraient à charger la vidéo sur les données mobiles.
 
 Référence : [décisions produit](../../roadmap/0.2.0/decisions.md).

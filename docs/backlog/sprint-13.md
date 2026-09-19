@@ -15,6 +15,10 @@ Proposition d’écrans : [Reprise et lecteur](../design/0.2.0/resume-player.md)
 Les écrans S13-E01 à E04 illustrent les commandes et l’enchaînement ; ils ne
 valident pas les capacités des lecteurs ni les arbitrages Q2/Q6/Q7.
 
+Suite : [Réglages](../design/0.2.0/settings.md), S13-E05 à E10, pour S13-04/05/06.
+Q7 partiellement fermé : pause et demande de Wi-Fi lors de sa perte en lecture,
+si Lecture sur données mobiles est désactivée. Les autres cas réseau restent ouverts.
+
 | ID | Travail | Surface/dépendance |
 |---|---|---|
 | S13-00 | Matrice des capacités des lecteurs et fixtures autorisées multi-audio/sous-titres/variantes, dont pistes non supportées | Toutes ; avant promesse de parité |

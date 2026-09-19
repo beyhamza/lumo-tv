@@ -29,7 +29,7 @@ la procédure du dépôt. Aucun changement de chiffrement ou de droits n'est pr�
 | Q4 | Comportements produit validés le 19 septembre dans US-024 : indisponibilité, catalogue inaccessible/partiel, suppression pendant une lecture et vérification après reconnexion. Restent à définir/vérifier le mécanisme de détection et les capacités de cache/C4 ; recette non exécutée | S8 |
 | Q5 | Seuil de fraîcheur EPG, programme se terminant avec fiche ouverte, conservation de recherche/filtres, focus des cases de durées différentes | S9 |
 | Q6 | Portée et défaut de langue d'interface, sous-titres forcés, pistes non nommées, compte changé sur l'appareil | S13 |
-| Q7 | Changement Wi-Fi vers mobile en cours de lecture ; Ethernet/VPN/réseau inconnu ; préférence réseau au changement de compte | S13 |
+| Q7 | Partiellement décidé le 19 septembre : perte du Wi-Fi en lecture → pause et demande de Wi-Fi si données mobiles désactivées. Restent reprise au retour du Wi-Fi, Ethernet/VPN/réseau inconnu, Wi-Fi limité et préférence au changement de compte | S13 |
 | Q8 | Contenu À regarder disparu ; états vide/hors ligne ; écritures concurrentes et erreurs de synchronisation | S11 |
 | Q9 | Recherche : nombre de cartes, pagination, délai de saisie, changement de source pendant une requête, clavier TV | S10 |
 

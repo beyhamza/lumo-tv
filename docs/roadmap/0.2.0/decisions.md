@@ -317,6 +317,19 @@ catégories dans une colonne défilante à gauche et conserver les cartes à dro
 La maquette révisée applique cette disposition sur TV/web ; son adaptation mobile
 compacte est une proposition, pas une nouvelle validation explicite.
 
+## Présentation Reprise et lecteur — retenue le 19 septembre 2026
+
+La proposition [Reprise et lecteur](../../design/0.2.0/resume-player.md) est retenue
+en conversation avant de poursuivre la roadmap. Cette validation de présentation
+ne clôture pas C3, Q1/Q2/Q6 ni la vérification des capacités des lecteurs réels.
+
+## Perte du Wi-Fi pendant une lecture — validée le 19 septembre 2026
+
+Sur Android mobile, lorsque Lecture sur données mobiles est désactivée, une perte
+du Wi-Fi pendant une vidéo met la lecture en pause et demande de retrouver le Wi-Fi.
+Le catalogue reste consultable. La reprise au retour du Wi-Fi et les autres cas
+réseau restent ouverts dans Q7 ; aucun comportement automatique n’est décidé ici.
+
 ## Présentation Ma bibliothèque — retenue le 19 septembre 2026
 
 La présentation générale de [Ma bibliothèque](../../design/0.2.0/library.md)

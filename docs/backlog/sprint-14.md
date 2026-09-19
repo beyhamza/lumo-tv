@@ -11,6 +11,8 @@ chantier Google, paiement, droits ou chiffrement.
 
 Entrée : S8–S13 clos, évolutions de contrat couvertes, rapports disponibles.
 Référence de sortie : [recette 0.2.0](../releases/0.2.0/acceptance.md).
+Préparation : [sessions, rapports et dossier de livraison](../releases/0.2.0/execution-plan.md).
+Ce plan est non exécuté ; aucun build candidat n’est déclaré prêt.
 
 ## Tâches proposées
 

@@ -1,6 +1,6 @@
 # Reprise et lecteur — proposition d’écrans 0.2.0
 
-Date : 19 septembre 2026. Statut : proposition à relire ; développement non commencé.
+Date : 19 septembre 2026. Statut : présentation générale retenue en conversation ; développement non commencé.
 
 Références : [US-019](../../backlog/stories/US-019-continue-watching.md),
 [US-023](../../backlog/stories/US-023-player-preferences.md),

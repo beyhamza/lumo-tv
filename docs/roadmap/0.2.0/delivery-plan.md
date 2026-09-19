@@ -82,6 +82,13 @@ si cette division est retenue. Aucune fonction validée n'est retirée automatiq
 
 ## Prochaine étape
 
-Valider cet ordre, puis préparer S8 avec l'arbitrage C4/Q4 et les écrans de navigation,
-d'accueil et de sources. Les autres décisions seront traitées avant leur sprint,
-sans transformer ce cadrage en une nouvelle série de confirmations de chaque détail.
+La séquence de propositions visuelles couvre désormais accueil/sources, Direct/Guide,
+recherche, bibliothèque, reprise/lecteur et [réglages](../../design/0.2.0/settings.md).
+Le [plan de qualification S14](../../releases/0.2.0/execution-plan.md) prépare les
+sessions et preuves sans les déclarer exécutées.
+
+Relire les réglages, puis fermer les arbitrages qui conditionnent chaque lot.
+L’entrée en réalisation reste S8 avec C4/Q4, les capacités à vérifier et la recette
+de départ. Les validations visuelles acquises ne ferment pas les lots contractuels
+ni les sprints. Les autres décisions seront traitées avant leur sprint, sans
+redemander la validation de chaque règle déjà acquise.
