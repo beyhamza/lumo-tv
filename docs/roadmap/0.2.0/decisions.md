@@ -264,7 +264,19 @@ liées, notamment progression et future liste À regarder, reste à vérifier et
 Voir [US-025](../../backlog/stories/US-025-general-settings.md) pour les dépendances
 et les cas particuliers restant à préciser, dont le changement de réseau en lecture.
 
-## Source indisponible et hors ligne — validés le 19 septembre 2026
+## Source supprimée pendant une lecture — validé le 19 septembre 2026
+
+- Arrêter la lecture lorsque le serveur confirme la suppression de sa source.
+- Afficher « Cette source a été supprimée de votre compte. » et une action Continuer.
+- Revenir à la navigation : unique source restante sélectionnée, choix si plusieurs,
+  ou ajout si aucune. Ne jamais lancer automatiquement un autre contenu.
+- Hors ligne, attendre de pouvoir vérifier la suppression ; une erreur réseau
+  seule ne déclenche pas ce parcours.
+
+Voir [US-024](../../backlog/stories/US-024-source-management.md). Le mécanisme
+de détection et sa recette restent à définir avant implémentation.
+
+## Source indisponible et hors ligne — comportement validé le 19 septembre 2026
 
 - Conserver la source choisie, sans changement automatique.
 - Montrer le dernier catalogue disponible avec une indication de données potentiellement anciennes.

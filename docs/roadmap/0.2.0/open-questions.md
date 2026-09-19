@@ -26,7 +26,7 @@ la procédure du dépôt. Aucun changement de chiffrement ou de droits n'est pr�
 | Q1 | Les 30 secondes s'accumulent-elles entre sessions/appareils ? Quelle réapparition après retrait ou Recommencer ? | S12/C3 |
 | Q2 | Exception au seuil d'apparition pour un épisode suivant non commencé ? Contenus très courts, suivant déjà terminé, durée inconnue ? | S12 puis S13 |
 | Q3 | Réordonner les chaînes d'une source dans un groupe contenant aussi d'autres sources ; erreurs partielles lors du retrait de tous les groupes | S11 |
-| Q4 | Indisponibilité, hors ligne et catalogue inaccessible/partiel : comportement validé le 19 septembre dans US-024. Restent la suppression pendant une lecture et sa détection après reconnexion ; capacités de cache/C4 à vérifier | S8 |
+| Q4 | Comportements produit validés le 19 septembre dans US-024 : indisponibilité, catalogue inaccessible/partiel, suppression pendant une lecture et vérification après reconnexion. Restent à définir/vérifier le mécanisme de détection et les capacités de cache/C4 ; recette non exécutée | S8 |
 | Q5 | Seuil de fraîcheur EPG, programme se terminant avec fiche ouverte, conservation de recherche/filtres, focus des cases de durées différentes | S9 |
 | Q6 | Portée et défaut de langue d'interface, sous-titres forcés, pistes non nommées, compte changé sur l'appareil | S13 |
 | Q7 | Changement Wi-Fi vers mobile en cours de lecture ; Ethernet/VPN/réseau inconnu ; préférence réseau au changement de compte | S13 |

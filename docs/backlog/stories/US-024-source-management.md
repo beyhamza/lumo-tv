@@ -66,6 +66,12 @@ et tout éventuel besoin d’ADR restent à cadrer avant implémentation.
 - Si la source était active, sélectionner l'unique source restante, proposer un
   choix s'il en reste plusieurs, ou revenir à Ajouter une source si aucune ne reste.
 - Appliquer cette règle lorsqu'un autre appareil constate la suppression, selon US-018.
+- Si une lecture est en cours, l’arrêter dès que la suppression est confirmée
+  par le serveur et afficher « Cette source a été supprimée de votre compte. ».
+- Proposer Continuer pour revenir à la navigation et appliquer le choix de source
+  restante décrit ci-dessus, sans lancer automatiquement un autre contenu.
+- Hors ligne, attendre une vérification serveur avant de déclencher ce parcours ;
+  une erreur réseau seule ne confirme pas la suppression.
 
 ## Couverture API et existant à réutiliser
 
@@ -103,8 +109,9 @@ validée ne constitue pas une preuve que toutes les cascades existent déjà.
 
 - Détailler les libellés par étape et par code d'erreur, ainsi que la conservation
   du catalogue précédent lors d'une actualisation.
-- Détailler les erreurs de suppression, sa détection depuis un autre appareil et
-  le cas d'une lecture en cours ou d'un appareil temporairement hors ligne.
+- Détailler les erreurs de suppression et son mécanisme de détection depuis un
+  autre appareil, y compris après reconnexion. Le comportement produit pendant
+  une lecture est validé le 19 septembre 2026 ; sa réalisation reste à vérifier.
 - Définir l'accès guidé depuis la TV, sans confondre gestion de source et activation TV.
 - Auditer le formulaire existant avant de détailler la correction d'une source en erreur.
 - Préparer les états vide, hors ligne et de première ingestion incomplète.
@@ -121,5 +128,9 @@ ingestion sans catalogue préalable et l'échec d'une actualisation avec un cata
 déjà disponible. Une réussite doit actualiser les compteurs et la date affichée.
 Vérifier la suppression avec zéro, une et plusieurs sources restantes, la
 conservation des données des autres sources, et la réaction d'un second appareil.
+Inclure la suppression pendant une lecture : arrêt après confirmation serveur,
+message, retour via Continuer et absence de lecture automatique d’un autre contenu.
+Vérifier qu’une panne réseau ne déclenche pas ce parcours et que la suppression
+confirmée après reconnexion le déclenche correctement.
 
 Référence : [décisions produit](../../roadmap/0.2.0/decisions.md).
