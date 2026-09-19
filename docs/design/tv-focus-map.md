@@ -64,6 +64,35 @@ La réponse vient de `CatalogueSections`, qui la tient d'une seule requête, et 
 est `false` tant que rien n'a dit le contraire — un rail qui gagne une entrée vaut
 mieux qu'un rail qui retire un arrêt sous la D-pad.
 
+### Source active, au pied du rail (`SourceSwitcherTv`) — S8-03
+
+Le nom de la source active est épinglé **au pied du rail**, sous les destinations
+(`LumoTvNavRail`, paramètre `footer`). Au pied et pas en tête : le trajet le plus
+fréquent — rail → contenu — ne gagne aucun arrêt, et le sélecteur ne crée pas de
+nouvelle zone de focus, il prolonge celle du rail.
+
+| Depuis | UP | DOWN | LEFT | RIGHT | OK | BACK |
+|---|---|---|---|---|---|---|
+| Source active, **une seule source** | — | — | — | — | — | — |
+| Source active, plusieurs sources | dernière destination | — (bord bas) | — (bord) | entre dans le contenu | ouvre la liste | quitte l'application |
+| Liste : une source | source précédente | source suivante / *Mes sources* | — | — | la rend active et ferme | ferme, **focus rendu au déclencheur** |
+| Liste : *Mes sources* | dernière source | — (bord bas) | — | — | ouvre la destination Source | ferme, focus rendu au déclencheur |
+
+- Avec une seule source, le nom est un **texte, pas un arrêt** : rien à choisir, donc
+  rien sous la D-pad.
+- La liste est une **fenêtre de dialogue** : le focus ne peut pas fuir vers l'écran
+  du dessous. À l'ouverture il est sur **la source active**, qui porte la coche.
+- Quand il faut choisir — plusieurs sources et aucun choix valide sur cet appareil
+  (US-018) — la liste s'ouvre d'elle-même, **sans présélection**, et `BACK` ne la
+  ferme pas : il n'y a pas de catalogue à montrer derrière.
+- Choisir une source depuis une fiche (film, série) ramène à la grille
+  correspondante de la nouvelle source ; une grille reste où elle est, filtres remis
+  à zéro.
+- Le sélecteur est masqué sur les lecteurs, comme le rail.
+
+À vérifier à la télécommande en S8-07 : lisibilité du nom à trois mètres, et retour
+du focus au déclencheur après `BACK`.
+
 ---
 
 ## Activation (`AuthTvScreen`) — écran d'entrée, déconnecté

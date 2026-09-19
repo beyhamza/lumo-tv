@@ -41,8 +41,15 @@ Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulem
   Vérifié le 19 septembre sur la pile Docker avec le banc, 21 contrôles sur 21 :
   actualisation en cours, échec avec ancien catalogue, délai serveur, suppression.
   La recette sur appareils reste celle de S8-07
-- [ ] S8-03 — **en cours** depuis le 19 septembre : règles de réalisation arrêtées dans
-  US-018 ; implémentation Android et web sur `feat/US-018-active-source`
+- [ ] S8-03 — **75 %** : source active livrée sur les trois surfaces
+  (`feat/US-018-active-source`). Android : `ActiveSourceRepository`, sélecteur
+  mobile et TV, filtrage des catalogues, favoris et reprises ; 265 tests unitaires,
+  lint et `assembleDebug` verts. Web : cookie par compte, sélecteur sans JavaScript,
+  liens Direct/Films/Séries, favoris filtrés ; typecheck, lint, 115 tests et build
+  verts, pages marketing toujours statiques. Reste : voir le sélecteur à l'écran
+  (téléphone, télécommande, navigateur), le parcours à deux sources et deux
+  appareils, et la vérification toutes les 60 s pendant une lecture (avec S8-05).
+  Playwright : suite `journey` périmée depuis fin août, sans lien avec cette tâche
 - [ ] S8-04 — navigation et accueil
 - [ ] S8-05 — Mes sources
 - [ ] S8-06 — rubriques Réglages, retrait des accès Google et paiement
