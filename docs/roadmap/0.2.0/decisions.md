@@ -264,6 +264,13 @@ liées, notamment progression et future liste À regarder, reste à vérifier et
 Voir [US-025](../../backlog/stories/US-025-general-settings.md) pour les dépendances
 et les cas particuliers restant à préciser, dont le changement de réseau en lecture.
 
+## Disposition de l’accueil — validée le 19 septembre 2026
+
+La disposition Continuer, Favoris et Direct de la première proposition interactive
+est validée. Voir les [écrans du sprint 8](../../design/0.2.0/sprint-08-screens.md).
+Cette validation porte sur l’accueil ; les autres écrans restent à relire et la
+recette sur appareils réels reste à effectuer.
+
 ## Objectif de sortie — validé le 17 septembre 2026
 
 - La 0.2.0 reste gratuite ; aucune ouverture des paiements n'est prévue pour cette version.

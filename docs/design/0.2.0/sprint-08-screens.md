@@ -1,6 +1,7 @@
 # Sprint 8 — Proposition d’écrans
 
-Date : 17 septembre 2026. Statut : proposition visuelle à relire ; développement non commencé.
+Date : 17 septembre 2026. Mise à jour : 19 septembre 2026.
+Statut : disposition de l’accueil validée ; autres écrans à relire ; développement non commencé.
 
 Références : [sprint 8](../../backlog/sprint-08.md), [design system](../design-system.md),
 [décisions produit](../../roadmap/0.2.0/decisions.md).
@@ -14,7 +15,8 @@ en actualisation et en erreur. Les données et visuels sont fictifs.
 
 La charte Spectre est reprise : fond sombre, surfaces sobres, accent cyan/violet
 réservé à la marque, au focus et à la progression. La disposition et la densité
-restent des propositions ; elles ne constituent pas de nouvelles décisions validées.
+des autres écrans restent des propositions. La disposition de l’accueil avec
+Continuer, Favoris et Direct a été validée le 19 septembre 2026.
 
 ## Inventaire et rattachement
 
@@ -73,6 +75,6 @@ Ces contrôles ne remplacent pas la recette applicative : persistance après rel
 synchronisation entre appareils, lecteur, accessibilité et télécommande restent à tester.
 La proposition est en français ; l’implémentation doit couvrir FR/EN.
 
-La prochaine discussion porte sur la hiérarchie de l’accueil, la densité des cartes,
-la navigation mobile et la lisibilité TV. Les validations visuelles seront consignées
-avant d’en faire des critères de réalisation.
+La disposition de l’accueil est validée le 19 septembre 2026. La prochaine discussion
+porte sur le sélecteur et la gestion des sources ; la navigation mobile et la lisibilité
+sur une TV réelle restent à vérifier. Cette validation visuelle ne clôt aucune recette.
