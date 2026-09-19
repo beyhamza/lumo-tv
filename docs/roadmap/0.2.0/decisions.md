@@ -36,9 +36,9 @@ produit ; il ne remplace ni le contrat ni les ADR.
 - Retrait de Continuer : éventuelle restauration manuelle et modalités de synchronisation.
 - Favoris : déplacement dans un groupe contenant plusieurs sources et erreurs
   partielles lors du retrait de plusieurs appartenances.
-- Cartes Continuer : lectures simultanées, conflits après retrait et écritures
-  retardées. Cumul, réapparition, Recommencer, contenus courts et comportement
-  du suivant ont été validés le 19 septembre.
+- Cartes Continuer : garanties d’ordre des événements, réessais et propagation
+  hors ligne à cadrer dans C3. Temps simultané, priorité de la lecture récente et
+  maintien du masque face à une lecture déjà en cours sont validés le 19 septembre.
 - Nombre de cartes, comportement des chargements et erreurs partielles, retour du
   focus TV et représentation des destinations sans contenu : à préciser avec les écrans.
 
@@ -211,6 +211,14 @@ dans US-019, distinctement de la position de lecture.
 
 - Les 30 secondes réellement regardées se cumulent entre sessions et appareils
   pour le même film ou épisode ; elles ne s’additionnent pas entre épisodes différents.
+- En cas de lecture simultanée sur plusieurs appareils, les secondes qui se
+  chevauchent ne comptent qu’une fois : deux lectures pendant les mêmes 20 secondes
+  donnent 20 secondes cumulées, pas 40.
+- En cas de positions différentes entre appareils, utiliser la lecture la plus
+  récente pour la prochaine reprise, même si sa position est moins avancée.
+- Retirer une carte pendant une lecture déjà en cours sur un autre appareil la
+  garde masquée malgré les sauvegardes de cette session. Seul un nouveau démarrage
+  réel après le retrait permet sa réapparition ; la progression reste sauvegardée.
 - Après retrait d’une carte, relancer le contenu la fait réapparaître dès le
   démarrage réel de la lecture, sans attendre 30 nouvelles secondes.
 - Lorsqu’un épisode est terminé et qu’un suivant est disponible mais non commencé,
@@ -226,8 +234,8 @@ dans US-019, distinctement de la position de lecture.
   une carte déjà éligible, dès le démarrage réel. Les progressions des autres
   épisodes restent intactes.
 
-Voir les [cas CW-17 à CW-22](../../design/0.2.0/continue-watching-cases.md).
-Les lectures simultanées, conflits et écritures retardées restent à préciser.
+Voir les [cas CW-17 à CW-22 et CW-29 à CW-31](../../design/0.2.0/continue-watching-cases.md).
+Les garanties d’ordre, de réessai et de propagation hors ligne restent à préciser.
 C3 demeure un lot contractuel distinct à définir et approuver ; aucun endpoint
 ni mécanisme de synchronisation n’est décidé ici.
 

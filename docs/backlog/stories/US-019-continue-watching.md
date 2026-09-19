@@ -10,7 +10,8 @@ Proposition de présentation : [écrans Reprise et lecteur](../../design/0.2.0/r
 S12-E01 à E03, présentation générale retenue. Les
 [cas de référence](../../design/0.2.0/continue-watching-cases.md) précisent la
 préparation des seuils, de la réapparition et de la recette. Q2 est tranché côté
-produit ; Q1 reste ouvert pour la concurrence et les écritures retardées.
+produit ; les règles principales de Q1 sont acquises. Les garanties d’ordre,
+de réessai et de propagation hors ligne restent à définir dans C3.
 
 Planification proposée : S12 ; rails existants réutilisés en S8, sans clôture anticipée.
 Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
@@ -26,6 +27,11 @@ afin de les reprendre rapidement.
 - Voir la fiche ouvre les détails du film ou permet de choisir un épisode.
 - Retirer de Continuer masque la carte sans effacer sa progression.
 - Le retrait s'applique à tous les appareils du compte.
+- Si une lecture est déjà en cours sur un autre appareil au moment du retrait,
+  ses sauvegardes ne réaffichent pas la carte. Il faut un nouveau démarrage réel
+  après le retrait ; les sauvegardes de progression restent possibles.
+- Si deux appareils ont des positions différentes, la prochaine reprise utilise
+  la lecture la plus récente, même moins avancée, plutôt que le maximum des positions.
 - Relancer le contenu fait réapparaître sa carte dans Continuer.
 - Complément du 19 septembre 2026 : cette réapparition a lieu dès le démarrage
   réel de la lecture, sans attendre 30 nouvelles secondes ; une tentative échouée
@@ -59,7 +65,8 @@ Ce complément précise la transition entre l'accueil et les fiches des sprints
 - Un contenu apparaît dans Continuer après 30 secondes de lecture effective.
   Sa progression reste conservée dès le début, même avant son apparition.
 - Complément du 19 septembre 2026 : ces 30 secondes se cumulent entre sessions
-  et appareils, pour le même film ou épisode. Le cumul simultané reste à préciser.
+  et appareils, pour le même film ou épisode. Les secondes regardées simultanément
+  sur plusieurs appareils ne comptent qu’une fois (décision du 19 septembre).
 - Au-delà de 95 % de sa durée connue, un film quitte Continuer et sa fiche propose Revoir.
 - Au-delà de 95 %, un épisode est considéré comme terminé pour la reprise : la
   série propose le suivant s'il existe. Après le dernier épisode disponible terminé,
@@ -98,10 +105,12 @@ d'endpoint dans cette story.
 ## Questions avant implémentation
 
 - Faut-il une restauration manuelle ?
-- Comment propager le retrait aux appareils temporairement hors ligne et traiter
-  une lecture concurrente ?
-- Préciser les lectures simultanées, les réessais et les écritures retardées pour
-  le cumul entre sessions/appareils validé le 19 septembre.
+- Comment propager le retrait aux appareils temporairement hors ligne et ordonner
+  les événements retardés ? La lecture antérieure au retrait ne réaffiche pas la carte.
+- Définir l’identification de la lecture la plus récente, les réessais et les
+  écritures retardées dans C3. Le temps simultané ne compte qu’une fois ; la position
+  la plus avancée n’est pas un critère de priorité. Départager les événements dont
+  l’ordre ne peut être établi sans supposer que les horloges clientes sont fiables.
 
 La recette vérifiera sur deux appareils que retirer une carte la masque sur les
 deux, conserve la position retrouvée depuis la fiche, puis qu'une nouvelle lecture
@@ -116,5 +125,12 @@ Ajouter un film de 20 s terminé sans apparition, un suivant déjà terminé rel
 depuis zéro sans saut d’épisode, et Recommencer sur une carte visible puis retirée,
 avec retour immédiat au démarrage réel et progressions des autres épisodes intactes
 (CW-20 à CW-22). Recette non exécutée.
+Vérifier deux appareils lisant pendant les mêmes 20 s : cumul de 20 s, sans carte.
+Vérifier aussi un chevauchement partiel : lecture A de t=0 à 20 s et lecture B
+de t=10 à 30 s donnent 30 s cumulées, pas 40 s (CW-29).
+Vérifier 40 min puis une lecture plus récente à 12 min : reprise à 12 min (CW-30).
+Retirer une carte pendant une lecture sur un autre appareil : elle reste masquée
+malgré ses sauvegardes, puis revient après un nouveau démarrage postérieur au retrait
+(CW-31). Ces cas préparent la recette ; ils ne sont pas exécutés.
 
 Référence : [décisions produit](../../roadmap/0.2.0/decisions.md).

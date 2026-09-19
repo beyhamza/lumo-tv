@@ -12,15 +12,16 @@ Stories : US-019, clôture US-017 après S9/S11. Dépend de S8 ; arbitrages C3, 
 ## Tâches proposées
 
 Proposition d’écrans : [Reprise et lecteur](../design/0.2.0/resume-player.md).
-Les écrans S12-E01 à E03 précisent la présentation ; C3 et les compléments de Q1
-restent ouverts. Q2 est tranché côté produit, sans clôture de la recette.
+Les écrans S12-E01 à E03 précisent la présentation ; les règles principales Q1/Q2
+sont acquises. C3 reste à définir, notamment ordre des événements et propagation
+hors ligne ; aucune recette n’est clôturée.
 
-Préparation de S12-00/02/05 : [cas Continuer CW-01 à CW-28](../design/0.2.0/continue-watching-cases.md).
+Préparation de S12-00/02/05 : [cas Continuer CW-01 à CW-33](../design/0.2.0/continue-watching-cases.md).
 Les cas validés, arbitrages et propositions d’erreur y sont distingués ; recette non exécutée.
 
 | ID | Travail | Surface/dépendance |
 |---|---|---|
-| S12-00 | Appliquer CW-17 à CW-22 validés ; trancher simultanéité, conflits de lecture/retrait et écritures retardées avant C3 | Produit, Q1 ; Q2 tranché, CW-23 restant |
+| S12-00 | Appliquer CW-17 à CW-22 et CW-29 à CW-31 validés ; préparer les garanties d’ordre, de réessai et de propagation hors ligne de CW-32/33 pour C3 | Produit/contrat ; Q1/Q2 acquis pour ces règles |
 | S12-01 | Faire approuver C3 puis implémenter contrat/serveur et génération ; mesurer l'éligibilité sans la confondre avec position | API/clients |
 | S12-02 | Instrumenter la lecture effective et garder la sauvegarde dès le début ; tests pauses, buffering, seek et seuils | Trois lecteurs |
 | S12-03 | Aligner fiches Regarder/Reprendre/Recommencer/Revoir et sélection d'épisode | Trois clients |
@@ -41,6 +42,10 @@ non commencé. Ne pas cumuler du temps entre deux épisodes distincts.
 Vérifier aussi CW-20 à CW-22 : contenu court terminé absent, suivant déjà terminé
 relu depuis zéro dans l’ordre et Recommencer sans nouvelle attente pour la carte
 éligible, sans modifier les progressions des autres épisodes.
+Complément concurrence : deux lectures pendant les mêmes 20 s ne donnent que
+20 s éligibles ; une lecture plus récente à 12 min prime sur une ancienne à 40 min.
+Un retrait pendant une session déjà en cours conserve le masque malgré ses
+sauvegardes, jusqu’à un nouveau démarrage réel après ce retrait (CW-29 à CW-31).
 
 Tests : horloges/mesure, seuils, progression inconnue, isolation par source/compte,
 masquage et concurrence. Checks contrat/API/Android/web et recette réelle. Finir

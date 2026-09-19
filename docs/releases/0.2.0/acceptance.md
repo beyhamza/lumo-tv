@@ -56,6 +56,10 @@ Complément validé : CW-20 à CW-22 couvrent le contenu court terminé absent d
 Continuer, le suivant déjà terminé relu depuis le début et Recommencer sans
 nouvelle attente pour une carte éligible. Les vérifier dans R020-08/09/11 ; Q2
 est tranché côté produit, ces recettes restent non jouées.
+R020-08 inclut également CW-29 à CW-31 : décompter une seule fois le temps simultané,
+reprendre depuis la lecture la plus récente même moins avancée et maintenir le
+masque pendant une session antérieure au retrait. Les réessais, écritures retardées
+et horloges décalées seront vérifiés selon les garanties approuvées de C3.
 Chaque rapport conserve date, commit, surface/appareil, cas, résultat, preuve et
 anomalie liée. Créer les rapports au moment de l'exécution, sans préremplir des succès.
 

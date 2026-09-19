@@ -52,6 +52,9 @@ ni proposition du suivant. Les exceptions et interactions sont isolées ci-desso
 | CW-20 | Contenu de moins de 30 s terminé avant le seuil d’apparition | Aucune exception au seuil ; progression sauvegardée, contenu terminé absent de Continuer |
 | CW-21 | Épisode suivant déjà terminé | Le proposer et le relire depuis le début, sans sauter à un épisode non terminé ; conserver l’ordre des épisodes |
 | CW-22 | Recommencer un contenu éligible ou retiré | Repartir à zéro et retrouver la carte dès le démarrage réel, sans attendre 30 nouvelles secondes ; conserver les progressions des autres épisodes |
+| CW-29 | Deux appareils lisent un contenu neuf pendant les mêmes 20 secondes | Compter 20 s, pas 40 s ; les secondes simultanées ne comptent qu’une fois et la carte reste absente |
+| CW-30 | Une lecture à 40 min est suivie d’une lecture plus récente arrêtée à 12 min | Reprendre à 12 min : la lecture la plus récente prime, même moins avancée |
+| CW-31 | Une carte est retirée pendant une lecture déjà en cours sur un autre appareil | Rester masquée malgré les sauvegardes de cette session ; seul un nouveau démarrage réel après le retrait permet sa réapparition |
 
 Le cumul de CW-17 est par film ou épisode, pas à l’échelle de toute une série.
 CW-19 est une exception explicite au seuil d’apparition du suivant : ne pas
@@ -62,11 +65,21 @@ depuis Continuer comme à l’enchaînement du lecteur ; son lancement automatiq
 attend toujours la fin réelle et le décompte. CW-22 conserve l’éligibilité déjà
 acquise ; il ne crée pas une exception au premier seuil d’un contenu neuf.
 
-## Arbitrages Q1 restants
+## Synthèse de concurrence et garanties à définir dans C3
 
-| ID | Situation | Décision à fixer |
+| ID | Situation | Règle acquise ou garantie à définir |
 |---|---|---|
-| CW-23 | Deux appareils lisent simultanément le même contenu | Définir le cumul temporel et la position retenue, sans additionner implicitement des doublons |
+| CW-23 | Deux appareils lisent simultanément le même contenu | Temps simultané compté une fois et reprise depuis la lecture la plus récente ; CW-29/30 validés, identification de la récence à définir dans C3 |
+| CW-32 | Un appareil reconnecté envoie une ancienne sauvegarde après une lecture plus récente | Distinguer ordre des lectures et ordre de réception ; définir la résolution sans confondre reconnexion et nouveau démarrage |
+| CW-33 | Le même relevé de lecture est envoyé plusieurs fois après un délai réseau | Garantir qu’un réessai ne multiplie pas le temps réellement regardé ni les démarrages ; mécanisme à définir dans C3 |
+
+CW-29 à CW-31 sont validés et rendent l’arbitrage de CW-23 observable.
+Le retrait ne bloque pas la sauvegarde de progression : visibilité et position
+restent distinctes. Une ancienne session qui envoie une nouvelle position ne
+constitue pas un nouveau démarrage après retrait. CW-32/33 sont des cas de
+réception à traiter dans C3, avec des écritures rejouées et des horloges d’appareils
+décalées. La solution technique et les garanties en cas d’ordre indéterminable
+restent à faire approuver ; aucun horodatage client n’est supposé fiable ici.
 
 Le masquage concurrent avec une lecture, les écritures retardées et le retour
 d’un appareil hors ligne doivent être spécifiés avec C3. Une nouvelle position
@@ -93,8 +106,9 @@ Les mécanismes de cache et de détection ne sont pas décidés par ce document.
 
 Le contrat existant porte position et durée, filtrées par source/type/référence.
 Il ne porte pas le masque partagé ni la mesure de lecture effective. Les décisions
-CW-17 à CW-22 sont acquises. Avant tout schéma, fermer CW-23 et les règles
-de concurrence/hors ligne nécessaires au lot.
+CW-17 à CW-22 et CW-29 à CW-31 sont acquises. Définir dans C3 les garanties
+de CW-32/33, la récence entre appareils, le départage des événements indéterminables
+et la propagation hors ligne avant implémentation, en respectant ces règles produit.
 
 Le lot contractuel devra ensuite expliciter et faire approuver la lecture des
 cartes masquées, le retrait, la réapparition, l’éligibilité et la reprise des

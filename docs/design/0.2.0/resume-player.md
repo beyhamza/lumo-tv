@@ -45,6 +45,9 @@ Ces choix de focus et le retour système restent à valider sur les trois surfac
 - La progression est conservée dès le début ; l’apparition après 30 secondes
   concerne le temps effectivement lu, jamais la position obtenue par avance.
 - Complément du 19 septembre : cumul par film/épisode entre sessions et appareils.
+- Les secondes simultanées ne comptent qu’une fois ; la prochaine reprise utilise
+  la lecture la plus récente, même moins avancée. Une session déjà en cours lors
+  d’un retrait ne peut pas réafficher la carte par ses sauvegardes.
 - Le seuil de fin est strictement supérieur à 95 %. Il ne coupe pas le lecteur
   et ne lance pas le suivant ; seule la fin réelle déclenche l’enchaînement.
 - Une carte par série ; la source active filtre Continuer.
@@ -88,8 +91,9 @@ La maquette actuelle est en français ; la réalisation inclura FR/EN.
 ## Arbitrages et vérifications avant réalisation
 
 C3 reste requis pour le masquage partagé et l’éligibilité. Aucun endpoint ni type
-contractuel n’est ajouté par ce document. Q2 est tranché côté produit ; Q1 reste
-ouvert pour les lectures simultanées, les conflits et les écritures retardées.
+contractuel n’est ajouté par ce document. Les règles principales de Q1/Q2 sont
+tranchées côté produit ; C3 doit définir l’ordre des événements, les réessais et
+la propagation hors ligne pour les appliquer entre appareils.
 Recommencer, les contenus courts et le suivant déjà terminé ont été validés
 le 19 septembre, comme le cumul, la réapparition et le suivant non commencé.
 Les [cas de référence](continue-watching-cases.md) détaillent ces frontières.
