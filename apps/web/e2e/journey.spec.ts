@@ -117,7 +117,7 @@ test.describe.serial("sources", () => {
 
   test("le catalogue liste les chaînes, avec numéro et qualité", async ({ page }) => {
     await page.goto("/fr/app/sources");
-    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: "Banc d'essai", exact: true }).click();
     await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
 
     await expect(page.getByText("5 chaînes", { exact: true })).toBeVisible();
@@ -140,7 +140,7 @@ test.describe.serial("sources", () => {
     page,
   }) => {
     await page.goto("/fr/app/sources");
-    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: "Banc d'essai", exact: true }).click();
     await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
 
     // Two channels carry group-title="Sport". Filtering is a link, so the state
@@ -152,7 +152,7 @@ test.describe.serial("sources", () => {
     // The search is a GET form. Case-insensitive substring, which is exactly
     // what the hint promises and nothing more.
     await page.goto("/fr/app/sources");
-    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: "Banc d'essai", exact: true }).click();
     await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
     await page.getByLabel(fr.App.catalogueSearchLabel).fill("chaîne 03");
     await page.getByRole("button", { name: fr.App.catalogueSearchSubmit }).click();
@@ -169,7 +169,7 @@ test.describe.serial("sources", () => {
     page,
   }) => {
     await page.goto("/fr/app/sources");
-    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: "Banc d'essai", exact: true }).click();
     await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
 
     const playbackCalls: string[] = [];
@@ -199,7 +199,7 @@ test.describe.serial("sources", () => {
     // c'est le carré noir silencieux : c'est lui qui fait conclure que le
     // produit est cassé alors que c'est le fournisseur qui dit non.
     await page.goto("/fr/app/sources");
-    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: "Banc d'essai", exact: true }).click();
     await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
     // Chaîne 02 pointe le flux servi SANS en-tête CORS, qui est le cas
     // majoritaire chez les vrais panels.
@@ -215,7 +215,7 @@ test.describe.serial("sources", () => {
 
   test("un flux que le navigateur peut ouvrir affiche une image", async ({ page }) => {
     await page.goto("/fr/app/sources");
-    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: "Banc d'essai", exact: true }).click();
     await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
 
     // Chaîne 01 pointe le flux servi AVEC son en-tête CORS : le fournisseur qui
@@ -247,7 +247,7 @@ test.describe.serial("sources", () => {
     page,
   }) => {
     await page.goto("/fr/app/sources");
-    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: "Banc d'essai", exact: true }).click();
     await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
 
     // Filtrer d'abord. L'étoile doit revenir sur cette vue-là — catégorie,
@@ -286,7 +286,7 @@ test.describe.serial("sources", () => {
     page,
   }) => {
     await page.goto("/fr/app/sources");
-    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: "Banc d'essai", exact: true }).click();
     await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
 
     // Chaîne 01 a été lancée par les tests de lecture plus haut, et le lecteur a
@@ -321,7 +321,7 @@ test.describe.serial("sources", () => {
     const page = await context.newPage();
 
     await page.goto("/fr/app/sources");
-    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: "Banc d'essai", exact: true }).click();
     await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
 
     await stars(page, fr.App.catalogueFavoriteAdd).first().click();
@@ -347,7 +347,7 @@ test.describe.serial("sources", () => {
 
   test("supprimer la source rend la place", async ({ page }) => {
     await page.goto("/fr/app/sources");
-    await page.getByRole("link", { name: "Banc d'essai" }).click();
+    await page.getByRole("link", { name: "Banc d'essai", exact: true }).click();
 
     await page.getByRole("link", { name: fr.App.sourceDelete }).click();
     // The confirmation is a query parameter, not a dialog: it works without
