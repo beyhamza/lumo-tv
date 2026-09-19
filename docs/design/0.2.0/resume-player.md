@@ -44,11 +44,15 @@ Ces choix de focus et le retour système restent à valider sur les trois surfac
 
 - La progression est conservée dès le début ; l’apparition après 30 secondes
   concerne le temps effectivement lu, jamais la position obtenue par avance.
+- Complément du 19 septembre : cumul par film/épisode entre sessions et appareils.
 - Le seuil de fin est strictement supérieur à 95 %. Il ne coupe pas le lecteur
   et ne lance pas le suivant ; seule la fin réelle déclenche l’enchaînement.
 - Une carte par série ; la source active filtre Continuer.
 - Le retrait masque sur tous les appareils sans perte de progression ; relancer
-  fait réapparaître la carte selon les modalités de Q1 encore à préciser.
+  fait réapparaître la carte dès le démarrage réel de la lecture, sans attendre
+  30 nouvelles secondes (complément du 19 septembre).
+- Après un épisode terminé, la carte de série propose le suivant disponible même
+  s’il n’a pas encore été commencé, sans seuil préalable sur celui-ci.
 - Préférences audio/sous-titres par appareil ; une langue absente ne remplace pas
   la préférence mémorisée. Audio : repli sur la piste par défaut. Sous-titres :
   aucune activation automatique d’une autre langue.
@@ -79,9 +83,11 @@ La maquette actuelle est en français ; la réalisation inclura FR/EN.
 ## Arbitrages et vérifications avant réalisation
 
 C3 reste requis pour le masquage partagé et l’éligibilité. Aucun endpoint ni type
-contractuel n’est ajouté par ce document. Q1/Q2 restent ouverts : accumulation
-des 30 secondes, réapparition après retrait, contenus courts, suivant non commencé
-ou déjà terminé. Q6 couvre notamment les pistes sans langue, les sous-titres
+contractuel n’est ajouté par ce document. Q1/Q2 sont partiellement fermés : cumul,
+réapparition et suivant non commencé sont validés le 19 septembre. Restent notamment
+lectures simultanées, Recommencer, contenus courts et suivant déjà terminé.
+Les [cas de référence](continue-watching-cases.md) détaillent ces frontières.
+Q6 couvre notamment les pistes sans langue, les sous-titres
 forcés et le changement de compte. Les erreurs et conflits interappareils restent
 à définir avant de considérer les tâches dépendantes comme prêtes.
 

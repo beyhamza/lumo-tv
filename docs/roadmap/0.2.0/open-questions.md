@@ -23,8 +23,8 @@ la procédure du dépôt. Aucun changement de chiffrement ou de droits n'est pr�
 
 | ID | Question à trancher | Avant |
 |---|---|---|
-| Q1 | Les 30 secondes s'accumulent-elles entre sessions/appareils ? Quelle réapparition après retrait ou Recommencer ? | S12/C3 |
-| Q2 | Exception au seuil d'apparition pour un épisode suivant non commencé ? Contenus très courts, suivant déjà terminé, durée inconnue ? | S12 puis S13 |
+| Q1 | Partiellement décidé le 19 septembre : cumul par film/épisode entre sessions/appareils ; réapparition dès le démarrage réel après retrait. Restent lectures simultanées, Recommencer, contenu déjà terminé, concurrence et écritures retardées | S12/C3 |
+| Q2 | Partiellement décidé le 19 septembre : garder la série avec le suivant non commencé, sans seuil préalable sur lui. Restent contenus très courts et suivant déjà terminé ; durée inconnue : reprise conservée déjà validée | S12 puis S13 |
 | Q3 | Réordonner les chaînes d'une source dans un groupe contenant aussi d'autres sources ; erreurs partielles lors du retrait de tous les groupes | S11 |
 | Q4 | Comportements produit validés le 19 septembre dans US-024 : indisponibilité, catalogue inaccessible/partiel, suppression pendant une lecture et vérification après reconnexion. Restent à définir/vérifier le mécanisme de détection et les capacités de cache/C4 ; recette non exécutée | S8 |
 | Q5 | Seuil de fraîcheur EPG, programme se terminant avec fiche ouverte, conservation de recherche/filtres, focus des cases de durées différentes | S9 |
@@ -34,6 +34,11 @@ la procédure du dépôt. Aucun changement de chiffrement ou de droits n'est pr�
 | Q9 | Recherche : nombre de cartes, pagination, délai de saisie, changement de source pendant une requête, clavier TV | S10 |
 
 ## Écrans
+
+Les [cas Continuer CW-01 à CW-28](../../design/0.2.0/continue-watching-cases.md)
+séparent les règles acquises des arbitrages Q1/Q2 et des propositions d’erreur.
+C3 reste à définir et faire approuver ; ces décisions n’autorisent pas une
+modification implicite du contrat.
 
 Les maquettes seront produites lorsque l'utilisateur le demandera. Avant chaque
 lot d'interface, préciser les écrans utiles, les états, le focus TV et les retours.

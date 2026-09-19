@@ -25,6 +25,7 @@ est proposé ; les estimations et détails ouverts restent à fixer.
 | [Écrans Bibliothèque](../../design/0.2.0/library.md) | Présentation générale retenue : groupes, favoris, À regarder et retraits |
 | [Écrans Reprise et lecteur](../../design/0.2.0/resume-player.md) | Présentation générale retenue : Continuer, fiche, pistes, qualité et fin d’épisode |
 | [Écrans Réglages](../../design/0.2.0/settings.md) | Suite S13 : cinq rubriques, préférences par appareil et réseau mobile, à relire |
+| [Cas de référence Continuer](../../design/0.2.0/continue-watching-cases.md) | Préparation Q1/Q2 et C3 : règles acquises, arbitrages et propositions d’erreur |
 | [Préparation de la qualification](../../releases/0.2.0/execution-plan.md) | Sessions de recette S14 et dossier de livraison ; non exécutés |
 
 Ordre proposé : **S8 Navigation/sources → S9 Guide → S10 Recherche → S11

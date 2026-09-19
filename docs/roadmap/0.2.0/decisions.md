@@ -36,8 +36,9 @@ produit ; il ne remplace ni le contrat ni les ADR.
 - Retrait de Continuer : éventuelle restauration manuelle et modalités de synchronisation.
 - Favoris : déplacement dans un groupe contenant plusieurs sources et erreurs
   partielles lors du retrait de plusieurs appartenances.
-- Cartes Continuer : mesure des 30 secondes entre sessions/appareils, réapparition
-  après retrait et cas des contenus très courts ou du suivant non commencé.
+- Cartes Continuer : lectures simultanées, Recommencer, conflits après retrait,
+  contenus très courts et suivant déjà terminé. Cumul entre sessions/appareils,
+  réapparition au démarrage réel et suivant non commencé ont été validés le 19 septembre.
 - Nombre de cartes, comportement des chargements et erreurs partielles, retour du
   focus TV et représentation des destinations sans contenu : à préciser avec les écrans.
 
@@ -205,6 +206,21 @@ Ces règles complètent US-019 et le cadrage d'enchaînement.
 
 La mesure de lecture effective et sa propagation restent à cadrer techniquement
 dans US-019, distinctement de la position de lecture.
+
+## Continuer — compléments validés le 19 septembre 2026
+
+- Les 30 secondes réellement regardées se cumulent entre sessions et appareils
+  pour le même film ou épisode ; elles ne s’additionnent pas entre épisodes différents.
+- Après retrait d’une carte, relancer le contenu la fait réapparaître dès le
+  démarrage réel de la lecture, sans attendre 30 nouvelles secondes.
+- Lorsqu’un épisode est terminé et qu’un suivant est disponible mais non commencé,
+  garder la série dans Continuer et proposer directement le suivant. Celui-ci
+  n’a pas besoin d’avoir déjà été lu et aucune progression fictive n’est créée.
+
+Voir les [cas CW-17 à CW-19](../../design/0.2.0/continue-watching-cases.md).
+Les lectures simultanées, Recommencer, les contenus très courts et le suivant
+déjà terminé restent à préciser. C3 demeure un lot contractuel distinct à définir
+et approuver ; aucun endpoint ni mécanisme de synchronisation n’est décidé ici.
 
 ## Mes sources — organisation validée le 17 septembre 2026
 

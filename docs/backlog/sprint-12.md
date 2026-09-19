@@ -14,9 +14,12 @@ Stories : US-019, clôture US-017 après S9/S11. Dépend de S8 ; arbitrages C3, 
 Proposition d’écrans : [Reprise et lecteur](../design/0.2.0/resume-player.md).
 Les écrans S12-E01 à E03 précisent la présentation ; C3 et Q1/Q2 restent ouverts.
 
+Préparation de S12-00/02/05 : [cas Continuer CW-01 à CW-28](../design/0.2.0/continue-watching-cases.md).
+Les cas validés, arbitrages et propositions d’erreur y sont distingués ; recette non exécutée.
+
 | ID | Travail | Surface/dépendance |
 |---|---|---|
-| S12-00 | Trancher lecture effective entre sessions, réapparition, contenu court, suivant non commencé et durée inconnue | Produit, Q1/Q2 |
+| S12-00 | Partir du cumul intersessions/appareils, de la réapparition au démarrage réel et du suivant non commencé validés ; trancher simultanéité, Recommencer, contenu court et suivant déjà terminé | Produit, Q1/Q2 ; CW-17 à CW-23 |
 | S12-01 | Faire approuver C3 puis implémenter contrat/serveur et génération ; mesurer l'éligibilité sans la confondre avec position | API/clients |
 | S12-02 | Instrumenter la lecture effective et garder la sauvegarde dès le début ; tests pauses, buffering, seek et seuils | Trois lecteurs |
 | S12-03 | Aligner fiches Regarder/Reprendre/Recommencer/Revoir et sélection d'épisode | Trois clients |
@@ -28,8 +31,12 @@ Les écrans S12-E01 à E03 précisent la présentation ; C3 et Q1/Q2 restent ouv
 Lire brièvement : progression conservée sans carte avant le seuil validé ; dépasser
 30 secondes effectives, reprendre ailleurs. Une avance manuelle n'est pas du temps
 regardé. Masquer, retrouver la position depuis la fiche, relancer et retrouver la
-carte selon l'arbitrage. Vérifier une carte par série et les limites exactes à 95 %
+carte dès le démarrage réel. Vérifier une carte par série et les limites exactes à 95 %
 et au-delà ; la lecture continue sans lancement prématuré du suivant.
+
+Complément du 19 septembre : démontrer 20 s puis 10 s sur deux appareils, une
+réapparition dès le démarrage réel après retrait et une carte proposant le suivant
+non commencé. Ne pas cumuler du temps entre deux épisodes distincts.
 
 Tests : horloges/mesure, seuils, progression inconnue, isolation par source/compte,
 masquage et concurrence. Checks contrat/API/Android/web et recette réelle. Finir

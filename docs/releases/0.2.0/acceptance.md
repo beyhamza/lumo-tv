@@ -47,6 +47,11 @@ message, la position conservée et l’arrêt des requêtes média ; le catalogu
 consultable. Les autres cas de Q7 attendent leurs arbitrages.
 
 Google OAuth et encaissement Stripe : **hors périmètre**, sans clôturer leurs dettes.
+
+R020-08 reprend les [cas Continuer](../../design/0.2.0/continue-watching-cases.md),
+dont CW-17 à CW-19 validés le 19 septembre : cumul de 30 s entre sessions/appareils,
+réapparition au démarrage réel après retrait et suivant non commencé proposé.
+Les autres arbitrages restent ouverts et aucun de ces cas n’est déclaré joué.
 Chaque rapport conserve date, commit, surface/appareil, cas, résultat, preuve et
 anomalie liée. Créer les rapports au moment de l'exécution, sans préremplir des succès.
 

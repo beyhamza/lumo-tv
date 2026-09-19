@@ -7,7 +7,8 @@ pas une deuxième story pour l'enchaînement déjà décrit dans le backlog.
 ## Comportement validé
 
 Présentation proposée : [Reprise et lecteur, S13-E04](resume-player.md).
-La composition de la carte et l’accès rapide au réglage restent à relire.
+La présentation générale a été retenue ; l’accès rapide au réglage et les détails
+de focus restent proposés.
 
 - Lecture automatique de l'épisode suivant est activée par défaut et mémorisée
   par appareil. Le réglage d'un appareil ne modifie pas celui d'un autre.
@@ -50,6 +51,11 @@ de préférences par appareil avant implémentation.
   existantes et vérifier leur cohérence avec le parcours retenu.
 
 ## Recette à préparer
+
+Articulation avec Continuer : [cas de référence](continue-watching-cases.md).
+Le suivant non commencé est proposé dans la rangée sans lecture préalable,
+décision du 19 septembre ; cela ne déclenche pas son lancement avant la fin réelle
+de l’épisode en cours dans le lecteur.
 
 Vérifier les décomptes sur les trois surfaces, le lancement immédiat et l'annulation
 par interaction. Vérifier le mode désactivé, la persistance locale et l'indépendance
