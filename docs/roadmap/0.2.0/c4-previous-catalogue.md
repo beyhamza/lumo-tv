@@ -167,3 +167,15 @@ déclarées. La PR annonce la modification du contrat (`AGENTS.md` §3).
 - [x] Reporter les décisions dans `open-questions.md`, `decisions.md` et US-024
 
 S8-01 : **100 %**. La suite est S8-02.
+
+## 7. Réalisation — S8-02
+
+- [x] `openapi.yaml` modifié selon le §3, plus une description de
+  `POST /sources/{id}/sync` ; contrat linté
+- [x] Trois clients régénérés ; diff limité aux commentaires et réponses déclarées
+- [x] `CatalogController` : consultation sur `last_synced_at`, lecture selon P2
+- [x] `SourceService` : compteurs selon P3, ordre 404 → 409 → 429
+- [x] `ManualSyncLimiter` et `lumo.rate-limit.manual-sync-interval`
+  (`LUMO_MANUAL_SYNC_INTERVAL`, PT5M)
+- [x] Tests du §5 : 20 tests, build API vert
+- [ ] Vérification sur la pile Docker avec le banc (S8-07 la rejouera sur appareils)

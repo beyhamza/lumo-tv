@@ -12,6 +12,29 @@ avec la maturité du produit.
 
 ## [Non publié]
 
+### Modifié
+
+**Contrat — lot C4 : l'ancien catalogue reste consultable.** Touche les trois
+applications, donc annoncé ici (AGENTS.md §3) ; aucun schéma, champ, chemin ni
+code d'erreur nouveau — des descriptions et des réponses déclarées. Les listes
+du catalogue répondent dès qu'une ingestion a réussi (`last_synced_at` non nul),
+pendant une actualisation comme après un échec ; `409 SOURCE_NOT_READY` ne
+concerne plus que la première ingestion. `channel_count` et `category_count`
+suivent la même règle. La lecture reste fermée pendant une ingestion ; après un
+échec elle est rouverte si un catalogue précédent existe, sauf
+`SOURCE_AUTH_FAILED` et `SOURCE_EXPIRED`, qui répondent avec leur propre code.
+Un `auto_sync` nocturne qui échouait sur une panne passagère du fournisseur
+bloquait jusque-là toute lecture. `DELETE /sources/{id}` décrit enfin tout ce
+qu'il emporte. Trois réponses alignées sur le serveur : `/series/{id}` perd un
+`409` jamais émis, `/sources/{id}/episodes` et `PUT /me/progress` déclarent
+ceux qu'ils émettaient. Détail : `docs/roadmap/0.2.0/c4-previous-catalogue.md`.
+
+**lumo-api — `429 SOURCE_SYNC_RATE_LIMITED` existe.** Au contrat depuis des mois,
+émis par rien. Une synchronisation manuelle par source toutes les cinq minutes
+(`LUMO_MANUAL_SYNC_INTERVAL`), avec dans `Retry-After` le temps qui reste
+vraiment. L'actualisation automatique et la correction d'identifiants ne
+comptent pas.
+
 ### Ajouté
 
 **Contrat — `ids` sur `GET /sources/{id}/channels`.** Touche les trois

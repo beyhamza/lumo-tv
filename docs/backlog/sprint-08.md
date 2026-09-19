@@ -1,6 +1,6 @@
 # Sprint 8 — Navigation, accueil et sources
 
-Statut : proposé, non commencé. Taille relative : L, estimation à faire après cadrage.
+Statut : en cours depuis le 19 septembre 2026. Taille relative : L.
 Référence : [plan 0.2.0 et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 [Première proposition d’écrans](../design/0.2.0/sprint-08-screens.md) disponible
@@ -36,7 +36,10 @@ Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulem
 - [x] S8-01 — [lot C4](../roadmap/0.2.0/c4-previous-catalogue.md) cadré à partir du
   code réel, décisions D1 à D5 validées et reportées dans le registre, les
   décisions produit et US-024
-- [ ] S8-02 — lot C4 côté contrat et serveur ; attend S8-01
+- [ ] S8-02 — **80 %** : contrat modifié, trois clients régénérés, gardes du
+  catalogue, compteurs, limite de synchronisation et 20 tests livrés ; build API
+  vert (287 tests). Reste la vérification sur la pile réelle avec le banc :
+  actualisation en cours, échec avec ancien catalogue, délai serveur
 - [ ] S8-03 — source active mémorisée par appareil
 - [ ] S8-04 — navigation et accueil
 - [ ] S8-05 — Mes sources
