@@ -48,7 +48,7 @@ lumo-tv/
 │  ├─ architecture.md
 │  ├─ domain-model.md
 │  ├─ adr/                    # décisions techniques, immuables une fois acceptées
-│  ├─ backlog/
+│  ├─ backlog/                # sprints et stories — dupliqués dans Plane (§10)
 │  ├─ design/                 # spécifications d'écran, dérivées des maquettes
 │  └─ prompts/                # prompts d'initialisation
 ├─ .github/workflows/         # contrat, api, android, web (§7)
@@ -156,7 +156,8 @@ Tout cela est **v2**. Si une tâche t'y emmène, signale la sortie de périmètr
 3. Écrire le test qui échoue, puis le code.
 4. Lancer le build et les tests de l'app concernée (commandes dans son `AGENTS.md` local).
 5. Mettre à jour la doc si un comportement observable change.
-6. Commit atomique, message conventionnel.
+6. Reporter dans Plane tout changement de backlog fait dans `docs/` (§10).
+7. Commit atomique, message conventionnel.
 
 **Ne fais jamais** : de refactor opportuniste hors du périmètre de la story ; de mise à
 jour de version de dépendance non demandée ; de `git push --force` ; de modification
@@ -207,3 +208,53 @@ Arrête-toi et demande à un humain si :
 - la tâche touche au chiffrement des identifiants ou à la logique de droits d'accès ;
 - la tâche implique de contourner une politique de store ;
 - tu constates une incohérence entre ce fichier et le code existant.
+
+---
+
+## 10. Le backlog vit à deux endroits : `docs/` et Plane
+
+Les user stories et les sprints sont décrits **deux fois** :
+
+1. dans le dépôt — `docs/backlog/` (sprints, stories, dette), `docs/roadmap/`,
+   `docs/releases/` ;
+2. dans une instance **Plane locale** — `http://localhost:8585/lumo-tv`
+   (workspace `lumo-tv`, projet « lumo tv », identifiant `LUMOTV`,
+   id `7c52f258-8226-4f83-a956-faac0a389773`).
+
+**Toi, agent, tu décris et tu mets à jour les deux.** Une story créée, reformulée,
+replanifiée, terminée ou annulée dans `docs/` est reportée dans Plane dans la même
+session de travail, et inversement. Une tâche qui ne touche qu'un seul des deux côtés
+n'est pas terminée.
+
+En cas de divergence, **le dépôt fait foi** : Plane est une copie. Tu corriges Plane
+d'après `docs/`, jamais l'inverse sans l'accord d'un humain.
+
+### Correspondance
+
+| Dans `docs/` | Dans Plane |
+|---|---|
+| `docs/backlog/sprint-NN.md` | cycle « Sprint NN » |
+| story, tâche de sprint, dette (`US-xx`, `Sx-yy`, `SRV-xx`, `R020-xx`, `DETTE-n`…) | work item avec `external_source=lumo-docs` et `external_id` = l'ID du dépôt |
+| thème fonctionnel | module |
+| document Markdown | page |
+| case cochée / pourcentage de la checklist | état du work item (« En recette » = code livré, DoD non encore rapportée) |
+
+Pour mettre à jour un item, **retrouve-le par son `external_id`** ; ne le recrée pas.
+
+### Accès à l'API
+
+API REST : `http://localhost:8585/api/v1/workspaces/lumo-tv/projects/<id>/…`, en-tête
+`X-API-Key`. Limite : 60 requêtes par minute.
+
+La clé ne figure **pas** dans le dépôt (§5). Elle se lit dans `.env.plane`, à la racine,
+gitignoré :
+
+```
+PLANE_BASE_URL=http://localhost:8585
+PLANE_WORKSPACE=lumo-tv
+PLANE_PROJECT_ID=7c52f258-8226-4f83-a956-faac0a389773
+PLANE_API_KEY=<clé générée dans Plane : Settings → API tokens>
+```
+
+Si `.env.plane` est absent ou si Plane ne répond pas, **dis-le** dans ton compte rendu
+et liste ce qui reste à reporter — ne passe pas la synchronisation sous silence.
