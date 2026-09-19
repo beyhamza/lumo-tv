@@ -3,6 +3,9 @@
 Statut : proposé, non commencé. Taille relative : L.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
+[Première proposition d’écrans](../design/0.2.0/library.md) préparée le
+19 septembre 2026 pour web, mobile et TV ; relecture visuelle à effectuer.
+
 ## Objectif
 
 Organiser ses chaînes et retrouver sur un autre appareil ses films/séries enregistrés.

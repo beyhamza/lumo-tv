@@ -4,6 +4,9 @@ Statut : besoin validé le 17 septembre 2026 ; liste à regarder en attente de
 couverture contractuelle. Version cible : 0.2.0.
 Surfaces : web, Android mobile, Android TV, même priorité.
 
+[Proposition visuelle](../../design/0.2.0/library.md) préparée le 19 septembre
+2026 ; les états et interactions simulés ne remplacent pas les arbitrages C2/Q3/Q8.
+
 ## Besoin
 
 Planification proposée : S11.
