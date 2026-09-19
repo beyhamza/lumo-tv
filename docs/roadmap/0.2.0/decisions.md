@@ -312,6 +312,11 @@ retenue après relecture en conversation. Elle illustre les comportements déjà
 validés dans le [cadrage Direct et Guide](../../design/0.2.0/direct-guide.md).
 Les arbitrages C1/Q5 et la recette sur appareils réels restent à compléter.
 
+Complément demandé ensuite : sur la liste complète des chaînes, placer toutes les
+catégories dans une colonne défilante à gauche et conserver les cartes à droite.
+La maquette révisée applique cette disposition sur TV/web ; son adaptation mobile
+compacte est une proposition, pas une nouvelle validation explicite.
+
 ## Objectif de sortie — décision du 17 septembre 2026
 
 - La 0.2.0 reste gratuite ; aucune ouverture des paiements n'est prévue pour cette version.

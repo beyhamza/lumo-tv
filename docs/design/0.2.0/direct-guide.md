@@ -14,6 +14,12 @@ active. Les trois surfaces ont la même priorité.
 ### Chaînes
 
 - Filtres Toutes, Favoris et catégories de la source.
+- Ajustement demandé le 19 septembre : dans la vue Chaînes, afficher les catégories
+  dans une liste défilante à gauche et conserver les cartes de chaînes à droite.
+  La proposition applique cette disposition sur TV et web ; elle conserve un
+  sélecteur compact sur mobile et aux faibles largeurs, adaptation à relire.
+- Toutes les chaînes et Favoris précèdent les catégories de la source. La catégorie
+  sélectionnée reste identifiée et la recherche respecte ce filtre.
 - Recherche par nom de chaîne.
 - Nom, logo fourni par la source et programme en cours lorsqu'il est disponible.
 - Sélection d'une chaîne : lancement immédiat de la lecture.
@@ -124,6 +130,14 @@ revenir à sa case après l’aperçu de lecture. Une variante de densité aér�
 permet de comparer la présentation. La navigation hors Direct reste un contexte visuel.
 
 Toutes les chaînes et tous les programmes sont fictifs, sans logo ni URL de flux.
+
+La révision du 19 septembre ajoute une colonne de catégories défilante sur web/TV,
+à gauche des cartes conservées. Le prototype contient douze catégories neutres
+pour permettre d’essayer le défilement. La liste reste accessible même lorsque la
+recherche ne trouve aucune chaîne. Le filtre choisi est conservé en passant au Guide.
+Le défilement, le filtrage, le focus après sélection et son passage vers les cartes
+sur TV ont été vérifiés dans le navigateur ; les contrôles de largeur ont été repris.
+
 L’horloge de démonstration est figée au 19 septembre 2026 à 20:25. Les jours sont
 alimentés artificiellement pour montrer la fenêtre prévue ; l’application devra
 respecter la disponibilité réelle. Les programmes longs sont tronqués visuellement
