@@ -53,6 +53,11 @@ Ces choix de focus et le retour système restent à valider sur les trois surfac
   30 nouvelles secondes (complément du 19 septembre).
 - Après un épisode terminé, la carte de série propose le suivant disponible même
   s’il n’a pas encore été commencé, sans seuil préalable sur celui-ci.
+- Suivant déjà terminé : le relire depuis le début, en conservant l’ordre des épisodes.
+- Recommencer conserve l’éligibilité acquise : carte retrouvée au démarrage réel,
+  sans attendre 30 nouvelles secondes ; progressions des autres épisodes intactes.
+- Un contenu de moins de 30 secondes n’a pas d’exception au seuil d’apparition ;
+  sa progression est sauvegardée et le contenu terminé reste absent de Continuer.
 - Préférences audio/sous-titres par appareil ; une langue absente ne remplace pas
   la préférence mémorisée. Audio : repli sur la piste par défaut. Sous-titres :
   aucune activation automatique d’une autre langue.
@@ -83,9 +88,10 @@ La maquette actuelle est en français ; la réalisation inclura FR/EN.
 ## Arbitrages et vérifications avant réalisation
 
 C3 reste requis pour le masquage partagé et l’éligibilité. Aucun endpoint ni type
-contractuel n’est ajouté par ce document. Q1/Q2 sont partiellement fermés : cumul,
-réapparition et suivant non commencé sont validés le 19 septembre. Restent notamment
-lectures simultanées, Recommencer, contenus courts et suivant déjà terminé.
+contractuel n’est ajouté par ce document. Q2 est tranché côté produit ; Q1 reste
+ouvert pour les lectures simultanées, les conflits et les écritures retardées.
+Recommencer, les contenus courts et le suivant déjà terminé ont été validés
+le 19 septembre, comme le cumul, la réapparition et le suivant non commencé.
 Les [cas de référence](continue-watching-cases.md) détaillent ces frontières.
 Q6 couvre notamment les pistes sans langue, les sous-titres
 forcés et le changement de compte. Les erreurs et conflits interappareils restent

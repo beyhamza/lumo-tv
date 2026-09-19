@@ -11,7 +11,7 @@ Aucun endpoint ni changement d'ADR n'est défini ici.
 |---|---|---|---|
 | C1 | EPG groupé, bornes, volume, âge réel des données du guide | S7-01 est une proposition historique, pas un contrat livré ; distinguer ingestion EPG et simple date de récupération | S9 |
 | C2 | Liste À regarder de films et séries, partagée, tri par ajout, retrait et suppression de source | Besoin validé, forme contractuelle à soumettre | S11 |
-| C3 | Masquage partagé de Continuer et mesure d'éligibilité après 30 secondes effectives | Besoin validé, règles Q1/Q2 et forme contractuelle à soumettre | S12 |
+| C3 | Masquage partagé de Continuer et mesure d'éligibilité après 30 secondes effectives | Besoin validé, Q2 tranché ; compléments Q1 à fixer et forme contractuelle à soumettre | S12 |
 | C4 | Consultation du catalogue précédent pendant SYNCING/ERROR et cascades documentées de suppression | Le contrôleur exige READY ; déterminer quelles lectures peuvent rester disponibles sans modifier implicitement la lecture des flux | S8 |
 
 Contrat écrit à la main, génération des trois clients et implémentation serveur
@@ -23,8 +23,8 @@ la procédure du dépôt. Aucun changement de chiffrement ou de droits n'est pr�
 
 | ID | Question à trancher | Avant |
 |---|---|---|
-| Q1 | Partiellement décidé le 19 septembre : cumul par film/épisode entre sessions/appareils ; réapparition dès le démarrage réel après retrait. Restent lectures simultanées, Recommencer, contenu déjà terminé, concurrence et écritures retardées | S12/C3 |
-| Q2 | Partiellement décidé le 19 septembre : garder la série avec le suivant non commencé, sans seuil préalable sur lui. Restent contenus très courts et suivant déjà terminé ; durée inconnue : reprise conservée déjà validée | S12 puis S13 |
+| Q1 | Partiellement décidé le 19 septembre : cumul par film/épisode entre sessions/appareils ; retour au démarrage réel après retrait ou Recommencer, sans nouvelle attente pour une carte éligible. Restent lectures simultanées, concurrence et écritures retardées | S12/C3 |
+| Q2 | Tranché côté produit le 19 septembre : suivant non commencé proposé sans seuil préalable ; contenu court sans exception d’apparition et absent une fois terminé ; suivant déjà terminé relu depuis zéro dans l’ordre ; durée inconnue avec reprise conservée. Réalisation et recette restent à faire | S12 puis S13 |
 | Q3 | Réordonner les chaînes d'une source dans un groupe contenant aussi d'autres sources ; erreurs partielles lors du retrait de tous les groupes | S11 |
 | Q4 | Comportements produit validés le 19 septembre dans US-024 : indisponibilité, catalogue inaccessible/partiel, suppression pendant une lecture et vérification après reconnexion. Restent à définir/vérifier le mécanisme de détection et les capacités de cache/C4 ; recette non exécutée | S8 |
 | Q5 | Seuil de fraîcheur EPG, programme se terminant avec fiche ouverte, conservation de recherche/filtres, focus des cases de durées différentes | S9 |

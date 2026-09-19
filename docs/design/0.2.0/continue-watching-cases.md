@@ -49,19 +49,23 @@ ni proposition du suivant. Les exceptions et interactions sont isolées ci-desso
 | CW-17 | 20 s sur un appareil puis 10 s sur un autre, même film ou épisode | Les secondes effectivement lues s’additionnent entre sessions et appareils ; la carte devient éligible à 30 s cumulées |
 | CW-18 | Carte retirée, puis lecture relancée depuis la fiche | Réapparition dès le démarrage réel, sans attendre 30 nouvelles secondes |
 | CW-19 | Épisode terminé, suivant disponible mais jamais commencé | Garder la série dans Continuer et proposer directement ce suivant ; pas de seuil de lecture préalable pour lui |
+| CW-20 | Contenu de moins de 30 s terminé avant le seuil d’apparition | Aucune exception au seuil ; progression sauvegardée, contenu terminé absent de Continuer |
+| CW-21 | Épisode suivant déjà terminé | Le proposer et le relire depuis le début, sans sauter à un épisode non terminé ; conserver l’ordre des épisodes |
+| CW-22 | Recommencer un contenu éligible ou retiré | Repartir à zéro et retrouver la carte dès le démarrage réel, sans attendre 30 nouvelles secondes ; conserver les progressions des autres épisodes |
 
 Le cumul de CW-17 est par film ou épisode, pas à l’échelle de toute une série.
 CW-19 est une exception explicite au seuil d’apparition du suivant : ne pas
 fabriquer une progression déjà lue pour afficher sa carte. Les critères de fin
-restent applicables ; CW-18 ne décide pas des priorités pour un contenu déjà terminé.
+restent applicables. CW-20 ne retire pas l’exception CW-19 : une série peut proposer
+son suivant après un épisode court terminé. CW-21 s’applique au suivant proposé
+depuis Continuer comme à l’enchaînement du lecteur ; son lancement automatique
+attend toujours la fin réelle et le décompte. CW-22 conserve l’éligibilité déjà
+acquise ; il ne crée pas une exception au premier seuil d’un contenu neuf.
 
-## Arbitrages Q1/Q2 restants
+## Arbitrages Q1 restants
 
 | ID | Situation | Décision à fixer |
 |---|---|---|
-| CW-20 | Contenu de moins de 30 s terminé avant le seuil d’apparition | Priorité de la règle de fin et éventuelle exception à l’apparition |
-| CW-21 | Épisode suivant déjà terminé | Revoir ce suivant ou chercher un épisode non terminé ; distinguer enchaînement et reprise depuis l’accueil |
-| CW-22 | Recommencer un contenu éligible ou retiré | Effet sur l’éligibilité acquise, le masque et le calcul de lecture effective |
 | CW-23 | Deux appareils lisent simultanément le même contenu | Définir le cumul temporel et la position retenue, sans additionner implicitement des doublons |
 
 Le masquage concurrent avec une lecture, les écritures retardées et le retour
@@ -89,7 +93,7 @@ Les mécanismes de cache et de détection ne sont pas décidés par ce document.
 
 Le contrat existant porte position et durée, filtrées par source/type/référence.
 Il ne porte pas le masque partagé ni la mesure de lecture effective. Les décisions
-CW-17 à CW-19 sont acquises. Avant tout schéma, fermer CW-20 à CW-23 et les règles
+CW-17 à CW-22 sont acquises. Avant tout schéma, fermer CW-23 et les règles
 de concurrence/hors ligne nécessaires au lot.
 
 Le lot contractuel devra ensuite expliciter et faire approuver la lecture des

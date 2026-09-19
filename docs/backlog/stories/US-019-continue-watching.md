@@ -9,7 +9,8 @@ Surfaces : web, Android mobile, Android TV.
 Proposition de présentation : [écrans Reprise et lecteur](../../design/0.2.0/resume-player.md),
 S12-E01 à E03, présentation générale retenue. Les
 [cas de référence](../../design/0.2.0/continue-watching-cases.md) précisent la
-préparation des seuils, de la réapparition et de la recette, sans fermer Q1/Q2.
+préparation des seuils, de la réapparition et de la recette. Q2 est tranché côté
+produit ; Q1 reste ouvert pour la concurrence et les écritures retardées.
 
 Planification proposée : S12 ; rails existants réutilisés en S8, sans clôture anticipée.
 Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
@@ -43,6 +44,11 @@ afin de les reprendre rapidement.
 - Chaque épisode reste sélectionnable ; un épisode commencé propose Reprendre
   ou Recommencer cet épisode.
 - Recommencer un épisode conserve les progressions des autres épisodes.
+- Complément du 19 septembre 2026 : Recommencer repart à zéro et conserve
+  l’éligibilité acquise de la carte. Elle est retrouvée dès le démarrage réel,
+  sans attendre 30 nouvelles secondes, y compris après retrait.
+- Si l’épisode suivant proposé est déjà terminé, le relire depuis le début pour
+  conserver l’ordre des épisodes ; ne pas sauter à un épisode non terminé.
 - L'accueil Continuer conserve sa reprise immédiate, sans question intermédiaire.
 
 Ce complément précise la transition entre l'accueil et les fiches des sprints
@@ -62,6 +68,9 @@ Ce complément précise la transition entre l'accueil et les fiches des sprints
   conserver la série dans Continuer et proposer directement ce suivant, sans
   attendre 30 secondes lues sur celui-ci et sans inventer de progression.
 - Sans durée connue, conserver la reprise ; la carte peut être retirée manuellement.
+- Contenu de moins de 30 secondes : aucune exception au seuil d’apparition.
+  La progression est sauvegardée, mais le contenu terminé n’apparaît pas dans
+  Continuer. Une série peut néanmoins proposer le suivant selon la règle ci-dessus.
 - Le seuil de 95 % ne coupe pas la lecture et ne déclenche pas le suivant.
   Le décompte d'enchaînement commence uniquement à la fin réellement atteinte par le lecteur.
 
@@ -93,10 +102,6 @@ d'endpoint dans cette story.
   une lecture concurrente ?
 - Préciser les lectures simultanées, les réessais et les écritures retardées pour
   le cumul entre sessions/appareils validé le 19 septembre.
-- Préciser l’articulation avec Recommencer, un contenu déjà terminé et la
-  réapparition immédiate après retrait.
-- Confirmer les contenus très courts et le suivant déjà terminé. Le suivant
-  non commencé est proposé sans seuil préalable, décision du 19 septembre.
 
 La recette vérifiera sur deux appareils que retirer une carte la masque sur les
 deux, conserve la position retrouvée depuis la fiche, puis qu'une nouvelle lecture
@@ -107,5 +112,9 @@ avance manuelle sans 30 secondes lues, une durée inconnue et la poursuite de le
 au-delà du seuil sans déclenchement prématuré de l'épisode suivant.
 Ajouter les cas 20 s puis 10 s sur deux appareils, relance après retrait sans
 attente supplémentaire et proposition d’un suivant non commencé (CW-17 à CW-19).
+Ajouter un film de 20 s terminé sans apparition, un suivant déjà terminé relu
+depuis zéro sans saut d’épisode, et Recommencer sur une carte visible puis retirée,
+avec retour immédiat au démarrage réel et progressions des autres épisodes intactes
+(CW-20 à CW-22). Recette non exécutée.
 
 Référence : [décisions produit](../../roadmap/0.2.0/decisions.md).

@@ -25,6 +25,8 @@ de focus restent proposés.
 - À la fin du dernier épisode disponible, revenir à la fiche de la série.
 - Si l'épisode suivant est déjà commencé, reprendre sa position et afficher
   brièvement « Reprise à… » avec la position concernée.
+- S’il est déjà terminé, le relire depuis le début, sans sauter un épisode pour
+  chercher le premier non terminé (complément validé le 19 septembre 2026).
 - Libellés FR/EN et actions utilisables au tactile, au clavier et au D-pad.
 - Le décompte démarre uniquement à la fin réellement atteinte par le lecteur.
   Le seuil de plus de 95 % utilisé pour Continuer ne coupe jamais la lecture et
@@ -46,7 +48,6 @@ de préférences par appareil avant implémentation.
 - Emplacement du réglage et portée lors d'un changement de compte.
 - Focus initial de la carte de fin et comportement des commandes Retour.
 - Erreur lors du lancement du suivant et disparition d'un épisode du catalogue.
-- Épisode suivant déjà terminé : comportement à préciser avec les critères de fin.
 - Épisodes numérotés avec des trous ou saisons vides : conserver les règles métier
   existantes et vérifier leur cohérence avec le parcours retenu.
 
@@ -64,5 +65,7 @@ Réutiliser les fixtures et recettes du sprint 6, avec une télécommande réell
 la TV. L'absence d'épisode suivant ne doit pas créer de décompte.
 Vérifier aussi que le suivant déjà commencé reprend sa position et affiche le
 message de reprise.
+Pour un suivant déjà terminé, vérifier le départ à zéro, l’absence de saut vers
+un autre épisode et le respect du décompte ou du lancement manuel.
 
 Référence : [décisions produit](../../roadmap/0.2.0/decisions.md).

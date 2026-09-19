@@ -52,6 +52,10 @@ R020-08 reprend les [cas Continuer](../../design/0.2.0/continue-watching-cases.m
 dont CW-17 à CW-19 validés le 19 septembre : cumul de 30 s entre sessions/appareils,
 réapparition au démarrage réel après retrait et suivant non commencé proposé.
 Les autres arbitrages restent ouverts et aucun de ces cas n’est déclaré joué.
+Complément validé : CW-20 à CW-22 couvrent le contenu court terminé absent de
+Continuer, le suivant déjà terminé relu depuis le début et Recommencer sans
+nouvelle attente pour une carte éligible. Les vérifier dans R020-08/09/11 ; Q2
+est tranché côté produit, ces recettes restent non jouées.
 Chaque rapport conserve date, commit, surface/appareil, cas, résultat, preuve et
 anomalie liée. Créer les rapports au moment de l'exécution, sans préremplir des succès.
 

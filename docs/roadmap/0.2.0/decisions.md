@@ -36,9 +36,9 @@ produit ; il ne remplace ni le contrat ni les ADR.
 - Retrait de Continuer : éventuelle restauration manuelle et modalités de synchronisation.
 - Favoris : déplacement dans un groupe contenant plusieurs sources et erreurs
   partielles lors du retrait de plusieurs appartenances.
-- Cartes Continuer : lectures simultanées, Recommencer, conflits après retrait,
-  contenus très courts et suivant déjà terminé. Cumul entre sessions/appareils,
-  réapparition au démarrage réel et suivant non commencé ont été validés le 19 septembre.
+- Cartes Continuer : lectures simultanées, conflits après retrait et écritures
+  retardées. Cumul, réapparition, Recommencer, contenus courts et comportement
+  du suivant ont été validés le 19 septembre.
 - Nombre de cartes, comportement des chargements et erreurs partielles, retour du
   focus TV et représentation des destinations sans contenu : à préciser avec les écrans.
 
@@ -217,10 +217,19 @@ dans US-019, distinctement de la position de lecture.
   garder la série dans Continuer et proposer directement le suivant. Celui-ci
   n’a pas besoin d’avoir déjà été lu et aucune progression fictive n’est créée.
 
-Voir les [cas CW-17 à CW-19](../../design/0.2.0/continue-watching-cases.md).
-Les lectures simultanées, Recommencer, les contenus très courts et le suivant
-déjà terminé restent à préciser. C3 demeure un lot contractuel distinct à définir
-et approuver ; aucun endpoint ni mécanisme de synchronisation n’est décidé ici.
+- Contenu de moins de 30 secondes : aucune exception au seuil d’apparition.
+  La progression est sauvegardée, mais le contenu terminé n’apparaît pas dans
+  Continuer. La proposition du suivant d’une série reste applicable.
+- Épisode suivant déjà terminé : le relire depuis le début pour conserver l’ordre,
+  sans rechercher silencieusement un autre épisode non terminé.
+- Recommencer : repartir à zéro sans attendre 30 nouvelles secondes pour retrouver
+  une carte déjà éligible, dès le démarrage réel. Les progressions des autres
+  épisodes restent intactes.
+
+Voir les [cas CW-17 à CW-22](../../design/0.2.0/continue-watching-cases.md).
+Les lectures simultanées, conflits et écritures retardées restent à préciser.
+C3 demeure un lot contractuel distinct à définir et approuver ; aucun endpoint
+ni mécanisme de synchronisation n’est décidé ici.
 
 ## Mes sources — organisation validée le 17 septembre 2026
 
