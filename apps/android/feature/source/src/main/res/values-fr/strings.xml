@@ -65,4 +65,14 @@
     <string name="feature_source_error_offline">Pas de connexion. Rien n\'a été envoyé.</string>
     <string name="feature_source_error_unexpected">Une erreur est survenue. Réessayez.</string>
     <string name="feature_source_step_parsing_series">Lecture de la liste des séries</string>
+
+    <string name="feature_source_switcher_label">Source</string>
+    <string name="feature_source_switcher_change">Changer de source</string>
+    <string name="feature_source_switcher_device_only">Ce choix ne concerne que cet appareil.</string>
+    <string name="feature_source_switcher_choose_title">Choisissez une source</string>
+    <string name="feature_source_switcher_choose_body">Vous avez plusieurs sources. Choisissez celle à parcourir sur cet appareil. Vous pourrez en changer à tout moment.</string>
+    <string name="feature_source_switcher_status_ready">Prête</string>
+    <string name="feature_source_switcher_status_refreshing">Actualisation en cours</string>
+    <string name="feature_source_switcher_status_error">En erreur</string>
+    <string name="feature_source_switcher_manage">Mes sources</string>
 </resources>

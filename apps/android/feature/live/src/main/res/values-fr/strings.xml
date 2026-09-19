@@ -5,6 +5,8 @@
 
     <string name="feature_live_no_source_title">Pas encore de chaînes</string>
     <string name="feature_live_no_source_body">Enregistrez une playlist M3U ou un compte Xtream Codes depuis l\'onglet Source, et vos chaînes apparaîtront ici.</string>
+    <string name="feature_live_needs_choice_title">Choisissez une source</string>
+    <string name="feature_live_needs_choice_body">Vous avez plusieurs sources. Choisissez celle à parcourir et ses chaînes apparaîtront ici.</string>
 
     <string name="feature_live_not_ready_title">Votre source n\'est pas prête</string>
     <string name="feature_live_not_ready_body">L\'import n\'est pas terminé, ou il a échoué. L\'onglet Source dit où il en est.</string>

@@ -9,13 +9,18 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import tv.lumo.android.core.data.ActiveSourceState
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.repository.AccountRepository
+import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.SourceRepository
+import tv.lumo.android.core.data.repository.onFailureNaming
+import tv.lumo.android.core.data.selectedSourceId
 import tv.lumo.android.core.data.valueOrNull
 import tv.lumo.android.network.generated.model.ErrorCode
 import tv.lumo.android.network.generated.model.Source
@@ -53,11 +58,21 @@ import tv.lumo.android.network.generated.model.SourceStatus
  * channel, and the interval lives here rather than in the repository — a
  * repository that owned a timer would be a repository nobody could test without
  * one.
+ *
+ * <h2>The source on this tab is the active one</h2>
+ *
+ * It used to be the first of the list, which with two sources is a source nobody
+ * chose. It is now whichever this device browses (US-018), and it is followed:
+ * changing source from the shell while this tab is open shows the new one. And
+ * this screen is what tells [ActiveSourceRepository] that the list has changed —
+ * a source created here becomes active when it is the account's first, and
+ * leaves the selection alone when it is not (US-024).
  */
 @HiltViewModel
 class SourceViewModel @Inject constructor(
     private val sources: SourceRepository,
     private val account: AccountRepository,
+    private val activeSource: ActiveSourceRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AddSourceState())
@@ -66,40 +81,81 @@ class SourceViewModel @Inject constructor(
     private var pollJob: Job? = null
 
     init {
-        load()
+        observeActiveSource()
     }
 
     /**
-     * Decides what this tab is showing: a source, or the form that makes one.
+     * Decides what this tab is showing: the active source, or the form that makes
+     * one.
+     *
+     * Keyed on **which** source is active and on nothing else about it. A status
+     * that moves, a sync date, a sibling renamed — none of that may restart this
+     * screen, because the correction form lives here and a re-emission that
+     * replaced it with the source's card would throw away what somebody was
+     * typing.
+     */
+    private fun observeActiveSource() {
+        _state.update { it.copy(step = AddSourceStep.Loading) }
+
+        // Resolved a while ago: the list may have changed since. Still loading
+        // means the repository is asking right now.
+        if (activeSource.state.value !is ActiveSourceState.Loading) {
+            viewModelScope.launch { activeSource.refresh() }
+        }
+
+        viewModelScope.launch {
+            activeSource.state
+                .distinctUntilChangedBy { active -> active.shownSourceId to active::class }
+                .collect { active -> follow(active) }
+        }
+    }
+
+    private suspend fun follow(active: ActiveSourceState) {
+        val source = (active as? ActiveSourceState.Selected)?.source
+
+        when {
+            source != null -> {
+                show(source)
+                watch(source.id.toString())
+            }
+
+            // Still being read, or several sources and the shell is asking which.
+            // Either way there is no source to show yet and no reason to offer
+            // the form to somebody who has sources.
+            active is ActiveSourceState.Loading || active is ActiveSourceState.NeedsChoice -> {
+                pollJob?.cancel()
+                _state.update { AddSourceState(step = AddSourceStep.Loading) }
+            }
+
+            else -> {
+                pollJob?.cancel()
+                offerForm(knownEmpty = active is ActiveSourceState.None)
+            }
+        }
+    }
+
+    /**
+     * The form, or the sentence that says the plan is full.
      *
      * The plan's ceiling is read from `Entitlement.max_sources` and never from a
      * constant — the day the free plan allows two, this follows without a release
      * (ADR 0003). The server refuses anyway; this is the courtesy, and the
      * contract says as much.
+     *
+     * @param knownEmpty whether the server said the account has no source. When
+     * the list could not be read the count is unknown, and an unknown count never
+     * closes the form: the server is the one that refuses.
      */
-    private fun load() {
-        _state.update { it.copy(step = AddSourceStep.Loading) }
+    private suspend fun offerForm(knownEmpty: Boolean) {
+        val max = account.entitlement().valueOrNull()?.maxSources
+        val used = if (knownEmpty) 0 else null
 
-        viewModelScope.launch {
-            val existing = sources.sources().valueOrNull()
-            val first = existing?.firstOrNull()
-
-            if (first != null) {
-                show(first)
-                watch(first.id.toString())
-                return@launch
-            }
-
-            val max = account.entitlement().valueOrNull()?.maxSources
-            val used = existing?.size
-
-            _state.update {
-                // A null maximum means unlimited in the contract, not unknown.
-                if (max != null && used != null && used >= max) {
-                    it.copy(step = AddSourceStep.NoRoom(max))
-                } else {
-                    it.copy(step = AddSourceStep.ChoosingKind)
-                }
+        _state.update {
+            // A null maximum means unlimited in the contract, not unknown.
+            if (max != null && used != null && used >= max) {
+                AddSourceState(step = AddSourceStep.NoRoom(max))
+            } else {
+                AddSourceState(step = AddSourceStep.ChoosingKind)
             }
         }
     }
@@ -200,6 +256,11 @@ class SourceViewModel @Inject constructor(
                 _state.update { it.copy(password = "", submitting = false) }
                 show(result.value)
                 watch(result.value.id.toString())
+
+                // The list has changed, and the repository is what decides what
+                // that means: the account's first source becomes active on this
+                // device, an additional one does not steal the selection (US-024).
+                viewModelScope.launch { activeSource.refresh() }
             }
 
             is LumoResult.Failure -> _state.update {
@@ -241,10 +302,27 @@ class SourceViewModel @Inject constructor(
                         failures = 0
                         show(result.value)
                         val status = result.value.status
-                        if (status == SourceStatus.READY || status == SourceStatus.ERROR) return@launch
+                        if (status == SourceStatus.READY || status == SourceStatus.ERROR) {
+                            // The catalogue screens read the status from the
+                            // repository. Without this they would go on saying
+                            // "import in progress" about a source that is ready.
+                            // Only when it moved: this poll also runs once over a
+                            // source that was ready all along.
+                            val known = (activeSource.state.value as? ActiveSourceState.Selected)
+                                ?.source
+                                ?.takeIf { it.id == result.value.id }
+                            if (known?.status != status) activeSource.refresh()
+                            return@launch
+                        }
                     }
 
                     is LumoResult.Failure -> {
+                        // Deleted from the website or another device while this
+                        // screen watched it. That is not a poll that failed: the
+                        // repository picks what is browsed next, and this screen
+                        // follows it. Nothing else counts as proof (US-018).
+                        if (activeSource.onFailureNaming(sourceId, result.error)) return@launch
+
                         failures++
                         if (failures >= MAX_CONSECUTIVE_FAILURES) {
                             // The last known state stays on screen. Replacing it
@@ -441,6 +519,13 @@ internal fun LumoError.asFailure(): AddSourceFailure = when (this) {
     }
     is LumoError.UnknownCode, is LumoError.Unreadable -> AddSourceFailure.Unexpected
 }
+
+/**
+ * The source this tab can actually show: selected, **and** known to the server's
+ * list. A choice remembered offline has an identifier and nothing to draw.
+ */
+private val ActiveSourceState.shownSourceId: String?
+    get() = (this as? ActiveSourceState.Selected)?.takeIf { it.source != null }?.selectedSourceId
 
 /** Often enough to feel live, rarely enough not to matter to a battery. */
 private const val POLL_INTERVAL_MILLIS = 2_000L

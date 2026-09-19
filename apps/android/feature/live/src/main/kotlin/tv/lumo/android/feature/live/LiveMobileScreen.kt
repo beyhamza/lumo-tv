@@ -115,6 +115,11 @@ fun LiveMobileScreen(
                 body = stringResource(R.string.feature_live_no_source_body),
             )
 
+            LiveStep.NeedsChoice -> Message(
+                title = stringResource(R.string.feature_live_needs_choice_title),
+                body = stringResource(R.string.feature_live_needs_choice_body),
+            )
+
             LiveStep.NotReadyYet -> Message(
                 title = stringResource(R.string.feature_live_not_ready_title),
                 body = stringResource(R.string.feature_live_not_ready_body),

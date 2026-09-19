@@ -21,10 +21,10 @@ import tv.lumo.android.core.data.model.FavoriteGroup
  * the gesture that starts, the other says this shelf is empty. Collapsing them
  * gives somebody with forty favourites a lesson on how to press a heart.
  *
- * **The source line.** It earns its place only when the account has more than one
- * subscription. Under a single source it is the same sentence on every row, which
- * is noise; and offline the names are simply not there, which is a supported state
- * and not a blank.
+ * **The source.** The list is the account's and the screen shows the active
+ * source's share of it (US-018). With one source the two are the same list, so a
+ * filter that did nothing — or one that deleted instead of hiding — would pass
+ * every manual test and only show on the day somebody adds a second subscription.
  */
 class FavoritesStateTest {
 
@@ -37,6 +37,7 @@ class FavoritesStateTest {
             loading = false,
             groups = listOf(documentaire, cine),
             selectedGroupId = "documentaire",
+            activeSourceId = "source",
             favorites = listOf(
                 favorite("f1", "documentaire", channel("c1", "Zèbre"), position = 2),
                 favorite("f2", "documentaire", channel("c2", "Arte"), position = 0),
@@ -56,6 +57,7 @@ class FavoritesStateTest {
             loading = false,
             groups = listOf(documentaire, cine),
             selectedGroupId = "cine",
+            activeSourceId = "source",
             favorites = listOf(favorite("f1", "documentaire", channel("c1", "Arte"))),
         )
 
@@ -75,17 +77,71 @@ class FavoritesStateTest {
     }
 
     @Test
-    fun `the source is named only when there is more than one to tell apart`() {
-        val favorite = favorite("f1", "documentaire", channel("c1", "Arte", sourceId = "s1"))
+    fun `only the active source's favourites are shown, and switching back finds the others`() {
+        val state = FavoritesState(
+            loading = false,
+            groups = listOf(documentaire),
+            selectedGroupId = "documentaire",
+            activeSourceId = "source-a",
+            favorites = listOf(
+                favorite("f1", "documentaire", channel("c1", "Chaîne 01", sourceId = "source-a")),
+                favorite("f2", "documentaire", channel("c2", "Chaîne 02", sourceId = "source-b")),
+            ),
+        )
 
-        val single = FavoritesState(sourceNames = mapOf("s1" to "Ma playlist"))
-        val two = FavoritesState(sourceNames = mapOf("s1" to "Ma playlist", "s2" to "Mon panel"))
-        val offline = FavoritesState(sourceNames = emptyMap())
+        assertThat(state.visible.map { it.channel.name }).containsExactly("Chaîne 01")
 
-        assertThat(single.sourceLabel(favorite)).isNull()
-        assertThat(two.sourceLabel(favorite)).isEqualTo("Ma playlist")
-        // Offline the names were never fetched. No line, no blank, no placeholder.
-        assertThat(offline.sourceLabel(favorite)).isNull()
+        // Nothing was removed to get there: the same list, read for the other
+        // source, shows what was hidden a moment ago.
+        val switched = state.copy(activeSourceId = "source-b")
+        assertThat(switched.visible.map { it.channel.name }).containsExactly("Chaîne 02")
+        assertThat(switched.favorites).hasSize(2)
+    }
+
+    @Test
+    fun `favourites held only in another source read as none here`() {
+        val state = FavoritesState(
+            loading = false,
+            activeSourceId = "source-a",
+            favorites = listOf(
+                favorite("f1", "documentaire", channel("c1", "Chaîne 01", sourceId = "source-b")),
+            ),
+        )
+
+        // The gesture is what helps somebody who has starred nothing in the source
+        // they are looking at, whatever they did in another one.
+        assertThat(state.nothingAtAll).isTrue()
+    }
+
+    @Test
+    fun `no active source shows nothing rather than everything`() {
+        // Several sources and no choice yet: there is no catalogue on screen for
+        // a favourite to belong to.
+        val state = FavoritesState(
+            loading = false,
+            selectedGroupId = "documentaire",
+            activeSourceId = null,
+            favorites = listOf(favorite("f1", "documentaire", channel("c1", "Chaîne 01"))),
+        )
+
+        assertThat(state.visible).isEmpty()
+    }
+
+    @Test
+    fun `the deletion count spans every source, because the deletion does`() {
+        val state = FavoritesState(
+            loading = false,
+            groups = listOf(documentaire),
+            activeSourceId = "source-a",
+            favorites = listOf(
+                favorite("f1", "documentaire", channel("c1", "Chaîne 01", sourceId = "source-a")),
+                favorite("f2", "documentaire", channel("c2", "Chaîne 02", sourceId = "source-b")),
+            ),
+        )
+
+        // The server moves both. A count of one would be a promise the deletion
+        // does not keep.
+        assertThat(state.countIn(documentaire)).isEqualTo(2)
     }
 
     // ---- organising (S4-05) ------------------------------------------------
@@ -113,6 +169,7 @@ class FavoritesStateTest {
             loading = false,
             groups = listOf(documentaire, cine),
             selectedGroupId = "cine",
+            activeSourceId = "source",
             favorites = listOf(
                 only,
                 // Three more favourites, in the other group. They must not make

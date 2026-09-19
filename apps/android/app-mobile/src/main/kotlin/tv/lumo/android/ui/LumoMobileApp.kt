@@ -21,9 +21,12 @@ import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.core.designsystem.component.LumoMobileNavBar
 import tv.lumo.android.feature.live.PlayerDestination
 import tv.lumo.android.feature.series.EpisodePlayerDestination
+import tv.lumo.android.feature.source.SourceDestination
+import tv.lumo.android.feature.source.switcher.SourceSwitcherMobile
 import tv.lumo.android.feature.vod.VodPlayerDestination
 import tv.lumo.android.navigation.LumoMobileNavHost
 import tv.lumo.android.navigation.MobileDestinations
+import tv.lumo.android.navigation.leaveDetailOfPreviousSource
 import tv.lumo.android.navigation.mobileStartRoute
 
 /**
@@ -76,6 +79,21 @@ fun LumoMobileApp(
         modifier = Modifier.fillMaxSize(),
     ) { contentPadding ->
         Column(modifier = Modifier.padding(contentPadding)) {
+            // The source being browsed, above every section (US-018). Placed
+            // here and written in `feature:source`: the shell decides where it
+            // goes and what a change of source does to the back stack, and
+            // nothing else. Shown on the same condition as the bar below, for
+            // the same two reasons.
+            if (startState != AppStart.SignedOut && currentRoute !in PLAYER_ROUTES) {
+                SourceSwitcherMobile(
+                    onSwitched = { navController.leaveDetailOfPreviousSource() },
+                    onLastSourceLost = { navController.switchTopLevelTo(SourceDestination) },
+                    // The full "My sources" screen is S8-05's. Until then the
+                    // entry leads to the screen that exists.
+                    onOpenSources = { navController.switchTopLevelTo(SourceDestination) },
+                )
+            }
+
             key(startRoute) {
                 LumoMobileNavHost(
                     navController = navController,

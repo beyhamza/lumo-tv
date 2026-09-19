@@ -9,6 +9,13 @@
 
     <string name="feature_live_no_source_title">No channels yet</string>
     <string name="feature_live_no_source_body">Register an M3U playlist or an Xtream Codes account from the Source tab, and your channels will appear here.</string>
+    <!--
+      Several sources and none chosen on this device yet (US-018). The shell's
+      chooser sits on top while this lasts; what is underneath says the same
+      thing rather than "no source", which would be false.
+    -->
+    <string name="feature_live_needs_choice_title">Choose a source</string>
+    <string name="feature_live_needs_choice_body">You have several sources. Choose the one to browse and its channels will appear here.</string>
 
     <!--
       Distinct from "no channels": a source that is still importing is a wait,

@@ -112,6 +112,11 @@ fun VodTvScreen(
                 body = stringResource(R.string.feature_vod_no_source_body),
             )
 
+            VodStep.NeedsChoice -> TvMessage(
+                title = stringResource(R.string.feature_vod_needs_choice_title),
+                body = stringResource(R.string.feature_vod_needs_choice_body),
+            )
+
             VodStep.NotReadyYet -> TvMessage(
                 title = stringResource(R.string.feature_vod_not_ready_title),
                 body = stringResource(R.string.feature_vod_not_ready_body),

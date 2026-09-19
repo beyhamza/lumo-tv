@@ -24,12 +24,6 @@
     <string name="feature_favorites_group_empty_body">Nothing is filed here yet.</string>
 
     <!--
-      Shown only when the account has more than one source: under a single
-      subscription the same line on every row is noise.
-    -->
-    <string name="feature_favorites_from_source">From %1$s</string>
-
-    <!--
       Shown in place of the name the server gives the group it creates on the
       first add, and only while that name is still the server&apos;s own. Once the
       user has renamed the group, their name wins.

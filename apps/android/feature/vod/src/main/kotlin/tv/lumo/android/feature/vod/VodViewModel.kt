@@ -8,9 +8,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -20,16 +22,19 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import tv.lumo.android.core.data.ActiveSourceState
+import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.asCatalogueSource
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.data.model.WatchProgress
+import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
-import tv.lumo.android.core.data.repository.SourceRepository
 import tv.lumo.android.core.data.repository.VodRepository
-import tv.lumo.android.core.data.valueOrNull
-import tv.lumo.android.network.generated.model.SourceStatus
+import tv.lumo.android.core.data.repository.onFailureNaming
+import tv.lumo.android.core.data.sourceId
 
 /**
  * Browsing the films of a source (US-13).
@@ -59,12 +64,19 @@ import tv.lumo.android.network.generated.model.SourceStatus
  * **The synopsis is not in the listing.** [VodDetailViewModel] is what fetches
  * one, for the film somebody actually opened — on an Xtream panel it is a request
  * per film against the user's own server, so a grid must never trigger it.
+ *
+ * <h2>The source is the active one, and it can change under the screen</h2>
+ *
+ * `LiveViewModel` again: the source is [ActiveSourceRepository]'s answer and it is
+ * followed, not read once (US-018). Changing source from the shell keeps this
+ * section open and shows the new source's films, with the category, the search
+ * and the resume shelf of the old one dropped — see [VodState.browsing].
  */
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 class VodViewModel @Inject constructor(
     private val vod: VodRepository,
-    private val sources: SourceRepository,
+    private val activeSource: ActiveSourceRepository,
     private val progress: ProgressRepository,
 ) : ViewModel() {
 
@@ -112,40 +124,50 @@ class VodViewModel @Inject constructor(
     }
 
     init {
-        load()
+        observeActiveSource()
     }
 
-    private fun load() {
+    /**
+     * Follows the active source for as long as the screen lives.
+     *
+     * `collectLatest`, so that what was started for the previous source — its
+     * category observer, its resume rail still being resolved — is cancelled by
+     * the switch instead of landing in the new source's screen.
+     */
+    private fun observeActiveSource() {
+        // Resolved a while ago, so the status may have moved since — importing,
+        // then ready. One short request per opening, which is what this screen
+        // cost before. Still loading means the repository is already asking.
+        if (activeSource.state.value !is ActiveSourceState.Loading) {
+            viewModelScope.launch { activeSource.refresh() }
+        }
+
         viewModelScope.launch {
-            val source = sources.sources().valueOrNull()?.firstOrNull()
+            activeSource.state
+                .map { it.asCatalogueSource() }
+                .distinctUntilChanged()
+                .collectLatest { source -> open(source) }
+        }
+    }
 
-            if (source == null) {
-                _state.update { it.copy(step = VodStep.NoSource) }
-                return@launch
-            }
+    private suspend fun open(source: CatalogueSource) {
+        _state.update { it.browsing(source) }
 
-            val sourceId = source.id.toString()
+        if (source !is CatalogueSource.Ready) return
 
-            if (source.status != SourceStatus.READY) {
-                _state.update { it.copy(sourceId = sourceId, step = VodStep.NotReadyYet) }
-                return@launch
-            }
+        coroutineScope {
+            launch { observeCategories(source.sourceId) }
+            launch { loadContinueWatching(source.sourceId) }
 
-            _state.update { it.copy(sourceId = sourceId, step = VodStep.Browsing) }
-            observeCategories(sourceId)
-            loadContinueWatching(sourceId)
-
-            if (vod.cachedFilmCount(sourceId) == 0) {
+            if (vod.cachedFilmCount(source.sourceId) == 0) {
                 refresh()
             }
         }
     }
 
-    private fun observeCategories(sourceId: String) {
-        viewModelScope.launch {
-            vod.categories(sourceId).collect { cached ->
-                _state.update { it.copy(categories = cached.value, origin = cached.origin) }
-            }
+    private suspend fun observeCategories(sourceId: String) {
+        vod.categories(sourceId).collect { cached ->
+            _state.update { it.copy(categories = cached.value, origin = cached.origin) }
         }
     }
 
@@ -164,19 +186,21 @@ class VodViewModel @Inject constructor(
      * A film whose row is not in the cache drops out rather than rendering as a
      * gap: it was dropped by a re-synchronisation, and a card with no title is
      * worse than one card fewer.
+     *
+     * **Only the active source's films** (US-018). The progress list is the
+     * account's; what is shown is the share that belongs to the catalogue on
+     * screen, and the rest is untouched — it is there again when its source is.
      */
-    private fun loadContinueWatching(sourceId: String) {
-        viewModelScope.launch {
-            val rows = progress.continueWatching().filter { it.sourceId == sourceId }
-            val byId = vod.filmsByIds(rows.map { it.filmId }).associateBy { it.id }
+    private suspend fun loadContinueWatching(sourceId: String) {
+        val rows = progress.continueWatching().filter { it.sourceId == sourceId }
+        val byId = vod.filmsByIds(rows.map { it.filmId }).associateBy { it.id }
 
-            _state.update {
-                it.copy(
-                    continueWatching = rows.mapNotNull { row ->
-                        byId[row.filmId]?.let { film -> ResumableFilm(film, row) }
-                    },
-                )
-            }
+        _state.update {
+            it.copy(
+                continueWatching = rows.mapNotNull { row ->
+                    byId[row.filmId]?.let { film -> ResumableFilm(film, row) }
+                },
+            )
         }
     }
 
@@ -189,8 +213,24 @@ class VodViewModel @Inject constructor(
 
         viewModelScope.launch {
             val result = vod.refresh(sourceId)
+
+            // `SOURCE_NOT_FOUND` is a deletion made elsewhere, not a refresh that
+            // failed: the repository decides what is browsed next and this screen
+            // follows. A dead network proves nothing and stays a banner (US-018).
+            val gone = result is LumoResult.Failure &&
+                activeSource.onFailureNaming(sourceId, result.error)
+
             _state.update {
-                it.copy(refreshing = false, refreshFailed = result is LumoResult.Failure)
+                // The outcome belongs to the catalogue that asked for it, which
+                // may no longer be the one on screen.
+                if (it.sourceId != sourceId) {
+                    it
+                } else {
+                    it.copy(
+                        refreshing = false,
+                        refreshFailed = result is LumoResult.Failure && !gone,
+                    )
+                }
             }
         }
     }
@@ -254,6 +294,9 @@ sealed interface VodStep {
     /** No source registered yet. */
     data object NoSource : VodStep
 
+    /** Several sources and none chosen on this device. The shell is asking (US-018). */
+    data object NeedsChoice : VodStep
+
     /** A source exists but has not finished importing, or failed to. */
     data object NotReadyYet : VodStep
 
@@ -280,6 +323,31 @@ data class VodState(
      */
     val continueWatching: List<ResumableFilm> = emptyList(),
 ) {
+
+    /**
+     * This screen, pointed at [source] (US-018).
+     *
+     * The same source keeps everything: a status that moves from importing to
+     * ready must not cost somebody the word they were typing. Another source
+     * starts from a blank state — the category, the search and the resume shelf
+     * all belonged to the catalogue that just left, and a query kept across the
+     * switch would open the new source on "no results" for a film it never had.
+     */
+    fun browsing(source: CatalogueSource): VodState {
+        val step = when (source) {
+            CatalogueSource.Loading -> VodStep.Loading
+            CatalogueSource.NoSource -> VodStep.NoSource
+            CatalogueSource.NeedsChoice -> VodStep.NeedsChoice
+            is CatalogueSource.NotReady -> VodStep.NotReadyYet
+            is CatalogueSource.Ready -> VodStep.Browsing
+        }
+
+        return if (source.sourceId == sourceId) {
+            copy(step = step)
+        } else {
+            VodState(step = step, sourceId = source.sourceId)
+        }
+    }
 
     /** The open category, for a screen that draws only category chips. */
     val selectedCategoryId: String?

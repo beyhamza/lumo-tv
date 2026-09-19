@@ -6,15 +6,18 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
+import tv.lumo.android.core.data.ofSource
+import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.FavoriteRepository
-import tv.lumo.android.core.data.repository.SourceRepository
-import tv.lumo.android.core.data.valueOrNull
+import tv.lumo.android.core.data.selectedSourceId
 
 /**
  * The favourites screen (US-12).
@@ -31,11 +34,19 @@ import tv.lumo.android.core.data.valueOrNull
  * refresh walks fifteen thousand channels, while this is two requests and a list
  * somebody edits from several devices. Opening the tab is exactly the moment they
  * expect to see what the television did.
+ *
+ * <h2>The account's groups, the active source's favourites</h2>
+ *
+ * A group belongs to the account and may hold channels from two subscriptions —
+ * that has not changed. What has (US-018) is what is *shown*: the favourites of
+ * the source being browsed, and nothing else. They are filtered on the device,
+ * since the API has no such filter, and only filtered: switching back to a source
+ * shows its favourites exactly as they were left.
  */
 @HiltViewModel
 class FavoritesViewModel @Inject constructor(
     private val favorites: FavoriteRepository,
-    private val sources: SourceRepository,
+    private val activeSource: ActiveSourceRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(FavoritesState())
@@ -44,25 +55,6 @@ class FavoritesViewModel @Inject constructor(
     init {
         observe()
         refresh()
-        loadSourceNames()
-    }
-
-    /**
-     * The names of the account's sources, once, for the whole screen.
-     *
-     * Not cached anywhere — `core:database` holds channels and categories, not
-     * sources — so this is a network read, and it is allowed to fail: offline, the
-     * rows simply do not say which subscription they came from. A favourites
-     * screen that needed the network to draw a channel name would defeat the point
-     * of the cache underneath it.
-     */
-    private fun loadSourceNames() {
-        viewModelScope.launch {
-            val loaded = sources.sources().valueOrNull() ?: return@launch
-            _state.update { state ->
-                state.copy(sourceNames = loaded.associate { it.id.toString() to it.label })
-            }
-        }
     }
 
     private fun observe() {
@@ -86,6 +78,14 @@ class FavoritesViewModel @Inject constructor(
             favorites.favorites().collect { rows ->
                 _state.update { it.copy(favorites = rows) }
             }
+        }
+        viewModelScope.launch {
+            // The identifier and nothing more: a source that finishes importing,
+            // or a sibling that gets renamed, is no reason to redraw this list.
+            activeSource.state
+                .map { it.selectedSourceId }
+                .distinctUntilChanged()
+                .collect { sourceId -> _state.update { it.copy(activeSourceId = sourceId) } }
         }
     }
 
@@ -209,8 +209,15 @@ data class FavoritesState(
     val favorites: List<FavoriteChannel> = emptyList(),
     val selectedGroupId: String? = null,
     val error: LumoError? = null,
-    /** Source id to name. Empty offline, and that is a supported state. */
-    val sourceNames: Map<String, String> = emptyMap(),
+    /**
+     * The source being browsed, or null when there is none — no source at all, or
+     * several and no choice yet (US-018).
+     *
+     * [favorites] stays the account's list, untouched, and everything drawn reads
+     * it through [ofActiveSource]. Keeping the whole list is what makes a switch
+     * of source instant here, and what keeps [countIn] honest.
+     */
+    val activeSourceId: String? = null,
 
     // ---- organising (S4-05) ------------------------------------------------
 
@@ -229,29 +236,30 @@ data class FavoritesState(
      * invisible.
      */
     val visible: List<FavoriteChannel>
-        get() = favorites
+        get() = ofActiveSource
             .filter { it.groupId == selectedGroupId }
             .sortedBy { it.position }
+
+    /**
+     * The favourites of the source being browsed (US-018).
+     *
+     * With no active source this is empty rather than everything: there is no
+     * catalogue on screen for a favourite to belong to.
+     */
+    val ofActiveSource: List<FavoriteChannel>
+        get() = favorites.ofSource(activeSourceId)
 
     /**
      * Nothing starred at all — as opposed to an empty tab in an account that has
      * favourites elsewhere. The two want different words: one names the gesture
      * that starts, the other says this shelf is empty.
+     *
+     * "At all" is within the source being browsed. Somebody with forty favourites
+     * in another source and none here is, on this screen, somebody who has not
+     * pressed a heart yet — and the gesture is the useful thing to name.
      */
     val nothingAtAll: Boolean
-        get() = !loading && favorites.isEmpty()
-
-    /**
-     * Which subscription a favourite came from, or null when it should not be said.
-     *
-     * Null on an account with one source, because "from My playlist" under every
-     * single row is noise, not information. It earns its line only when a group
-     * genuinely mixes two subscriptions — which is the case this whole feature
-     * exists for. Null too when the names could not be fetched, which is what
-     * being offline looks like here.
-     */
-    fun sourceLabel(favorite: FavoriteChannel): String? =
-        if (sourceNames.size > 1) sourceNames[favorite.channel.sourceId] else null
+        get() = !loading && ofActiveSource.isEmpty()
 
     /**
      * How many favourites a deletion is about to move, for the confirmation.
@@ -259,6 +267,11 @@ data class FavoritesState(
      * The number is the whole point of asking: it lets somebody predict the state
      * they will be in. Without it the dialog says "are you sure" about something
      * they cannot picture.
+     *
+     * **Counted over the account, not over the active source.** Deleting a group
+     * moves every favourite it holds, whichever source it came from, and the
+     * number has to be the one the server is about to act on — a smaller one
+     * would be a promise the deletion does not keep.
      */
     fun countIn(group: FavoriteGroup): Int = favorites.count { it.groupId == group.id }
 

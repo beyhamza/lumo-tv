@@ -242,6 +242,16 @@ private class FakeChannelDao : ChannelDao {
 
     override fun observe(id: String): Flow<ChannelEntity?> = MutableStateFlow(null)
 
+    override suspend fun byId(id: String): ChannelEntity? = stored.firstOrNull { it.id == id }
+
+    // The player's "next channel", which no test here exercises. Declared because
+    // the interface gained it; failing loudly if that ever stops being true.
+    override suspend fun nextAfter(
+        sourceId: String,
+        position: Int,
+        name: String,
+    ): ChannelEntity? = unreachable()
+
     override fun pagedByCategory(
         sourceId: String,
         categoryId: String,

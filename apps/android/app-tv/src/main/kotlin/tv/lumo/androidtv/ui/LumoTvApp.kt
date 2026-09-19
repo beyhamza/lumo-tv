@@ -28,9 +28,12 @@ import tv.lumo.android.core.designsystem.component.LumoTvNavRail
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.feature.live.PlayerDestination
 import tv.lumo.android.feature.series.EpisodePlayerDestination
+import tv.lumo.android.feature.source.SourceDestination
+import tv.lumo.android.feature.source.switcher.SourceSwitcherTv
 import tv.lumo.android.feature.vod.VodPlayerDestination
 import tv.lumo.androidtv.navigation.LumoTvNavHost
 import tv.lumo.androidtv.navigation.TvDestinations
+import tv.lumo.androidtv.navigation.leaveDetailOfPreviousSource
 import tv.lumo.androidtv.navigation.tvStartRoute
 
 /**
@@ -85,6 +88,21 @@ fun LumoTvApp(
                 destinations = TvDestinations,
                 selectedRoute = currentRoute,
                 onSelect = { navController.switchTopLevelTo(it) },
+                // The source being browsed, at the foot of the rail (US-018).
+                // Inside the rail rather than beside it, so it opens no focus
+                // zone of its own: `DOWN` past the last destination reaches it,
+                // `RIGHT` leaves for the content. Written in `feature:source`;
+                // the shell only places it and owns what a change of source does
+                // to the back stack.
+                footer = {
+                    SourceSwitcherTv(
+                        onSwitched = { navController.leaveDetailOfPreviousSource() },
+                        onLastSourceLost = { navController.switchTopLevelTo(SourceDestination) },
+                        // The full "My sources" screen is S8-05's. Until then
+                        // the entry leads to the screen that exists.
+                        onOpenSources = { navController.switchTopLevelTo(SourceDestination) },
+                    )
+                },
             )
         }
 

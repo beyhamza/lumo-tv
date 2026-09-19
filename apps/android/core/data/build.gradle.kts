@@ -25,6 +25,12 @@ dependencies {
     // PagingData appears in this module's signatures (US-08).
     api(libs.androidx.paging.common)
 
+    // Which source this device browses, per account (US-018). Preferences and
+    // not the encrypted blob of core:auth: a source id is not a secret, and a
+    // key per account is exactly what Preferences structures. Same DataStore
+    // version as core:auth, by the same catalogue reference.
+    implementation(libs.androidx.datastore.preferences)
+
     implementation(libs.retrofit.core)
     implementation(libs.moshi.core)
 

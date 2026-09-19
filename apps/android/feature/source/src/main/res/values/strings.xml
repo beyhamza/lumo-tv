@@ -94,4 +94,24 @@
     <string name="feature_source_error_offline">No connection. Nothing was sent.</string>
     <string name="feature_source_error_unexpected">Something went wrong. Please try again.</string>
     <string name="feature_source_step_parsing_series">Reading the series list</string>
+
+    <!--
+      The source switcher of both shells (US-018, design S8-E04). "Source" sits
+      next to the name of the one being browsed, always; the rest is the list
+      that opens when there are several.
+    -->
+    <string name="feature_source_switcher_label">Source</string>
+    <string name="feature_source_switcher_change">Change source</string>
+    <!-- Said in the list: what is chosen here does not follow the account. -->
+    <string name="feature_source_switcher_device_only">This choice applies to this device only.</string>
+    <!--
+      Several sources and none chosen on this device: the list is required, and
+      nothing in it is preselected.
+    -->
+    <string name="feature_source_switcher_choose_title">Choose a source</string>
+    <string name="feature_source_switcher_choose_body">You have several sources. Choose the one to browse on this device. You can change it at any time.</string>
+    <string name="feature_source_switcher_status_ready">Ready</string>
+    <string name="feature_source_switcher_status_refreshing">Refreshing</string>
+    <string name="feature_source_switcher_status_error">Error</string>
+    <string name="feature_source_switcher_manage">My sources</string>
 </resources>

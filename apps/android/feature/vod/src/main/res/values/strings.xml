@@ -17,6 +17,13 @@
 
     <string name="feature_vod_no_source_title">No source yet</string>
     <string name="feature_vod_no_source_body">Add your provider in the Source tab, and its films will appear here.</string>
+    <!--
+      Several sources and none chosen on this device yet (US-018). The shell's
+      chooser sits on top while this lasts; what is underneath says the same
+      thing rather than "no source", which would be false.
+    -->
+    <string name="feature_vod_needs_choice_title">Choose a source</string>
+    <string name="feature_vod_needs_choice_body">You have several sources. Choose the one to browse and its films will appear here.</string>
     <string name="feature_vod_not_ready_title">Import in progress</string>
     <string name="feature_vod_not_ready_body">Your source is still being read. This screen fills as soon as it is done.</string>
     <string name="feature_vod_empty_title">No films</string>

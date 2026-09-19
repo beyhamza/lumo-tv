@@ -334,6 +334,14 @@ private class FakeChannelDaoForFavorites : ChannelDao {
 
     override fun observe(id: String): Flow<ChannelEntity?> = MutableStateFlow(null)
 
+    override suspend fun byId(id: String): ChannelEntity? = stored.firstOrNull { it.id == id }
+
+    override suspend fun nextAfter(
+        sourceId: String,
+        position: Int,
+        name: String,
+    ): ChannelEntity? = unreachable()
+
     override fun pagedByCategory(
         sourceId: String,
         categoryId: String,

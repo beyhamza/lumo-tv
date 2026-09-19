@@ -11,8 +11,6 @@
     <string name="feature_favorites_group_empty_title">Ce groupe est vide</string>
     <string name="feature_favorites_group_empty_body">Rien n\'y est encore rangé.</string>
 
-    <string name="feature_favorites_from_source">Depuis %1$s</string>
-
     <string name="feature_favorites_default_group">Favoris</string>
 
     <!-- Organiser (S4-05). -->

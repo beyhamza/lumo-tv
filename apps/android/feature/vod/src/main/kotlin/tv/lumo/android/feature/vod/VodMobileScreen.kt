@@ -90,6 +90,11 @@ fun VodMobileScreen(
                 body = stringResource(R.string.feature_vod_no_source_body),
             )
 
+            VodStep.NeedsChoice -> Message(
+                title = stringResource(R.string.feature_vod_needs_choice_title),
+                body = stringResource(R.string.feature_vod_needs_choice_body),
+            )
+
             VodStep.NotReadyYet -> Message(
                 title = stringResource(R.string.feature_vod_not_ready_title),
                 body = stringResource(R.string.feature_vod_not_ready_body),

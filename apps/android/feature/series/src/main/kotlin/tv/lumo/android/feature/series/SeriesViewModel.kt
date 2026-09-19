@@ -8,9 +8,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -18,18 +20,21 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import tv.lumo.android.core.data.ActiveSourceState
+import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.asCatalogueSource
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.data.model.EpisodeProgress
 import tv.lumo.android.core.data.model.ResumableSeries
+import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.data.repository.SeriesRepository
-import tv.lumo.android.core.data.repository.SourceRepository
-import tv.lumo.android.core.data.valueOrNull
-import tv.lumo.android.network.generated.model.SourceStatus
+import tv.lumo.android.core.data.repository.onFailureNaming
+import tv.lumo.android.core.data.sourceId
 
 /**
  * Browsing the series of a source (US-15).
@@ -42,12 +47,16 @@ import tv.lumo.android.network.generated.model.SourceStatus
  * The tree is not here. It belongs to one series, it costs a call to the user's own
  * panel, and a grid that loaded one per card would be a request per poster — see
  * [SeriesDetailViewModel].
+ *
+ * The source is the active one and it is followed, not read once (US-018): a
+ * change made from the shell keeps this section open, shows the new source's
+ * series and drops the old one's filters — see [SeriesState.browsing].
  */
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 class SeriesViewModel @Inject constructor(
     private val series: SeriesRepository,
-    private val sources: SourceRepository,
+    private val activeSource: ActiveSourceRepository,
     private val progress: ProgressRepository,
 ) : ViewModel() {
 
@@ -84,50 +93,49 @@ class SeriesViewModel @Inject constructor(
     }
 
     init {
-        load()
+        observeActiveSource()
     }
 
-    private fun load() {
+    /**
+     * Follows the active source for as long as the screen lives.
+     *
+     * `collectLatest`, so that what was started for the previous source is
+     * cancelled by the switch instead of landing in the new source's screen.
+     */
+    private fun observeActiveSource() {
+        // Resolved a while ago, so the status may have moved since. One short
+        // request per opening, which is what this screen cost before. Still
+        // loading means the repository is already asking.
+        if (activeSource.state.value !is ActiveSourceState.Loading) {
+            viewModelScope.launch { activeSource.refresh() }
+        }
+
         viewModelScope.launch {
-            val source = sources.sources().valueOrNull()?.firstOrNull()
+            activeSource.state
+                .map { it.asCatalogueSource() }
+                .distinctUntilChanged()
+                .collectLatest { source -> open(source) }
+        }
+    }
 
-            if (source == null) {
-                _state.update { it.copy(step = SeriesStep.NoSource) }
-                return@launch
-            }
+    private suspend fun open(source: CatalogueSource) {
+        _state.update { it.browsing(source) }
 
-            val sourceId = source.id.toString()
+        if (source !is CatalogueSource.Ready) return
 
-            if (source.status != SourceStatus.READY) {
-                _state.update { it.copy(sourceId = sourceId, step = SeriesStep.NotReadyYet) }
-                return@launch
-            }
+        coroutineScope {
+            launch { observeCategories(source.sourceId) }
+            launch { loadContinueWatching(source.sourceId) }
 
-            _state.update {
-                it.copy(
-                    sourceId = sourceId,
-                    step = SeriesStep.Browsing,
-                    // A playlist declares no season and no episode (adr/0010). The
-                    // empty grid says which of the two absences this is, and the
-                    // two are different facts: a format that cannot carry series,
-                    // and a panel that offers none.
-                    isPlaylist = source.kind != tv.lumo.android.network.generated.model.SourceKind.XTREAM,
-                )
-            }
-            observeCategories(sourceId)
-            loadContinueWatching(sourceId)
-
-            if (series.cachedSeriesCount(sourceId) == 0) {
+            if (series.cachedSeriesCount(source.sourceId) == 0) {
                 refresh()
             }
         }
     }
 
-    private fun observeCategories(sourceId: String) {
-        viewModelScope.launch {
-            series.categories(sourceId).collect { cached ->
-                _state.update { it.copy(categories = cached.value, origin = cached.origin) }
-            }
+    private suspend fun observeCategories(sourceId: String) {
+        series.categories(sourceId).collect { cached ->
+            _state.update { it.copy(categories = cached.value, origin = cached.origin) }
         }
     }
 
@@ -142,12 +150,13 @@ class SeriesViewModel @Inject constructor(
      *
      * A series whose tree this device does not hold drops out rather than rendering
      * as a gap — see `SeriesRepository.resumable`, which states the trade.
+     *
+     * **Only the active source's episodes** (US-018). The progress list is the
+     * account's; the rest of it is untouched and is there again with its source.
      */
-    private fun loadContinueWatching(sourceId: String) {
-        viewModelScope.launch {
-            val rows = progress.episodesInProgress().filter { it.sourceId == sourceId }
-            _state.update { it.copy(continueWatching = series.resumable(rows)) }
-        }
+    private suspend fun loadContinueWatching(sourceId: String) {
+        val rows = progress.episodesInProgress().filter { it.sourceId == sourceId }
+        _state.update { it.copy(continueWatching = series.resumable(rows)) }
     }
 
     fun refresh() {
@@ -158,8 +167,24 @@ class SeriesViewModel @Inject constructor(
 
         viewModelScope.launch {
             val result = series.refresh(sourceId)
+
+            // `SOURCE_NOT_FOUND` is a deletion made elsewhere, not a refresh that
+            // failed: the repository decides what is browsed next and this screen
+            // follows. A dead network proves nothing and stays a banner (US-018).
+            val gone = result is LumoResult.Failure &&
+                activeSource.onFailureNaming(sourceId, result.error)
+
             _state.update {
-                it.copy(refreshing = false, refreshFailed = result is LumoResult.Failure)
+                // The outcome belongs to the catalogue that asked for it, which
+                // may no longer be the one on screen.
+                if (it.sourceId != sourceId) {
+                    it
+                } else {
+                    it.copy(
+                        refreshing = false,
+                        refreshFailed = result is LumoResult.Failure && !gone,
+                    )
+                }
             }
         }
     }
@@ -207,6 +232,9 @@ sealed interface SeriesFilter {
 sealed interface SeriesStep {
     data object Loading : SeriesStep
     data object NoSource : SeriesStep
+
+    /** Several sources and none chosen on this device. The shell is asking (US-018). */
+    data object NeedsChoice : SeriesStep
     data object NotReadyYet : SeriesStep
     data object Browsing : SeriesStep
 }
@@ -238,6 +266,35 @@ data class SeriesState(
      */
     val isPlaylist: Boolean = false,
 ) {
+
+    /**
+     * This screen, pointed at [source] (US-018).
+     *
+     * The same source keeps everything but its status. Another source starts from
+     * a blank state: the category, the search and the resume shelf belonged to the
+     * catalogue that just left.
+     *
+     * [isPlaylist] follows the source either way. A playlist declares no season
+     * and no episode (adr/0010), and the empty grid says which of the two
+     * absences this is — a format that cannot carry series, or a panel that
+     * offers none.
+     */
+    fun browsing(source: CatalogueSource): SeriesState {
+        val step = when (source) {
+            CatalogueSource.Loading -> SeriesStep.Loading
+            CatalogueSource.NoSource -> SeriesStep.NoSource
+            CatalogueSource.NeedsChoice -> SeriesStep.NeedsChoice
+            is CatalogueSource.NotReady -> SeriesStep.NotReadyYet
+            is CatalogueSource.Ready -> SeriesStep.Browsing
+        }
+        val playlist = (source as? CatalogueSource.Ready)?.isPlaylist ?: false
+
+        return if (source.sourceId == sourceId) {
+            copy(step = step, isPlaylist = playlist)
+        } else {
+            SeriesState(step = step, sourceId = source.sourceId, isPlaylist = playlist)
+        }
+    }
 
     /** What the category strip should draw as selected. */
     val selectedCategoryId: String?

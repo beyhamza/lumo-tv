@@ -13,6 +13,8 @@
 
     <string name="feature_vod_no_source_title">Aucune source</string>
     <string name="feature_vod_no_source_body">Ajoutez votre fournisseur dans l\'onglet Source, et ses films apparaîtront ici.</string>
+    <string name="feature_vod_needs_choice_title">Choisissez une source</string>
+    <string name="feature_vod_needs_choice_body">Vous avez plusieurs sources. Choisissez celle à parcourir et ses films apparaîtront ici.</string>
     <string name="feature_vod_not_ready_title">Import en cours</string>
     <string name="feature_vod_not_ready_body">Votre source est encore en cours de lecture. Cet écran se remplit dès qu\'elle est prête.</string>
     <string name="feature_vod_empty_title">Aucun film</string>

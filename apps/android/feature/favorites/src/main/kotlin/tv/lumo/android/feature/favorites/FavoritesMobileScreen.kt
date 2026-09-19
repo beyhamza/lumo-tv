@@ -132,7 +132,6 @@ fun FavoritesMobileScreen(
                         items(visible, key = { it.favoriteId }) { favorite ->
                             FavoriteRow(
                                 favorite = favorite,
-                                sourceLabel = state.sourceLabel(favorite),
                                 canMove = state::canMoveFavorite,
                                 hasOtherGroups = state.moveTargets(favorite).isNotEmpty(),
                                 onPlay = onPlay,
@@ -426,7 +425,6 @@ private fun MenuItem(labelRes: Int, onClick: () -> Unit) {
 @Composable
 private fun FavoriteRow(
     favorite: FavoriteChannel,
-    sourceLabel: String?,
     canMove: (FavoriteChannel, Int) -> Boolean,
     hasOtherGroups: Boolean,
     onPlay: (String, String?) -> Unit,
@@ -486,20 +484,10 @@ private fun FavoriteRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            // Which subscription this came from, and only when there is more than
-            // one to tell apart. Two channels of the same name from two providers
-            // are otherwise the same row, and a group that mixes sources is the
-            // point of the feature; under a single-source account the same line
-            // would be noise on every row.
-            sourceLabel?.let { label ->
-                Text(
-                    text = stringResource(R.string.feature_favorites_from_source, label),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            // No line naming the subscription any more (US-018). Every row here
+            // now comes from the source being browsed, and the shell names that
+            // source next to its switcher — the same sentence under each row is
+            // the noise this line was always careful not to be.
         }
 
         channel.quality?.let { quality ->

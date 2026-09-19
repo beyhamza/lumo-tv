@@ -7,29 +7,37 @@ import androidx.paging.cachedIn
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import tv.lumo.android.core.data.ActiveSourceState
+import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.asCatalogueSource
+import tv.lumo.android.core.data.channelsOfSource
 import tv.lumo.android.core.data.model.Cached
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
+import tv.lumo.android.core.data.ofSource
+import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.CatalogueRepository
 import tv.lumo.android.core.data.repository.FavoriteRepository
 import tv.lumo.android.core.data.repository.RecentChannelRepository
-import tv.lumo.android.core.data.repository.SourceRepository
-import tv.lumo.android.core.data.valueOrNull
-import tv.lumo.android.network.generated.model.SourceStatus
+import tv.lumo.android.core.data.repository.onFailureNaming
+import tv.lumo.android.core.data.sourceId
 
 /**
  * Browsing the channels of a source (US-08).
@@ -50,12 +58,21 @@ import tv.lumo.android.network.generated.model.SourceStatus
  *
  * The one exception is a source that is still importing: there is nothing to
  * cache yet, and the screen says so rather than showing an empty list.
+ *
+ * <h2>The source is the active one, and it can change under the screen</h2>
+ *
+ * Which source this browses is [ActiveSourceRepository]'s answer, not the first
+ * of a list (US-018). The answer is a flow, because the switcher sits in the
+ * shell and works while this screen is open: the section stays, the grid is read
+ * again for the new source, and whatever filtered the old one — a category, a
+ * group, the recent shelf — is dropped, since none of it means anything in a
+ * catalogue it did not come from. See [LiveState.browsing].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class LiveViewModel @Inject constructor(
     private val catalogue: CatalogueRepository,
-    private val sources: SourceRepository,
+    private val activeSource: ActiveSourceRepository,
     private val favorites: FavoriteRepository,
     private val recents: RecentChannelRepository,
 ) : ViewModel() {
@@ -110,44 +127,57 @@ class LiveViewModel @Inject constructor(
     }
 
     init {
-        load()
+        observeActiveSource()
         observeFavorites()
     }
 
-    private fun load() {
+    /**
+     * Follows the active source for as long as the screen lives.
+     *
+     * `collectLatest`, and it is what makes a switch clean: the category observer
+     * started for the previous source lives inside the block and is cancelled with
+     * it. A plain `collect` would leave the old source's categories streaming into
+     * the new source's strip.
+     */
+    private fun observeActiveSource() {
+        // Already resolved means resolved a while ago: the status this screen
+        // depends on — importing or ready — may have moved since. One short
+        // request per opening, which is what this screen cost before. Still
+        // loading means the repository is asking right now, and asking twice
+        // would buy nothing.
+        if (activeSource.state.value !is ActiveSourceState.Loading) {
+            viewModelScope.launch { activeSource.refresh() }
+        }
+
         viewModelScope.launch {
-            val source = sources.sources().valueOrNull()?.firstOrNull()
+            activeSource.state
+                .map { it.asCatalogueSource() }
+                .distinctUntilChanged()
+                .collectLatest { source -> open(source) }
+        }
+    }
 
-            if (source == null) {
-                _state.update { it.copy(step = LiveStep.NoSource) }
-                return@launch
-            }
+    private suspend fun open(source: CatalogueSource) {
+        _state.update { it.browsing(source) }
 
-            val sourceId = source.id.toString()
+        // Not ready: nothing has been ingested yet. An empty channel list would
+        // read as "this source has no channels", which is a different and much
+        // more alarming thing than "it is still importing".
+        if (source !is CatalogueSource.Ready) return
 
-            if (source.status != SourceStatus.READY) {
-                // Nothing has been ingested yet. An empty channel list here would
-                // read as "this source has no channels", which is a different and
-                // much more alarming thing than "it is still importing".
-                _state.update { it.copy(sourceId = sourceId, step = LiveStep.NotReadyYet) }
-                return@launch
-            }
+        coroutineScope {
+            launch { observeCategories(source.sourceId) }
 
-            _state.update { it.copy(sourceId = sourceId, step = LiveStep.Browsing) }
-            observeCategories(sourceId)
-
-            if (catalogue.cachedChannelCount(sourceId) == 0) {
+            if (catalogue.cachedChannelCount(source.sourceId) == 0) {
                 refresh()
             }
         }
     }
 
-    private fun observeCategories(sourceId: String) {
-        viewModelScope.launch {
-            catalogue.categories(sourceId).collect { cached ->
-                _state.update {
-                    it.copy(categories = cached.value, origin = cached.origin)
-                }
+    private suspend fun observeCategories(sourceId: String) {
+        catalogue.categories(sourceId).collect { cached ->
+            _state.update {
+                it.copy(categories = cached.value, origin = cached.origin)
             }
         }
     }
@@ -161,13 +191,28 @@ class LiveViewModel @Inject constructor(
 
         viewModelScope.launch {
             val result = catalogue.refresh(sourceId)
+
+            // `SOURCE_NOT_FOUND` is the server saying this source was deleted —
+            // from the website, from another device. That is not a refresh that
+            // failed, and the banner for one would be the wrong sentence: the
+            // repository decides what is browsed next and this screen follows.
+            // Anything else, a dead network included, proves nothing (US-018).
+            val gone = result is LumoResult.Failure &&
+                activeSource.onFailureNaming(sourceId, result.error)
+
             _state.update {
-                it.copy(
-                    refreshing = false,
-                    // Only a failure is worth saying out loud. A success is
-                    // visible in the list itself and in the origin indicator.
-                    refreshFailed = result is LumoResult.Failure,
-                )
+                // The source may have changed while this ran. The outcome belongs
+                // to the catalogue that asked, not to the one that replaced it.
+                if (it.sourceId != sourceId) {
+                    it
+                } else {
+                    it.copy(
+                        refreshing = false,
+                        // Only a failure is worth saying out loud. A success is
+                        // visible in the list itself and in the origin indicator.
+                        refreshFailed = result is LumoResult.Failure && !gone,
+                    )
+                }
             }
         }
     }
@@ -304,19 +349,36 @@ class LiveViewModel @Inject constructor(
             .firstOrNull { it.channel.id == channelId && it.groupId == groupId }
             ?.favoriteId
 
+    /**
+     * Favourites and recent channels, **of the active source only** (US-018).
+     *
+     * Both lists are the account's — a group may hold channels from two
+     * subscriptions, and "recently watched" spans every source. What this screen
+     * shows is the share that belongs to the catalogue on display, so each is
+     * combined with the source being browsed and filtered on the device, the API
+     * having no such filter. Nothing is deleted: switching back shows them again.
+     *
+     * Groups are not filtered. A group is the account's, and one that holds
+     * nothing from this source already gets no chip — see
+     * [LiveState.groupsWithChannels].
+     */
     private fun observeFavorites() {
+        val browsed = _state.map { it.sourceId }.distinctUntilChanged()
+
         viewModelScope.launch {
             favorites.groups().collect { groups -> _state.update { it.copy(groups = groups) } }
         }
         viewModelScope.launch {
-            recents.recent().collect { rows -> _state.update { it.copy(recent = rows) } }
+            combine(recents.recent(), browsed) { rows, sourceId -> rows.channelsOfSource(sourceId) }
+                .collect { rows -> _state.update { it.copy(recent = rows) } }
         }
         // Cheap — one request against a list the server keeps short — and the
         // moment somebody expects to see what they watched on the phone is the
         // moment they turn the television on.
         viewModelScope.launch { recents.refresh() }
         viewModelScope.launch {
-            favorites.favorites().collect { rows -> _state.update { it.copy(favorites = rows) } }
+            combine(favorites.favorites(), browsed) { rows, sourceId -> rows.ofSource(sourceId) }
+                .collect { rows -> _state.update { it.copy(favorites = rows) } }
         }
         viewModelScope.launch {
             favorites.favoritedChannelIds().collect { ids ->
@@ -370,6 +432,15 @@ sealed interface LiveStep {
     /** No source registered yet. The source tab is where that starts. */
     data object NoSource : LiveStep
 
+    /**
+     * Several sources, and this device has not been told which to browse.
+     *
+     * The shell's chooser sits on top of this screen while it lasts (US-018). The
+     * step exists so that what is underneath says the same thing, rather than
+     * "no channels yet" — which would be false.
+     */
+    data object NeedsChoice : LiveStep
+
     /** A source exists but has not finished importing, or failed to. */
     data object NotReadyYet : LiveStep
 
@@ -398,13 +469,17 @@ data class LiveState(
     /** The account's groups, for the picker. Empty until the first one exists. */
     val groups: List<FavoriteGroup> = emptyList(),
 
-    /** Every favourite of the account, which is what says *which* groups a channel is in. */
+    /**
+     * The favourites **of the source being browsed**, which is what says *which*
+     * groups a channel is in. The account may hold others: they belong to another
+     * catalogue, and they come back with it (US-018).
+     */
     val favorites: List<FavoriteChannel> = emptyList(),
 
     /** Starred channel ids, as Room holds them. The grid draws its hearts from this. */
     val favoritedChannelIds: Set<String> = emptySet(),
 
-    /** What was watched recently, on any device of this account. Server order. */
+    /** What was watched recently in this source, on any device of this account. Server order. */
     val recent: List<Channel> = emptyList(),
 
     /**
@@ -424,6 +499,44 @@ data class LiveState(
     /** The last favourite write that failed. Offline is the ordinary case here. */
     val favoriteError: LumoError? = null,
 ) {
+
+    /**
+     * This screen, pointed at [source] (US-018).
+     *
+     * **Same source, nothing moves.** A source's status changes while it is on
+     * screen — importing, then ready — and a category somebody picked has to
+     * survive that.
+     *
+     * **Another source, and everything that belonged to the old one goes**: the
+     * filter, the categories it was picked from, the refresh outcome, the
+     * favourites and recent channels drawn from it, a group sheet open on one of
+     * its channels. A category id means nothing in another catalogue, and a
+     * filter left behind would open the new source on an empty grid with no chip
+     * lit to explain why.
+     *
+     * What survives is what belongs to the account: the groups, the hearts Room
+     * holds, a favourite write still in flight and its outcome.
+     */
+    fun browsing(source: CatalogueSource): LiveState {
+        val step = when (source) {
+            CatalogueSource.Loading -> LiveStep.Loading
+            CatalogueSource.NoSource -> LiveStep.NoSource
+            CatalogueSource.NeedsChoice -> LiveStep.NeedsChoice
+            is CatalogueSource.NotReady -> LiveStep.NotReadyYet
+            is CatalogueSource.Ready -> LiveStep.Browsing
+        }
+
+        if (source.sourceId == sourceId) return copy(step = step)
+
+        return LiveState(
+            step = step,
+            sourceId = source.sourceId,
+            groups = groups,
+            favoritedChannelIds = favoritedChannelIds,
+            pendingFavorites = pendingFavorites,
+            favoriteError = favoriteError,
+        )
+    }
 
     /** The open category, for a screen that draws only category chips. */
     val selectedCategoryId: String?

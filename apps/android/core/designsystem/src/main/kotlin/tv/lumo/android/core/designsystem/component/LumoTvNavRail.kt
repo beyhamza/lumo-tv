@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -45,6 +47,13 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
  * content, where the margin would be wasted width. Skipping it would put the
  * first and last rail items in the strip a television crops, which is the worst
  * possible place for an interactive element to be.
+ *
+ * @param footer what the shell pins to the foot of the rail, under the
+ * destinations and inside the same overscan — the source switcher (US-018). A
+ * slot rather than a parameter per thing, because what goes there is a feature's
+ * and this module may not know features. It stays in the rail's single column on
+ * purpose: `DOWN` from the last destination reaches it and `RIGHT` leaves for the
+ * content, so it opens no focus zone of its own.
  */
 @Composable
 fun LumoTvNavRail(
@@ -52,6 +61,7 @@ fun LumoTvNavRail(
     selectedRoute: String?,
     onSelect: (LumoDestination) -> Unit,
     modifier: Modifier = Modifier,
+    footer: @Composable ColumnScope.() -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -69,6 +79,9 @@ fun LumoTvNavRail(
                 onSelect = { onSelect(destination) },
             )
         }
+
+        Spacer(modifier = Modifier.weight(1f))
+        footer()
     }
 }
 

@@ -86,6 +86,11 @@ fun SeriesMobileScreen(
                 body = stringResource(R.string.feature_series_no_source_body),
             )
 
+            SeriesStep.NeedsChoice -> Message(
+                title = stringResource(R.string.feature_series_needs_choice_title),
+                body = stringResource(R.string.feature_series_needs_choice_body),
+            )
+
             SeriesStep.NotReadyYet -> Message(
                 title = stringResource(R.string.feature_series_not_ready_title),
                 body = stringResource(R.string.feature_series_not_ready_body),
