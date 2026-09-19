@@ -386,6 +386,25 @@ est retenue dans l’échange repris par l’utilisateur. Cette validation visue
 ne clôture ni C2, ni Q3/Q8, ni la recette sur appareils réels. La discussion
 suivante porte sur la reprise de lecture et le lecteur des sprints 12 et 13.
 
+## Ancien catalogue, lecture et délai serveur — validés le 19 septembre 2026
+
+Lot contractuel [C4](c4-previous-catalogue.md), décisions D1 à D5.
+
+- Le catalogue d'une source reste consultable dès qu'une ingestion a déjà réussi,
+  pendant une actualisation comme après un échec. Les compteurs restent affichés.
+- La lecture reste fermée pendant une ingestion. Après un échec, elle est autorisée
+  si un catalogue précédent existe, sauf identifiants refusés ou abonnement expiré :
+  une panne passagère du fournisseur pendant l'actualisation automatique ne bloque
+  plus la lecture.
+- Après une correction d'adresse ou d'identifiants, l'ancien catalogue reste affiché
+  jusqu'à la fin de la réingestion, signalé comme pouvant être ancien.
+- Une actualisation manuelle par source toutes les 5 minutes ; le serveur indique le
+  délai restant. L'actualisation automatique et la correction d'identifiants ne
+  comptent pas.
+- Seule une réponse « source introuvable » du serveur prouve une suppression faite
+  ailleurs. Vérification au retour au premier plan, à la reconnexion et toutes les
+  60 secondes pendant une lecture.
+
 ## Objectif de sortie — décision du 17 septembre 2026
 
 - La 0.2.0 reste gratuite ; aucune ouverture des paiements n'est prévue pour cette version.

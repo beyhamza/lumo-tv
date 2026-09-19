@@ -28,6 +28,33 @@ navigation et sources précisés. Pas de changement implicite des droits ou du c
 | S8-06 | Poser les rubriques Réglages ; retirer des parcours 0.2.0 les accès non opérationnels Google/paiement sans refondre l'auth | Toutes |
 | S8-07 | Recette de la verticale, FR/EN et retour/focus ; documenter les compléments encore attendus | Toutes |
 
+## Avancement
+
+Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulement écrit.
+
+- [ ] S8-00 — parcours de référence et recettes historiques
+- [x] S8-01 — [lot C4](../roadmap/0.2.0/c4-previous-catalogue.md) cadré à partir du
+  code réel, décisions D1 à D5 validées et reportées dans le registre, les
+  décisions produit et US-024
+- [ ] S8-02 — lot C4 côté contrat et serveur ; attend S8-01
+- [ ] S8-03 — source active mémorisée par appareil
+- [ ] S8-04 — navigation et accueil
+- [ ] S8-05 — Mes sources
+- [ ] S8-06 — rubriques Réglages, retrait des accès Google et paiement
+- [ ] S8-07 — recette de la verticale
+
+Arbitrages du 19 septembre 2026 pour ce sprint :
+
+- la lecture reste fermée pendant `SYNCING` ; seule la consultation s'ouvre (C4) ;
+- après un échec, la lecture est autorisée si un catalogue précédent existe, sauf
+  identifiants refusés ou abonnement expiré (C4, D2) ;
+- le délai serveur `SOURCE_SYNC_RATE_LIMITED` / `Retry-After`, au contrat mais
+  jamais émis, est implémenté dans S8-02 plutôt que retiré de la démo ;
+- l'accueil validé prévaut, pour l'accueil seulement, sur l'ancienne règle qui
+  écartait les rangées des grilles TV (S2-13, S4-08) ;
+- S8-06 retire aussi la section Tarifs du site et le texte Android invitant à
+  changer d'offre ; les quotas servis par le serveur ne changent pas.
+
 ## Démo et sortie
 
 Compte email connecté, deux sources de banc : choisir l'une sur téléphone sans

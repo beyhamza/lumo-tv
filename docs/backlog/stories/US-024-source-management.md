@@ -63,9 +63,20 @@ Ces précisions complètent les règles d’actualisation et d’erreur déjà v
 - Une panne ne supprime ni les favoris ni les progressions. Une indisponibilité
   ne constitue pas une preuve de suppression de la source.
 
-La disponibilité locale dépend des capacités existantes à vérifier. Cette décision
-ne définit pas de nouveau cache persistant ni de téléchargement hors ligne ; C4
-et tout éventuel besoin d’ADR restent à cadrer avant implémentation.
+Capacités vérifiées le 19 septembre 2026 : le serveur conserve l'ancien catalogue
+en base pendant et après une actualisation, et Android le garde dans Room. Le lot
+[C4](../../roadmap/0.2.0/c4-previous-catalogue.md), validé le même jour, ouvre sa
+consultation sans nouveau cache, sans endpoint et sans ADR.
+
+## Lecture et délai — validés le 19 septembre 2026 (C4)
+
+- Pendant une actualisation, le catalogue se consulte mais la lecture attend sa fin.
+- Après un échec, la lecture reste possible si un catalogue précédent existe, sauf
+  identifiants refusés ou abonnement expiré : l'action proposée est alors de
+  corriger la source.
+- Une actualisation manuelle par source toutes les 5 minutes ; afficher le délai
+  fourni par le serveur (`Retry-After`), sans l'inventer.
+- Pendant une lecture, vérifier toutes les 60 secondes que la source existe encore.
 
 ## Suppression — comportement validé
 
@@ -103,9 +114,9 @@ sans charger tout le catalogue ni inventer un champ client/serveur.
 
 La synchronisation expose `SOURCE_SYNC_IN_PROGRESS` et `SOURCE_SYNC_RATE_LIMITED`,
 avec `Retry-After` pour le délai. Réutiliser ces réponses sans inventer une durée.
-Vérifier avant implémentation comment le catalogue précédent reste accessible en
-état SYNCING ou ERROR sur chaque surface : le besoin produit ne prouve pas que les
-lectures serveur et les caches le permettent déjà.
+Vérifié le 19 septembre : le serveur refusait les listes hors READY alors que les
+données étaient en base ; les trois clients masquaient le catalogue dans ces états.
+Le lot C4 ouvre les lectures serveur (S8-02) ; les clients suivent en S8-05.
 
 Cette story n'introduit aucun endpoint, aucune modification de chiffrement ni de
 droits d'accès. Toute évolution de ces éléments exige un cadrage explicite selon
