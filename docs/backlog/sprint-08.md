@@ -87,6 +87,38 @@ Arbitrages du 19 septembre 2026 pour ce sprint :
 - S8-06 retire aussi la section Tarifs du site et le texte Android invitant à
   changer d'offre ; les quotas servis par le serveur ne changent pas.
 
+## Vu à l'écran — émulateur Android TV, 20 septembre 2026
+
+Compte jetable activé par l'API, deux sources du banc, deux favoris, trois chaînes
+récentes, un film en cours. Interface en anglais (langue de l'émulateur). Ce n'est
+pas la recette de S8-07 : ni télécommande réelle, ni téléphone, ni navigateur.
+
+- [x] Deux sources, aucun choix sur l'appareil : la fenêtre « Choisir une source »
+  s'ouvre d'elle-même, nom et état de chaque source, rien de coché (S8-03)
+- [x] Rail à six entrées, nom de la source active au pied du rail (S8-03, S8-04)
+- [x] Accueil : Favoris et Direct de la source active, focus sur la première carte,
+  tuile « Voir tous » en fin de rangée (S8-04)
+- [x] `BACK` depuis Réglages et depuis Films ramène à l'accueil (S8-04)
+- [x] **Défaut trouvé et corrigé** : la rangée Continuer n'apparaissait qu'après une
+  visite de Films, le film en cours n'étant cherché que dans le cache local. Les films
+  absents du cache sont maintenant résolus en une requête `?ids=`. Revérifié sur un
+  cache vide : Continuer est là dès le premier accueil
+- [x] OK sur la carte Continuer lance la lecture du film du banc (S8-04)
+- [x] **Source supprimée par l'API pendant la lecture** : dans la minute, lecture
+  arrêtée, « This source has been removed from your account. », focus sur Continuer ;
+  Continuer ramène à l'accueil sur l'unique source restante, affichée en simple
+  texte, avec l'état vierge et ses trois actions (S8-05, C4 D5)
+- [x] Pastille « Active » sur chaque source prête dans Réglages TV : renommée « Prête »
+- [ ] Non vu : Mes sources sur TV, bandeaux d'actualisation et d'erreur, Ma
+  bibliothèque, appui long pour la fiche, application mobile, site web
+- [ ] Cosmétique à reprendre : la barre de progression d'une carte Continuer se
+  réduit à un petit coin cyan ; `LEFT` depuis une carte arrive sur l'entrée du rail
+  à la même hauteur (Séries), pas sur l'entrée courante
+
+Pour les séries, la même dépendance au cache existe et elle est **voulue** depuis le
+sprint 6 : résoudre un épisode en cours demande l'arbre de la série, donc des appels
+au serveur de l'utilisateur. À rediscuter avec les règles de Continuer en S12.
+
 ## Compléments relevés pendant le sprint
 
 - **Corriger une source en erreur depuis le web** : le lien « Corriger les
