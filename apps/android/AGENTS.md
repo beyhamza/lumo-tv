@@ -62,7 +62,7 @@ core/
   data/          repositories, erreurs typées, réseau ou cache
   player/        abstraction au-dessus de Media3
 feature/
-  onboarding/ auth/ source/ live/ vod/ series/ search/ settings/
+  onboarding/ auth/ home/ source/ live/ favorites/ vod/ series/ search/ settings/
 build-logic/     convention plugins
 ```
 

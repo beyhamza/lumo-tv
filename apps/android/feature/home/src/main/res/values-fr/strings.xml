@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chaînes françaises de feature:home. Voir values/strings.xml pour les commentaires. -->
+<resources>
+    <string name="feature_home_title">Accueil</string>
+
+    <string name="feature_home_continue">Continuer</string>
+    <string name="feature_home_favorites">Favoris</string>
+    <string name="feature_home_live">Direct</string>
+
+    <string name="feature_home_see_all_favorites">Voir tout</string>
+    <string name="feature_home_all_channels">Toutes les chaînes</string>
+
+    <string name="feature_home_details">Voir la fiche</string>
+    <string name="feature_home_details_of">Fiche de %1$s</string>
+    <string name="feature_home_season_episode">S%1$d E%2$d</string>
+    <string name="feature_home_episode">Épisode %1$d</string>
+    <string name="feature_home_tv_details_hint">Appui long sur OK : voir la fiche</string>
+
+    <string name="feature_home_no_source_title">Ajoutez votre première source</string>
+    <string name="feature_home_no_source_body">Une playlist M3U ou des identifiants Xtream Codes. Lumo ne fournit aucun contenu : vous apportez le vôtre.</string>
+    <string name="feature_home_add_source">Ajouter une source</string>
+    <string name="feature_home_check_again">Vérifier à nouveau</string>
+
+    <string name="feature_home_needs_choice_title">Choisissez une source</string>
+    <string name="feature_home_needs_choice_body">Vous avez plusieurs sources. Choisissez celle à parcourir sur cet appareil ; vous pourrez en changer à tout moment.</string>
+
+    <string name="feature_home_unavailable_title">Impossible de joindre vos sources</string>
+    <string name="feature_home_unavailable_body">Vérifiez votre connexion, puis réessayez. Rien n\'a été supprimé.</string>
+    <string name="feature_home_retry">Réessayer</string>
+    <string name="feature_home_loading">Chargement…</string>
+
+    <string name="feature_home_blank_title">Rien ici pour l\'instant</string>
+    <string name="feature_home_blank_body">Ce que vous commencez à regarder, vos chaînes favorites et les dernières regardées se retrouveront ici. Commencez par explorer votre source.</string>
+    <string name="feature_home_explore_live">Direct</string>
+    <string name="feature_home_explore_films">Films</string>
+    <string name="feature_home_explore_series">Séries</string>
+
+    <string name="feature_home_syncing_title">Actualisation de votre source en cours</string>
+    <string name="feature_home_syncing_hint">Ce qui est déjà sur cet appareil reste consultable.</string>
+
+    <string name="feature_home_error_title">Votre source rencontre un problème</string>
+    <string name="feature_home_open_sources">Mes sources</string>
+</resources>

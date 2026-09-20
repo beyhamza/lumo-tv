@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chaînes françaises de core:data. Voir values/strings.xml pour ce qui justifie leur présence ici. -->
+<resources>
+    <string name="core_data_sync_step_pending">Démarrage…</string>
+    <string name="core_data_sync_step_connecting">Connexion à votre serveur…</string>
+    <string name="core_data_sync_step_authenticated">Connecté. Lecture du catalogue…</string>
+    <string name="core_data_sync_step_parsing">Lecture des chaînes…</string>
+    <string name="core_data_sync_step_parsing_vod">Lecture du catalogue de films…</string>
+    <string name="core_data_sync_step_parsing_series">Lecture de la liste des séries</string>
+    <string name="core_data_sync_step_epg">Récupération du guide des programmes…</string>
+
+    <string name="core_data_ingestion_unreachable">Le serveur n\'a pas répondu. Vérifiez l\'adresse, ou réessayez dans un moment.</string>
+    <string name="core_data_ingestion_auth_failed">Vos identifiants ont été refusés par le serveur.</string>
+    <string name="core_data_ingestion_invalid_format">Cette adresse ne renvoie pas une playlist exploitable.</string>
+    <string name="core_data_ingestion_empty">La playlist a été lue, mais elle ne contient aucune chaîne.</string>
+    <string name="core_data_ingestion_too_large">Cette playlist est trop volumineuse pour être importée.</string>
+    <string name="core_data_ingestion_max_connections">Votre abonnement chez ce fournisseur utilise déjà toutes les lectures qu\'il autorise. Arrêtez-en une, puis réessayez.</string>
+    <string name="core_data_ingestion_expired">Votre abonnement chez ce fournisseur a expiré. Lumo ne peut pas le renouveler.</string>
+    <string name="core_data_ingestion_unexpected">Une erreur est survenue. Réessayez.</string>
+
+    <string name="core_data_source_tv_none_title">Aucune source configurée</string>
+    <string name="core_data_source_tv_none_body">Ajoutez votre source depuis votre téléphone ou lumo.tv — elle apparaîtra ici automatiquement.</string>
+</resources>

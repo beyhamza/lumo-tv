@@ -27,6 +27,7 @@ dependencies {
 
     implementation(projects.feature.onboarding)
     implementation(projects.feature.auth)
+    implementation(projects.feature.home)
     implementation(projects.feature.source)
     implementation(projects.feature.live)
     implementation(projects.feature.favorites)

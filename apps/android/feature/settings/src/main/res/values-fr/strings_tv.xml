@@ -7,6 +7,7 @@
     <string name="feature_settings_tv_menu_about">À propos</string>
 
     <string name="feature_settings_tv_sources_hint">Les sources se gèrent depuis votre téléphone ou lumo.tv — jamais de saisie ici.</string>
+    <string name="feature_settings_tv_my_sources">Mes sources</string>
     <string name="feature_settings_tv_sources_none">Aucune source pour l\'instant. Ajoutez-en une depuis votre téléphone ou lumo.tv.</string>
     <string name="feature_settings_tv_source_summary">%1$s · %2$d chaînes · vérifiée %3$s</string>
     <string name="feature_settings_tv_source_unsynced">%1$s · pas encore synchronisée</string>

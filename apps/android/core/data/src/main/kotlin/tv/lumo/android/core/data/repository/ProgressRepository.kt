@@ -132,9 +132,24 @@ class ProgressRepository @Inject internal constructor(
      * this side: the threshold is a product decision, not a storage one, and the
      * server keeps the row so a client that changes its mind about 95 % does not
      * need a migration.
+     *
+     * @param sourceId the source whose rows are wanted, or null for the account's.
+     *   Asked of the server rather than filtered afterwards (US-018): a page of the
+     *   account's rows, cut at [limit] and *then* reduced to one source, comes back
+     *   short — or empty — for somebody whose other subscription is the one they
+     *   watched last night.
      */
-    suspend fun continueWatching(limit: Int = RAIL_SIZE): List<WatchProgress> =
-        calls.call { userdata.listProgress(itemType = ProgressItemType.VOD, size = limit * 2) }
+    suspend fun continueWatching(
+        sourceId: String? = null,
+        limit: Int = RAIL_SIZE,
+    ): List<WatchProgress> =
+        calls.call {
+            userdata.listProgress(
+                sourceId = sourceId?.let(UUID::fromString),
+                itemType = ProgressItemType.VOD,
+                size = limit * 2,
+            )
+        }
             .valueOrNull()
             ?.items
             ?.map { it.asWatchProgress() }
@@ -155,10 +170,19 @@ class ProgressRepository @Inject internal constructor(
      * What is dropped is decided one layer up, by `SeriesRepository.resumable`,
      * which is the only place that knows whether a finished episode has a
      * successor. That is the whole reason this returns rows rather than cards.
+     *
+     * @param sourceId as for [continueWatching], and for the same reason.
      */
-    suspend fun episodesInProgress(limit: Int = RAIL_SIZE): List<EpisodeProgress> =
+    suspend fun episodesInProgress(
+        sourceId: String? = null,
+        limit: Int = RAIL_SIZE,
+    ): List<EpisodeProgress> =
         calls.call {
-            userdata.listProgress(itemType = ProgressItemType.EPISODE, size = limit * 2)
+            userdata.listProgress(
+                sourceId = sourceId?.let(UUID::fromString),
+                itemType = ProgressItemType.EPISODE,
+                size = limit * 2,
+            )
         }
             .valueOrNull()
             ?.items
@@ -183,6 +207,7 @@ private fun PlaybackProgress.asWatchProgress() = WatchProgress(
     filmId = itemRef,
     positionMs = positionMs,
     durationMs = durationMs,
+    updatedAtMillis = updatedAt.toInstant().toEpochMilli(),
 )
 
 private fun PlaybackProgress.asEpisodeProgress() = EpisodeProgress(
@@ -192,4 +217,5 @@ private fun PlaybackProgress.asEpisodeProgress() = EpisodeProgress(
     episodeId = itemRef,
     positionMs = positionMs,
     durationMs = durationMs,
+    updatedAtMillis = updatedAt.toInstant().toEpochMilli(),
 )

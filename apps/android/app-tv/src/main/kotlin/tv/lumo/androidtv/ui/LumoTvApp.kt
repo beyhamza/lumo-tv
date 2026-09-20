@@ -17,12 +17,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import tv.lumo.android.core.designsystem.component.LumoWordmark
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.core.designsystem.component.LumoTvNavRail
 import tv.lumo.android.core.designsystem.theme.LumoColors
@@ -34,6 +31,7 @@ import tv.lumo.android.feature.vod.VodPlayerDestination
 import tv.lumo.androidtv.navigation.LumoTvNavHost
 import tv.lumo.androidtv.navigation.TvDestinations
 import tv.lumo.androidtv.navigation.leaveDetailOfPreviousSource
+import tv.lumo.androidtv.navigation.switchTopLevelTo
 import tv.lumo.androidtv.navigation.tvStartRoute
 
 /**
@@ -99,7 +97,9 @@ fun LumoTvApp(
                         onSwitched = { navController.leaveDetailOfPreviousSource() },
                         onLastSourceLost = { navController.switchTopLevelTo(SourceDestination) },
                         // The full "My sources" screen is S8-05's. Until then
-                        // the entry leads to the screen that exists.
+                        // the entry leads to the screen that exists — which left
+                        // the rail with US-017, and is reached from here and
+                        // from Settings.
                         onOpenSources = { navController.switchTopLevelTo(SourceDestination) },
                     )
                 },
@@ -163,21 +163,3 @@ private val PLAYER_ROUTES = setOf(
     // a stack of focus targets over the picture that US-10 says must be alone.
     EpisodePlayerDestination.route,
 )
-
-/**
- * Same top-level behaviour as the phone, for the same reason: BACK from any
- * destination returns to the start rather than replaying every rail item the
- * user has focused. On a television that matters more — BACK is a physical key
- * people press repeatedly to get out (US-10).
- */
-private fun NavHostController.switchTopLevelTo(destination: LumoDestination) {
-    val alreadyThere = currentBackStackEntry?.destination?.hierarchy
-        ?.any { it.route == destination.route } == true
-    if (alreadyThere) return
-
-    navigate(destination.route) {
-        popUpTo(graph.findStartDestination().id) { saveState = true }
-        launchSingleTop = true
-        restoreState = true
-    }
-}

@@ -2,12 +2,19 @@ package tv.lumo.androidtv.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.feature.auth.AuthDestination
 import tv.lumo.android.feature.auth.navigation.authTvScreen
+import tv.lumo.android.feature.favorites.FavoritesTvDestination
+import tv.lumo.android.feature.favorites.navigation.favoritesTvScreen
+import tv.lumo.android.feature.home.HomeDestination
+import tv.lumo.android.feature.home.navigation.HomeActions
+import tv.lumo.android.feature.home.navigation.homeTvScreen
 import tv.lumo.android.feature.live.LiveDestination
 import tv.lumo.android.feature.live.PlayerDestination
 import tv.lumo.android.feature.live.navigation.KEY_RETURNED_CHANNEL
@@ -35,8 +42,8 @@ import tv.lumo.android.feature.vod.navigation.vodPlayerTvScreen
 import tv.lumo.android.feature.vod.navigation.vodTvScreen
 
 /**
- * The same eight features as the phone, each contributing its television
- * surface instead of its phone one.
+ * The same features as the phone, each contributing its television surface
+ * instead of its phone one.
  *
  * The routes are identical on purpose: one vocabulary for both applications
  * means a deep link, an analytics event or a bug report reads the same wherever
@@ -56,10 +63,54 @@ fun LumoTvNavHost(
         onboardingTvScreen()
         authTvScreen()
         sourceTvScreen()
-        liveTvScreen(
-            onPlay = { channelId, name ->
-                navController.navigate(PlayerDestination.routeFor(channelId, name))
-            },
+
+        // The same player for the three screens that start a channel: the home
+        // screen, the channel grid and the library.
+        val playChannel = { channelId: String, name: String? ->
+            navController.navigate(PlayerDestination.routeFor(channelId, name))
+        }
+
+        // What a signed-in set lands on (US-017). Every way out of it leads into
+        // another feature, so every one of them is a wire held here.
+        homeTvScreen(
+            actions = HomeActions(
+                onResumeFilm = { filmId, sourceId, title, atMs ->
+                    navController.navigate(
+                        VodPlayerDestination.routeFor(filmId, sourceId, title, atMs),
+                    )
+                },
+                onResumeEpisode = { episodeId, title, atMs ->
+                    navController.navigate(
+                        EpisodePlayerDestination.routeFor(episodeId, title, atMs),
+                    )
+                },
+                onOpenFilm = { filmId ->
+                    navController.navigate(VodDetailDestination.routeFor(filmId))
+                },
+                onOpenSeries = { seriesId ->
+                    navController.navigate(SeriesDetailDestination.routeFor(seriesId))
+                },
+                onPlayChannel = playChannel,
+                // Moves of the rail rather than pushes: "See all" *is* the rail's
+                // "My library". A second library stacked over Home would make BACK
+                // walk through a screen the rail says one never left.
+                onOpenLibrary = { navController.switchTopLevelTo(FavoritesTvDestination) },
+                onOpenLive = { navController.switchTopLevelTo(LiveDestination) },
+                onOpenFilms = { navController.switchTopLevelTo(VodDestination) },
+                onOpenSeriesCatalogue = { navController.switchTopLevelTo(SeriesDestination) },
+                // A television never adds a source, and its home screen never
+                // calls this. Wired to the screen that says where one is added,
+                // so that the day it is called it still leads somewhere true.
+                onAddSource = { navController.switchTopLevelTo(SourceDestination) },
+                onOpenSources = { navController.switchTopLevelTo(SourceDestination) },
+            ),
+        )
+        liveTvScreen(onPlay = playChannel)
+        // "My library": the favourites of the active source (US-017). Its empty
+        // state sends somebody to where a television stars a channel.
+        favoritesTvScreen(
+            onPlay = playChannel,
+            onOpenLive = { navController.switchTopLevelTo(LiveDestination) },
         )
         livePlayerTvScreen(
             onBack = { channelId ->
@@ -119,7 +170,13 @@ fun LumoTvNavHost(
         )
         episodePlayerTvScreen(onBack = { navController.popBackStack() })
         searchTvScreen()
-        settingsTvScreen()
+        settingsTvScreen(
+            // A push, unlike the rail's moves: "My sources" is opened *from*
+            // Settings, and BACK from it returns there rather than to Home.
+            onOpenSources = {
+                navController.navigate(SourceDestination.route) { launchSingleTop = true }
+            },
+        )
     }
 }
 
@@ -145,45 +202,74 @@ fun tvStartRoute(start: AppStart): String? = when (start) {
     // opens on an empty catalogue with no explanation is worse than one that
     // says what is missing, and the source screen is where that is said.
     AppStart.NeedsSource -> SourceDestination.route
-    AppStart.Ready -> LiveDestination.route
+    // The home screen, since US-017 — it used to be the channel grid. Being the
+    // start destination is also what makes Home the place BACK returns to from
+    // every other entry of the rail, and the one screen BACK leaves the
+    // application from.
+    AppStart.Ready -> HomeDestination.route
 }
 
 /**
- * The rail's contents, in D-pad order.
+ * The rail's contents, in D-pad order: **Home, Live, Films, Series, My library,
+ * Settings** (US-017, decisions table — the side menu the web shares).
  *
- * Live first: it is what the television is for, and it should be the shortest
- * journey from the rail. Search is still a placeholder and stays out of it — on a
- * television that matters more than on a phone, because every extra rail item is
- * another `DOWN` press between the viewer and the one thing they came for.
+ * <h2>Home first, and Live is still one press from it</h2>
  *
- * **Films are second, and always there** — which reverses what this comment used
- * to say. The entry was conditional on the source having films, on the argument
- * that a rail entry is a mandatory stop on the way down and a door onto an empty
- * room costs every viewer a press.
+ * The rail used to open on Live, on the argument that it is what a television is
+ * for and should be the shortest journey. Home takes the head of the rail because
+ * it is now where a session starts — and it *is* the shorter journey: the channels
+ * somebody actually watches are on it, one `RIGHT` away, without a grid to cross.
  *
- * That cost is real and it is the smaller one. Hiding the films is what made
- * somebody with a hundred and forty thousand of them conclude the feature did not
- * exist: **an absence is indistinguishable from a bug**, and on a television there
- * is nowhere else to go and look. A source with no films opens onto a grid that
- * says so, which is a press spent on an answer rather than on nothing.
+ * <h2>Six entries, and what paid for the sixth</h2>
  *
- * **Series joined with `S6-06`**, and they joined by gaining a screen rather than
- * by gaining a catalogue. That is the rule stated the right way round: an *empty*
- * catalogue is a reply, an *unbuilt* one is a promise, and only the first belongs
- * in a rail. A source with no series opens onto a grid that says which kind of
- * empty it is — an M3U playlist cannot carry them at all, and an Xtream panel that
- * has none simply does not offer them (`adr/0010`).
+ * Every rail entry is a mandatory stop on the way down, so the rail does not grow
+ * for free. **Source left it**: it is reached from the switcher at the foot of the
+ * rail ("My sources") and from Settings, which is where somebody looks for it —
+ * and it was the entry visited least, on a surface that cannot edit a source
+ * anyway. "My library" took its place, with a screen built for it.
  *
- * Search is what the rule keeps out now, and it is the last one.
+ * <h2>What did not change is the rule about catalogues</h2>
  *
- * Five items still keeps the rail's own rule easy to hold: `RIGHT` enters the
- * content, `LEFT` comes back, and nothing here is reachable only by travelling
- * through everything else (US-10).
+ * Films and Series are always there, whatever the source holds. The entry was once
+ * conditional, and hiding it is what made somebody with a hundred and forty
+ * thousand films conclude the feature did not exist: **an absence is
+ * indistinguishable from a bug**, and on a television there is nowhere else to go
+ * and look. An *empty* catalogue is a reply, an *unbuilt* screen is a promise, and
+ * only the first belongs in a rail (`adr/0010`). That is also what still keeps
+ * Search out: its screen is a placeholder until sprint 10.
+ *
+ * The rail's own rule is unchanged: `RIGHT` enters the content, `LEFT` comes back,
+ * and nothing here is reachable only by travelling through everything else (US-10).
  */
 val TvDestinations: List<LumoDestination> = listOf(
+    HomeDestination,
     LiveDestination,
     VodDestination,
     SeriesDestination,
-    SourceDestination,
+    FavoritesTvDestination,
     SettingsDestination,
 )
+
+/**
+ * Moves between the entries of the rail without stacking them.
+ *
+ * Same behaviour as the phone's bar, for the same reason: BACK from any entry
+ * returns to the start — Home — rather than replaying every rail item the viewer
+ * has opened, and BACK on Home leaves the application. On a television that
+ * matters more: BACK is a physical key people press repeatedly to get out (US-10).
+ *
+ * Shared by the rail and by the home screen's own ways onward ("See all", "All
+ * channels"), so that reaching the library from a rail of favourites and reaching
+ * it from the side menu leave the same back stack behind.
+ */
+internal fun NavHostController.switchTopLevelTo(destination: LumoDestination) {
+    val alreadyThere = currentBackStackEntry?.destination?.hierarchy
+        ?.any { it.route == destination.route } == true
+    if (alreadyThere) return
+
+    navigate(destination.route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}

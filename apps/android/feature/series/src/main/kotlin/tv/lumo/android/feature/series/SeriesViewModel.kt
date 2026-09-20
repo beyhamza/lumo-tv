@@ -31,6 +31,7 @@ import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.data.model.EpisodeProgress
 import tv.lumo.android.core.data.model.ResumableSeries
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
+import tv.lumo.android.core.data.repository.ContinueWatchingRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.data.repository.SeriesRepository
 import tv.lumo.android.core.data.repository.onFailureNaming
@@ -57,7 +58,7 @@ import tv.lumo.android.core.data.sourceId
 class SeriesViewModel @Inject constructor(
     private val series: SeriesRepository,
     private val activeSource: ActiveSourceRepository,
-    private val progress: ProgressRepository,
+    private val continueWatching: ContinueWatchingRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SeriesState())
@@ -155,8 +156,10 @@ class SeriesViewModel @Inject constructor(
      * account's; the rest of it is untouched and is there again with its source.
      */
     private suspend fun loadContinueWatching(sourceId: String) {
-        val rows = progress.episodesInProgress().filter { it.sourceId == sourceId }
-        _state.update { it.copy(continueWatching = series.resumable(rows)) }
+        // Through the repository the home screen reads too (US-017), so the two
+        // cannot come to disagree about which series somebody is watching.
+        val cards = continueWatching.series(sourceId)
+        _state.update { it.copy(continueWatching = cards) }
     }
 
     fun refresh() {

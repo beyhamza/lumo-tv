@@ -27,8 +27,13 @@ dependencies {
 
     implementation(projects.feature.onboarding)
     implementation(projects.feature.auth)
+    implementation(projects.feature.home)
     implementation(projects.feature.source)
     implementation(projects.feature.live)
+    // "My library" reached the rail with US-017, and with it a television
+    // surface for the favourites — until then a group was only a chip in the
+    // channel grid's strip.
+    implementation(projects.feature.favorites)
     implementation(projects.feature.vod)
     implementation(projects.feature.series)
     implementation(projects.feature.search)

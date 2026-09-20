@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for feature:home. The French set lives in values-fr and ships
+  at the same time (AGENTS.md §4); lint fails the build on a missing translation.
+
+  What is absent is absent on purpose. The step of a synchronisation, the sentence
+  for each ingestion error and the television's "no source" guidance are in
+  core:data, shared with feature:source: one failure, one explanation.
+-->
+<resources>
+    <string name="feature_home_title">Home</string>
+
+    <!-- The three rails, in the validated order (decisions.md, 19 September 2026). -->
+    <string name="feature_home_continue">Continue watching</string>
+    <string name="feature_home_favorites">Favourites</string>
+    <string name="feature_home_live">Live</string>
+
+    <!-- Where a capped rail leads: the library and its groups, the channel catalogue. -->
+    <string name="feature_home_see_all_favorites">See all</string>
+    <string name="feature_home_all_channels">All channels</string>
+
+    <!--
+      A card of "Continue watching" resumes when pressed. This is the other thing
+      it can do, and it says what it opens: the film or the series it belongs to.
+    -->
+    <string name="feature_home_details">Details</string>
+    <string name="feature_home_details_of">Details of %1$s</string>
+    <string name="feature_home_season_episode">S%1$d E%2$d</string>
+    <!-- What the player calls an episode whose source gave it no title. -->
+    <string name="feature_home_episode">Episode %1$d</string>
+    <!--
+      Television only. The long press is the one gesture on the screen that
+      nothing draws, so the rail it applies to says so beside its title.
+    -->
+    <string name="feature_home_tv_details_hint">Hold OK for details</string>
+
+    <!-- S8-E02, no source. The phone can add one; the television says where (core:data). -->
+    <string name="feature_home_no_source_title">Add your first source</string>
+    <string name="feature_home_no_source_body">An M3U playlist or Xtream Codes credentials. Lumo provides no content: you bring your own.</string>
+    <string name="feature_home_add_source">Add a source</string>
+    <!-- Television only: it cannot add a source, but it can look for one again. -->
+    <string name="feature_home_check_again">Check again</string>
+
+    <!-- Several sources and none chosen on this device. The shell is already asking. -->
+    <string name="feature_home_needs_choice_title">Choose a source</string>
+    <string name="feature_home_needs_choice_body">You have several sources. Choose the one to browse on this device; you can change it at any time.</string>
+
+    <!-- Nothing could be fetched. Not "no source": nothing is known, and nothing was lost. -->
+    <string name="feature_home_unavailable_title">Your sources could not be reached</string>
+    <string name="feature_home_unavailable_body">Check your connection, then try again. Nothing has been removed.</string>
+    <string name="feature_home_retry">Try again</string>
+    <string name="feature_home_loading">Loading…</string>
+
+    <!--
+      S8-E02, a source and no activity yet. An invitation and three doors, never
+      three empty rows.
+    -->
+    <string name="feature_home_blank_title">Nothing here yet</string>
+    <string name="feature_home_blank_body">What you start watching, your favourite channels and the ones you watched last will gather here. Start by exploring your source.</string>
+    <string name="feature_home_explore_live">Live</string>
+    <string name="feature_home_explore_films">Films</string>
+    <string name="feature_home_explore_series">Series</string>
+
+    <!-- A source that is importing keeps showing what the device already holds. -->
+    <string name="feature_home_syncing_title">Your source is being refreshed</string>
+    <string name="feature_home_syncing_hint">What is already on this device stays available.</string>
+
+    <!-- The reason follows, in the words of its ingestion code. -->
+    <string name="feature_home_error_title">Your source has a problem</string>
+    <string name="feature_home_open_sources">My sources</string>
+</resources>

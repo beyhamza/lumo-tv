@@ -207,6 +207,31 @@ class FavoritesStateTest {
 
     // ---- helpers -----------------------------------------------------------
 
+    @Test
+    fun `the television's library shows the groups together, each channel once`() {
+        val first = group("group-first", "First").copy(position = 0)
+        val second = group("group-second", "Second").copy(position = 1)
+        val state = FavoritesState(
+            loading = false,
+            groups = listOf(first, second),
+            // The phone's open tab is irrelevant there: no tab is drawn.
+            selectedGroupId = "group-second",
+            activeSourceId = "source",
+            favorites = listOf(
+                favorite("f1", "group-second", channel("channel-shared", "Channel shared"), position = 0),
+                favorite("f2", "group-second", channel("channel-b", "Channel B"), position = 1),
+                favorite("f3", "group-first", channel("channel-shared", "Channel shared"), position = 0),
+                favorite("f4", "group-first", channel("channel-elsewhere", "Channel elsewhere", "other"), position = 1),
+            ),
+        )
+
+        // Groups in their order, channels in theirs, the first occurrence decides
+        // the place — and the other source's favourite stays out (US-018, US-020).
+        assertThat(state.aggregated.map { it.channel.id })
+            .containsExactly("channel-shared", "channel-b").inOrder()
+        assertThat(state.aggregated.first().groupId).isEqualTo("group-first")
+    }
+
     private fun group(id: String, name: String) = FavoriteGroup(
         id = id,
         name = name,

@@ -3,6 +3,7 @@ package tv.lumo.android.navigation
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import tv.lumo.android.feature.favorites.FavoritesDestination
+import tv.lumo.android.feature.home.HomeDestination
 import tv.lumo.android.feature.live.LiveDestination
 import tv.lumo.android.feature.series.SeriesDestination
 import tv.lumo.android.feature.series.SeriesDetailDestination
@@ -32,11 +33,12 @@ class SourceSwitchNavigationTest {
 
     @Test
     fun `a section stays open`() {
-        MobileDestinations.forEach { destination ->
+        (MobileDestinations + ExploreSections).forEach { destination ->
             assertThat(catalogueRootAfterSourceSwitch(destination.route)).isNull()
         }
-        // Spelled out for the three the story names, so that removing one from
-        // the bar cannot quietly empty this test.
+        // Spelled out for the three the story names, so that moving one in the
+        // navigation cannot quietly empty this test — it already happened once,
+        // when they went from the bar to the sections of Explore.
         listOf(LiveDestination, VodDestination, SeriesDestination).forEach { destination ->
             assertThat(catalogueRootAfterSourceSwitch(destination.route)).isNull()
         }
@@ -46,17 +48,33 @@ class SourceSwitchNavigationTest {
     }
 
     @Test
+    fun `Home stays open, and reloads by itself`() {
+        // US-017: the home screen follows the active source on its own. Changing
+        // source from it is not a navigation at all.
+        assertThat(catalogueRootAfterSourceSwitch(HomeDestination.route)).isNull()
+    }
+
+    @Test
     fun `no route at all goes nowhere`() {
         // The graph has not drawn its first entry yet.
         assertThat(catalogueRootAfterSourceSwitch(null)).isNull()
     }
 
     @Test
-    fun `every detail goes back to a section the bar actually offers`() {
-        val sections = MobileDestinations.map { it.route }
+    fun `every detail goes back to a section the navigation actually offers`() {
+        // The catalogues are sections of Explore since US-017, so that is where a
+        // detail has to lead: a route that is neither in the bar nor in the strip
+        // would be a screen nothing on display can name or leave.
+        val sections = ExploreSections.map { it.route }
 
-        // A detail sent to a route that is not a section would pop to nothing
-        // and fall back to a navigation nobody can undo with the bar.
         assertThat(sections).containsAtLeastElementsIn(SourceScopedDetails.values)
+    }
+
+    @Test
+    fun `a detail opened from Home still goes to its catalogue, not back to Home`() {
+        // The "Details" button of a "Continue" card puts a film straight over
+        // Home, with no grid underneath. Where it leads after a change of source
+        // depends on what it is, never on how somebody got there.
+        assertThat(SourceScopedDetails.values).doesNotContain(HomeDestination.route)
     }
 }

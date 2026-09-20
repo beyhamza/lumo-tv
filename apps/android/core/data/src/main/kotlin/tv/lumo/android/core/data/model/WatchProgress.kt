@@ -14,6 +14,15 @@ data class WatchProgress(
     val positionMs: Long,
     /** Total length, when the source states one. Null far more often than not. */
     val durationMs: Long?,
+    /**
+     * When the server last wrote this row — the contract's `updated_at`.
+     *
+     * Carried since the home screen (US-017): its "Continue" rail merges films and
+     * episodes, and two lists that are each "most recent first" can only be merged
+     * on the value they were sorted by. The **server's** clock, so two devices
+     * cannot disagree about which of them was watched last.
+     */
+    val updatedAtMillis: Long = 0L,
 ) {
 
     /**
@@ -53,6 +62,8 @@ data class EpisodeProgress(
     val positionMs: Long,
     /** Length of *this* episode, when the source states one. */
     val durationMs: Long?,
+    /** When the server last wrote this row. See [WatchProgress.updatedAtMillis]. */
+    val updatedAtMillis: Long = 0L,
 ) {
 
     /** Close enough to the end that resuming it would be absurd. See [watched]. */

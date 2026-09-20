@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for core:data. The French set lives in values-fr and ships at
+  the same time (AGENTS.md §4); lint fails the build on a missing translation.
+
+  A data module carrying wording is the exception, and these are the whole of it:
+  the sentences that put words on a **contract enum** — a synchronisation step, an
+  ingestion error code — plus the television's "no source" guidance. They were
+  written in feature:source and moved down with the home screen (US-017), which
+  has to say the same things about the same source. A feature may not import
+  another, and two copies of "your credentials were refused" would drift into two
+  different explanations of one failure. `SourceWording.kt` maps the enums.
+-->
+<resources>
+    <!--
+      The phases the server actually distinguishes. A named step says two things
+      a spinner cannot: that it is moving, and how far it got if it stops.
+    -->
+    <string name="core_data_sync_step_pending">Starting…</string>
+    <string name="core_data_sync_step_connecting">Connecting to your server…</string>
+    <string name="core_data_sync_step_authenticated">Signed in. Reading the catalogue…</string>
+    <string name="core_data_sync_step_parsing">Reading the channels…</string>
+    <string name="core_data_sync_step_parsing_vod">Reading the film catalogue…</string>
+    <string name="core_data_sync_step_parsing_series">Reading the series list</string>
+    <string name="core_data_sync_step_epg">Retrieving the programme guide…</string>
+
+    <!--
+      One message per ingestion code, never a generic fallback: the user's next
+      action differs completely between "the server is down" and "your password
+      is wrong", and the contract says no client may collapse them.
+    -->
+    <string name="core_data_ingestion_unreachable">The server did not answer. Check the address, or try again shortly.</string>
+    <string name="core_data_ingestion_auth_failed">Your credentials were refused by the server.</string>
+    <string name="core_data_ingestion_invalid_format">This address does not return a usable playlist.</string>
+    <string name="core_data_ingestion_empty">The playlist was read, but it holds no channel.</string>
+    <string name="core_data_ingestion_too_large">This playlist is too large to import.</string>
+    <string name="core_data_ingestion_max_connections">Your subscription with this provider is already using all the streams it allows. Stop another one, then try again.</string>
+    <string name="core_data_ingestion_expired">Your subscription with this provider has expired. Lumo cannot renew it.</string>
+    <string name="core_data_ingestion_unexpected">Something went wrong. Please try again.</string>
+
+    <!-- A television never types a source: it says where one is added. -->
+    <string name="core_data_source_tv_none_title">No source configured</string>
+    <string name="core_data_source_tv_none_body">Add your source from your phone or lumo.tv — it will appear here automatically.</string>
+</resources>

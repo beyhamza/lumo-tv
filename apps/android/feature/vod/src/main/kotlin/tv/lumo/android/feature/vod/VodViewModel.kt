@@ -28,9 +28,11 @@ import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.asCatalogueSource
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
+import tv.lumo.android.core.data.model.ResumableFilm
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.data.model.WatchProgress
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
+import tv.lumo.android.core.data.repository.ContinueWatchingRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.data.repository.VodRepository
 import tv.lumo.android.core.data.repository.onFailureNaming
@@ -77,7 +79,7 @@ import tv.lumo.android.core.data.sourceId
 class VodViewModel @Inject constructor(
     private val vod: VodRepository,
     private val activeSource: ActiveSourceRepository,
-    private val progress: ProgressRepository,
+    private val continueWatching: ContinueWatchingRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(VodState())
@@ -174,34 +176,19 @@ class VodViewModel @Inject constructor(
     /**
      * The "continue watching" rail (S5-11).
      *
-     * Two calls rather than one, and the second is what makes the rail a rail:
-     * `GET /me/progress` carries identifiers and positions, not posters and
-     * titles. The films themselves come from the cache, resolved by id, which is
-     * the reason `item_ref` holds a `VodItem.id` at all.
-     *
-     * The server's order is kept exactly — most recently updated first, which the
-     * contract states is the order this rail wants — so the resolution is driven
-     * by the progress list rather than by whatever order the cache answers in.
-     *
-     * A film whose row is not in the cache drops out rather than rendering as a
-     * gap: it was dropped by a re-synchronisation, and a card with no title is
-     * worse than one card fewer.
+     * Assembled by [ContinueWatchingRepository] since the home screen needs the
+     * same cards (US-017): saved positions resolved into films from the cache, in
+     * the server's order — most recently updated first — with a film the cache no
+     * longer holds dropped rather than drawn as a gap. The reasons are written
+     * there and on `resumableFilms`.
      *
      * **Only the active source's films** (US-018). The progress list is the
      * account's; what is shown is the share that belongs to the catalogue on
      * screen, and the rest is untouched — it is there again when its source is.
      */
     private suspend fun loadContinueWatching(sourceId: String) {
-        val rows = progress.continueWatching().filter { it.sourceId == sourceId }
-        val byId = vod.filmsByIds(rows.map { it.filmId }).associateBy { it.id }
-
-        _state.update {
-            it.copy(
-                continueWatching = rows.mapNotNull { row ->
-                    byId[row.filmId]?.let { film -> ResumableFilm(film, row) }
-                },
-            )
-        }
+        val films = continueWatching.films(sourceId)
+        _state.update { it.copy(continueWatching = films) }
     }
 
     /** The user asking for the film catalogue to be pulled again. */
@@ -357,9 +344,6 @@ data class VodState(
     val resumeSelected: Boolean
         get() = filter is VodFilter.Resume
 }
-
-/** A film in the rail: what to draw, and where to start it. */
-data class ResumableFilm(val film: VodItem, val progress: WatchProgress)
 
 /**
  * One film's own screen (US-13).

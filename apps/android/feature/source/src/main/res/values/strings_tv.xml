@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- TV6 — no source yet. -->
-    <string name="feature_source_tv_none_title">No source configured</string>
-    <string name="feature_source_tv_none_body">Add your source from your phone or lumo.tv — it will appear here automatically.</string>
     <string name="feature_source_tv_show_code">Show the pairing code</string>
 
     <!-- TV5 — the sources a television only reads. -->

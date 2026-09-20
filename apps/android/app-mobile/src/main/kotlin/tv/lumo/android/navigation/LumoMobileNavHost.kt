@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.navigation
 import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.feature.auth.AuthDestination
@@ -12,6 +13,9 @@ import tv.lumo.android.feature.auth.navigation.authMobileScreen
 import tv.lumo.android.feature.auth.navigation.signUpMobileScreen
 import tv.lumo.android.feature.favorites.FavoritesDestination
 import tv.lumo.android.feature.favorites.navigation.favoritesMobileScreen
+import tv.lumo.android.feature.home.HomeDestination
+import tv.lumo.android.feature.home.navigation.HomeActions
+import tv.lumo.android.feature.home.navigation.homeMobileScreen
 import tv.lumo.android.feature.live.LiveDestination
 import tv.lumo.android.feature.live.PlayerDestination
 import tv.lumo.android.feature.live.navigation.liveMobileScreen
@@ -78,24 +82,73 @@ fun LumoMobileNavHost(
             onSignIn = { navController.popBackStack(AuthDestination.route, false) },
         )
         sourceMobileScreen()
-        liveMobileScreen(
-            onPlay = { channelId, name ->
-                navController.navigate(PlayerDestination.routeFor(channelId, name))
-            },
+
+        // One wire, held here, for the three screens that hand an episode on: the
+        // home screen's rail, the series grid's and the series' own list. Where an
+        // episode takes somebody is the application's business, not a feature's.
+        val playEpisode = { episodeId: String, title: String?, atMs: Long ->
+            navController.navigate(EpisodePlayerDestination.routeFor(episodeId, title, atMs))
+        }
+        // The same, for a channel: the home screen, the catalogue and the library
+        // all start the one live player.
+        val playChannel = { channelId: String, name: String? ->
+            navController.navigate(PlayerDestination.routeFor(channelId, name))
+        }
+
+        // What a signed-in user lands on (US-017). Every way out of it leads into
+        // another feature, so every one of them is a wire held here.
+        homeMobileScreen(
+            actions = HomeActions(
+                onResumeFilm = { filmId, sourceId, title, atMs ->
+                    navController.navigate(
+                        VodPlayerDestination.routeFor(filmId, sourceId, title, atMs),
+                    )
+                },
+                onResumeEpisode = playEpisode,
+                onOpenFilm = { filmId ->
+                    navController.navigate(VodDetailDestination.routeFor(filmId))
+                },
+                onOpenSeries = { seriesId ->
+                    navController.navigate(SeriesDetailDestination.routeFor(seriesId))
+                },
+                onPlayChannel = playChannel,
+                // Moves of the bar rather than pushes: "See all" *is* the Library
+                // tab. Landing there with a second Library entry stacked over Home
+                // would make the bar and the back stack disagree about where one is.
+                onOpenLibrary = { navController.switchTopLevelTo(FavoritesDestination) },
+                onOpenLive = { navController.switchTopLevelTo(LiveDestination) },
+                onOpenFilms = { navController.switchTopLevelTo(VodDestination) },
+                onOpenSeriesCatalogue = { navController.switchTopLevelTo(SeriesDestination) },
+                onAddSource = { navController.switchTopLevelTo(SourceDestination) },
+                onOpenSources = { navController.switchTopLevelTo(SourceDestination) },
+            ),
         )
+
+        // Explore: one entry of the bar, three sections (US-017). A nested graph
+        // and not a screen — the three catalogues are exactly what they were,
+        // under the routes they always had. See `ExploreDestination`.
+        navigation(
+            route = ExploreDestination.route,
+            startDestination = ExploreSections.first().route,
+        ) {
+            liveMobileScreen(onPlay = playChannel)
+            vodMobileScreen(
+                onOpenFilm = { filmId ->
+                    navController.navigate(VodDetailDestination.routeFor(filmId))
+                },
+            )
+            seriesMobileScreen(
+                onOpenSeries = { seriesId ->
+                    navController.navigate(SeriesDetailDestination.routeFor(seriesId))
+                },
+                onPlay = playEpisode,
+            )
+        }
+
         livePlayerMobileScreen(onBack = { navController.popBackStack() })
         // Same player, and the wire is held here rather than in either feature:
         // favourites has no business knowing that feature:live exists.
-        favoritesMobileScreen(
-            onPlay = { channelId, name ->
-                navController.navigate(PlayerDestination.routeFor(channelId, name))
-            },
-        )
-        vodMobileScreen(
-            onOpenFilm = { filmId ->
-                navController.navigate(VodDetailDestination.routeFor(filmId))
-            },
-        )
+        favoritesMobileScreen(onPlay = playChannel)
         vodDetailMobileScreen(
             onPlay = { filmId, sourceId, title, atMs ->
                 navController.navigate(
@@ -105,26 +158,19 @@ fun LumoMobileNavHost(
             onBack = { navController.popBackStack() },
         )
         vodPlayerMobileScreen(onBack = { navController.popBackStack() })
-        // One wire, held here, for the two screens that hand an episode on: the
-        // grid's resume rail and the series' own list. Where an episode takes
-        // somebody is the application's business, not the feature's.
-        val playEpisode = { episodeId: String, title: String?, atMs: Long ->
-            navController.navigate(EpisodePlayerDestination.routeFor(episodeId, title, atMs))
-        }
-
-        seriesMobileScreen(
-            onOpenSeries = { seriesId ->
-                navController.navigate(SeriesDetailDestination.routeFor(seriesId))
-            },
-            onPlay = playEpisode,
-        )
         seriesDetailMobileScreen(
             onPlay = playEpisode,
             onBack = { navController.popBackStack() },
         )
         episodePlayerMobileScreen(onBack = { navController.popBackStack() })
         searchMobileScreen()
-        settingsMobileScreen()
+        settingsMobileScreen(
+            // A push, unlike the bar's moves: "My sources" is opened *from*
+            // Settings, and BACK from it returns there rather than to Home.
+            onOpenSources = {
+                navController.navigate(SourceDestination.route) { launchSingleTop = true }
+            },
+        )
     }
 }
 
@@ -150,57 +196,52 @@ fun mobileStartRoute(start: AppStart): String? = when (start) {
     // real screen, this line moves back to it and those links come out.
     AppStart.SignedOut -> AuthDestination.route
     // Nothing to watch yet, so the first screen is the one that fixes that
-    // (US-06, US-07) rather than an empty catalogue.
+    // (US-06, US-07) rather than an empty home.
     AppStart.NeedsSource -> SourceDestination.route
-    AppStart.Ready -> LiveDestination.route
+    // The home screen, since US-017 — it used to be the channel list. Being the
+    // start destination is also what makes Home the place BACK returns to from
+    // every section, and the one screen BACK leaves the application from: the
+    // bar pops to the start destination, whichever it is.
+    AppStart.Ready -> HomeDestination.route
 }
 
 /**
- * What the bottom bar offers, in order.
+ * What the bottom bar offers, in order: **Home, Explore, Library, Settings**
+ * (US-017, decisions table).
  *
- * Six, not eight. Search is still a **placeholder** — a screen that does not
- * exist — and a bar that offers a door onto a room nobody has built explains
- * itself badly.
+ * <h2>Four, where there were six</h2>
  *
- * Series joined with `S6-05`, on the day the screen behind the tab became real.
- * That is the whole rule: the tab follows the screen, never the catalogue.
+ * Live, Films and Series moved under one entry, [ExploreDestination], and Source
+ * left the bar: it is reached from Settings ("My sources") and from the source
+ * switcher above every section, which is where somebody looks for it. Six entries
+ * had stopped fitting a phone's width without scrolling — and a bar that scrolls
+ * hides destinations as surely as one that omits them.
  *
- * <h2>Films are always here, and that reverses what this comment used to say</h2>
+ * <h2>What did not change is the rule about catalogues</h2>
  *
- * The tab was conditional on the source having films, on the argument that an
- * empty promise is worse than an absence. **Use disproved it**: the owner of a
- * panel carrying a hundred and forty thousand films could not find them,
- * concluded the feature did not exist, and reported it missing. An absence is
- * indistinguishable from a bug.
+ * Films used to be conditional on the source having some, and **use disproved
+ * it**: the owner of a panel carrying a hundred and forty thousand films could not
+ * find them and reported the feature missing. An absence is indistinguishable from
+ * a bug. The rule that came out of it — *an empty catalogue is a reply, an unbuilt
+ * screen is a promise* — now applies to [ExploreSections], where the three
+ * catalogues are always offered, and it still keeps Search out of the bar: its
+ * screen is a placeholder until sprint 10. `adr/0010` carries the same reasoning
+ * for the television.
  *
- * A source with no films now opens onto a grid that says so — "this source offers
- * only channels, nothing is missing here" — which is the one thing an absence can
- * never do: explain itself.
+ * <h2>Library is the favourites screen, under the name it is growing into</h2>
  *
- * **The distinction that survives, and it is why search stays out:** an *empty*
- * catalogue is a reply, an *unbuilt* screen is a promise. The first belongs in the
- * bar; the second does not. `adr/0010` carries the same reasoning for the
- * television.
- *
- * The two catalogues sit after the channels because that is the order of a
- * catalogue, and before favourites because a shelf comes before a selection from
- * it. Series follow films rather than lead them for one reason only: films came
- * first, and a bar that reorders itself between two releases moves a target from
- * under somebody's thumb.
- *
- * Favourites earns its place beside the catalogue rather than inside it, and that
- * is the structural point of US-12: a group belongs to the account and can hold
- * channels from two sources, so there is no source under which it could sit.
+ * It sits beside the catalogue rather than inside it, which is the structural
+ * point of US-12: a group belongs to the account and can hold channels from two
+ * sources, so there is no source — and no section of Explore — under which it
+ * could sit.
  *
  * Onboarding and authentication are absent for a different reason: they are not
  * places one returns to. They are the way in, and a tab that takes a signed-in
  * user back to a sign-up form is a tab that will be pressed by accident.
  */
 val MobileDestinations: List<LumoDestination> = listOf(
-    LiveDestination,
-    VodDestination,
-    SeriesDestination,
+    HomeDestination,
+    ExploreDestination,
     FavoritesDestination,
-    SourceDestination,
     SettingsDestination,
 )

@@ -200,9 +200,14 @@ fun List<Season>.episodeAfter(episodeId: String): Episode? {
  * @param positionMs zero when [episode] is the *next* one — the episode somebody
  *   was watching is past the threshold, and what they want is the following one
  *   from its beginning, not the credits they already saw.
+ * @param updatedAtMillis when the row this card was built from was last written.
+ *   The row's and not [episode]'s: a card offering the *next* episode is as recent
+ *   as the episode somebody just finished, which is what places it among the films
+ *   of a merged rail (US-017).
  */
 data class ResumableSeries(
     val series: Series,
     val episode: Episode,
     val positionMs: Long,
+    val updatedAtMillis: Long = 0L,
 )

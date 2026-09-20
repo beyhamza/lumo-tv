@@ -12,22 +12,25 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.core.designsystem.component.LumoMobileNavBar
+import tv.lumo.android.core.designsystem.component.LumoMobileSectionTabs
 import tv.lumo.android.feature.live.PlayerDestination
 import tv.lumo.android.feature.series.EpisodePlayerDestination
 import tv.lumo.android.feature.source.SourceDestination
 import tv.lumo.android.feature.source.switcher.SourceSwitcherMobile
 import tv.lumo.android.feature.vod.VodPlayerDestination
+import tv.lumo.android.navigation.ExploreSections
 import tv.lumo.android.navigation.LumoMobileNavHost
 import tv.lumo.android.navigation.MobileDestinations
 import tv.lumo.android.navigation.leaveDetailOfPreviousSource
 import tv.lumo.android.navigation.mobileStartRoute
+import tv.lumo.android.navigation.switchExploreSectionTo
+import tv.lumo.android.navigation.switchTopLevelTo
+import tv.lumo.android.navigation.topLevelRouteOf
 
 /**
  * The phone shell: a navigation bar at the bottom and a NavHost above it.
@@ -74,6 +77,12 @@ fun LumoMobileApp(
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    // The entry of the bar this screen belongs to. Asked of the destination's
+    // ancestors and not of its route: a section of Explore is never `explore`.
+    val currentTopLevel = topLevelRouteOf(
+        hierarchy = backStackEntry?.destination?.hierarchy?.map { it.route }?.toList().orEmpty(),
+        topLevel = MobileDestinations,
+    )
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -89,8 +98,22 @@ fun LumoMobileApp(
                     onSwitched = { navController.leaveDetailOfPreviousSource() },
                     onLastSourceLost = { navController.switchTopLevelTo(SourceDestination) },
                     // The full "My sources" screen is S8-05's. Until then the
-                    // entry leads to the screen that exists.
+                    // entry leads to the screen that exists — which left the bar
+                    // with US-017, and is reached from here and from Settings.
                     onOpenSources = { navController.switchTopLevelTo(SourceDestination) },
+                )
+            }
+
+            // The sections of Explore, over the three screens that are one
+            // (US-017). Drawn here and not by any of them: the strip names three
+            // features at once, and only the application may. Absent on a film's
+            // own screen and on a player — those are not sections, they are
+            // somewhere one went *from* a section.
+            if (ExploreSections.any { it.route == currentRoute }) {
+                LumoMobileSectionTabs(
+                    sections = ExploreSections,
+                    selectedRoute = currentRoute,
+                    onSelect = { navController.switchExploreSectionTo(it) },
                 )
             }
 
@@ -115,7 +138,7 @@ fun LumoMobileApp(
             if (startState != AppStart.SignedOut && currentRoute !in PLAYER_ROUTES) {
                 LumoMobileNavBar(
                     destinations = MobileDestinations,
-                    selectedRoute = currentRoute,
+                    selectedRoute = currentTopLevel,
                     onSelect = { navController.switchTopLevelTo(it) },
                 )
             }
@@ -137,24 +160,3 @@ private val PLAYER_ROUTES = setOf(
     // across an episode while the two other players had the screen to themselves.
     EpisodePlayerDestination.route,
 )
-
-/**
- * Moves between top-level destinations without stacking them.
- *
- * `popUpTo(start) { saveState }` plus `restoreState` is what makes the bar
- * behave the way people expect: each destination keeps its own scroll position,
- * pressing back from anywhere returns to the start rather than walking the
- * history of every tab visited, and tapping the current tab does nothing instead
- * of pushing a duplicate.
- */
-private fun NavHostController.switchTopLevelTo(destination: LumoDestination) {
-    val alreadyThere = currentBackStackEntry?.destination?.hierarchy
-        ?.any { it.route == destination.route } == true
-    if (alreadyThere) return
-
-    navigate(destination.route) {
-        popUpTo(graph.findStartDestination().id) { saveState = true }
-        launchSingleTop = true
-        restoreState = true
-    }
-}

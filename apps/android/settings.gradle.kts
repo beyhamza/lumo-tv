@@ -72,6 +72,11 @@ include(":core:player")
 // A feature owns its state and its two UI surfaces (mobile and TV). It never
 // depends on another feature — shared behaviour moves down into core/.
 include(":feature:onboarding")
+// What a signed-in user lands on (US-017): the three rails of the active source.
+// It reads films, series, favourites and recent channels, and depends on none of
+// the features that own those screens — everything it shares with them lives in
+// core:data.
+include(":feature:home")
 include(":feature:auth")
 include(":feature:source")
 include(":feature:live")

@@ -38,6 +38,7 @@ import androidx.paging.compose.itemKey
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.VodItem
+import tv.lumo.android.core.data.model.ResumableFilm
 import tv.lumo.android.core.data.model.WatchProgress
 import tv.lumo.android.core.designsystem.component.LumoPoster
 import tv.lumo.android.core.designsystem.theme.LumoShapes

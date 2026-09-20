@@ -38,6 +38,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
+import tv.lumo.android.core.data.R as DataR
+import tv.lumo.android.core.data.labelRes
+import tv.lumo.android.core.data.messageRes
 import tv.lumo.android.network.generated.model.IngestionErrorCode
 import tv.lumo.android.network.generated.model.SourceKind
 import tv.lumo.android.network.generated.model.SyncStep
@@ -495,14 +498,14 @@ private fun Field(
 
 @Composable
 private fun AddSourceFailure.message(): String = when (this) {
-    AddSourceFailure.Unreachable -> stringResource(R.string.feature_source_error_unreachable)
+    AddSourceFailure.Unreachable -> stringResource(DataR.string.core_data_ingestion_unreachable)
     AddSourceFailure.CredentialsRefused ->
-        stringResource(R.string.feature_source_error_auth_failed)
-    AddSourceFailure.NotAPlaylist -> stringResource(R.string.feature_source_error_invalid_format)
-    AddSourceFailure.Empty -> stringResource(R.string.feature_source_error_empty)
-    AddSourceFailure.TooLarge -> stringResource(R.string.feature_source_error_too_large)
-    AddSourceFailure.TooManyStreams -> stringResource(R.string.feature_source_error_max_connections)
-    AddSourceFailure.SubscriptionExpired -> stringResource(R.string.feature_source_error_expired)
+        stringResource(DataR.string.core_data_ingestion_auth_failed)
+    AddSourceFailure.NotAPlaylist -> stringResource(DataR.string.core_data_ingestion_invalid_format)
+    AddSourceFailure.Empty -> stringResource(DataR.string.core_data_ingestion_empty)
+    AddSourceFailure.TooLarge -> stringResource(DataR.string.core_data_ingestion_too_large)
+    AddSourceFailure.TooManyStreams -> stringResource(DataR.string.core_data_ingestion_max_connections)
+    AddSourceFailure.SubscriptionExpired -> stringResource(DataR.string.core_data_ingestion_expired)
     AddSourceFailure.NoRoomLeft -> stringResource(R.string.feature_source_error_limit)
     AddSourceFailure.Invalid -> stringResource(R.string.feature_source_error_validation)
     is AddSourceFailure.TooManyAttempts -> if (seconds == null) {
@@ -511,50 +514,5 @@ private fun AddSourceFailure.message(): String = when (this) {
         stringResource(R.string.feature_source_error_rate_limited_seconds, seconds)
     }
     AddSourceFailure.Offline -> stringResource(R.string.feature_source_error_offline)
-    AddSourceFailure.Unexpected -> stringResource(R.string.feature_source_error_unexpected)
-}
-
-
-/**
- * The phases, as the server actually distinguishes them.
- *
- * Null is a source the server has accepted but not started, which is a real state
- * and gets its own line rather than an empty one.
- *
- * **The `else` is not laziness, and it is not the web's choice.** The web makes
- * its own mapping exhaustive so a new phase fails the build; here the branch is
- * kept, because a `when` over a generated enum can also meet a value from a
- * *server* newer than the installed application, which no compiler can catch. Two
- * different risks, two different answers — and every phase this build knows about
- * still gets its own line above.
- */
-@StringRes
-private fun SyncStep?.labelRes(): Int = when (this) {
-    SyncStep.CONNECTING -> R.string.feature_source_step_connecting
-    SyncStep.AUTHENTICATED -> R.string.feature_source_step_authenticated
-    SyncStep.PARSING_CHANNELS -> R.string.feature_source_step_parsing
-    SyncStep.PARSING_VOD -> R.string.feature_source_step_parsing_vod
-    SyncStep.PARSING_SERIES -> R.string.feature_source_step_parsing_series
-    SyncStep.FETCHING_EPG -> R.string.feature_source_step_epg
-    // Includes a phase newer than this build: the honest answer is that it
-    // started, which is true of every phase there could be.
-    else -> R.string.feature_source_step_pending
-}
-
-/**
- * One sentence per ingestion code, and never a shared one.
- *
- * The contract forbids a generic message on this surface, and the reason is
- * visible in the four sentences: they send the reader to four different places.
- */
-@StringRes
-private fun IngestionErrorCode?.messageRes(): Int = when (this) {
-    IngestionErrorCode.SOURCE_AUTH_FAILED -> R.string.feature_source_error_auth_failed
-    IngestionErrorCode.SOURCE_UNREACHABLE -> R.string.feature_source_error_unreachable
-    IngestionErrorCode.SOURCE_INVALID_FORMAT -> R.string.feature_source_error_invalid_format
-    IngestionErrorCode.SOURCE_EMPTY -> R.string.feature_source_error_empty
-    IngestionErrorCode.SOURCE_TOO_LARGE -> R.string.feature_source_error_too_large
-    IngestionErrorCode.SOURCE_MAX_CONNECTIONS -> R.string.feature_source_error_max_connections
-    IngestionErrorCode.SOURCE_EXPIRED -> R.string.feature_source_error_expired
-    else -> R.string.feature_source_error_unexpected
+    AddSourceFailure.Unexpected -> stringResource(DataR.string.core_data_ingestion_unexpected)
 }

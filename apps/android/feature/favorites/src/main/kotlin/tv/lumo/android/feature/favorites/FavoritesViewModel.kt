@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.aggregatedFavorites
 import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
 import tv.lumo.android.core.data.ofSource
@@ -248,6 +249,18 @@ data class FavoritesState(
      */
     val ofActiveSource: List<FavoriteChannel>
         get() = favorites.ofSource(activeSourceId)
+
+    /**
+     * Every favourite of the source being browsed, **each channel once** (US-020).
+     *
+     * What the television's "My library" draws: it has no group tabs — group
+     * management is not on that surface yet — so it shows the groups together, and
+     * a channel filed in two of them must not appear twice. The rule is
+     * `aggregatedFavorites` in `core:data`, the same function the home screen's
+     * rail goes through, so the two cannot disagree about where a channel sits.
+     */
+    val aggregated: List<FavoriteChannel>
+        get() = aggregatedFavorites(groups, favorites, activeSourceId)
 
     /**
      * Nothing starred at all — as opposed to an empty tab in an account that has

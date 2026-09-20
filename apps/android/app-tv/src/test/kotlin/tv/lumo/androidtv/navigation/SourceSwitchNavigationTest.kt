@@ -2,6 +2,8 @@ package tv.lumo.androidtv.navigation
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
+import tv.lumo.android.feature.favorites.FavoritesTvDestination
+import tv.lumo.android.feature.home.HomeDestination
 import tv.lumo.android.feature.live.LiveDestination
 import tv.lumo.android.feature.series.SeriesDestination
 import tv.lumo.android.feature.series.SeriesDetailDestination
@@ -39,9 +41,25 @@ class SourceSwitchNavigationTest {
         listOf(LiveDestination, VodDestination, SeriesDestination).forEach { destination ->
             assertThat(catalogueRootAfterSourceSwitch(destination.route)).isNull()
         }
-        listOf(SourceDestination, SettingsDestination).forEach { destination ->
+        // Source left the rail with US-017 and is still a screen one can be on.
+        listOf(SourceDestination, SettingsDestination, FavoritesTvDestination).forEach { destination ->
             assertThat(catalogueRootAfterSourceSwitch(destination.route)).isNull()
         }
+    }
+
+    @Test
+    fun `Home stays open, and reloads by itself`() {
+        // US-017: the home screen follows the active source on its own. Changing
+        // source from it is not a navigation at all.
+        assertThat(catalogueRootAfterSourceSwitch(HomeDestination.route)).isNull()
+    }
+
+    @Test
+    fun `a detail opened from Home still goes to its catalogue, not back to Home`() {
+        // A long press on a "Continue" card puts a film straight over Home, with
+        // no grid underneath. Where it leads after a change of source depends on
+        // what it is, never on how somebody got there.
+        assertThat(SourceScopedDetails.values).doesNotContain(HomeDestination.route)
     }
 
     @Test

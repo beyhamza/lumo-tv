@@ -347,7 +347,12 @@ class SeriesRepository @Inject internal constructor(
 
         // Under the threshold: this episode, where they left it.
         if (!row.finished) {
-            return ResumableSeries(series.asSeries(), episode.asEpisode(), row.positionMs)
+            return ResumableSeries(
+                series.asSeries(),
+                episode.asEpisode(),
+                row.positionMs,
+                row.updatedAtMillis,
+            )
         }
 
         // Past it: the next one, from the beginning. Null means the series is
@@ -357,7 +362,12 @@ class SeriesRepository @Inject internal constructor(
             episodes = seriesDao.episodesOf(episode.seriesId),
         ).episodeAfter(episode.id) ?: return null
 
-        return ResumableSeries(series.asSeries(), next, positionMs = 0L)
+        return ResumableSeries(
+            series.asSeries(),
+            next,
+            positionMs = 0L,
+            updatedAtMillis = row.updatedAtMillis,
+        )
     }
 
     /** Drops one source's series, for a source the user just deleted. */

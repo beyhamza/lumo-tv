@@ -2,6 +2,7 @@ package tv.lumo.android.core.data
 
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.FavoriteChannel
+import tv.lumo.android.core.data.model.FavoriteGroup
 import tv.lumo.android.network.generated.model.SourceKind
 import tv.lumo.android.network.generated.model.SourceStatus
 
@@ -98,3 +99,51 @@ fun List<FavoriteChannel>.ofSource(sourceId: String?): List<FavoriteChannel> =
 /** The same rule for a plain list of channels — the recently watched ones. */
 fun List<Channel>.channelsOfSource(sourceId: String?): List<Channel> =
     if (sourceId == null) emptyList() else filter { it.sourceId == sourceId }
+
+/**
+ * Every favourite of the source being browsed, **each channel once** (US-020).
+ *
+ * What the home screen's "Favourites" rail and the television's "My library" grid
+ * both draw. One function, in `core:data`, because the two must never disagree
+ * about where a channel sits — and because the rule has a right and a wrong answer,
+ * which makes it the part worth holding in a test.
+ *
+ * <h2>The rule, as the story states it</h2>
+ *
+ * Walk the groups in their order, then the channels in their order inside each
+ * group; **the first occurrence of a channel decides its place**. The contract
+ * allows one channel in several groups, and this removes none of those
+ * memberships — it only decides where the channel is drawn when the groups are
+ * shown together. No separate ranking is kept for the home screen.
+ *
+ * **Identity is the channel's id, not its name.** Two subscriptions, or two
+ * categories of one, carry channels with the same name often enough that a name
+ * would merge things the user filed separately.
+ *
+ * <h2>Sorted here, on purpose</h2>
+ *
+ * The DAO already returns both lists in order, and this sorts them again. It is
+ * not a second opinion about order — `position` is the only one there is — but a
+ * pure function that silently depended on its caller having sorted first would be
+ * right in production and wrong in the first test that built a list by hand.
+ *
+ * A favourite whose group is not in [groups] is kept, after the others. That is a
+ * cache read between two writes — the favourites landed, their group has not yet —
+ * and dropping the channel for a frame would make it blink out of a rail.
+ */
+fun aggregatedFavorites(
+    groups: List<FavoriteGroup>,
+    favorites: List<FavoriteChannel>,
+    sourceId: String?,
+): List<FavoriteChannel> {
+    val mine = favorites.ofSource(sourceId)
+    if (mine.isEmpty()) return emptyList()
+
+    val byGroup = mine.groupBy { it.groupId }
+    val known = groups.sortedBy { it.position }.map { it.id }
+    val orphaned = byGroup.keys - known.toSet()
+
+    return (known + orphaned)
+        .flatMap { groupId -> byGroup[groupId].orEmpty().sortedBy { it.position } }
+        .distinctBy { it.channel.id }
+}

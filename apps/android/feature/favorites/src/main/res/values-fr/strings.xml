@@ -36,4 +36,11 @@
         <item quantity="one">Sa %1$d chaîne ira dans « %2$s ». Rien n\'est retiré de vos favoris.</item>
         <item quantity="other">Ses %1$d chaînes iront dans « %2$s ». Rien n\'est retiré de vos favoris.</item>
     </plurals>
+
+    <string name="feature_favorites_library_title">Bibliothèque</string>
+    <string name="feature_favorites_tv_title">Ma bibliothèque</string>
+
+    <string name="feature_favorites_tv_loading">Chargement…</string>
+    <string name="feature_favorites_tv_empty_body">Dans Direct, maintenez OK sur une chaîne pour l\'ajouter à vos favoris. Elle apparaîtra ici.</string>
+    <string name="feature_favorites_tv_open_live">Ouvrir Direct</string>
 </resources>

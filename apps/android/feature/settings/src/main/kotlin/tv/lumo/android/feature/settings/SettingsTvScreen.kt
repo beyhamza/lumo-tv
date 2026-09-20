@@ -70,6 +70,7 @@ import android.text.format.DateUtils
  */
 @Composable
 fun SettingsTvScreen(
+    onOpenSources: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -123,7 +124,7 @@ fun SettingsTvScreen(
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
         ) {
             when (section) {
-                SettingsSection.Sources -> SourcesPanel(state, viewModel)
+                SettingsSection.Sources -> SourcesPanel(state, viewModel, onOpenSources)
                 SettingsSection.Account -> AccountPanel(state, viewModel)
                 SettingsSection.Playback -> PlaybackPanel()
                 SettingsSection.Language -> LanguagePanel()
@@ -177,7 +178,11 @@ private fun MenuItem(
 // ---- Sources ---------------------------------------------------------------
 
 @Composable
-private fun SourcesPanel(state: SettingsUiState, viewModel: SettingsViewModel) {
+private fun SourcesPanel(
+    state: SettingsUiState,
+    viewModel: SettingsViewModel,
+    onOpenSources: () -> Unit,
+) {
     Text(
         text = stringResource(R.string.feature_settings_tv_sources_hint),
         style = MaterialTheme.typography.bodyLarge,
@@ -189,6 +194,21 @@ private fun SourcesPanel(state: SettingsUiState, viewModel: SettingsViewModel) {
         state.sources.isEmpty() -> PanelRow(title = stringResource(R.string.feature_settings_tv_sources_none))
         else -> state.sources.forEach { source -> SourceRow(source) }
     }
+
+    // "Source" left the rail with US-017 — six entries was already one `DOWN` too
+    // many — so the screen needs another way in. This is one of the two; the other
+    // is "My sources" in the source switcher at the foot of the rail.
+    PanelRow(
+        title = stringResource(R.string.feature_settings_tv_my_sources),
+        trailing = {
+            Text(
+                text = stringResource(R.string.feature_settings_tv_press_ok),
+                style = MaterialTheme.typography.labelLarge,
+                color = LumoColors.OnDarkMuted,
+            )
+        },
+        onClick = onOpenSources,
+    )
 
     PanelRow(
         title = stringResource(

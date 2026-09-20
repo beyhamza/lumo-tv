@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="feature_source_tv_none_title">Aucune source configurée</string>
-    <string name="feature_source_tv_none_body">Ajoutez votre source depuis votre téléphone ou lumo.tv — elle apparaîtra ici automatiquement.</string>
     <string name="feature_source_tv_show_code">Afficher le code d\'association</string>
 
     <string name="feature_source_tv_managed_elsewhere">Les sources se gèrent depuis votre téléphone ou lumo.tv — jamais de saisie ici.</string>

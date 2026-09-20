@@ -32,6 +32,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.designsystem.component.LumoMockNotImplemented
 import tv.lumo.android.core.designsystem.component.LumoTvButton
 import tv.lumo.android.core.designsystem.theme.LumoColors
@@ -259,13 +260,13 @@ private fun NoSource() {
                     .background(Brush.radialGradient(listOf(LumoColors.Accent, LumoColors.AccentViolet))),
             )
             Text(
-                text = stringResource(R.string.feature_source_tv_none_title),
+                text = stringResource(DataR.string.core_data_source_tv_none_title),
                 style = MaterialTheme.typography.titleLarge,
                 color = LumoColors.OnDark,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = stringResource(R.string.feature_source_tv_none_body),
+                text = stringResource(DataR.string.core_data_source_tv_none_body),
                 style = MaterialTheme.typography.bodyLarge,
                 color = LumoColors.OnDarkMuted,
                 textAlign = TextAlign.Center,

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Voir values/strings.xml : le seul libellé qui appartient à la coquille. -->
+    <string name="app_mobile_explore">Explorer</string>
+</resources>

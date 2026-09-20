@@ -5,4 +5,10 @@
          other string in the product lives in the feature module that shows it,
          in both languages (AGENTS.md §4). -->
     <string name="app_name" translatable="false">Lumo</string>
+
+    <!-- The one label that is the shell's own. "Explore" is not a screen of any
+         feature: it is the bar entry under which the phone gathers Live, Films
+         and Series (US-017), and the shell is what draws it. The French copy is
+         in values-fr. -->
+    <string name="app_mobile_explore">Explore</string>
 </resources>

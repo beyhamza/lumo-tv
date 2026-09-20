@@ -62,4 +62,20 @@
         <item quantity="one">Its %1$d channel will move to “%2$s”. Nothing is removed from your favourites.</item>
         <item quantity="other">Its %1$d channels will move to “%2$s”. Nothing is removed from your favourites.</item>
     </plurals>
+
+    <!--
+      What the two shells call this destination since US-017: "Library" in the
+      phone's bar, "My library" in the television's rail (decisions.md). The screen
+      itself still lists favourites, and says so.
+    -->
+    <string name="feature_favorites_library_title">Library</string>
+    <string name="feature_favorites_tv_title">My library</string>
+
+    <!--
+      The television's surface. It cannot star a channel from here, so its empty
+      state names the screen where that is done and the gesture that does it.
+    -->
+    <string name="feature_favorites_tv_loading">Loading…</string>
+    <string name="feature_favorites_tv_empty_body">In Live, hold OK on a channel to add it to your favourites. It will appear here.</string>
+    <string name="feature_favorites_tv_open_live">Open Live</string>
 </resources>

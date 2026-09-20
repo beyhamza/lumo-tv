@@ -71,6 +71,7 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
  */
 @Composable
 fun SettingsMobileScreen(
+    onOpenSources: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -100,6 +101,10 @@ fun SettingsMobileScreen(
                     pluralStringResource(R.plurals.feature_settings_sources_active, it, it)
                 },
                 chevron = true,
+                // The row had its chevron and no destination until US-017 took
+                // "Source" out of the bar: this is now the way to that screen,
+                // and where it leads is the application's wire, not this module's.
+                onClick = onOpenSources,
             )
             RowDivider()
             SettingsRow(label = stringResource(R.string.feature_settings_auto_sync)) {

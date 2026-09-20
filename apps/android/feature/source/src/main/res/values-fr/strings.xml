@@ -29,12 +29,6 @@
     <string name="feature_source_submitting">Vérification…</string>
 
     <string name="feature_source_syncing_title">Import en cours</string>
-    <string name="feature_source_step_pending">Démarrage…</string>
-    <string name="feature_source_step_connecting">Connexion à votre serveur…</string>
-    <string name="feature_source_step_authenticated">Connecté. Lecture du catalogue…</string>
-    <string name="feature_source_step_parsing">Lecture des chaînes…</string>
-    <string name="feature_source_step_parsing_vod">Lecture du catalogue de films…</string>
-    <string name="feature_source_step_epg">Récupération du guide des programmes…</string>
 
     <string name="feature_source_ready_title">Source prête</string>
     <string name="feature_source_counts">%1$d chaînes · %2$d catégories</string>
@@ -51,20 +45,11 @@
     <string name="feature_source_limit_title">Votre offre autorise %1$d source(s)</string>
     <string name="feature_source_limit_body">Supprimez une source existante, ou passez à une offre supérieure pour en ajouter d\'autres.</string>
 
-    <string name="feature_source_error_unreachable">Le serveur n\'a pas répondu. Vérifiez l\'adresse, ou réessayez dans un moment.</string>
-    <string name="feature_source_error_auth_failed">Vos identifiants ont été refusés par le serveur.</string>
-    <string name="feature_source_error_invalid_format">Cette adresse ne renvoie pas une playlist exploitable.</string>
-    <string name="feature_source_error_empty">La playlist a été lue, mais elle ne contient aucune chaîne.</string>
-    <string name="feature_source_error_too_large">Cette playlist est trop volumineuse pour être importée.</string>
-    <string name="feature_source_error_max_connections">Votre abonnement chez ce fournisseur utilise déjà toutes les lectures qu\'il autorise. Arrêtez-en une, puis réessayez.</string>
-    <string name="feature_source_error_expired">Votre abonnement chez ce fournisseur a expiré. Lumo ne peut pas le renouveler.</string>
     <string name="feature_source_error_limit">Votre offre ne permet pas d\'ajouter une source de plus.</string>
     <string name="feature_source_error_validation">Certaines informations sont incorrectes.</string>
     <string name="feature_source_error_rate_limited">Trop de tentatives. Réessayez dans un instant.</string>
     <string name="feature_source_error_rate_limited_seconds">Trop de tentatives. Réessayez dans %1$d secondes.</string>
     <string name="feature_source_error_offline">Pas de connexion. Rien n\'a été envoyé.</string>
-    <string name="feature_source_error_unexpected">Une erreur est survenue. Réessayez.</string>
-    <string name="feature_source_step_parsing_series">Lecture de la liste des séries</string>
 
     <string name="feature_source_switcher_label">Source</string>
     <string name="feature_source_switcher_change">Changer de source</string>
