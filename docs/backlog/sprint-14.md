@@ -14,6 +14,10 @@ Référence de sortie : [recette 0.2.0](../releases/0.2.0/acceptance.md).
 Préparation : [sessions, rapports et dossier de livraison](../releases/0.2.0/execution-plan.md).
 Ce plan est non exécuté ; aucun build candidat n’est déclaré prêt.
 
+Préparation visuelle : [couverture S9 à S14 et preuves attendues](../design/0.2.0/screen-coverage.md)
+(revue du 20 septembre), pour S14-00/01. Les maquettes ne remplacent pas les
+captures du build candidat ni les parcours à la télécommande ; scénarios non joués.
+
 ## Tâches proposées
 
 | ID | Travail | Preuve |

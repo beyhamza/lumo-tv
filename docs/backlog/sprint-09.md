@@ -31,6 +31,11 @@ ajoute notamment la grille horaire TV. Réestimer, sans réutiliser ses 34 point
 
 ## Démo et sortie
 
+Complément du 20 septembre : [interactions et cas GD-01 à GD-14](../design/0.2.0/guide-interactions.md)
+pour S9-00 et S9-04 à S9-07. Les règles de navigation Q5 sont précisées ; la
+fraîcheur et la lecture groupée restent soumises à C1. Le schéma de focus complète
+les écrans S9-E01 à S9-E05 ; aucune recette applicative n’est déclarée exécutée.
+
 Changer de filtre entre Chaînes et Guide ; naviguer d'hier à J+3 selon les données,
 revenir à Maintenant, ouvrir un programme courant et lancer le direct, revenir à
 la case. Montrer le mobile en liste et la TV entièrement à la télécommande.

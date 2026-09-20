@@ -102,6 +102,13 @@ la recette ; ce cadrage ne vaut pas validation de leur implémentation.
 
 ## Interactions encore à discuter
 
+Complément du 20 septembre : les [interactions du guide](guide-interactions.md)
+précisent désormais les changements de programme, la mémoire des filtres et de
+la recherche, les déplacements TV, les retours et les erreurs (GD-01 à GD-14).
+La liste historique ci-dessous indique les sujets identifiés le 19 septembre ;
+la fraîcheur EPG demeure ouverte dans C1, les autres comportements sont détaillés
+dans ce complément. La réalisation et la recette restent à faire.
+
 La proposition du 19 septembre illustre les choix déjà validés, sans les soumettre
 à nouveau à approbation. Sa présentation générale est retenue ; les points ci-dessous
 restent ouverts avant implémentation.
