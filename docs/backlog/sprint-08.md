@@ -59,12 +59,19 @@ Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulem
   158 tests et build verts, marketing statique. Carte de focus TV à jour. Reste :
   recette à l'écran. Écart connu : sur le web, une carte de film ouvre la fiche
   (« Reprendre à… ») au lieu de lancer la lecture
-- [ ] S8-05 — **40 %**, sur `feat/US-024-my-sources`, spécification US-024. Web livré :
+- [ ] S8-05 — **75 %**, sur `feat/US-024-my-sources`, spécification US-024. Web :
   Mes sources (compteurs, source utilisée, Utiliser cette source), actualisation avec
   `Retry-After`, confirmation de suppression détaillée, catalogues avec bandeau en
   actualisation ou en erreur, refus de lecture dont `SOURCE_AUTH_FAILED`, arrêt de la
   lecture quand un `404` prouve la suppression ; typecheck, lint, 209 tests et build
-  verts. Android : en cours. Reste aussi la recette à l'écran
+  verts. Android : Mes sources complet sur mobile, choisir et actualiser sur TV avec
+  guidage, `auto_sync` par source (l'interrupteur global quitte les Réglages), grilles
+  qui gardent l'ancien catalogue, première importation distinguée d'un échec,
+  vérification toutes les 60 s dans les trois lecteurs ; 403 tests unitaires, lint et
+  `assembleDebug` verts. Carte de focus TV à jour. Reste : recette à l'écran ; sur
+  Android, un serveur injoignable affiche encore « aucune source » dans les grilles
+  au lieu de Réessayer et Changer de source (US-024, hors ligne) ; correction des
+  identifiants depuis le web (voir compléments)
 - [ ] S8-06 — rubriques Réglages, retrait des accès Google et paiement
 - [ ] S8-07 — recette de la verticale
 

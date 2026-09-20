@@ -610,15 +610,51 @@ carte est toujours là avec `OK` qui fonctionne.
 
 ---
 
-## Source (`SourceTvScreen`) — placeholder
+## Mes sources (`SourceTvScreen`) — S8-05
 
-La carte entière est la cible focalisable, et son texte dit ce que fait OK. Un
-bouton dessiné à l'intérieur d'une carte focalisable donnerait deux cibles à la
-D-pad sur un écran qui a une seule chose à faire.
+Remplace la carte unique d'avant : la TV **choisit** et **actualise** ses sources,
+et renvoie au téléphone ou à lumo.tv pour ajouter, renommer, supprimer ou régler
+l'actualisation automatique (US-024). Ce guidage ne parle pas d'activation : gérer
+une source et appairer un téléviseur sont deux choses.
 
-| Depuis | UP/DOWN | LEFT | RIGHT | OK | BACK |
-|---|---|---|---|---|---|
-| La carte | — | rail | — | — | retour aux chaînes |
+Les **boutons** sont les cibles, jamais les cartes : une carte focalisable qui
+contient deux boutons donnerait trois arrêts pour deux actions. Focus à l'arrivée :
+*Actualiser* de la source active ; sans choix encore fait, le premier bouton de la
+première source ; sans source, *Vérifier à nouveau* ; indisponible, *Réessayer*.
+
+| Depuis | UP | DOWN | LEFT | RIGHT | OK | BACK |
+|---|---|---|---|---|---|---|
+| *Utiliser cette source* (source non active) | bouton de la source précédente, ou bord | bouton de la source suivante, ou bord | **rail** si ouvert depuis le rail, sinon bord | *Actualiser* de la même source | rend la source active ; **le focus passe sur *Actualiser* de cette source** | Réglages si empilé depuis Réglages, sinon accueil |
+| *Actualiser* / *Réessayer* | idem | idem | *Utiliser cette source* s'il existe, sinon rail ou bord | bord | lance l'actualisation ; `409` = déjà en cours ; `429` = phrase d'attente sous les boutons, avec le délai du serveur | idem |
+| *Actualisation en cours…* | idem | idem | idem | bord | rien — **reste focalisable** : une seule source en cours d'actualisation n'est pas un cul-de-sac | idem |
+| Bloc « Ajouter, renommer ou supprimer » | texte, pas un arrêt | | | | | |
+| *Vérifier à nouveau* / *Réessayer* (aucune source, indisponible) | bord | bord | **rail** | bord | relit la liste | idem |
+
+### Ce que S8-05 ajoute aux grilles et aux lecteurs
+
+- **Grilles (Chaînes, Films, Séries)** — le bandeau de source est un texte pendant
+  une actualisation. Après un échec il porte un bouton *Mes sources* : `UP` depuis la
+  bande de catégories l'atteint, `DOWN` y revient, `LEFT` va au rail, `OK` empile Mes
+  sources (`BACK` revient à la grille). L'état de première importation a le même
+  bouton comme seule cible. « Cette section n'a pas pu être chargée » a *Réessayer* :
+  `UP` rejoint la bande sur Films et Séries ; sur Chaînes c'est la seule cible.
+- **Panneaux d'échec des trois lecteurs** — « Identifiants refusés » : *Mes sources*
+  est la seule cible ; `OK` quitte le lecteur et ouvre Mes sources. Pas de *Chaîne
+  suivante* dans ce cas : elle serait refusée pour la même raison.
+
+### Source supprimée pendant une lecture — couche modale sur les trois lecteurs
+
+Une fenêtre de dialogue qui tient le focus, comme le sélecteur de source. La lecture
+est **déjà arrêtée** quand elle s'ouvre, et seul un `404 SOURCE_NOT_FOUND` l'ouvre :
+une panne de réseau ne prouve rien (C4, P6).
+
+| Depuis | Directions | OK | BACK |
+|---|---|---|---|
+| *Continuer* (seule cible, focus à l'arrivée) | — | résout la source active puis quitte le lecteur : une source restante → elle, plusieurs → le sélecteur, aucune → Source. Aucun autre contenu n'est lancé | identique à OK |
+
+À vérifier à la télécommande en S8-07 : arrivée du focus et passage *Utiliser* →
+*Actualiser*, hauteur du bandeau compact au-dessus des grilles, et prise du focus par
+le dialogue au-dessus de chaque lecteur.
 
 ---
 
