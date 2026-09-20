@@ -50,7 +50,8 @@ Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulem
   (téléphone, télécommande, navigateur), le parcours à deux sources et deux
   appareils, et la vérification toutes les 60 s pendant une lecture (avec S8-05).
   Playwright : suite `journey` périmée depuis fin août, sans lien avec cette tâche
-- [ ] S8-04 — navigation et accueil
+- [ ] S8-04 — **en cours** depuis le 20 septembre : périmètre du socle arrêté dans US-017 ;
+  implémentation Android et web sur `feat/US-017-home-navigation`
 - [ ] S8-05 — Mes sources
 - [ ] S8-06 — rubriques Réglages, retrait des accès Google et paiement
 - [ ] S8-07 — recette de la verticale
