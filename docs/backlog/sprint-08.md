@@ -59,9 +59,12 @@ Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulem
   158 tests et build verts, marketing statique. Carte de focus TV à jour. Reste :
   recette à l'écran. Écart connu : sur le web, une carte de film ouvre la fiche
   (« Reprendre à… ») au lieu de lancer la lecture
-- [ ] S8-05 — **en cours** depuis le 20 septembre, sur `feat/US-024-my-sources` : gestion
-  par surface, états C4 dans les catalogues, délai serveur, suppression pendant une
-  lecture ; la spécification est US-024
+- [ ] S8-05 — **40 %**, sur `feat/US-024-my-sources`, spécification US-024. Web livré :
+  Mes sources (compteurs, source utilisée, Utiliser cette source), actualisation avec
+  `Retry-After`, confirmation de suppression détaillée, catalogues avec bandeau en
+  actualisation ou en erreur, refus de lecture dont `SOURCE_AUTH_FAILED`, arrêt de la
+  lecture quand un `404` prouve la suppression ; typecheck, lint, 209 tests et build
+  verts. Android : en cours. Reste aussi la recette à l'écran
 - [ ] S8-06 — rubriques Réglages, retrait des accès Google et paiement
 - [ ] S8-07 — recette de la verticale
 
@@ -76,6 +79,19 @@ Arbitrages du 19 septembre 2026 pour ce sprint :
   écartait les rangées des grilles TV (S2-13, S4-08) ;
 - S8-06 retire aussi la section Tarifs du site et le texte Android invitant à
   changer d'offre ; les quotas servis par le serveur ne changent pas.
+
+## Compléments relevés pendant le sprint
+
+- **Corriger une source en erreur depuis le web** : le lien « Corriger les
+  identifiants » recharge la page de la source ; il n'existe aucun formulaire web
+  pour modifier l'hôte, l'identifiant ou le mot de passe d'une source. Le contrat le
+  permet déjà (`PATCH /sources/{id}`). US-024 demandait d'auditer ce formulaire avant
+  de le détailler : l'audit est fait, la réalisation reste à planifier.
+- **Suite Playwright `journey`** périmée depuis le 29 août (interface des groupes de
+  favoris) et démontage e2e qui laisse un conteneur orphelin : sans lien avec S8.
+- **Noms de chaînes réels** dans un test Android et dans un test et un commentaire de
+  l'API, antérieurs à ce sprint et contraires à `AGENTS.md` §1.
+- **`safeRedirectTarget("/fr//hôte")`** renvoie `//hôte` : à durcir.
 
 ## Démo et sortie
 
