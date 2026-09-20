@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { addFavorite, removeFavorite } from "@/actions/favorites";
 import { CatalogueTabs } from "@/components/app/CatalogueTabs";
+import { ChannelLogo, ChannelRail } from "@/components/app/ChannelRail";
 import {
   FavoriteGroups,
   defaultGroupLabel,
@@ -328,7 +329,7 @@ export default async function ChannelsPage({
         seriesLabel={t("seriesTitle")}
       />
 
-      <Rail
+      <ChannelRail
         title={t("catalogueRecentTitle")}
         channels={railRecents}
         playHref={playHref}
@@ -364,7 +365,7 @@ export default async function ChannelsPage({
         }
       />
 
-      <Rail
+      <ChannelRail
         title={activeGroup ? groupLabel(activeGroup, t("catalogueFavoritesDefaultGroup")) : t("catalogueFavoritesTitle")}
         channels={railFavorites}
         playHref={playHref}
@@ -517,61 +518,6 @@ function railOf(
     .filter((channel): channel is Channel => channel !== undefined);
 }
 
-/**
- * One rail: a row of channels to get back to in a click.
- *
- * <h2>It scrolls with CSS, and with nothing else</h2>
- *
- * `overflow-x: auto` and no JavaScript at all — no carousel, no arrows, no
- * measured widths. A touch screen flicks it, a trackpad swipes it, a keyboard
- * reaches every card because they are links in a list. The page-wide rule that
- * this screen works without JavaScript is not suspended for decoration.
- *
- * <h2>An empty rail is no rail</h2>
- *
- * Nothing starred yet, or nothing watched yet on this source, renders nothing:
- * an empty strip with a heading above it is a promise that something belongs
- * there, and the star on the rows below is where that starts.
- */
-function Rail({
-  title,
-  channels,
-  playHref,
-}: {
-  title: string;
-  channels: Channel[];
-  /** Builds the link that plays one channel without leaving the current view. */
-  playHref: (channelId: string) => string;
-}) {
-  if (channels.length === 0) return null;
-
-  return (
-    <section className="mt-6">
-      <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-        {title}
-      </h2>
-      <ul
-        aria-label={title}
-        className="mt-2 flex gap-3 overflow-x-auto pb-2"
-      >
-        {channels.map((channel) => (
-          <li key={channel.id} className="shrink-0">
-            <a
-              href={playHref(channel.id)}
-              className="border-border hover:bg-secondary/60 flex w-40 items-center gap-2 rounded-xl border px-3 py-2"
-            >
-              <Logo channel={channel} />
-              <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                {channel.name}
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
 function NotReady({
   id,
   locale,
@@ -706,7 +652,7 @@ function ChannelRow({
         {channel.number ?? ""}
       </span>
 
-      <Logo channel={channel} />
+      <ChannelLogo channel={channel} />
 
       {/* A link, so playing a channel is a URL like every other state on this
           page: it survives a reload, it can be shared, and the back button
@@ -935,43 +881,6 @@ function Star({ filled = false }: { filled?: boolean }) {
     >
       <path d="M12 3.5l2.6 5.3 5.9.85-4.25 4.15 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.65l5.9-.85z" />
     </svg>
-  );
-}
-/**
- * The logo the user's own playlist advertises, or nothing.
- *
- * <b>Lumo ships no fallback artwork</b> (AGENTS.md §1): a channel with no logo
- * gets its initial, never a bundled image of ours.
- *
- * A plain `<img>`, deliberately, and not `next/image`. The optimiser would fetch
- * every provider logo through our own server, which is the same posture question
- * as relaying a stream (ADR 0007) for a far smaller benefit. The cost of the
- * plain tag is that a logo served over `http` will not load on an `https` page —
- * which is honest: it is the provider's choice, and the initial takes its place.
- */
-function Logo({ channel }: { channel: Channel }) {
-  if (!channel.logo_url) {
-    return (
-      <span className="bg-secondary text-muted-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs">
-        {channel.name.slice(0, 1).toUpperCase()}
-      </span>
-    );
-  }
-
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={channel.logo_url}
-      alt=""
-      width={32}
-      height={32}
-      loading="lazy"
-      decoding="async"
-      // The provider learns nothing about which of their channels is being
-      // looked at from which page.
-      referrerPolicy="no-referrer"
-      className="h-8 w-8 shrink-0 rounded object-contain"
-    />
   );
 }
 

@@ -9,6 +9,7 @@ import type { Locale } from "@/i18n/routing";
 import { api } from "@/lib/api/client";
 import { fetched } from "@/lib/api/fetched";
 import { PATHNAME_HEADER } from "@/lib/http/pathname-header";
+import { currentEntryIndex } from "@/lib/navigation/current-entry";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
 import { loadActiveSource } from "@/lib/sources/active-source-store";
@@ -30,17 +31,33 @@ import { cn } from "@/lib/utils";
  * The shell is the mock-up's: a 250 px rail with the logotype, the sections,
  * and the account card at the bottom — gradient disc with the initial, display
  * name, truncated email. The name comes from `GET /me`; the email is already in
- * the session. Favourites is not on the mock-up but the page exists, so it
- * stays in the rail rather than becoming unreachable.
+ * the session.
  *
  * Note the absence of a `NextIntlClientProvider`: nothing in this shell is a
  * client component. Sign-out is a form posting to a Server Action, and so is
  * every row of the source switcher.
  *
+ * <h2>Two groups of entries (US-017, S8-E03)</h2>
+ *
+ * The validated menu, in its order: **Home, Live, Films, Series, My library**.
+ * Below it, set apart, what manages the account rather than what is watched:
+ * Sources, Devices, Subscription. That second group is exactly what it was —
+ * S8-06 turns it into Settings and retires the subscription entry, and doing
+ * half of that here would be doing it twice.
+ *
+ * "My library" is the favourites page under the name the product gave it: same
+ * route, because a bookmark to `/app/favorites` is somebody's, and the watch
+ * list that will join it (sprint 11) is not announced by an entry that cannot
+ * open it yet. For the same reason there is no search entry (sprint 10).
+ *
+ * Two `<nav>` elements, each with its own name: a screen reader lists landmarks,
+ * and one landmark holding eight links says less than two that say what they
+ * are for.
+ *
  * <h2>The active source (US-018)</h2>
  *
  * Under the logotype, the source this browser is browsing and the way to change
- * it (`SourceSwitcher`); in the rail, above the account's sections, the three
+ * it (`SourceSwitcher`); in the menu, between Home and My library, the three
  * catalogues **of that source**. They are absent whenever no source is selected
  * — none registered, a choice still owed, or an API that did not answer — because
  * a "Films" entry has to lead to somebody's films, and a link built from a
@@ -62,7 +79,7 @@ export async function generateMetadata({
     locale: locale as Locale,
     href: "/app",
     title: t("metaTitle"),
-    description: t("overviewSubtitle"),
+    description: t("homeMetaDescription"),
     index: false,
   });
 }
@@ -116,28 +133,43 @@ export default async function AppLayout({
       ]
     : [];
 
-  const accountLinks = [
-    { href: "/app/sources", label: t("navSources") },
-    { href: "/app/favorites", label: t("navFavorites") },
-    { href: "/app/devices", label: t("navDevices") },
-    { href: "/app/subscription", label: t("navSubscription") },
+  // Hrefs are localised here, once: the comparison below and the links
+  // further down must be looking at the same strings.
+  const entry = (href: string, label: string, exact = false) => ({
+    href: hrefFor(locale as Locale, href),
+    label,
+    exact,
+  });
+
+  const primary = [
+    // `exact`: every page of the zone is "under" `/app`, and Home is current on
+    // the home page only.
+    entry("/app", t("navHome"), true),
+    ...catalogueLinks.map((link) => entry(link.href, link.label)),
+    entry("/app/favorites", t("navLibrary")),
+  ];
+  const secondary = [
+    entry("/app/sources", t("navSources")),
+    entry("/app/devices", t("navDevices")),
+    entry("/app/subscription", t("navSubscription")),
   ];
 
-  const isUnder = (href: string) => {
-    const full = hrefFor(locale as Locale, href);
-    return pathname === full || pathname.startsWith(`${full}/`);
-  };
-
-  // One current entry, not two. The active source's catalogues live under
-  // `/app/sources/…`, so without this "Sources" would light up alongside
-  // "Films" and a screen reader would announce two current pages. Another
-  // source's catalogue, reached from My sources, still marks "Sources".
-  const inActiveCatalogue = catalogueLinks.some((link) => isUnder(link.href));
-  const links = [...catalogueLinks, ...accountLinks].map((link) => ({
-    ...link,
-    current:
-      isUnder(link.href) && !(inActiveCatalogue && link.href === "/app/sources"),
-  }));
+  // One current entry across both groups, not one per group and never two. The
+  // active source's catalogues live under `/app/sources/…`, so a per-entry
+  // prefix test would light up "Sources" alongside "Films" and a screen reader
+  // would announce two current pages. The most specific entry wins
+  // (`currentEntryIndex`); another source's catalogue, reached from My sources,
+  // still marks "Sources", because nothing more specific matches it.
+  const current = currentEntryIndex(pathname, [...primary, ...secondary]);
+  const groups = [
+    { label: t("navPrimaryLabel"), entries: primary, offset: 0, secondary: false },
+    {
+      label: t("navAccountLabel"),
+      entries: secondary,
+      offset: primary.length,
+      secondary: true,
+    },
+  ];
 
   return (
     <div className="dark bg-background text-foreground flex min-h-full flex-1 flex-col md:flex-row">
@@ -152,25 +184,38 @@ export default async function AppLayout({
           pathname={pathname}
         />
 
-        <nav aria-label={t("metaTitle")} className="flex flex-row flex-wrap gap-1.5 md:flex-col">
-          {links.map(({ current, ...link }) => {
-            return (
-              <a
-                key={link.href}
-                href={hrefFor(locale as Locale, link.href)}
-                aria-current={current ? "page" : undefined}
-                className={cn(
-                  "flex h-11 items-center rounded-xl px-3.5 text-sm",
-                  current
-                    ? "bg-secondary text-foreground font-medium"
-                    : "text-muted-foreground hover:bg-card hover:text-foreground",
-                )}
-              >
-                {link.label}
-              </a>
-            );
-          })}
-        </nav>
+        {groups.map((group) => (
+          <nav
+            key={group.label}
+            aria-label={group.label}
+            className={cn(
+              "flex flex-row flex-wrap gap-1.5 md:flex-col",
+              // Set apart by a rule rather than by a heading: the two names are
+              // for landmarks, and a visible "Account" title over three links
+              // is furniture.
+              group.secondary && "border-border mt-2 border-t pt-3 md:mt-3 md:pt-4",
+            )}
+          >
+            {group.entries.map((link, index) => {
+              const isCurrent = group.offset + index === current;
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  aria-current={isCurrent ? "page" : undefined}
+                  className={cn(
+                    "flex h-11 items-center rounded-xl px-3.5 text-sm",
+                    isCurrent
+                      ? "bg-secondary text-foreground font-medium"
+                      : "text-muted-foreground hover:bg-card hover:text-foreground",
+                  )}
+                >
+                  {link.label}
+                </a>
+              );
+            })}
+          </nav>
+        ))}
 
         <div className="bg-card mt-4 flex items-center gap-2.5 rounded-xl px-3.5 py-3 md:mt-auto">
           <span

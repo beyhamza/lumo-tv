@@ -13,6 +13,7 @@ import { fetched } from "@/lib/api/fetched";
 import type { Source, SyncStep } from "@/lib/api/types";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
+import { stepKey } from "@/lib/sources/sync-step";
 
 /**
  * A translator, as the panels below need it.
@@ -197,43 +198,6 @@ function SyncProgress({
       </ol>
     </div>
   );
-}
-
-type SyncStepKey =
-  | "syncStepConnecting"
-  | "syncStepAuthenticated"
-  | "syncStepParsingChannels"
-  | "syncStepParsingVod"
-  | "syncStepParsingSeries"
-  | "syncStepFetchingEpg";
-
-/**
- * One case per value, and no `default`.
- *
- * The original fell through to "fetching the guide", which was harmless until the
- * contract grew a fifth phase — and then it labelled the film catalogue as the
- * EPG. Made exhaustive, `PARSING_VOD` became a type error the moment it was
- * generated rather than a wrong word on somebody's screen.
- *
- * It has now paid for itself a second time: `PARSING_SERIES` failed the build in
- * the same commit that added it to the contract. A `default` here would have
- * shipped "fetching the programme guide" over the series list instead.
- */
-function stepKey(step: SyncStep): SyncStepKey {
-  switch (step) {
-    case "CONNECTING":
-      return "syncStepConnecting";
-    case "AUTHENTICATED":
-      return "syncStepAuthenticated";
-    case "PARSING_CHANNELS":
-      return "syncStepParsingChannels";
-    case "PARSING_VOD":
-      return "syncStepParsingVod";
-    case "PARSING_SERIES":
-      return "syncStepParsingSeries";
-    case "FETCHING_EPG":
-      return "syncStepFetchingEpg";
-  }
 }
 
 /**
