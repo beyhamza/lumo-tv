@@ -117,7 +117,7 @@ fun viewOf(source: Source): SourceView = when (source.status) {
  * within v1, and an older application meeting a newer server should offer the
  * cautious answer — no button — rather than an action that cannot help.
  */
-private fun exitFor(code: IngestionErrorCode?): SourceExit = when (code) {
+internal fun exitFor(code: IngestionErrorCode?): SourceExit = when (code) {
     IngestionErrorCode.SOURCE_AUTH_FAILED -> SourceExit.FixCredentials
     IngestionErrorCode.SOURCE_INVALID_FORMAT -> SourceExit.FixAddress
     // Not the same as a refusal, and the message must not read like one. The

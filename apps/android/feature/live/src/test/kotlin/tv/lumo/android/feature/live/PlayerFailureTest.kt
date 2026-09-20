@@ -20,11 +20,13 @@ import tv.lumo.android.network.generated.model.ErrorCode
 class PlayerFailureTest {
 
     @Test
-    fun `the three refusals that share a 409 are three different sentences`() {
+    fun `the four refusals that share a 409 are four different sentences`() {
         // The contract collapses them onto one status on purpose and says to
-        // branch on the code. They send the user to three different places: wait,
-        // stop another device, or renew with the provider.
+        // branch on the code. They send the user to four different places: wait
+        // for the refresh to end, correct the source, stop another device, or
+        // renew with the provider.
         assertThat(api(ErrorCode.SOURCE_NOT_READY)).isEqualTo(PlayerFailure.SourceNotReady)
+        assertThat(api(ErrorCode.SOURCE_AUTH_FAILED)).isEqualTo(PlayerFailure.CredentialsRefused)
         assertThat(api(ErrorCode.SOURCE_MAX_CONNECTIONS))
             .isEqualTo(PlayerFailure.TooManyStreams(null))
         assertThat(api(ErrorCode.SOURCE_EXPIRED)).isEqualTo(PlayerFailure.SubscriptionExpired)

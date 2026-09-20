@@ -41,4 +41,47 @@
     <!-- A television never types a source: it says where one is added. -->
     <string name="core_data_source_tv_none_title">No source configured</string>
     <string name="core_data_source_tv_none_body">Add your source from your phone or lumo.tv — it will appear here automatically.</string>
+
+    <!--
+      The notice four screens put over their content while the source they
+      browse refreshes, or after its last attempt failed (US-024, lot C4): the
+      home screen and the three catalogue grids. One wording, here, because a
+      feature may not import another. `SourceNotice.kt` maps the states.
+    -->
+    <string name="core_data_notice_refreshing_title">Your source is being refreshed</string>
+    <!-- With a previous catalogue: browsing goes on, playback waits (C4, D2). -->
+    <string name="core_data_notice_refreshing_hint">The previous catalogue stays available. Playback resumes when the refresh ends.</string>
+    <!-- A first import: there is no previous catalogue to speak of. -->
+    <string name="core_data_notice_importing_hint">What is already on this device stays available.</string>
+    <string name="core_data_notice_failed_title">Your source has a problem</string>
+    <string name="core_data_notice_failed_stale">This catalogue may be out of date.</string>
+    <string name="core_data_notice_open_sources">My sources</string>
+
+    <!--
+      The first import of a source, on a catalogue screen (US-024, lot C4). The
+      only case where a grid is not shown: nothing was ever ingested and nothing
+      is cached. Importing and failed used to share one "not ready" sentence; the
+      real step, or the reason, is drawn between the title and the body.
+    -->
+    <string name="core_data_first_import_title">Your source is being imported</string>
+    <string name="core_data_first_import_body">Your catalogue appears here as soon as the first import ends. You can leave this screen meanwhile.</string>
+    <string name="core_data_first_import_failed_title">The first import failed</string>
+    <string name="core_data_first_import_failed_body">Nothing could be imported yet. Open My sources to see what to correct and to try again.</string>
+
+    <!--
+      A section whose request failed with nothing cached. Never presented as an
+      empty one: "no films" would be a statement about the source made from a
+      request that did not reach it.
+    -->
+    <string name="core_data_catalogue_unavailable_title">This section could not be loaded</string>
+    <string name="core_data_catalogue_unavailable_body">It may not be empty: the request failed. Check your connection, then try again.</string>
+    <string name="core_data_catalogue_retry">Try again</string>
+
+    <!--
+      A source deleted from another device while something plays (US-024). The
+      three players say it in the same words; the server has confirmed it by the
+      time this is shown, never a network error.
+    -->
+    <string name="core_data_source_deleted_message">This source has been removed from your account.</string>
+    <string name="core_data_source_deleted_continue">Continue</string>
 </resources>

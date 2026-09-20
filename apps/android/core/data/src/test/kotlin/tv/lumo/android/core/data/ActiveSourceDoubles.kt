@@ -48,6 +48,12 @@ internal val Source.key: String get() = id.toString()
 internal class ScriptedSourcesApi(
     var sources: List<Source> = emptyList(),
     var failing: Boolean = false,
+    /**
+     * `DELETE /sources/{id}`, for the one test that deletes (US-024). Null keeps
+     * the call unreachable, which is what every other test here wants: they are
+     * about a list, and a delete nobody scripted is a test gone wrong.
+     */
+    private val onDelete: ((UUID) -> Response<Unit>)? = null,
 ) : SourcesApi {
 
     var calls = 0
@@ -64,7 +70,8 @@ internal class ScriptedSourcesApi(
 
     override suspend fun createSource(createSourceRequest: CreateSourceRequest) = unreachable()
 
-    override suspend fun deleteSource(id: UUID) = unreachable()
+    override suspend fun deleteSource(id: UUID): Response<Unit> =
+        onDelete?.invoke(id) ?: unreachable()
 
     override suspend fun getSource(id: UUID) = unreachable()
 

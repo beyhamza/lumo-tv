@@ -42,10 +42,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
+import tv.lumo.android.core.data.R as DataR
+import tv.lumo.android.core.designsystem.component.LumoTvAcknowledgeDialog
+import tv.lumo.android.core.designsystem.component.LumoTvButton
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
@@ -101,11 +106,18 @@ fun EpisodePlayerTvScreen(
     title: String?,
     resumeFromMs: Long,
     onBack: () -> Unit,
+    onOpenSources: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: EpisodePlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val audioTracks by viewModel.audioTracks.collectAsStateWithLifecycle()
+    val sourceDeleted by viewModel.sourceDeleted.collectAsStateWithLifecycle()
+
+    // Coming back to the foreground is one of the moments the product names for
+    // noticing a source deleted elsewhere (C4, D5). The `ON_START` of opening
+    // the player reaches nobody: the watch has not begun, and need not have.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onForeground() }
 
     LaunchedEffect(episodeId) {
         viewModel.start(
@@ -150,7 +162,10 @@ fun EpisodePlayerTvScreen(
     val surface = remember { FocusRequester() }
     val retry = remember { FocusRequester() }
     val upNext = remember { FocusRequester() }
-    val failed = state.failure != null
+    // Not while the deleted-source dialog is up: it is a window of its own, it
+    // holds the focus, and a failure panel drawn under it would ask for the
+    // focus of a button nobody can reach.
+    val failed = state.failure != null && !sourceDeleted
     val offering = state.upNext != null
 
     // Whichever of the three is the real target right now. Requesting focus on a
@@ -237,11 +252,26 @@ fun EpisodePlayerTvScreen(
     ) {
         LumoVideoSurface(player = viewModel.player, modifier = Modifier.fillMaxSize())
 
+        // The source was deleted from another device, and the server has
+        // confirmed it (US-024). Playback is already stopped. One sentence, one
+        // button that takes the focus, and `BACK` does what the button does —
+        // leave the player; what is browsed next is the shell's to settle.
+        if (sourceDeleted) {
+            LumoTvAcknowledgeDialog(
+                message = stringResource(DataR.string.core_data_source_deleted_message),
+                actionLabel = stringResource(DataR.string.core_data_source_deleted_continue),
+                onAcknowledge = { viewModel.onSourceDeletedAcknowledged(onBack) },
+            )
+        }
+
         when {
+            sourceDeleted -> Unit
+
             failed -> TvFailure(
                 failure = state.failure!!,
                 title = playingTitle,
                 onRetry = viewModel::retry,
+                onOpenSources = onOpenSources,
                 retryFocus = retry,
             )
 
@@ -476,6 +506,7 @@ private fun TvFailure(
     failure: EpisodePlayerFailure,
     title: String?,
     onRetry: () -> Unit,
+    onOpenSources: () -> Unit,
     retryFocus: FocusRequester,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -507,6 +538,17 @@ private fun TvFailure(
             style = MaterialTheme.typography.bodyLarge,
             color = LumoColors.OnDarkMuted,
         )
+
+        // The provider refused the credentials (C4, D2): retrying cannot help, and
+        // the one target is the screen that says where a source is corrected.
+        if (failure == EpisodePlayerFailure.CredentialsRefused) {
+            LumoTvButton(
+                text = stringResource(R.string.feature_series_player_open_sources),
+                onClick = onOpenSources,
+                primary = true,
+                focusRequester = retryFocus,
+            )
+        }
 
         if (failure.isRetryable()) {
             Text(
@@ -544,6 +586,9 @@ private fun EpisodePlayerFailure.tvMessage(): String = when (this) {
 
     EpisodePlayerFailure.SourceNotReady ->
         stringResource(R.string.feature_series_player_not_ready)
+
+    EpisodePlayerFailure.CredentialsRefused ->
+        stringResource(R.string.feature_series_player_auth_failed)
 
     EpisodePlayerFailure.SubscriptionExpired ->
         stringResource(R.string.feature_series_player_expired)

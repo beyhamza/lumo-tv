@@ -15,6 +15,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.PlaybackSourceGuard
 import tv.lumo.android.core.data.model.VodPlaybackTarget
 import tv.lumo.android.core.data.repository.PlaybackRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
@@ -64,6 +65,7 @@ import tv.lumo.android.network.generated.model.ErrorCode
 class VodPlayerViewModel @Inject constructor(
     private val playback: PlaybackRepository,
     private val progress: ProgressRepository,
+    private val sourceGuard: PlaybackSourceGuard,
     /** Exposed for the video surface, which needs the instance rather than its state. */
     val player: LumoPlayer,
 ) : ViewModel() {
@@ -113,7 +115,51 @@ class VodPlayerViewModel @Inject constructor(
         this.sourceId = sourceId
         this.resumeFromMs = resumeFromMs
         open(filmId, title)
+
+        // A film is two hours without a word to the API — the stream comes from
+        // the user's own server — so "does this source still exist" is asked on a
+        // clock (US-024). A blank id, from a deep link, watches nothing.
+        sourceGuard.watch(viewModelScope, sourceId) {
+            // No last save: the progress row went with the source, and the server
+            // would answer `404` to a write that names it.
+            saver?.cancel()
+            saver = null
+            player.stop()
+            _target.value = null
+        }
     }
+
+    // ---- a source deleted elsewhere while this plays (US-024, C4 D5) --------
+
+    /**
+     * True once the server has **proven** that the source of what is playing was
+     * deleted — `404 SOURCE_NOT_FOUND`, never a network error. Playback has been
+     * stopped by then; the screen says so and offers *Continue*.
+     */
+    val sourceDeleted: StateFlow<Boolean> = sourceGuard.deleted
+
+    /** The application is back in front of somebody: a reason to ask the server early. */
+    fun onForeground() = sourceGuard.onForeground()
+
+    /**
+     * *Continue*. The active source is re-decided first — the one left, a question
+     * when several are, "add a source" when none is — and only then does the
+     * screen leave, onto a shell that already knows what it browses. Nothing else
+     * is started on the viewer's behalf.
+     */
+    fun onSourceDeletedAcknowledged(leave: () -> Unit) {
+        // Once: a second press while the list is being read would pop a second
+        // entry off the back stack, and take the viewer out of where they were.
+        if (acknowledging) return
+        acknowledging = true
+
+        viewModelScope.launch {
+            sourceGuard.acknowledge()
+            leave()
+        }
+    }
+
+    private var acknowledging = false
 
     fun retry() {
         val filmId = filmId ?: return
@@ -184,7 +230,9 @@ class VodPlayerViewModel @Inject constructor(
      * the beginning of every film they leave.
      */
     fun stop() {
-        saveNow()
+        sourceGuard.stop()
+        // Nothing to save once the source is gone: its progress went with it.
+        if (!sourceGuard.deleted.value) saveNow()
         saver?.cancel()
         saver = null
         player.stop()
@@ -267,8 +315,19 @@ sealed interface VodPlayerFailure {
      */
     data class TooManyStreams(val allowed: Int?) : VodPlayerFailure
 
-    /** The import has not finished. */
+    /**
+     * `SOURCE_NOT_READY`: the source is being refreshed, or was never imported.
+     * Since lot C4 the catalogue stays browsable during a refresh and **playback
+     * waits for its end**. Worth trying again: the refresh ends.
+     */
     data object SourceNotReady : VodPlayerFailure
+
+    /**
+     * `SOURCE_AUTH_FAILED`: the provider refused the credentials at the last
+     * synchronisation, and the server will not hand out a stream that would be
+     * refused too (C4, decision D2). Retrying cannot help; "My sources" can.
+     */
+    data object CredentialsRefused : VodPlayerFailure
 
     /** The user's subscription with their provider has expired. */
     data object SubscriptionExpired : VodPlayerFailure
@@ -287,6 +346,7 @@ internal fun LumoError.asVodFailure(): VodPlayerFailure = when (this) {
     is LumoError.Api -> when (code) {
         ErrorCode.SOURCE_MAX_CONNECTIONS -> VodPlayerFailure.TooManyStreams(null)
         ErrorCode.SOURCE_NOT_READY -> VodPlayerFailure.SourceNotReady
+        ErrorCode.SOURCE_AUTH_FAILED -> VodPlayerFailure.CredentialsRefused
         ErrorCode.SOURCE_EXPIRED -> VodPlayerFailure.SubscriptionExpired
         ErrorCode.VOD_ITEM_NOT_FOUND -> VodPlayerFailure.FilmGone
         else -> VodPlayerFailure.Unexpected
@@ -308,6 +368,7 @@ internal fun VodPlayerFailure.isRetryable(): Boolean = when (this) {
     is VodPlayerFailure.Unreachable -> retryable
     is VodPlayerFailure.TooManyStreams -> true
     VodPlayerFailure.SourceNotReady -> true
+    VodPlayerFailure.CredentialsRefused -> false
     VodPlayerFailure.SubscriptionExpired -> false
     VodPlayerFailure.FilmGone -> false
     VodPlayerFailure.Unplayable -> false

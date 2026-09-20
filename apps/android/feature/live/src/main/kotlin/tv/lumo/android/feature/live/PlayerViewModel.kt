@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.PlaybackSourceGuard
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.PlaybackTarget
 import tv.lumo.android.core.data.repository.CatalogueRepository
@@ -54,6 +55,7 @@ import tv.lumo.android.network.generated.model.ErrorCode
 class PlayerViewModel @Inject constructor(
     private val playback: PlaybackRepository,
     private val catalogue: CatalogueRepository,
+    private val sourceGuard: PlaybackSourceGuard,
     /** Exposed for the video surface, which needs the instance rather than its state. */
     val player: LumoPlayer,
 ) : ViewModel() {
@@ -98,9 +100,55 @@ class PlayerViewModel @Inject constructor(
     fun start(channelId: String) {
         if (this.channelId == channelId) return
         this.channelId = channelId
-        viewModelScope.launch { _channel.value = catalogue.channel(channelId) }
+        viewModelScope.launch {
+            val channel = catalogue.channel(channelId)
+            _channel.value = channel
+            // The source comes from the cached row: a stream says nothing to the
+            // API for as long as it plays, so the question "does this source still
+            // exist" has to be asked on a clock (US-024).
+            channel?.sourceId?.let(::watchSource)
+        }
         open(channelId)
     }
+
+    private fun watchSource(sourceId: String) = sourceGuard.watch(viewModelScope, sourceId) {
+        // Stopped before the sentence appears. Stop, not release: the player is
+        // shared by the process, and stopping is what drops the stream URL.
+        player.stop()
+        _target.value = null
+    }
+
+    // ---- a source deleted elsewhere while this plays (US-024, C4 D5) --------
+
+    /**
+     * True once the server has **proven** that the source of what is playing was
+     * deleted — `404 SOURCE_NOT_FOUND`, never a network error. Playback has been
+     * stopped by then; the screen says so and offers *Continue*.
+     */
+    val sourceDeleted: StateFlow<Boolean> = sourceGuard.deleted
+
+    /** The application is back in front of somebody: a reason to ask the server early. */
+    fun onForeground() = sourceGuard.onForeground()
+
+    /**
+     * *Continue*. The active source is re-decided first — the one left, a question
+     * when several are, "add a source" when none is — and only then does the
+     * screen leave, onto a shell that already knows what it browses. Nothing else
+     * is started on the viewer's behalf.
+     */
+    fun onSourceDeletedAcknowledged(leave: () -> Unit) {
+        // Once: a second press while the list is being read would pop a second
+        // entry off the back stack, and take the viewer out of where they were.
+        if (acknowledging) return
+        acknowledging = true
+
+        viewModelScope.launch {
+            sourceGuard.acknowledge()
+            leave()
+        }
+    }
+
+    private var acknowledging = false
 
     fun retry() {
         val channelId = channelId ?: return
@@ -176,6 +224,7 @@ class PlayerViewModel @Inject constructor(
 
     /** Leaving the screen. The player survives; the stream and its URL do not. */
     fun stop() {
+        sourceGuard.stop()
         player.stop()
         _target.value = null
         _channel.value = null
@@ -211,8 +260,21 @@ sealed interface PlayerFailure {
      */
     data class TooManyStreams(val allowed: Int?) : PlayerFailure
 
-    /** The catalogue is not ready yet — the import has not finished. */
+    /**
+     * `SOURCE_NOT_READY`: the source is being refreshed, or was never imported.
+     *
+     * Since lot C4 the catalogue stays browsable during a refresh and **playback
+     * waits for its end**, so this is what somebody meets when they press a
+     * channel they can see. Worth trying again: the refresh ends.
+     */
     data object SourceNotReady : PlayerFailure
+
+    /**
+     * `SOURCE_AUTH_FAILED`: the last synchronisation had its credentials refused
+     * by the provider, and the server will not hand out a stream that would be
+     * refused too (C4, decision D2). Retrying cannot help; "My sources" can.
+     */
+    data object CredentialsRefused : PlayerFailure
 
     /** The user's subscription with their provider has expired. */
     data object SubscriptionExpired : PlayerFailure
@@ -226,12 +288,13 @@ sealed interface PlayerFailure {
     data object Unexpected : PlayerFailure
 }
 
-/** The contract's refusals. All three of the `409`s are different sentences. */
+/** The contract's refusals. All four of the `409`s are different sentences. */
 internal fun LumoError.asPlayerFailure(): PlayerFailure = when (this) {
     is LumoError.Offline -> PlayerFailure.Unreachable()
     is LumoError.Api -> when (code) {
         ErrorCode.SOURCE_MAX_CONNECTIONS -> PlayerFailure.TooManyStreams(null)
         ErrorCode.SOURCE_NOT_READY -> PlayerFailure.SourceNotReady
+        ErrorCode.SOURCE_AUTH_FAILED -> PlayerFailure.CredentialsRefused
         ErrorCode.SOURCE_EXPIRED -> PlayerFailure.SubscriptionExpired
         ErrorCode.CHANNEL_NOT_FOUND -> PlayerFailure.ChannelGone
         else -> PlayerFailure.Unexpected

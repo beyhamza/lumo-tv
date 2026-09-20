@@ -23,14 +23,18 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.ActiveSourceState
+import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.asCatalogueSource
+import tv.lumo.android.core.data.face
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.ResumableFilm
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.data.model.WatchProgress
+import tv.lumo.android.core.data.notice
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.ContinueWatchingRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
@@ -66,6 +70,13 @@ import tv.lumo.android.core.data.sourceId
  * **The synopsis is not in the listing.** [VodDetailViewModel] is what fetches
  * one, for the film somebody actually opened — on an Xtream panel it is a request
  * per film against the user's own server, so a grid must never trigger it.
+ *
+ * <h2>A catalogue that exists is shown, in every status (lot C4)</h2>
+ *
+ * `LiveViewModel` again, for the reason written there: a source that refreshes,
+ * or whose last attempt failed, keeps its grid and gets a [SourceNotice] above
+ * it. Only a source whose **first** import never succeeded, with nothing cached,
+ * has no grid — and then the screen says which: importing, or failed (US-024).
  *
  * <h2>The source is the active one, and it can change under the screen</h2>
  *
@@ -150,21 +161,50 @@ class VodViewModel @Inject constructor(
                 .distinctUntilChanged()
                 .collectLatest { source -> open(source) }
         }
+
+        // Apart from the collector above, and that is the point: the notice
+        // changes with every step of a synchronisation, and none of those steps
+        // may restart the grid.
+        viewModelScope.launch {
+            activeSource.state
+                .map { it.notice() }
+                .distinctUntilChanged()
+                .collect { notice -> _state.update { it.copy(notice = notice) } }
+        }
     }
 
     private suspend fun open(source: CatalogueSource) {
-        _state.update { it.browsing(source) }
+        val sourceId = source.sourceId
+        val cached = if (sourceId == null) 0 else vod.cachedFilmCount(sourceId)
 
-        if (source !is CatalogueSource.Ready) return
+        _state.update { it.browsing(source, cachedItems = cached) }
+
+        if (sourceId == null || _state.value.step != VodStep.Browsing) return
 
         coroutineScope {
-            launch { observeCategories(source.sourceId) }
-            launch { loadContinueWatching(source.sourceId) }
+            launch { observeCategories(sourceId) }
+            launch { loadContinueWatching(sourceId) }
 
-            if (vod.cachedFilmCount(source.sourceId) == 0) {
+            // Only a source the server can list: one that never finished an
+            // ingestion answers `409`, and asking would put a "refresh failed"
+            // banner over a cache that is merely waiting.
+            if (cached == 0 && source is CatalogueSource.Ready) {
                 refresh()
             }
         }
+    }
+
+    /**
+     * Asks for the list of sources again.
+     *
+     * What the screens call every few seconds **while a refresh is on display** —
+     * from the composition, so that it stops with the screen: the step of a
+     * synchronisation is only worth showing if it moves, and the notice has to go
+     * away when the refresh ends.
+     */
+    fun refreshSource() {
+        if (activeSource.state.value is ActiveSourceState.Loading) return
+        viewModelScope.launch { activeSource.refresh() }
     }
 
     private suspend fun observeCategories(sourceId: String) {
@@ -284,8 +324,11 @@ sealed interface VodStep {
     /** Several sources and none chosen on this device. The shell is asking (US-018). */
     data object NeedsChoice : VodStep
 
-    /** A source exists but has not finished importing, or failed to. */
-    data object NotReadyYet : VodStep
+    /** The **first** import is running, and this device holds no film of the source. */
+    data object Importing : VodStep
+
+    /** The first import failed, and this device holds no film of the source. */
+    data object ImportFailed : VodStep
 
     data object Browsing : VodStep
 }
@@ -301,6 +344,11 @@ data class VodState(
     val query: String = "",
     val refreshing: Boolean = false,
     val refreshFailed: Boolean = false,
+    /**
+     * What the active source is doing, said above the grid or in the first-import
+     * message (US-024). Null when there is nothing to say.
+     */
+    val notice: SourceNotice? = null,
     /**
      * Films started and not finished, most recently watched first (S5-11).
      *
@@ -320,19 +368,22 @@ data class VodState(
      * all belonged to the catalogue that just left, and a query kept across the
      * switch would open the new source on "no results" for a film it never had.
      */
-    fun browsing(source: CatalogueSource): VodState {
-        val step = when (source) {
-            CatalogueSource.Loading -> VodStep.Loading
-            CatalogueSource.NoSource -> VodStep.NoSource
-            CatalogueSource.NeedsChoice -> VodStep.NeedsChoice
-            is CatalogueSource.NotReady -> VodStep.NotReadyYet
-            is CatalogueSource.Ready -> VodStep.Browsing
+    fun browsing(source: CatalogueSource, cachedItems: Int = 0): VodState {
+        val step = when (source.face(cachedItems)) {
+            CatalogueFace.Loading -> VodStep.Loading
+            CatalogueFace.NoSource -> VodStep.NoSource
+            CatalogueFace.NeedsChoice -> VodStep.NeedsChoice
+            CatalogueFace.Importing -> VodStep.Importing
+            CatalogueFace.ImportFailed -> VodStep.ImportFailed
+            CatalogueFace.Browsing -> VodStep.Browsing
         }
 
         return if (source.sourceId == sourceId) {
             copy(step = step)
         } else {
-            VodState(step = step, sourceId = source.sourceId)
+            // The notice is the active source's, written by its own collector:
+            // whichever of the two runs first, it is never the old source's.
+            VodState(step = step, sourceId = source.sourceId, notice = notice)
         }
     }
 

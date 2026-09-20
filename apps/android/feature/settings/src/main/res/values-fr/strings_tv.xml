@@ -16,9 +16,6 @@
     <string name="feature_settings_tv_status_error">Erreur</string>
     <string name="feature_settings_tv_status_syncing">Synchronisation</string>
     <string name="feature_settings_tv_status_pending">En attente</string>
-    <string name="feature_settings_tv_sync_now">Actualiser les listes maintenant</string>
-    <string name="feature_settings_tv_sync_started">Actualisation lancée</string>
-    <string name="feature_settings_tv_auto_sync">Actualisation automatique</string>
     <string name="feature_settings_tv_press_ok">OK ›</string>
 
     <string name="feature_settings_tv_account_signed_in">Connecté en tant que %1$s</string>

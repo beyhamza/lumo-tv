@@ -71,9 +71,94 @@
     -->
     <string name="feature_source_error_limit">Your plan does not allow one more source.</string>
     <string name="feature_source_error_validation">Some of the information is incorrect.</string>
-    <string name="feature_source_error_rate_limited">Too many attempts. Try again in a moment.</string>
-    <string name="feature_source_error_rate_limited_seconds">Too many attempts. Try again in %1$d seconds.</string>
     <string name="feature_source_error_offline">No connection. Nothing was sent.</string>
+    <!-- "Too many attempts" is the same wait as a refresh asked too soon: see feature_source_list_refresh_wait. -->
+
+    <!--
+      "My sources" (US-024, design S8-E05 to E08): the list of the account's
+      sources, and what can be done to each. Shared by the phone and the
+      television; what only the television says is in strings_tv.xml.
+    -->
+    <string name="feature_source_list_title">My sources</string>
+    <string name="feature_source_list_subtitle">The sources of your account, what they hold and what they are doing.</string>
+    <string name="feature_source_kind_m3u_short" translatable="false">M3U</string>
+    <string name="feature_source_kind_xtream_short" translatable="false">Xtream</string>
+    <!-- The source this device browses. In words, not only as a colour. -->
+    <string name="feature_source_list_active">In use on this device</string>
+    <string name="feature_source_list_last_synced">Refreshed %1$s</string>
+    <string name="feature_source_list_never_synced">Never refreshed successfully</string>
+    <string name="feature_source_list_failed_at">Last attempt %1$s.</string>
+    <!--
+      Counts, only when known: an unknown number is a line that is not drawn,
+      never a zero. No series count exists for an M3U source (adr/0010).
+    -->
+    <plurals name="feature_source_list_channels">
+        <item quantity="one">%1$d channel</item>
+        <item quantity="other">%1$d channels</item>
+    </plurals>
+    <plurals name="feature_source_list_films">
+        <item quantity="one">%1$d film</item>
+        <item quantity="other">%1$d films</item>
+    </plurals>
+    <plurals name="feature_source_list_series">
+        <item quantity="one">%1$d series</item>
+        <item quantity="other">%1$d series</item>
+    </plurals>
+
+    <string name="feature_source_list_use">Use this source</string>
+    <string name="feature_source_list_refresh">Refresh</string>
+    <!-- The control while a synchronisation runs: it says so and takes no press. -->
+    <string name="feature_source_list_refreshing">Refreshing…</string>
+    <string name="feature_source_list_rename">Rename</string>
+    <string name="feature_source_list_delete">Delete</string>
+
+    <!--
+      429 SOURCE_SYNC_RATE_LIMITED. The delay is the server's Retry-After, rounded
+      up to whole minutes. Without a readable header there is no number: a
+      duration is never invented.
+    -->
+    <plurals name="feature_source_list_refresh_wait_minutes">
+        <item quantity="one">Too soon. Again in about %1$d min.</item>
+        <item quantity="other">Too soon. Again in about %1$d min.</item>
+    </plurals>
+    <string name="feature_source_list_refresh_wait">Too soon. Try again a little later.</string>
+    <string name="feature_source_list_refresh_failed">The refresh could not be started. Your source is unchanged.</string>
+    <string name="feature_source_list_refresh_offline">No connection. The refresh was not started.</string>
+
+    <string name="feature_source_list_auto_sync">Automatic refresh</string>
+    <!-- The surprise worth saying: the switch is on a phone, the setting is the account's. -->
+    <string name="feature_source_list_auto_sync_hint">Applies to this source on your whole account: the website and your TV follow it too.</string>
+    <string name="feature_source_list_auto_sync_failed">This setting could not be saved. It is back to what it was.</string>
+
+    <string name="feature_source_list_unavailable_title">Your sources could not be read</string>
+    <string name="feature_source_list_unavailable_body">Lumo could not be reached. Nothing has changed on your account: check your connection, then try again.</string>
+
+    <string name="feature_source_rename_title">Rename this source</string>
+    <string name="feature_source_rename_hint">Only the name changes. The catalogue is not imported again.</string>
+    <string name="feature_source_rename_failed">This name could not be saved. Try again.</string>
+    <string name="feature_source_rename_save">Save</string>
+    <string name="feature_source_dialog_cancel">Cancel</string>
+
+    <!--
+      The confirmation US-024 asks for, sentence by sentence. The watchlist joins
+      the first one with its own lot (sprint 11) and is not mentioned before.
+    -->
+    <string name="feature_source_delete_title">Delete “%1$s”?</string>
+    <string name="feature_source_delete_removed">Its catalogue, its favourites, your playback progress and its recently watched channels will be removed from Lumo.</string>
+    <string name="feature_source_delete_kept">Your other sources and their data are kept.</string>
+    <string name="feature_source_delete_subscription">This does not cancel your subscription with your provider.</string>
+    <string name="feature_source_delete_no_restore">Adding this source again will not bring the deleted data back.</string>
+    <string name="feature_source_delete_confirm">Delete this source</string>
+    <string name="feature_source_delete_deleting">Deleting…</string>
+    <string name="feature_source_delete_failed">The source could not be deleted. Nothing has changed.</string>
+    <string name="feature_source_delete_offline">No connection. The source was not deleted and nothing has changed.</string>
+
+    <!-- After adding (US-024): the flow's own titles and ways on. -->
+    <string name="feature_source_watch_title">Your source</string>
+    <string name="feature_source_fix_title">Correct this source</string>
+    <string name="feature_source_syncing_leave">You can leave this screen: the import goes on, and My sources shows where it is.</string>
+    <string name="feature_source_discover">Discover my catalogue</string>
+    <string name="feature_source_back_to_list">Back to My sources</string>
 
     <!--
       The source switcher of both shells (US-018, design S8-E04). "Source" sits

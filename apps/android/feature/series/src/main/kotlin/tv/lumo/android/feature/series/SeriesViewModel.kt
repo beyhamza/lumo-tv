@@ -21,15 +21,20 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.ActiveSourceState
+import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.asCatalogueSource
+import tv.lumo.android.core.data.face
+import tv.lumo.android.core.data.isPlaylist
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.data.model.EpisodeProgress
 import tv.lumo.android.core.data.model.ResumableSeries
+import tv.lumo.android.core.data.notice
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.ContinueWatchingRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
@@ -117,21 +122,55 @@ class SeriesViewModel @Inject constructor(
                 .distinctUntilChanged()
                 .collectLatest { source -> open(source) }
         }
+
+        // Apart from the collector above, and that is the point: the notice
+        // changes with every step of a synchronisation, and none of those steps
+        // may restart the grid.
+        viewModelScope.launch {
+            activeSource.state
+                .map { it.notice() }
+                .distinctUntilChanged()
+                .collect { notice -> _state.update { it.copy(notice = notice) } }
+        }
     }
 
+    /**
+     * A catalogue that exists is shown, in every status (lot C4) — `LiveViewModel`
+     * says why. Only a source whose **first** import never succeeded, with nothing
+     * cached, has no grid, and then the screen says which: importing, or failed.
+     */
     private suspend fun open(source: CatalogueSource) {
-        _state.update { it.browsing(source) }
+        val sourceId = source.sourceId
+        val cached = if (sourceId == null) 0 else series.cachedSeriesCount(sourceId)
 
-        if (source !is CatalogueSource.Ready) return
+        _state.update { it.browsing(source, cachedItems = cached) }
+
+        if (sourceId == null || _state.value.step != SeriesStep.Browsing) return
 
         coroutineScope {
-            launch { observeCategories(source.sourceId) }
-            launch { loadContinueWatching(source.sourceId) }
+            launch { observeCategories(sourceId) }
+            launch { loadContinueWatching(sourceId) }
 
-            if (series.cachedSeriesCount(source.sourceId) == 0) {
+            // Only a source the server can list: one that never finished an
+            // ingestion answers `409`, and asking would put a "refresh failed"
+            // banner over a cache that is merely waiting.
+            if (cached == 0 && source is CatalogueSource.Ready) {
                 refresh()
             }
         }
+    }
+
+    /**
+     * Asks for the list of sources again.
+     *
+     * What the screens call every few seconds **while a refresh is on display** —
+     * from the composition, so that it stops with the screen: the step of a
+     * synchronisation is only worth showing if it moves, and the notice has to go
+     * away when the refresh ends.
+     */
+    fun refreshSource() {
+        if (activeSource.state.value is ActiveSourceState.Loading) return
+        viewModelScope.launch { activeSource.refresh() }
     }
 
     private suspend fun observeCategories(sourceId: String) {
@@ -238,7 +277,12 @@ sealed interface SeriesStep {
 
     /** Several sources and none chosen on this device. The shell is asking (US-018). */
     data object NeedsChoice : SeriesStep
-    data object NotReadyYet : SeriesStep
+
+    /** The **first** import is running, and this device holds no series of the source. */
+    data object Importing : SeriesStep
+
+    /** The first import failed, and this device holds no series of the source. */
+    data object ImportFailed : SeriesStep
     data object Browsing : SeriesStep
 }
 
@@ -251,6 +295,11 @@ data class SeriesState(
     val query: String = "",
     val refreshing: Boolean = false,
     val refreshFailed: Boolean = false,
+    /**
+     * What the active source is doing, said above the grid or in the first-import
+     * message (US-024). Null when there is nothing to say.
+     */
+    val notice: SourceNotice? = null,
     /**
      * One card per series, already carrying what pressing it does (S6-08).
      *
@@ -282,20 +331,28 @@ data class SeriesState(
      * absences this is — a format that cannot carry series, or a panel that
      * offers none.
      */
-    fun browsing(source: CatalogueSource): SeriesState {
-        val step = when (source) {
-            CatalogueSource.Loading -> SeriesStep.Loading
-            CatalogueSource.NoSource -> SeriesStep.NoSource
-            CatalogueSource.NeedsChoice -> SeriesStep.NeedsChoice
-            is CatalogueSource.NotReady -> SeriesStep.NotReadyYet
-            is CatalogueSource.Ready -> SeriesStep.Browsing
+    fun browsing(source: CatalogueSource, cachedItems: Int = 0): SeriesState {
+        val step = when (source.face(cachedItems)) {
+            CatalogueFace.Loading -> SeriesStep.Loading
+            CatalogueFace.NoSource -> SeriesStep.NoSource
+            CatalogueFace.NeedsChoice -> SeriesStep.NeedsChoice
+            CatalogueFace.Importing -> SeriesStep.Importing
+            CatalogueFace.ImportFailed -> SeriesStep.ImportFailed
+            CatalogueFace.Browsing -> SeriesStep.Browsing
         }
-        val playlist = (source as? CatalogueSource.Ready)?.isPlaylist ?: false
+        val playlist = source.isPlaylist
 
         return if (source.sourceId == sourceId) {
             copy(step = step, isPlaylist = playlist)
         } else {
-            SeriesState(step = step, sourceId = source.sourceId, isPlaylist = playlist)
+            // The notice is the active source's, written by its own collector:
+            // whichever of the two runs first, it is never the old source's.
+            SeriesState(
+                step = step,
+                sourceId = source.sourceId,
+                isPlaylist = playlist,
+                notice = notice,
+            )
         }
     }
 

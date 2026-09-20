@@ -64,6 +64,20 @@ fun LumoTvNavHost(
         authTvScreen()
         sourceTvScreen()
 
+        // "My sources", from a notice over a grid or from a player whose stream
+        // was refused. A push, so that BACK returns to where the viewer was — the
+        // rail has no entry for it to move to (US-024).
+        val openSources = {
+            navController.navigate(SourceDestination.route) { launchSingleTop = true }
+        }
+        // From a player it *replaces* the player: the stream was refused, there is
+        // nothing to come back to, and BACK from the sources lands on the grid or
+        // the detail screen underneath.
+        val leavePlayerForSources = {
+            navController.popBackStack()
+            openSources()
+        }
+
         // The same player for the three screens that start a channel: the home
         // screen, the channel grid and the library.
         val playChannel = { channelId: String, name: String? ->
@@ -105,7 +119,7 @@ fun LumoTvNavHost(
                 onOpenSources = { navController.switchTopLevelTo(SourceDestination) },
             ),
         )
-        liveTvScreen(onPlay = playChannel)
+        liveTvScreen(onPlay = playChannel, onOpenSources = openSources)
         // "My library": the favourites of the active source (US-017). Its empty
         // state sends somebody to where a television stars a channel.
         favoritesTvScreen(
@@ -122,11 +136,13 @@ fun LumoTvNavHost(
                     ?.set(KEY_RETURNED_CHANNEL, channelId)
                 navController.popBackStack()
             },
+            onOpenSources = leavePlayerForSources,
         )
         vodTvScreen(
             onOpenFilm = { filmId ->
                 navController.navigate(VodDetailDestination.routeFor(filmId))
             },
+            onOpenSources = openSources,
         )
         vodDetailTvScreen(
             onPlay = { filmId, sourceId, title, atMs ->
@@ -145,11 +161,15 @@ fun LumoTvNavHost(
                 navController.popBackStack()
             },
         )
-        vodPlayerTvScreen(onBack = { navController.popBackStack() })
+        vodPlayerTvScreen(
+            onBack = { navController.popBackStack() },
+            onOpenSources = leavePlayerForSources,
+        )
         seriesTvScreen(
             onOpenSeries = { seriesId ->
                 navController.navigate(SeriesDetailDestination.routeFor(seriesId))
             },
+            onOpenSources = openSources,
         )
         seriesDetailTvScreen(
             onPlay = { episodeId, title, atMs ->
@@ -168,14 +188,15 @@ fun LumoTvNavHost(
                 navController.popBackStack()
             },
         )
-        episodePlayerTvScreen(onBack = { navController.popBackStack() })
+        episodePlayerTvScreen(
+            onBack = { navController.popBackStack() },
+            onOpenSources = leavePlayerForSources,
+        )
         searchTvScreen()
         settingsTvScreen(
             // A push, unlike the rail's moves: "My sources" is opened *from*
             // Settings, and BACK from it returns there rather than to Home.
-            onOpenSources = {
-                navController.navigate(SourceDestination.route) { launchSingleTop = true }
-            },
+            onOpenSources = openSources,
         )
     }
 }

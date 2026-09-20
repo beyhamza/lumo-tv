@@ -47,12 +47,23 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import coil3.compose.SubcomposeAsyncImage
+import tv.lumo.android.core.data.EmptyGrid
+import tv.lumo.android.core.data.R as DataR
+import tv.lumo.android.core.data.SourceNotice
+import tv.lumo.android.core.data.emptyGridOf
+import tv.lumo.android.core.data.labelRes
+import tv.lumo.android.core.data.messageRes
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.FavoriteGroup
+import tv.lumo.android.core.data.wording
 import tv.lumo.android.core.designsystem.component.LumoFavoriteGroupChoice
 import tv.lumo.android.core.designsystem.component.LumoFavoriteGroupSheet
+import tv.lumo.android.core.designsystem.component.LumoSourceNotice
+import tv.lumo.android.core.designsystem.component.LumoStateMessage
+import tv.lumo.android.core.designsystem.effect.PollWhile
+import tv.lumo.android.core.designsystem.effect.SOURCE_NOTICE_POLL_MILLIS
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 
@@ -96,11 +107,19 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
 @Composable
 fun LiveMobileScreen(
     onPlay: (channelId: String, name: String?) -> Unit,
+    onOpenSources: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LiveViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val channels = viewModel.channels.collectAsLazyPagingItems()
+
+    // A refresh on display has to move, and to go away when it ends (US-024).
+    PollWhile(
+        active = state.notice is SourceNotice.Refreshing,
+        everyMillis = SOURCE_NOTICE_POLL_MILLIS,
+        onTick = viewModel::refreshSource,
+    )
 
     Column(
         modifier = modifier
@@ -120,13 +139,50 @@ fun LiveMobileScreen(
                 body = stringResource(R.string.feature_live_needs_choice_body),
             )
 
-            LiveStep.NotReadyYet -> Message(
-                title = stringResource(R.string.feature_live_not_ready_title),
-                body = stringResource(R.string.feature_live_not_ready_body),
+            // The two faces of a first import, which used to share one "not
+            // ready" sentence: one says wait and shows the real step, the other
+            // says why and where it is fixed (US-024).
+            LiveStep.Importing -> LumoStateMessage(
+                title = stringResource(DataR.string.core_data_first_import_title),
+                detail = stringResource(
+                    (state.notice as? SourceNotice.Refreshing)?.step.labelRes(),
+                ),
+                body = stringResource(DataR.string.core_data_first_import_body),
+                actionLabel = stringResource(DataR.string.core_data_notice_open_sources),
+                onAction = onOpenSources,
+            )
+
+            LiveStep.ImportFailed -> LumoStateMessage(
+                title = stringResource(DataR.string.core_data_first_import_failed_title),
+                detail = stringResource(
+                    (state.notice as? SourceNotice.Failed)?.code.messageRes(),
+                ),
+                isError = true,
+                body = stringResource(DataR.string.core_data_first_import_failed_body),
+                actionLabel = stringResource(DataR.string.core_data_notice_open_sources),
+                onAction = onOpenSources,
             )
 
             LiveStep.Browsing -> {
                 Header(state = state, onRefresh = viewModel::refresh)
+
+                // Over the list and never instead of it: the catalogue stays
+                // browsable while the source refreshes and after a failed attempt.
+                state.notice?.let { notice ->
+                    val wording = notice.wording()
+                    LumoSourceNotice(
+                        title = stringResource(wording.title),
+                        message = stringResource(wording.message),
+                        hint = wording.hint?.let { stringResource(it) },
+                        isError = wording.failed,
+                        actionLabel = stringResource(wording.action),
+                        onAction = onOpenSources,
+                        modifier = Modifier.padding(
+                            horizontal = LumoSpacing.lg,
+                            vertical = LumoSpacing.xs,
+                        ),
+                    )
+                }
 
                 Categories(
                     categories = state.categories,
@@ -150,7 +206,19 @@ fun LiveMobileScreen(
                     )
                 }
 
-                LazyColumn(
+                // A list that failed to load is not an empty list (US-024).
+                if (
+                    state.filter == CatalogueFilter.All &&
+                    emptyGridOf(channels.itemCount, state.refreshing, state.refreshFailed) ==
+                    EmptyGrid.Unavailable
+                ) {
+                    LumoStateMessage(
+                        title = stringResource(DataR.string.core_data_catalogue_unavailable_title),
+                        body = stringResource(DataR.string.core_data_catalogue_unavailable_body),
+                        actionLabel = stringResource(DataR.string.core_data_catalogue_retry),
+                        onAction = viewModel::refresh,
+                    )
+                } else LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         horizontal = LumoSpacing.lg,

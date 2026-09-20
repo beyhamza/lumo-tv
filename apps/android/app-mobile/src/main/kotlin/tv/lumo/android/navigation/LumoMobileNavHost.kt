@@ -81,7 +81,19 @@ fun LumoMobileNavHost(
             // build sign-in / sign-up / sign-in for anyone who hesitates twice.
             onSignIn = { navController.popBackStack(AuthDestination.route, false) },
         )
-        sourceMobileScreen()
+        // "My sources" is reached from a player too — a stream refused because
+        // the provider turned the credentials down — and from the notices over
+        // the catalogues. A push from wherever that was, so that BACK returns
+        // there; the bar has no entry for it to move to (US-024).
+        val openSources = {
+            navController.navigate(SourceDestination.route) { launchSingleTop = true }
+        }
+
+        sourceMobileScreen(
+            // "Discover my catalogue", once a newly added source is ready: Home,
+            // by a move of the bar — it *is* the Home tab, not a screen over it.
+            onDiscoverCatalogue = { navController.switchTopLevelTo(HomeDestination) },
+        )
 
         // One wire, held here, for the three screens that hand an episode on: the
         // home screen's rail, the series grid's and the series' own list. Where an
@@ -131,21 +143,34 @@ fun LumoMobileNavHost(
             route = ExploreDestination.route,
             startDestination = ExploreSections.first().route,
         ) {
-            liveMobileScreen(onPlay = playChannel)
+            liveMobileScreen(onPlay = playChannel, onOpenSources = openSources)
             vodMobileScreen(
                 onOpenFilm = { filmId ->
                     navController.navigate(VodDetailDestination.routeFor(filmId))
                 },
+                onOpenSources = openSources,
             )
             seriesMobileScreen(
                 onOpenSeries = { seriesId ->
                     navController.navigate(SeriesDetailDestination.routeFor(seriesId))
                 },
                 onPlay = playEpisode,
+                onOpenSources = openSources,
             )
         }
 
-        livePlayerMobileScreen(onBack = { navController.popBackStack() })
+        // From a player, "My sources" *replaces* it: the stream was refused, there
+        // is nothing to come back to, and BACK from the sources should land on the
+        // grid or the detail screen the viewer came from.
+        val leavePlayerForSources = {
+            navController.popBackStack()
+            openSources()
+        }
+
+        livePlayerMobileScreen(
+            onBack = { navController.popBackStack() },
+            onOpenSources = leavePlayerForSources,
+        )
         // Same player, and the wire is held here rather than in either feature:
         // favourites has no business knowing that feature:live exists.
         favoritesMobileScreen(onPlay = playChannel)
@@ -157,19 +182,23 @@ fun LumoMobileNavHost(
             },
             onBack = { navController.popBackStack() },
         )
-        vodPlayerMobileScreen(onBack = { navController.popBackStack() })
+        vodPlayerMobileScreen(
+            onBack = { navController.popBackStack() },
+            onOpenSources = leavePlayerForSources,
+        )
         seriesDetailMobileScreen(
             onPlay = playEpisode,
             onBack = { navController.popBackStack() },
         )
-        episodePlayerMobileScreen(onBack = { navController.popBackStack() })
+        episodePlayerMobileScreen(
+            onBack = { navController.popBackStack() },
+            onOpenSources = leavePlayerForSources,
+        )
         searchMobileScreen()
         settingsMobileScreen(
             // A push, unlike the bar's moves: "My sources" is opened *from*
             // Settings, and BACK from it returns there rather than to Home.
-            onOpenSources = {
-                navController.navigate(SourceDestination.route) { launchSingleTop = true }
-            },
+            onOpenSources = openSources,
         )
     }
 }

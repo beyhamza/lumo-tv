@@ -8,7 +8,6 @@
         <item quantity="one">%d active</item>
         <item quantity="other">%d actives</item>
     </plurals>
-    <string name="feature_settings_auto_sync">Actualisation automatique</string>
 
     <string name="feature_settings_section_devices">APPAREILS</string>
     <string name="feature_settings_devices_connected">Appareils connectés</string>

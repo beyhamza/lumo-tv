@@ -41,11 +41,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.SubcomposeAsyncImage
 import kotlinx.coroutines.delay
-import tv.lumo.android.core.data.labelRes
-import tv.lumo.android.core.data.messageRes
+import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.ContinueItem
+import tv.lumo.android.core.data.wording
 import tv.lumo.android.core.designsystem.component.LumoPoster
+import tv.lumo.android.core.designsystem.component.LumoSourceNotice
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.feature.home.navigation.HomeActions
@@ -91,7 +92,7 @@ fun HomeMobileScreen(
 
     // The step of an import is only worth showing if it moves. Polled from the
     // composition so that it stops when the screen does.
-    val syncing = state.notice is HomeNotice.Syncing
+    val syncing = state.notice is SourceNotice.Refreshing
     LaunchedEffect(syncing) {
         while (syncing) {
             delay(SYNC_POLL_MILLIS)
@@ -199,59 +200,26 @@ private val HomeSection.railKey: String
 /**
  * What the source is doing, over the rails and never instead of them.
  *
- * An import in progress shows its **real step** — the same sentence the add-source
- * screen shows, from `core:data` — because "refreshing…" with nothing after it is
- * a spinner in words. A failed one shows its reason in the words of its ingestion
- * code, and the one action that leads somewhere: the screen where a source is
- * fixed.
+ * The drawing is `LumoSourceNotice` and the sentences are `core:data`'s, shared
+ * with the three catalogue grids since they keep their content during a refresh
+ * too (US-024, lot C4): the **real step** of an import, because "refreshing…"
+ * with nothing after it is a spinner in words; a failure in the words of its
+ * ingestion code, and whether what is on screen may be out of date. One action,
+ * the screen where a source is looked after.
  */
 @Composable
-private fun Notice(notice: HomeNotice, onOpenSources: () -> Unit) {
-    val failed = notice is HomeNotice.Failed
+private fun Notice(notice: SourceNotice, onOpenSources: () -> Unit) {
+    val wording = notice.wording()
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LumoSpacing.md)
-            .clip(LumoShapes.medium)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(LumoSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
-    ) {
-        Text(
-            text = stringResource(
-                if (failed) R.string.feature_home_error_title else R.string.feature_home_syncing_title,
-            ),
-            style = MaterialTheme.typography.titleMedium,
-            color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-        )
-
-        when (notice) {
-            is HomeNotice.Syncing -> {
-                Text(
-                    text = stringResource(notice.step.labelRes()),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = stringResource(R.string.feature_home_syncing_hint),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            is HomeNotice.Failed -> {
-                Text(
-                    text = stringResource(notice.code.messageRes()),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                OutlinedButton(onClick = onOpenSources) {
-                    Text(stringResource(R.string.feature_home_open_sources))
-                }
-            }
-        }
-    }
+    LumoSourceNotice(
+        title = stringResource(wording.title),
+        message = stringResource(wording.message),
+        hint = wording.hint?.let { stringResource(it) },
+        isError = wording.failed,
+        actionLabel = stringResource(wording.action),
+        onAction = onOpenSources,
+        modifier = Modifier.padding(horizontal = LumoSpacing.md),
+    )
 }
 
 // ---- Continue ---------------------------------------------------------------

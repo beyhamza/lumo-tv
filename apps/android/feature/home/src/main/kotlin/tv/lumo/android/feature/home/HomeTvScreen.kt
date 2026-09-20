@@ -47,11 +47,12 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
 import tv.lumo.android.core.data.R as DataR
-import tv.lumo.android.core.data.labelRes
-import tv.lumo.android.core.data.messageRes
+import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.ContinueItem
+import tv.lumo.android.core.data.wording
 import tv.lumo.android.core.designsystem.component.LumoPoster
+import tv.lumo.android.core.designsystem.component.LumoTvSourceNotice
 import tv.lumo.android.core.designsystem.component.LumoTvButton
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
@@ -102,7 +103,7 @@ fun HomeTvScreen(
 
     LaunchedEffect(Unit) { viewModel.onShown() }
 
-    val syncing = state.notice is HomeNotice.Syncing
+    val syncing = state.notice is SourceNotice.Refreshing
     LaunchedEffect(syncing) {
         while (syncing) {
             delay(SYNC_POLL_MILLIS)
@@ -309,56 +310,21 @@ private fun PlaceFocus(
  * An import in progress is **text and not a focus stop**: there is nothing to
  * press, and a stop with nothing behind it is a dead end on the way `UP`. A failed
  * one has exactly one control, "My sources" — a television cannot correct a source,
- * but that screen says what is wrong with it and where to fix it.
+ * but that screen says what is wrong with it and where to fix it. Drawn by
+ * `LumoTvSourceNotice`, worded by `core:data`, like the three grids' (US-024).
  */
 @Composable
-private fun Notice(notice: HomeNotice, onOpenSources: () -> Unit) {
-    val failed = notice is HomeNotice.Failed
+private fun Notice(notice: SourceNotice, onOpenSources: () -> Unit) {
+    val wording = notice.wording()
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(LumoTvShapes.medium)
-            .background(LumoColors.Surface)
-            .padding(LumoSpacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
-        ) {
-            Text(
-                text = stringResource(
-                    if (failed) R.string.feature_home_error_title else R.string.feature_home_syncing_title,
-                ),
-                style = MaterialTheme.typography.titleLarge,
-                color = if (failed) LumoColors.Error else LumoColors.OnDark,
-            )
-            Text(
-                text = when (notice) {
-                    is HomeNotice.Syncing -> stringResource(notice.step.labelRes())
-                    is HomeNotice.Failed -> stringResource(notice.code.messageRes())
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                color = LumoColors.OnDark,
-            )
-            if (!failed) {
-                Text(
-                    text = stringResource(R.string.feature_home_syncing_hint),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = LumoColors.OnDarkMuted,
-                )
-            }
-        }
-
-        if (failed) {
-            LumoTvButton(
-                text = stringResource(R.string.feature_home_open_sources),
-                onClick = onOpenSources,
-            )
-        }
-    }
+    LumoTvSourceNotice(
+        title = stringResource(wording.title),
+        message = stringResource(wording.message),
+        hint = wording.hint?.let { stringResource(it) },
+        isError = wording.failed,
+        actionLabel = stringResource(wording.action).takeIf { wording.failed },
+        onAction = onOpenSources,
+    )
 }
 
 // ---- Continue ---------------------------------------------------------------

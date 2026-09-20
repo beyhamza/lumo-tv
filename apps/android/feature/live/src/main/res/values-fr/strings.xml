@@ -8,8 +8,6 @@
     <string name="feature_live_needs_choice_title">Choisissez une source</string>
     <string name="feature_live_needs_choice_body">Vous avez plusieurs sources. Choisissez celle à parcourir et ses chaînes apparaîtront ici.</string>
 
-    <string name="feature_live_not_ready_title">Votre source n\'est pas prête</string>
-    <string name="feature_live_not_ready_body">L\'import n\'est pas terminé, ou il a échoué. L\'onglet Source dit où il en est.</string>
 
     <string name="feature_live_all_categories">Toutes</string>
     <string name="feature_live_category_count">%1$s (%2$d)</string>
@@ -26,7 +24,9 @@
     <string name="feature_live_player_unreachable">Cette chaîne n\'a pas pu être atteinte. Votre fournisseur est peut-être en panne, ou la connexion a été coupée.</string>
     <string name="feature_live_player_too_many_streams">Votre abonnement diffuse déjà tout ce qu\'il autorise. Arrêtez un autre appareil, puis réessayez.</string>
     <string name="feature_live_player_too_many_streams_count">Votre abonnement autorise %1$d lecture(s) simultanée(s), et elles sont toutes utilisées. Arrêtez un autre appareil, puis réessayez.</string>
-    <string name="feature_live_player_not_ready">L\'import de cette source n\'est pas terminé. L\'onglet Source dit où il en est.</string>
+    <string name="feature_live_player_not_ready">Cette source est en cours d\'actualisation. La lecture sera de nouveau possible dès la fin de l\'actualisation.</string>
+    <string name="feature_live_player_auth_failed">Votre fournisseur a refusé les identifiants de cette source. Corrigez-les dans Mes sources.</string>
+    <string name="feature_live_player_open_sources">Mes sources</string>
     <string name="feature_live_player_expired">Votre abonnement chez ce fournisseur a expiré. Lumo ne peut pas le renouveler.</string>
     <string name="feature_live_player_channel_gone">Cette chaîne n\'est plus dans votre playlist. Actualisez la liste pour voir ce qui y est.</string>
     <string name="feature_live_player_unplayable">Cet appareil ne sait pas décoder ce flux.</string>

@@ -18,11 +18,10 @@
     <string name="feature_live_needs_choice_body">You have several sources. Choose the one to browse and its channels will appear here.</string>
 
     <!--
-      Distinct from "no channels": a source that is still importing is a wait,
-      and an empty list would read as a source that holds nothing.
+      The first-import states — importing, failed — are worded in core:data,
+      shared with films and series (US-024). A source that refreshes keeps its
+      list: there is no "not ready" screen any more.
     -->
-    <string name="feature_live_not_ready_title">Your source is not ready</string>
-    <string name="feature_live_not_ready_body">The import has not finished, or it failed. The Source tab says where it got to.</string>
 
     <string name="feature_live_all_categories">All</string>
     <string name="feature_live_category_count">%1$s (%2$d)</string>
@@ -50,7 +49,15 @@
     -->
     <string name="feature_live_player_too_many_streams">Your subscription is already streaming as much as it allows. Stop another device, then try again.</string>
     <string name="feature_live_player_too_many_streams_count">Your subscription allows %1$d simultaneous stream(s), and they are all in use. Stop another device, then try again.</string>
-    <string name="feature_live_player_not_ready">This source has not finished importing. The Source tab says where it got to.</string>
+    <string name="feature_live_player_not_ready">This source is being refreshed. Playback is available again as soon as the refresh ends.</string>
+    <!--
+      Lot C4. `SOURCE_NOT_READY` at playback no longer means "never imported":
+      the catalogue is browsable during a refresh and playback waits for its end.
+      `SOURCE_AUTH_FAILED` is new among the refusals: the provider turned the
+      credentials down, retrying cannot help, and the way on is My sources.
+    -->
+    <string name="feature_live_player_auth_failed">Your provider refused this source\'s credentials. Correct them in My sources.</string>
+    <string name="feature_live_player_open_sources">My sources</string>
     <string name="feature_live_player_expired">Your subscription with this provider has expired. Lumo cannot renew it.</string>
     <string name="feature_live_player_channel_gone">This channel is no longer in your playlist. Refresh the list to see what is.</string>
     <string name="feature_live_player_unplayable">This device cannot decode this stream.</string>

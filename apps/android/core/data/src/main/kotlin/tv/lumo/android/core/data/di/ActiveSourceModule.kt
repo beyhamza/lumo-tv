@@ -23,6 +23,8 @@ import tv.lumo.android.core.common.di.ApplicationScope
 import tv.lumo.android.core.common.di.Dispatcher
 import tv.lumo.android.core.common.di.LumoDispatcher
 import tv.lumo.android.core.data.internal.ActiveSourceStore
+import tv.lumo.android.core.data.internal.AndroidConnectivityMonitor
+import tv.lumo.android.core.data.internal.ConnectivityMonitor
 import tv.lumo.android.core.data.internal.DataStoreActiveSourceStore
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.DefaultActiveSourceRepository
@@ -88,4 +90,9 @@ internal abstract class ActiveSourceBindingsModule {
     @Binds
     @Singleton
     abstract fun activeSourceStore(impl: DataStoreActiveSourceStore): ActiveSourceStore
+
+    /** What tells the playback watcher that the network came back (C4, D5). */
+    @Binds
+    @Singleton
+    abstract fun connectivityMonitor(impl: AndroidConnectivityMonitor): ConnectivityMonitor
 }

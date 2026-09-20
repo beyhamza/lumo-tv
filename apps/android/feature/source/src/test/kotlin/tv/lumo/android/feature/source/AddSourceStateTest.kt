@@ -87,4 +87,40 @@ class AddSourceStateTest {
         assertThat(filled.copy(submitting = true).canSubmit).isFalse()
         assertThat(filled.copy(step = AddSourceStep.ChoosingKind).canSubmit).isFalse()
     }
+
+    // ---- after adding (US-024) ----------------------------------------------
+
+    @Test
+    fun `the first source is the one being browsed, so the catalogue is proposed`() {
+        // `ActiveSourceRepository` selects an account's only source without a
+        // question; this screen only reads the result.
+        val first = AddSourceState(step = AddSourceStep.Watching("source-a"), activeSourceId = "source-a")
+
+        assertThat(first.watchedIsActive).isTrue()
+    }
+
+    @Test
+    fun `an additional source does not take the selection, so using it is proposed`() {
+        val additional = AddSourceState(
+            step = AddSourceStep.Watching("source-b"),
+            activeSourceId = "source-a",
+        )
+
+        assertThat(additional.watchedIsActive).isFalse()
+        // "Use this source" pressed: the proposal follows the selection.
+        assertThat(additional.copy(activeSourceId = "source-b").watchedIsActive).isTrue()
+    }
+
+    @Test
+    fun `nothing is proposed for a source nobody is watching`() {
+        assertThat(AddSourceState(activeSourceId = "source-a").watchedIsActive).isFalse()
+        assertThat(AddSourceState(step = AddSourceStep.Watching("source-a")).watchedIsActive).isFalse()
+    }
+
+    @Test
+    fun `the flow is closed until it is asked for`() {
+        // "My sources" shows its list; the form opens from it.
+        assertThat(AddSourceState().step).isEqualTo(AddSourceStep.Idle)
+        assertThat(AddSourceState().canSubmit).isFalse()
+    }
 }

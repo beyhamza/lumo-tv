@@ -17,9 +17,6 @@
     <string name="feature_settings_tv_status_error">Error</string>
     <string name="feature_settings_tv_status_syncing">Syncing</string>
     <string name="feature_settings_tv_status_pending">Pending</string>
-    <string name="feature_settings_tv_sync_now">Refresh the lists now</string>
-    <string name="feature_settings_tv_sync_started">Refresh started</string>
-    <string name="feature_settings_tv_auto_sync">Automatic refresh</string>
     <string name="feature_settings_tv_press_ok">OK ›</string>
 
     <string name="feature_settings_tv_account_signed_in">Signed in as %1$s</string>

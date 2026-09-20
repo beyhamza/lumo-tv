@@ -1,14 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="feature_source_tv_show_code">Afficher le code d\'association</string>
+    <string name="feature_source_tv_loading">Lecture de vos sources…</string>
+    <string name="feature_source_tv_check_again">Vérifier à nouveau</string>
 
-    <string name="feature_source_tv_managed_elsewhere">Les sources se gèrent depuis votre téléphone ou lumo.tv — jamais de saisie ici.</string>
-    <string name="feature_source_tv_summary">%1$s · %2$d chaînes · vérifiée %3$s</string>
-    <string name="feature_source_tv_summary_unsynced">%1$s · pas encore synchronisée</string>
-    <string name="feature_source_tv_expires">Abonnement jusqu\'au %1$s</string>
-    <string name="feature_source_tv_status_active">Active</string>
-    <string name="feature_source_tv_status_error">Erreur</string>
-    <string name="feature_source_tv_status_syncing">Synchronisation</string>
-    <string name="feature_source_tv_status_pending">En attente</string>
-    <string name="feature_source_tv_error_hint">Corrigez-la depuis lumo.tv ou votre téléphone.</string>
+    <string name="feature_source_tv_error_hint">Corrigez-la depuis l\'application mobile ou lumo.tv.</string>
+
+    <string name="feature_source_tv_guidance_title">Ajouter, renommer ou supprimer une source</string>
+    <string name="feature_source_tv_guidance_body">Depuis l\'application mobile ou lumo.tv — c\'est aussi là que l\'actualisation automatique s\'active ou se désactive. Les changements apparaissent ici d\'eux-mêmes.</string>
 </resources>

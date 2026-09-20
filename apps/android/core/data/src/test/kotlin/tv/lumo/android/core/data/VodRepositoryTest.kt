@@ -211,6 +211,47 @@ class VodRepositoryTest {
         assertThat(repository.hasFilms(sourceId).first()).isTrue()
     }
 
+    @Test
+    fun `the film count is the listing's total, asked with one row`() = runTest {
+        server.enqueue(
+            json("""{"items":[],"page":0,"size":1,"total_elements":1248,"total_pages":1248}"""),
+        )
+
+        assertThat(repository().filmCount(sourceId)).isEqualTo(1248)
+
+        val request = server.takeRequest()
+        assertThat(request.requestUrl?.queryParameter("size")).isEqualTo("1")
+        assertThat(request.requestUrl?.queryParameter("page")).isEqualTo("0")
+    }
+
+    @Test
+    fun `a source that lists no film counts zero, because the server said so`() = runTest {
+        server.enqueue(
+            json("""{"items":[],"page":0,"size":1,"total_elements":0,"total_pages":0}"""),
+        )
+
+        assertThat(repository().filmCount(sourceId)).isEqualTo(0)
+    }
+
+    @Test
+    fun `an unknown film count is null, never zero`() = runTest {
+        // Never ingested: the listing refuses, and the device holds nothing.
+        server.enqueue(
+            MockResponse().setResponseCode(409)
+                .setBody("""{"type":"x","title":"x","status":409,"code":"SOURCE_NOT_READY"}"""),
+        )
+
+        assertThat(repository().filmCount(sourceId)).isNull()
+    }
+
+    @Test
+    fun `offline, the film count falls back to what the device holds`() = runTest {
+        vodDao.stored += listOf(entity("Le Voyage"), entity("Le Retour"))
+        server.shutdown()
+
+        assertThat(repository().filmCount(sourceId)).isEqualTo(2)
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private fun repository() = VodRepository(

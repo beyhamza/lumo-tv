@@ -32,7 +32,11 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import tv.lumo.android.core.data.R as DataR
+import tv.lumo.android.core.designsystem.component.LumoAcknowledgeDialog
 import tv.lumo.android.core.designsystem.component.LumoAudioTrackSheet
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.player.PlaybackState
@@ -67,11 +71,18 @@ fun PlayerMobileScreen(
     channelId: String,
     channelName: String?,
     onBack: () -> Unit,
+    onOpenSources: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val audioTracks by viewModel.audioTracks.collectAsStateWithLifecycle()
+    val sourceDeleted by viewModel.sourceDeleted.collectAsStateWithLifecycle()
+
+    // Coming back to the foreground is one of the moments the product names for
+    // noticing a source deleted elsewhere (C4, D5). The `ON_START` of opening
+    // the player reaches nobody: the watch has not begun, and need not have.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onForeground() }
 
     // Local to the screen. Which sheet is open is not something the player or the
     // view model has an opinion about, and a choice that survived a rotation would
@@ -107,11 +118,21 @@ fun PlayerMobileScreen(
         )
 
         when {
+            // The source was deleted from another device, and the server has
+            // confirmed it (US-024). Playback is already stopped; one sentence,
+            // one way on, and nothing else is started. Back is that same way on.
+            sourceDeleted -> LumoAcknowledgeDialog(
+                message = stringResource(DataR.string.core_data_source_deleted_message),
+                actionLabel = stringResource(DataR.string.core_data_source_deleted_continue),
+                onAcknowledge = { viewModel.onSourceDeletedAcknowledged(onBack) },
+            )
+
             state.failure != null -> Failure(
                 failure = state.failure!!,
                 channelName = channelName,
                 onRetry = viewModel::retry,
                 onBack = onBack,
+                onOpenSources = onOpenSources,
             )
 
             // US-09 budgets five seconds for the picture to appear. A spinner is
@@ -124,7 +145,7 @@ fun PlayerMobileScreen(
         // only for a channel that carries a choice — which is why it is drawn
         // rather than hidden behind a tap that would have to be taught. A channel
         // with one audio track shows nothing and the screen is what it was.
-        if (audioTracks.size > 1 && state.failure == null) {
+        if (audioTracks.size > 1 && state.failure == null && !sourceDeleted) {
             TextButton(
                 onClick = { pickingAudio = true },
                 modifier = Modifier.align(Alignment.TopEnd),
@@ -182,6 +203,7 @@ private fun Failure(
     channelName: String?,
     onRetry: () -> Unit,
     onBack: () -> Unit,
+    onOpenSources: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -214,6 +236,14 @@ private fun Failure(
             }
         }
 
+        // The provider refused the credentials: the one thing that helps is the
+        // screen where they are corrected, so that is the button (C4, D2).
+        if (failure == PlayerFailure.CredentialsRefused) {
+            Button(onClick = onOpenSources) {
+                Text(stringResource(R.string.feature_live_player_open_sources))
+            }
+        }
+
         TextButton(onClick = onBack) {
             Text(stringResource(R.string.feature_live_player_back))
         }
@@ -231,7 +261,9 @@ internal fun PlayerFailure.isRetryable(): Boolean = when (this) {
     is PlayerFailure.Unreachable -> retryable
     // Worth one more try: something else may have stopped playing since.
     is PlayerFailure.TooManyStreams -> true
+    // A refresh is running, and it ends (C4): the same press works afterwards.
     PlayerFailure.SourceNotReady -> true
+    PlayerFailure.CredentialsRefused -> false
     PlayerFailure.SubscriptionExpired -> false
     PlayerFailure.ChannelGone -> false
     PlayerFailure.Unplayable -> false
@@ -249,6 +281,7 @@ private fun PlayerFailure.message(): String = when (this) {
     }
 
     PlayerFailure.SourceNotReady -> stringResource(R.string.feature_live_player_not_ready)
+    PlayerFailure.CredentialsRefused -> stringResource(R.string.feature_live_player_auth_failed)
     PlayerFailure.SubscriptionExpired -> stringResource(R.string.feature_live_player_expired)
     PlayerFailure.ChannelGone -> stringResource(R.string.feature_live_player_channel_gone)
     PlayerFailure.Unplayable -> stringResource(R.string.feature_live_player_unplayable)

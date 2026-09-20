@@ -34,10 +34,4 @@
     <string name="feature_home_explore_live">Direct</string>
     <string name="feature_home_explore_films">Films</string>
     <string name="feature_home_explore_series">Séries</string>
-
-    <string name="feature_home_syncing_title">Actualisation de votre source en cours</string>
-    <string name="feature_home_syncing_hint">Ce qui est déjà sur cet appareil reste consultable.</string>
-
-    <string name="feature_home_error_title">Votre source rencontre un problème</string>
-    <string name="feature_home_open_sources">Mes sources</string>
 </resources>

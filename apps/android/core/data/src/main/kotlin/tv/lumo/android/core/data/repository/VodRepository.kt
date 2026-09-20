@@ -251,6 +251,30 @@ class VodRepository @Inject internal constructor(
     suspend fun cachedFilmCount(sourceId: String): Int =
         withContext(io) { vodDao.countForSource(sourceId) }
 
+    /**
+     * How many films the source carries, or null when that is not known.
+     *
+     * `Source` has no film counter, by decision (c4-previous-catalogue.md §P3):
+     * the number is `total_elements` of the paginated listing, asked with
+     * `size = 1` — one request and one row, not a walk of the catalogue. Since C4
+     * the listing answers while the source refreshes and after a failed attempt,
+     * so "My sources" can keep showing the number it showed before.
+     *
+     * **Unknown is null, never zero** (US-024). When the server cannot be asked —
+     * offline, or a source that never finished an ingestion and answers
+     * `409 SOURCE_NOT_READY` — what this device already holds is the next best
+     * witness, and only when it holds something: an empty cache is a cache that
+     * was never filled as often as it is a source without films, and a "0 films"
+     * drawn from it would be a statement about the source made from nothing.
+     */
+    suspend fun filmCount(sourceId: String): Int? = withContext(io) {
+        val listed = calls.call { api.listVod(UUID.fromString(sourceId), page = 0, size = 1) }
+        when (listed) {
+            is LumoResult.Success -> listed.value.totalElements.toCountOrNull()
+            is LumoResult.Failure -> vodDao.countForSource(sourceId).takeIf { it > 0 }
+        }
+    }
+
     /** Drops one source's films, for a source the user just deleted. */
     suspend fun forget(sourceId: String) = withContext(io) {
         vodDao.deleteBySource(sourceId)
@@ -331,3 +355,12 @@ private fun CategoryEntity.asCategory() = Category(
     name = name,
     channelCount = channelCount,
 )
+
+/**
+ * A listing's `total_elements` as a count a screen can print.
+ *
+ * A `Long` in the contract and an `Int` on screen; a total past two billion is a
+ * server describing something other than a catalogue, and is treated as unknown
+ * rather than wrapped into a negative number.
+ */
+internal fun Long.toCountOrNull(): Int? = takeIf { it in 0..Int.MAX_VALUE }?.toInt()

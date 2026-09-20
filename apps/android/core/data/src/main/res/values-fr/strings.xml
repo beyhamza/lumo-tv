@@ -20,4 +20,23 @@
 
     <string name="core_data_source_tv_none_title">Aucune source configurée</string>
     <string name="core_data_source_tv_none_body">Ajoutez votre source depuis votre téléphone ou lumo.tv — elle apparaîtra ici automatiquement.</string>
+
+    <string name="core_data_notice_refreshing_title">Actualisation de votre source en cours</string>
+    <string name="core_data_notice_refreshing_hint">Le catalogue précédent reste consultable. La lecture reprendra à la fin de l\'actualisation.</string>
+    <string name="core_data_notice_importing_hint">Ce qui est déjà sur cet appareil reste consultable.</string>
+    <string name="core_data_notice_failed_title">Votre source rencontre un problème</string>
+    <string name="core_data_notice_failed_stale">Ce catalogue peut être ancien.</string>
+    <string name="core_data_notice_open_sources">Mes sources</string>
+
+    <string name="core_data_first_import_title">Importation de votre source en cours</string>
+    <string name="core_data_first_import_body">Votre catalogue apparaîtra ici dès la fin de la première importation. Vous pouvez quitter cet écran en attendant.</string>
+    <string name="core_data_first_import_failed_title">La première importation a échoué</string>
+    <string name="core_data_first_import_failed_body">Rien n\'a encore pu être importé. Ouvrez Mes sources pour voir ce qu\'il faut corriger et réessayer.</string>
+
+    <string name="core_data_catalogue_unavailable_title">Cette rubrique n\'a pas pu être chargée</string>
+    <string name="core_data_catalogue_unavailable_body">Elle n\'est peut-être pas vide : la requête a échoué. Vérifiez votre connexion, puis réessayez.</string>
+    <string name="core_data_catalogue_retry">Réessayer</string>
+
+    <string name="core_data_source_deleted_message">Cette source a été supprimée de votre compte.</string>
+    <string name="core_data_source_deleted_continue">Continuer</string>
 </resources>

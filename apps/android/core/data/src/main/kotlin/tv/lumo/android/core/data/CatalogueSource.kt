@@ -33,10 +33,37 @@ sealed interface CatalogueSource {
     /** Several sources and no choice yet. The shell is asking; the grid waits. */
     data object NeedsChoice : CatalogueSource
 
-    /** The active source has not finished importing, or failed to. */
-    data class NotReady(val sourceId: String) : CatalogueSource
+    /**
+     * No ingestion of the active source has **ever** succeeded (`last_synced_at`
+     * is null) and its status is not `READY`: a first import that is running, or
+     * one that failed.
+     *
+     * Until C4 this was "not ready" and covered every status but `READY`, which
+     * hid a catalogue the server still held and Room still cached each time a
+     * source refreshed. What is left here is the one situation where the server
+     * has nothing to list (`409 SOURCE_NOT_READY`, c4-previous-catalogue.md §P1).
+     * Whether the *device* still holds rows is the screen's question — see
+     * [face].
+     *
+     * @param failed `ERROR` rather than `PENDING`/`SYNCING`. Two different
+     * sentences: one says wait, the other says go and fix it.
+     */
+    data class FirstImport(
+        val sourceId: String,
+        val isPlaylist: Boolean,
+        val failed: Boolean,
+    ) : CatalogueSource
 
     /**
+     * There is a catalogue to browse: the source is `READY`, **or** it is
+     * refreshing or in error with a previous ingestion behind it, or nothing is
+     * known about it but its identifier.
+     *
+     * The status is deliberately absent. It changes with every step of a
+     * synchronisation, a grid restarts its pager when this value changes, and
+     * what a grid says about a refresh is a notice over it
+     * ([SourceNotice]) — never a reason to rebuild it.
+     *
      * @param isPlaylist whether the source is a playlist rather than a panel,
      * which only the series screen reads — see `SeriesState.isPlaylist`. False
      * when the source itself is unknown, which is the cautious of the two.
@@ -47,7 +74,7 @@ sealed interface CatalogueSource {
 /** The identifier a grid reads its cache with, or null when there is nothing to read. */
 val CatalogueSource.sourceId: String?
     get() = when (this) {
-        is CatalogueSource.NotReady -> sourceId
+        is CatalogueSource.FirstImport -> sourceId
         is CatalogueSource.Ready -> sourceId
         else -> null
     }
@@ -66,20 +93,116 @@ val CatalogueSource.sourceId: String?
  *
  * Nothing is known and nothing is cached under any identifier this device holds,
  * so there is no grid to draw. It is what these screens already showed when the
- * list could not be fetched; telling the two apart on screen belongs to the
- * offline states of S8-05, not here.
+ * list could not be fetched; telling the two apart on a grid is still to do
+ * (US-024, "Indisponibilité et hors ligne") — the home screen already does.
+ *
+ * <h2>The status no longer decides whether there is a grid (C4)</h2>
+ *
+ * Every status but `READY` used to become "not ready", which hid a catalogue
+ * the device had cached and the server still listed. A source is now browsable
+ * as soon as one ingestion has succeeded — `last_synced_at`, which no failure
+ * and no refresh ever clears — and only a source that never had one is a
+ * [CatalogueSource.FirstImport].
  */
 fun ActiveSourceState.asCatalogueSource(): CatalogueSource = when (this) {
     ActiveSourceState.Loading -> CatalogueSource.Loading
     ActiveSourceState.None, ActiveSourceState.Unavailable -> CatalogueSource.NoSource
     is ActiveSourceState.NeedsChoice -> CatalogueSource.NeedsChoice
-    is ActiveSourceState.Selected -> when {
-        source != null && source.status != SourceStatus.READY -> CatalogueSource.NotReady(sourceId)
-        else -> CatalogueSource.Ready(
-            sourceId = sourceId,
-            isPlaylist = source != null && source.kind != SourceKind.XTREAM,
-        )
+    is ActiveSourceState.Selected -> {
+        val playlist = source != null && source.kind != SourceKind.XTREAM
+        when {
+            source != null && source.status != SourceStatus.READY && source.lastSyncedAt == null ->
+                CatalogueSource.FirstImport(
+                    sourceId = sourceId,
+                    isPlaylist = playlist,
+                    failed = source.status == SourceStatus.ERROR,
+                )
+
+            else -> CatalogueSource.Ready(sourceId = sourceId, isPlaylist = playlist)
+        }
     }
+}
+
+/**
+ * Which of its faces a catalogue grid shows.
+ *
+ * One enum for the three grids, so that "is there something to browse" has one
+ * answer. Each feature maps it onto its own step type, one to one.
+ */
+enum class CatalogueFace {
+    Loading,
+    NoSource,
+    NeedsChoice,
+
+    /** A first import is running and the device holds nothing of this source. */
+    Importing,
+
+    /** The first import failed and the device holds nothing of this source. */
+    ImportFailed,
+
+    Browsing,
+}
+
+/**
+ * The visibility rule of lot C4, as a pure function of the two things it reads.
+ *
+ * **A catalogue that exists is shown, in every status.** It exists when the
+ * server says an ingestion succeeded once ([CatalogueSource.Ready] — which
+ * includes `SYNCING`, `PENDING` and `ERROR` with a `last_synced_at`) or when the
+ * device's own cache holds rows for the source. Only when neither is true does a
+ * grid show the first-import state, and then it says which of the two it is —
+ * importing or failed — instead of the single "not ready" both used to share.
+ *
+ * @param cachedItems how many rows of *this* catalogue Room holds for the
+ * source. Zero and unknown are the same here: nothing to draw.
+ */
+fun CatalogueSource.face(cachedItems: Int): CatalogueFace = when (this) {
+    CatalogueSource.Loading -> CatalogueFace.Loading
+    CatalogueSource.NoSource -> CatalogueFace.NoSource
+    CatalogueSource.NeedsChoice -> CatalogueFace.NeedsChoice
+    is CatalogueSource.Ready -> CatalogueFace.Browsing
+    is CatalogueSource.FirstImport -> when {
+        cachedItems > 0 -> CatalogueFace.Browsing
+        failed -> CatalogueFace.ImportFailed
+        else -> CatalogueFace.Importing
+    }
+}
+
+/** Whether the source is a playlist, for the one screen that words an absence with it. */
+val CatalogueSource.isPlaylist: Boolean
+    get() = when (this) {
+        is CatalogueSource.Ready -> isPlaylist
+        is CatalogueSource.FirstImport -> isPlaylist
+        else -> false
+    }
+
+/**
+ * What a grid with no card in it is saying.
+ *
+ * US-024, "partially available": a section that **failed to load** says so and
+ * is never presented as empty. Until this existed an empty film grid whose
+ * refresh had just failed read "this source has no films" — a statement about the
+ * source made from a request that never reached it.
+ */
+enum class EmptyGrid {
+    /** There are cards. Nothing to say. */
+    None,
+
+    /** Being fetched. A spinner's job, not a sentence's. */
+    Loading,
+
+    /** The fetch answered and the source carries none. A reply. */
+    Empty,
+
+    /** The fetch failed and nothing was cached. Worth retrying; not a fact about the source. */
+    Unavailable,
+}
+
+fun emptyGridOf(itemCount: Int, refreshing: Boolean, refreshFailed: Boolean): EmptyGrid = when {
+    itemCount > 0 -> EmptyGrid.None
+    refreshing -> EmptyGrid.Loading
+    refreshFailed -> EmptyGrid.Unavailable
+    else -> EmptyGrid.Empty
 }
 
 /**

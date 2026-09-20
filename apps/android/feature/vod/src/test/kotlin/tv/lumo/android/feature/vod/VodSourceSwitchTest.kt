@@ -39,9 +39,9 @@ class VodSourceSwitchTest {
 
     @Test
     fun `the same source changing status costs nobody the word they were typing`() {
-        val importing = browsingA.browsing(CatalogueSource.NotReady("source-a"))
+        val importing = browsingA.browsing(firstImport("source-a"))
 
-        assertThat(importing.step).isEqualTo(VodStep.NotReadyYet)
+        assertThat(importing.step).isEqualTo(VodStep.Importing)
         assertThat(importing.query).isEqualTo("film 01")
         assertThat(importing.browsing(CatalogueSource.Ready("source-a", isPlaylist = false)))
             .isEqualTo(browsingA)
@@ -53,7 +53,8 @@ class VodSourceSwitchTest {
             CatalogueSource.Loading to VodStep.Loading,
             CatalogueSource.NoSource to VodStep.NoSource,
             CatalogueSource.NeedsChoice to VodStep.NeedsChoice,
-            CatalogueSource.NotReady("source-b") to VodStep.NotReadyYet,
+            firstImport("source-b") to VodStep.Importing,
+            firstImport("source-b", failed = true) to VodStep.ImportFailed,
             CatalogueSource.Ready("source-b", isPlaylist = false) to VodStep.Browsing,
         )
 
@@ -62,4 +63,17 @@ class VodSourceSwitchTest {
         }
         assertThat(browsingA.browsing(CatalogueSource.NeedsChoice).sourceId).isNull()
     }
+
+    @Test
+    fun `films this device holds are shown, whatever the source is doing`() {
+        // Lot C4: the rule is `CatalogueSource.face` in core:data; this screen
+        // applies it.
+        val failed = firstImport("source-b", failed = true)
+
+        assertThat(browsingA.browsing(failed, cachedItems = 0).step).isEqualTo(VodStep.ImportFailed)
+        assertThat(browsingA.browsing(failed, cachedItems = 12).step).isEqualTo(VodStep.Browsing)
+    }
+
+    private fun firstImport(sourceId: String, failed: Boolean = false) =
+        CatalogueSource.FirstImport(sourceId, isPlaylist = false, failed = failed)
 }

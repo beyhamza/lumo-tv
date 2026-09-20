@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoError
+import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
@@ -80,9 +81,9 @@ class LiveSourceSwitchTest {
     fun `the same source changing status costs nobody their category`() {
         // Re-read while on screen — a refresh of the list, a sync that starts.
         // The category somebody picked is still a category of this source.
-        val importing = browsingA.browsing(CatalogueSource.NotReady("source-a"))
+        val importing = browsingA.browsing(firstImport("source-a"))
 
-        assertThat(importing.step).isEqualTo(LiveStep.NotReadyYet)
+        assertThat(importing.step).isEqualTo(LiveStep.Importing)
         assertThat(importing.filter).isEqualTo(CatalogueFilter.Category("news"))
 
         val back = importing.browsing(CatalogueSource.Ready("source-a", isPlaylist = true))
@@ -95,7 +96,9 @@ class LiveSourceSwitchTest {
             CatalogueSource.Loading to LiveStep.Loading,
             CatalogueSource.NoSource to LiveStep.NoSource,
             CatalogueSource.NeedsChoice to LiveStep.NeedsChoice,
-            CatalogueSource.NotReady("source-b") to LiveStep.NotReadyYet,
+            // A first import, and the two sentences it used to share.
+            firstImport("source-b") to LiveStep.Importing,
+            firstImport("source-b", failed = true) to LiveStep.ImportFailed,
             CatalogueSource.Ready("source-b", isPlaylist = false) to LiveStep.Browsing,
         )
 
@@ -105,4 +108,33 @@ class LiveSourceSwitchTest {
         // Asked to choose, the grid reads no source at all — not the old one.
         assertThat(browsingA.browsing(CatalogueSource.NeedsChoice).sourceId).isNull()
     }
+
+    @Test
+    fun `channels this device holds are shown, whatever the source is doing`() {
+        // Lot C4. The visibility rule is `CatalogueSource.face`, pinned in
+        // core:data; what is held here is that this screen applies it.
+        val importing = firstImport("source-b")
+        val failed = firstImport("source-b", failed = true)
+
+        assertThat(browsingA.browsing(importing, cachedItems = 0).step).isEqualTo(LiveStep.Importing)
+        assertThat(browsingA.browsing(importing, cachedItems = 40).step).isEqualTo(LiveStep.Browsing)
+        assertThat(browsingA.browsing(failed, cachedItems = 0).step).isEqualTo(LiveStep.ImportFailed)
+        assertThat(browsingA.browsing(failed, cachedItems = 40).step).isEqualTo(LiveStep.Browsing)
+    }
+
+    @Test
+    fun `the notice belongs to the active source and survives a switch`() {
+        // Written by its own collector, which may run before or after this one:
+        // either way a switch must not blank what the new source has to say.
+        val refreshing = SourceNotice.Refreshing(step = null, hasCatalogue = true)
+        val noticed = browsingA.copy(notice = refreshing)
+
+        assertThat(noticed.browsing(CatalogueSource.Ready("source-b", isPlaylist = false)).notice)
+            .isEqualTo(refreshing)
+        assertThat(noticed.browsing(CatalogueSource.Ready("source-a", isPlaylist = true)).notice)
+            .isEqualTo(refreshing)
+    }
+
+    private fun firstImport(sourceId: String, failed: Boolean = false) =
+        CatalogueSource.FirstImport(sourceId, isPlaylist = false, failed = failed)
 }

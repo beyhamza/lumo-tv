@@ -1,6 +1,5 @@
 package tv.lumo.android.feature.source
 
-import android.text.format.DateUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -11,62 +10,88 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import tv.lumo.android.core.data.R as DataR
-import tv.lumo.android.core.designsystem.component.LumoMockNotImplemented
+import tv.lumo.android.core.data.labelRes
+import tv.lumo.android.core.data.messageRes
 import tv.lumo.android.core.designsystem.component.LumoTvButton
+import tv.lumo.android.core.designsystem.component.LumoTvStateMessage
+import tv.lumo.android.core.designsystem.effect.PollWhile
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.theme.LumoTvShapes
-import tv.lumo.android.core.designsystem.tv.lumoTvFocus
 import tv.lumo.android.core.designsystem.tv.tvOverscan
-import tv.lumo.android.network.generated.model.Source
 import tv.lumo.android.network.generated.model.SourceKind
-import tv.lumo.android.network.generated.model.SourceStatus
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 /**
- * The television's view of the account's source.
+ * "My sources" on the television (US-024, design S8-E09).
  *
- * A television never types a source (docs/architecture.md §5): this screen
- * reads. With a source it shows the card the canvas draws in `TV5 — Réglages`:
- * name, kind, how many channels, when it was last checked, its state. Without
- * one it is `TV6 — aucune source`: the sentence that says where to add it, and
- * the button the canvas puts under it.
+ * <h2>Two things can be done here, and the screen says where the rest is done</h2>
  *
- * That button, « Afficher le code d'association », is the one control here and
- * it opens nothing yet: a television that is signed in has no pairing code to
- * show, and what the canvas means by it is a question for the design. It is on
- * screen, it takes the focus (the screen must have one target, AGENTS.md §6),
- * and pressing it says `[mock]` rather than pretending.
+ * A television chooses the source it browses and asks for a refresh. It never
+ * types (docs/architecture.md §5), so adding, renaming, deleting and the automatic
+ * refresh are done **from the phone application or lumo.tv**, and a block under
+ * the list says so in those words. That block is not the activation wording and
+ * must not drift towards it: pairing a television is about the *account*, and
+ * somebody reading this screen is already signed in. The `[mock]` "show the
+ * pairing code" button the placeholder carried is gone for that reason — it made
+ * exactly that confusion.
+ *
+ * <h2>Focus</h2>
+ *
+ * The targets are the **buttons**, never the cards: a focusable card with a
+ * button inside it is two stops for one thing (AGENTS.md §6).
+ *
+ * - On arrival the focus is on the **active source** — its *Refresh*, the one
+ *   control it has, since *Use this source* is not offered on the source already
+ *   in use.
+ * - `UP`/`DOWN` walk the sources, `LEFT`/`RIGHT` the one or two buttons of a
+ *   source; `LEFT` from the first button reaches the rail when the rail is what
+ *   opened this screen.
+ * - **A refreshing source is not a dead end.** Its button reads "Refreshing…" and
+ *   does nothing, but it **stays focusable**: disabling it would take it out of
+ *   the focus search, and with a single source that is refreshing the screen would
+ *   be left with no target at all — `BACK` the only key that works (rule 1 of
+ *   docs/design/tv-focus-map.md).
+ * - **Pressing *Use this source* removes that button** — the source is now the
+ *   active one — so the focus is handed to the same source's *Refresh* rather than
+ *   left on a control that no longer exists.
+ * - `BACK` is the application's: Settings when pushed from there, Home when the
+ *   switcher at the foot of the rail opened it.
  */
 @Composable
 fun SourceTvScreen(
     modifier: Modifier = Modifier,
-    viewModel: SourceViewModel = hiltViewModel(),
+    viewModel: MySourcesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // A synchronisation on display has to move, and to end. From the composition,
+    // so that it stops with the screen.
+    PollWhile(
+        active = state.anyRefreshing,
+        everyMillis = SOURCE_LIST_POLL_MILLIS,
+        onTick = viewModel::reload,
+    )
 
     Box(
         modifier = modifier
@@ -75,211 +100,331 @@ fun SourceTvScreen(
             .tvOverscan(),
         contentAlignment = Alignment.CenterStart,
     ) {
-        when {
-            state.step is AddSourceStep.Loading -> Text(
-                text = stringResource(R.string.feature_source_submitting),
+        when (state.phase) {
+            // Lasts as long as one request, and the rail beside it is focusable
+            // throughout.
+            MySourcesPhase.Loading -> Text(
+                text = stringResource(R.string.feature_source_tv_loading),
                 style = MaterialTheme.typography.titleLarge,
                 color = LumoColors.OnDarkMuted,
             )
 
-            state.source != null -> WithSource(state.source!!)
+            // A television never adds a source: it says where one is added, and
+            // the one thing it *can* do is look again — which is its button.
+            MySourcesPhase.Empty -> LumoTvStateMessage(
+                title = stringResource(DataR.string.core_data_source_tv_none_title),
+                body = stringResource(DataR.string.core_data_source_tv_none_body),
+                actionLabel = stringResource(R.string.feature_source_tv_check_again),
+                onAction = viewModel::reload,
+            )
 
-            else -> NoSource()
+            MySourcesPhase.Unavailable -> LumoTvStateMessage(
+                title = stringResource(R.string.feature_source_list_unavailable_title),
+                body = stringResource(R.string.feature_source_list_unavailable_body),
+                actionLabel = stringResource(R.string.feature_source_retry),
+                onAction = viewModel::reload,
+            )
+
+            MySourcesPhase.Listed -> Listed(
+                rows = state.rows,
+                onUse = viewModel::use,
+                onRefresh = viewModel::refresh,
+            )
         }
     }
 }
 
 @Composable
-private fun WithSource(source: Source) {
+private fun Listed(
+    rows: List<SourceRow>,
+    onUse: (String) -> Unit,
+    onRefresh: (String) -> Unit,
+) {
+    // The active source, or the first when none is chosen yet. Decided once per
+    // arrival: the list is re-read every few seconds during a refresh, and a
+    // focus pulled back at each poll would fight the remote.
+    val arrivalId = remember { (rows.firstOrNull { it.active } ?: rows.firstOrNull())?.id }
+
     Column(
-        modifier = Modifier.widthIn(max = 1_100.dp),
+        modifier = Modifier
+            .widthIn(max = 1_100.dp)
+            // A column that scrolls rather than a lazy one: sources are counted in
+            // ones and twos, and every card composed means `UP` and `DOWN` always
+            // find a button. Focusing one scrolls it into view by itself.
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
     ) {
         Text(
-            text = stringResource(R.string.feature_source_title),
+            text = stringResource(R.string.feature_source_list_title),
             style = MaterialTheme.typography.displayMedium,
             color = LumoColors.OnDark,
         )
-        Text(
-            text = stringResource(R.string.feature_source_tv_managed_elsewhere),
-            style = MaterialTheme.typography.bodyLarge,
-            color = LumoColors.OnDarkMuted,
-        )
-        SourceCard(source)
+
+        rows.forEach { row ->
+            SourceCard(
+                row = row,
+                onUse = { onUse(row.id) },
+                onRefresh = { onRefresh(row.id) },
+                takesArrivalFocus = row.id == arrivalId,
+            )
+        }
+
+        Guidance()
     }
 }
 
 /**
- * One source, as a card that can take the focus — so that the screen has a
- * target and `OK` does nothing, which is the truthful outcome on a set that
- * cannot edit it.
+ * One source: what it is, what it is doing, what it holds, and its one or two
+ * buttons. The card is **drawn**, never focusable.
  */
 @Composable
-private fun SourceCard(source: Source, modifier: Modifier = Modifier) {
-    var focused by remember { mutableStateOf(false) }
-    val error = source.status == SourceStatus.ERROR
+private fun SourceCard(
+    row: SourceRow,
+    onUse: () -> Unit,
+    onRefresh: () -> Unit,
+    takesArrivalFocus: Boolean,
+) {
+    val failed = row.state is SourceRowState.Failed
 
-    Row(
-        modifier = modifier
+    val useFocus = remember { FocusRequester() }
+    val refreshFocus = remember { FocusRequester() }
+    // A plain holder and not state: written by a press, read by the effect that
+    // press causes, and never drawn.
+    val handOver = remember { booleanArrayOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (!takesArrivalFocus) return@LaunchedEffect
+        // Failing to focus is recoverable — the D-pad still works — and throwing
+        // would take the screen down.
+        runCatching { (if (row.active) refreshFocus else useFocus).requestFocus() }
+    }
+
+    // *Use this source* was pressed and has just left the composition with the
+    // focus on it. Without this the screen is left with no focused target until
+    // the next key press, which on some sets lands nowhere.
+    LaunchedEffect(row.active) {
+        if (row.active && handOver[0]) {
+            handOver[0] = false
+            runCatching { refreshFocus.requestFocus() }
+        }
+    }
+
+    Column(
+        modifier = Modifier
             .fillMaxWidth()
-            .onFocusChanged { focused = it.isFocused }
-            .lumoTvFocus(focused)
             .clip(LumoTvShapes.medium)
-            .background(if (focused) LumoColors.SurfaceRaised else LumoColors.Surface)
+            .background(LumoColors.Surface)
             .then(
-                if (error) Modifier.border(2.dp, LumoColors.Error.copy(alpha = 0.5f), LumoTvShapes.medium) else Modifier,
+                if (failed) {
+                    Modifier.border(2.dp, LumoColors.Error.copy(alpha = 0.5f), LumoTvShapes.medium)
+                } else {
+                    Modifier
+                },
             )
-            .focusable()
             .padding(LumoSpacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
     ) {
-        KindMark(source.kind)
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = source.label,
-                style = MaterialTheme.typography.titleLarge,
-                color = LumoColors.OnDark,
-            )
-            Text(
-                text = summaryOf(source),
-                style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
-                color = if (error) LumoColors.Error else LumoColors.OnDarkMuted,
-            )
-            if (error) {
+            KindMark(row.kind)
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+            ) {
                 Text(
-                    text = stringResource(R.string.feature_source_tv_error_hint),
+                    text = row.label,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = LumoColors.OnDark,
+                )
+                Text(
+                    text = summaryOf(row),
                     style = MaterialTheme.typography.labelLarge,
                     color = LumoColors.OnDarkMuted,
                 )
+                StateLine(row.state)
             }
-            source.expiresAt?.let { expires ->
+
+            // Selection, drawn — and said in words, because a colour at three
+            // metres on a badly calibrated panel is not a label. Never the focus
+            // signature: focus is where the remote is, this is what is browsed.
+            if (row.active) {
                 Text(
-                    text = stringResource(
-                        R.string.feature_source_tv_expires,
-                        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).format(expires),
-                    ),
+                    text = stringResource(R.string.feature_source_list_active),
                     style = MaterialTheme.typography.labelLarge,
-                    color = LumoColors.OnDarkMuted,
+                    color = LumoColors.Accent,
+                    modifier = Modifier
+                        .background(LumoColors.Accent.copy(alpha = 0.12f), LumoTvShapes.pill)
+                        .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.xs),
                 )
             }
         }
 
-        StatusPill(source.status)
+        Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md)) {
+            if (!row.active) {
+                LumoTvButton(
+                    text = stringResource(R.string.feature_source_list_use),
+                    onClick = {
+                        handOver[0] = true
+                        onUse()
+                    },
+                    primary = true,
+                    focusRequester = useFocus,
+                )
+            }
+
+            LumoTvButton(
+                text = stringResource(
+                    when {
+                        row.refreshing -> R.string.feature_source_list_refreshing
+                        (row.state as? SourceRowState.Failed)?.exit == SourceExit.Retry ->
+                            R.string.feature_source_retry
+                        else -> R.string.feature_source_list_refresh
+                    },
+                ),
+                // Guarded in the view model, and **not** disabled here: a disabled
+                // button leaves the focus search, and a single refreshing source
+                // would leave this screen with no target. See the class doc.
+                onClick = onRefresh,
+                focusRequester = refreshFocus,
+            )
+        }
+
+        RefreshOutcome(row.refresh)
     }
 }
 
-/** `m3u` / `xtr` in a gradient square — the canvas's mark for the kind. */
+/** `m3u` / `xtr` in a gradient square — the canvas's mark for the kind. Decoration. */
 @Composable
 private fun KindMark(kind: SourceKind) {
     Box(
         modifier = Modifier
             .size(72.dp)
             .clip(LumoTvShapes.small)
-            .background(Brush.linearGradient(listOf(LumoColors.Accent.copy(alpha = 0.25f), LumoColors.AccentViolet.copy(alpha = 0.25f)))),
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        LumoColors.Accent.copy(alpha = 0.25f),
+                        LumoColors.AccentViolet.copy(alpha = 0.25f),
+                    ),
+                ),
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = if (kind == SourceKind.XTREAM) "xtr" else "m3u",
+            text = stringResource(kind.shortNameRes()).take(KIND_MARK_LENGTH).lowercase(),
             style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
             color = LumoColors.Accent,
         )
     }
 }
 
+/**
+ * `Xtream · 1 248 channels · 312 films · 40 series · refreshed 2 hours ago`, with
+ * every part that is not known left out — **never a zero in its place** — and no
+ * series for a playlist (`adr/0010`).
+ */
 @Composable
-private fun StatusPill(status: SourceStatus) {
-    val (label, color) = when (status) {
-        SourceStatus.READY -> stringResource(R.string.feature_source_tv_status_active) to LumoColors.Accent
-        SourceStatus.ERROR -> stringResource(R.string.feature_source_tv_status_error) to LumoColors.Error
-        SourceStatus.SYNCING -> stringResource(R.string.feature_source_tv_status_syncing) to LumoColors.OnDarkMuted
-        else -> stringResource(R.string.feature_source_tv_status_pending) to LumoColors.OnDarkMuted
-    }
+private fun summaryOf(row: SourceRow): String = listOfNotNull(
+    stringResource(row.kind.shortNameRes()),
+    row.channels?.let { pluralStringResource(R.plurals.feature_source_list_channels, it, it) },
+    row.films?.let { pluralStringResource(R.plurals.feature_source_list_films, it, it) },
+    row.series?.takeIf { row.showsSeries }
+        ?.let { pluralStringResource(R.plurals.feature_source_list_series, it, it) },
+    row.lastSyncedAt
+        ?.let { stringResource(R.string.feature_source_list_last_synced, relative(it)) }
+        ?: stringResource(R.string.feature_source_list_never_synced),
+).joinToString(separator = " · ")
 
-    Row(
-        modifier = Modifier
-            .background(color.copy(alpha = 0.12f), LumoTvShapes.pill)
-            .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .clip(LumoTvShapes.pill)
-                .background(color),
+/** Ready, the **real step** of a refresh, or the reason of a failure and its age. */
+@Composable
+private fun StateLine(state: SourceRowState) {
+    when (state) {
+        SourceRowState.Ready -> Text(
+            text = stringResource(R.string.feature_source_switcher_status_ready),
+            style = MaterialTheme.typography.bodyLarge,
+            color = LumoColors.OnDark,
         )
-        Text(text = label, style = MaterialTheme.typography.labelLarge, color = color)
-    }
-}
 
-@Composable
-private fun summaryOf(source: Source): String {
-    val kind = if (source.kind == SourceKind.XTREAM) "Xtream" else "M3U"
-    val count = source.channelCount
-    val checked = source.lastSyncedAt
-
-    return if (count == null || checked == null) {
-        stringResource(R.string.feature_source_tv_summary_unsynced, kind)
-    } else {
-        stringResource(
-            R.string.feature_source_tv_summary,
-            kind,
-            count,
-            DateUtils.getRelativeTimeSpanString(
-                checked.toInstant().toEpochMilli(),
-                System.currentTimeMillis(),
-                DateUtils.MINUTE_IN_MILLIS,
-            ).toString(),
+        is SourceRowState.Refreshing -> Text(
+            text = stringResource(state.step.labelRes()),
+            style = MaterialTheme.typography.bodyLarge,
+            color = LumoColors.Accent,
         )
-    }
-}
 
-@Composable
-private fun NoSource() {
-    var pressed by remember { mutableStateOf(false) }
-
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            modifier = Modifier
-                .width(820.dp)
-                .clip(LumoTvShapes.large)
-                .background(LumoColors.Surface)
-                .padding(LumoSpacing.xxl),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(LumoTvShapes.pill)
-                    .background(Brush.radialGradient(listOf(LumoColors.Accent, LumoColors.AccentViolet))),
-            )
+        is SourceRowState.Failed -> {
             Text(
-                text = stringResource(DataR.string.core_data_source_tv_none_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = LumoColors.OnDark,
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = stringResource(DataR.string.core_data_source_tv_none_body),
+                text = listOfNotNull(
+                    stringResource(state.reason.messageRes()),
+                    state.at?.let { stringResource(R.string.feature_source_list_failed_at, relative(it)) },
+                ).joinToString(separator = " "),
                 style = MaterialTheme.typography.bodyLarge,
-                color = LumoColors.OnDarkMuted,
-                textAlign = TextAlign.Center,
+                color = LumoColors.Error,
             )
-            LumoTvButton(
-                text = stringResource(R.string.feature_source_tv_show_code),
-                onClick = { pressed = true },
-                primary = true,
-            )
-            if (pressed) LumoMockNotImplemented(scale = TV_TYPE_SCALE)
+            // Credentials and addresses are corrected where they can be typed.
+            if (state.exit == SourceExit.FixCredentials || state.exit == SourceExit.FixAddress) {
+                Text(
+                    text = stringResource(R.string.feature_source_tv_error_hint),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = LumoColors.OnDarkMuted,
+                )
+            }
         }
+
+        SourceRowState.Unknown -> Unit
     }
 }
 
-/** `platforms.tv.typeScale` — what the mock badge grows by on a television. */
-private const val TV_TYPE_SCALE = 1.75f
+/** The phone's sentences, for the same refusals — see `RefreshControl`. */
+@Composable
+private fun RefreshOutcome(control: RefreshControl) {
+    val text = when (control) {
+        RefreshControl.Idle, RefreshControl.Requesting -> return
+        is RefreshControl.Wait -> waitMessage(control.minutes)
+        is RefreshControl.Failed -> stringResource(
+            if (control.offline) {
+                R.string.feature_source_list_refresh_offline
+            } else {
+                R.string.feature_source_list_refresh_failed
+            },
+        )
+    }
+
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = if (control is RefreshControl.Failed) LumoColors.Error else LumoColors.OnDarkMuted,
+    )
+}
+
+/**
+ * Where the rest is done. Text, and **not a focus stop**: there is nothing to
+ * press, and a stop with nothing behind it is a dead end under the last source.
+ */
+@Composable
+private fun Guidance() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(LumoTvShapes.medium)
+            .border(1.dp, LumoColors.OnDarkMuted.copy(alpha = 0.3f), LumoTvShapes.medium)
+            .padding(LumoSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+    ) {
+        Text(
+            text = stringResource(R.string.feature_source_tv_guidance_title),
+            style = MaterialTheme.typography.titleLarge,
+            color = LumoColors.OnDark,
+        )
+        Text(
+            text = stringResource(R.string.feature_source_tv_guidance_body),
+            style = MaterialTheme.typography.bodyLarge,
+            color = LumoColors.OnDarkMuted,
+        )
+    }
+}
+
+/** `m3u`, `xtr`: three letters fit the square at the label size. */
+private const val KIND_MARK_LENGTH = 3

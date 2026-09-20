@@ -22,11 +22,16 @@ import tv.lumo.android.feature.live.PlayerTvScreen
  * feature's: the callbacks are wired in the NavHost, as they are for the two
  * halves of signing in.
  */
-fun NavGraphBuilder.liveMobileScreen(onPlay: (channelId: String, name: String?) -> Unit) {
-    composable(route = LiveDestination.route) { LiveMobileScreen(onPlay = onPlay) }
+fun NavGraphBuilder.liveMobileScreen(
+    onPlay: (channelId: String, name: String?) -> Unit,
+    onOpenSources: () -> Unit,
+) {
+    composable(route = LiveDestination.route) {
+        LiveMobileScreen(onPlay = onPlay, onOpenSources = onOpenSources)
+    }
 }
 
-fun NavGraphBuilder.livePlayerMobileScreen(onBack: () -> Unit) {
+fun NavGraphBuilder.livePlayerMobileScreen(onBack: () -> Unit, onOpenSources: () -> Unit) {
     composable(
         route = PlayerDestination.route,
         arguments = listOf(
@@ -42,6 +47,7 @@ fun NavGraphBuilder.livePlayerMobileScreen(onBack: () -> Unit) {
             channelName = entry.arguments?.getString(PlayerDestination.ARG_NAME)
                 ?.takeIf { it.isNotEmpty() },
             onBack = onBack,
+            onOpenSources = onOpenSources,
         )
     }
 }
@@ -53,7 +59,10 @@ fun NavGraphBuilder.livePlayerMobileScreen(onBack: () -> Unit) {
  * What it opens differs: `S2-14` gives the television its own player, because a
  * screen driven by a remote is not a screen driven by a thumb.
  */
-fun NavGraphBuilder.liveTvScreen(onPlay: (channelId: String, name: String?) -> Unit) {
+fun NavGraphBuilder.liveTvScreen(
+    onPlay: (channelId: String, name: String?) -> Unit,
+    onOpenSources: () -> Unit,
+) {
     composable(route = LiveDestination.route) { entry ->
         // Written by the player on its way out, read here on the way back in.
         // The saved state handle rather than a shared view model: the two screens
@@ -63,6 +72,7 @@ fun NavGraphBuilder.liveTvScreen(onPlay: (channelId: String, name: String?) -> U
 
         LiveTvScreen(
             onPlay = onPlay,
+            onOpenSources = onOpenSources,
             returnedChannelId = handle.get<String>(KEY_RETURNED_CHANNEL),
             // Cleared once used, so that leaving and coming back to this tab
             // later does not re-focus a channel from a previous visit.
@@ -89,7 +99,10 @@ const val KEY_RETURNED_CHANNEL: String = "returnedChannelId"
  * will read it; a catalogue of fifteen thousand channels that returns to the top
  * has, in practice, lost the viewer's place.
  */
-fun NavGraphBuilder.livePlayerTvScreen(onBack: (channelId: String) -> Unit) {
+fun NavGraphBuilder.livePlayerTvScreen(
+    onBack: (channelId: String) -> Unit,
+    onOpenSources: () -> Unit,
+) {
     composable(
         route = PlayerDestination.route,
         arguments = listOf(
@@ -105,6 +118,7 @@ fun NavGraphBuilder.livePlayerTvScreen(onBack: (channelId: String) -> Unit) {
             channelName = entry.arguments?.getString(PlayerDestination.ARG_NAME)
                 ?.takeIf { it.isNotEmpty() },
             onBack = onBack,
+            onOpenSources = onOpenSources,
         )
     }
 }

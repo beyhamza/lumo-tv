@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The module that needs a permission declares it, so neither application can
+  forget it and neither can drift from the other (ADR 0004).
+
+  ACCESS_NETWORK_STATE: `ConnectivityMonitor` listens for the network coming back,
+  which is one of the three moments a player asks whether its source still exists
+  (US-024, lot C4, decision D5). core:network already declares it for the offline
+  indicator, so nothing changes in what either application requests; it is stated
+  here because this module calls `registerDefaultNetworkCallback` itself, and lint
+  checks a library against its own manifest.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+</manifest>

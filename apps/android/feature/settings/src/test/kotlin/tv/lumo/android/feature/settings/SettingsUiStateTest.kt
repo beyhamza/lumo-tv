@@ -9,23 +9,23 @@ import tv.lumo.android.network.generated.model.SourceKind
 import tv.lumo.android.network.generated.model.SourceStatus
 
 /**
- * The three readings the M6 screen makes of its state, and the one that is
- * easy to get wrong: `auto_sync` is per source, and the account-wide switch has
- * to say something honest about a mixed account.
+ * The readings the M6 screen makes of its state.
+ *
+ * The account-wide automatic-refresh switch used to be held here, because it had
+ * to say something honest about a mixed account. It is gone with its problem:
+ * `auto_sync` is set per source, in "My sources" (US-024), and that rule is
+ * tested where it lives — `MySourcesStateTest`.
  */
 class SettingsUiStateTest {
 
     @Test
-    fun `the switch is off unless every source refreshes on its own`() {
-        assertThat(autoSyncOf(listOf(source(autoSync = true), source(autoSync = true)))).isTrue()
-        assertThat(autoSyncOf(listOf(source(autoSync = true), source(autoSync = false)))).isFalse()
-    }
-
-    @Test
-    fun `no source means no switch, not a switch that is off`() {
-        // Null, not false: the screen draws a disabled control, and nothing it
-        // could write would change anything.
-        assertThat(autoSyncOf(emptyList())).isNull()
+    fun `the sources section counts and opens, and sets nothing`() {
+        // US-024: automatic refresh and "refresh now" left this screen for the
+        // per-source controls of "My sources". What is left here is a number —
+        // and an unknown number stays unknown rather than becoming a zero.
+        assertThat(SettingsUiState().sourceCount).isNull()
+        assertThat(SettingsUiState(sourceCount = 2, sources = listOf(source(), source())).sources)
+            .hasSize(2)
     }
 
     @Test
@@ -51,7 +51,7 @@ class SettingsUiStateTest {
             .isEqualTo(R.string.feature_settings_session_none)
     }
 
-    private fun source(autoSync: Boolean) = Source(
+    private fun source(autoSync: Boolean = true) = Source(
         id = UUID.randomUUID(),
         label = "Test source",
         kind = SourceKind.M3U_URL,

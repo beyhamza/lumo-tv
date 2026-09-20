@@ -1,16 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  "My sources" on the television (US-024, design S8-E09). What the list itself
+  says — names of states, counts, the refresh sentences — is shared with the
+  phone and lives in strings.xml; this file is what only a television says.
+-->
 <resources>
-    <!-- TV6 — no source yet. -->
-    <string name="feature_source_tv_show_code">Show the pairing code</string>
+    <string name="feature_source_tv_loading">Reading your sources…</string>
+    <!-- The one thing a television with no source can do: look again. -->
+    <string name="feature_source_tv_check_again">Check again</string>
 
-    <!-- TV5 — the sources a television only reads. -->
-    <string name="feature_source_tv_managed_elsewhere">Sources are managed from your phone or lumo.tv — nothing to type here.</string>
-    <string name="feature_source_tv_summary">%1$s · %2$d channels · checked %3$s</string>
-    <string name="feature_source_tv_summary_unsynced">%1$s · not synchronised yet</string>
-    <string name="feature_source_tv_expires">Subscription until %1$s</string>
-    <string name="feature_source_tv_status_active">Active</string>
-    <string name="feature_source_tv_status_error">Error</string>
-    <string name="feature_source_tv_status_syncing">Syncing</string>
-    <string name="feature_source_tv_status_pending">Pending</string>
-    <string name="feature_source_tv_error_hint">Fix it from lumo.tv or your phone.</string>
+    <!-- Credentials and addresses are corrected where they can be typed. -->
+    <string name="feature_source_tv_error_hint">Correct it from the phone app or lumo.tv.</string>
+
+    <!--
+      Where the rest is done. Not the activation wording, on purpose: pairing a
+      television is about the account, and whoever reads this is signed in.
+    -->
+    <string name="feature_source_tv_guidance_title">Add, rename or delete a source</string>
+    <string name="feature_source_tv_guidance_body">From the phone app or lumo.tv — that is also where automatic refresh is turned on or off. Changes appear here by themselves.</string>
 </resources>

@@ -9,13 +9,16 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.ActiveSourceState
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.SyncOutcome
+import tv.lumo.android.core.data.asSyncOutcome
 import tv.lumo.android.core.data.repository.AccountRepository
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.SourceRepository
@@ -59,14 +62,25 @@ import tv.lumo.android.network.generated.model.SourceStatus
  * repository that owned a timer would be a repository nobody could test without
  * one.
  *
- * <h2>The source on this tab is the active one</h2>
+ * <h2>A flow that is entered, not a tab that follows</h2>
  *
- * It used to be the first of the list, which with two sources is a source nobody
- * chose. It is now whichever this device browses (US-018), and it is followed:
- * changing source from the shell while this tab is open shows the new one. And
- * this screen is what tells [ActiveSourceRepository] that the list has changed —
- * a source created here becomes active when it is the account's first, and
- * leaves the selection alone when it is not (US-024).
+ * Until "My sources" existed (US-024) this view model *was* the source screen: it
+ * followed the active source and showed the form when there was none. The list is
+ * now `MySourcesViewModel`'s, and this is what it opens — to add a source
+ * ([startAdding]) or to correct one whose import failed ([startFixing]) — and
+ * what [close] leaves. It starts [AddSourceStep.Idle] and shows nothing until
+ * asked.
+ *
+ * <h2>After adding (US-024, "Après ajout")</h2>
+ *
+ * This screen is what tells [ActiveSourceRepository] that the list has changed,
+ * and the repository's rule does the rest: the account's **first** source becomes
+ * active on this device, an **additional** one leaves the selection alone. What
+ * the screen then proposes follows from that and from nothing else —
+ * [AddSourceState.watchedIsActive]: *Discover my catalogue* for the source being
+ * browsed, *Use this source* for one that is not. The import can be left at any
+ * moment; a source that failed is kept, with its error and its way out, and is
+ * never a reason to fill the form again.
  */
 @HiltViewModel
 class SourceViewModel @Inject constructor(
@@ -81,57 +95,64 @@ class SourceViewModel @Inject constructor(
     private var pollJob: Job? = null
 
     init {
-        observeActiveSource()
+        // Which source this device browses, and nothing else about it: it decides
+        // what is proposed once the source being watched here is ready.
+        viewModelScope.launch {
+            activeSource.state
+                .map { it.selectedSourceId }
+                .distinctUntilChanged()
+                .collect { activeId -> _state.update { it.copy(activeSourceId = activeId) } }
+        }
     }
 
     /**
-     * Decides what this tab is showing: the active source, or the form that makes
-     * one.
+     * Opens the form, or the sentence that says the plan is full.
      *
-     * Keyed on **which** source is active and on nothing else about it. A status
-     * that moves, a sync date, a sibling renamed — none of that may restart this
-     * screen, because the correction form lives here and a re-emission that
-     * replaced it with the source's card would throw away what somebody was
-     * typing.
+     * @param knownCount how many sources the account has, when the list could be
+     * read. Null — the list failed — never closes the form: an unknown count is
+     * not a full plan, and the server is the one that refuses.
      */
-    private fun observeActiveSource() {
-        _state.update { it.copy(step = AddSourceStep.Loading) }
-
-        // Resolved a while ago: the list may have changed since. Still loading
-        // means the repository is asking right now.
-        if (activeSource.state.value !is ActiveSourceState.Loading) {
-            viewModelScope.launch { activeSource.refresh() }
-        }
-
-        viewModelScope.launch {
-            activeSource.state
-                .distinctUntilChangedBy { active -> active.shownSourceId to active::class }
-                .collect { active -> follow(active) }
-        }
+    fun startAdding(knownCount: Int?) {
+        pollJob?.cancel()
+        _state.update { AddSourceState(step = AddSourceStep.Loading, activeSourceId = it.activeSourceId) }
+        viewModelScope.launch { offerForm(knownCount) }
     }
 
-    private suspend fun follow(active: ActiveSourceState) {
-        val source = (active as? ActiveSourceState.Selected)?.source
-
-        when {
-            source != null -> {
-                show(source)
-                watch(source.id.toString())
-            }
-
-            // Still being read, or several sources and the shell is asking which.
-            // Either way there is no source to show yet and no reason to offer
-            // the form to somebody who has sources.
-            active is ActiveSourceState.Loading || active is ActiveSourceState.NeedsChoice -> {
-                pollJob?.cancel()
-                _state.update { AddSourceState(step = AddSourceStep.Loading) }
-            }
-
-            else -> {
-                pollJob?.cancel()
-                offerForm(knownEmpty = active is ActiveSourceState.None)
-            }
+    /**
+     * Opens the correction form for a source whose import failed, from the list.
+     *
+     * The source is kept, with its error (US-024): what was right is still in the
+     * form, and the `PATCH` restarts the import by itself.
+     */
+    fun startFixing(source: Source) {
+        pollJob?.cancel()
+        _state.update {
+            AddSourceState(
+                step = AddSourceStep.Watching(source.id.toString()),
+                source = source,
+                view = viewOf(source),
+                activeSourceId = it.activeSourceId,
+            )
         }
+        fixInput()
+    }
+
+    /**
+     * Leaves the flow, back to the list.
+     *
+     * Allowed at any moment, **an import in progress included** (US-024): the
+     * source goes on importing on the server, the list shows its real step, and
+     * nothing here needs to stay open for that. The password goes with the state.
+     */
+    fun close() {
+        pollJob?.cancel()
+        _state.update { AddSourceState(step = AddSourceStep.Idle, activeSourceId = it.activeSourceId) }
+    }
+
+    /** *Use this source*, for a source added beside the one being browsed. */
+    fun useWatched() {
+        val sourceId = (_state.value.step as? AddSourceStep.Watching)?.sourceId ?: return
+        viewModelScope.launch { activeSource.select(sourceId) }
     }
 
     /**
@@ -142,20 +163,22 @@ class SourceViewModel @Inject constructor(
      * (ADR 0003). The server refuses anyway; this is the courtesy, and the
      * contract says as much.
      *
-     * @param knownEmpty whether the server said the account has no source. When
-     * the list could not be read the count is unknown, and an unknown count never
-     * closes the form: the server is the one that refuses.
+     * @param used how many sources the account has, or null when the list could
+     * not be read. An unknown count never closes the form: the server is the one
+     * that refuses.
      */
-    private suspend fun offerForm(knownEmpty: Boolean) {
+    private suspend fun offerForm(used: Int?) {
         val max = account.entitlement().valueOrNull()?.maxSources
-        val used = if (knownEmpty) 0 else null
 
         _state.update {
+            // Closed while the entitlement was being read: stay closed.
+            if (it.step != AddSourceStep.Loading) return@update it
+
             // A null maximum means unlimited in the contract, not unknown.
             if (max != null && used != null && used >= max) {
-                AddSourceState(step = AddSourceStep.NoRoom(max))
+                it.copy(step = AddSourceStep.NoRoom(max))
             } else {
-                AddSourceState(step = AddSourceStep.ChoosingKind)
+                it.copy(step = AddSourceStep.ChoosingKind)
             }
         }
     }
@@ -166,7 +189,9 @@ class SourceViewModel @Inject constructor(
         _state.update { it.copy(step = AddSourceStep.Filling(kind), failure = null) }
 
     /** Back to the two cards, keeping nothing: the fields differ per kind. */
-    fun onBack() = _state.update { AddSourceState(step = AddSourceStep.ChoosingKind) }
+    fun onBack() = _state.update {
+        AddSourceState(step = AddSourceStep.ChoosingKind, activeSourceId = it.activeSourceId)
+    }
 
     fun onLabelChange(value: String) = _state.update { it.copy(label = value, failure = null) }
 
@@ -250,6 +275,13 @@ class SourceViewModel @Inject constructor(
     private fun accept(result: LumoResult<Source>) {
         when (result) {
             is LumoResult.Success -> {
+                // Closed while the server was checking: the source exists all the
+                // same, so the list is told — and the flow stays closed.
+                if (_state.value.step == AddSourceStep.Idle) {
+                    viewModelScope.launch { activeSource.refresh() }
+                    return
+                }
+
                 // The password leaves this object the moment it is no longer
                 // needed. It is never redisplayed — the API does not return it,
                 // and no screen holds it any longer than the request did.
@@ -337,15 +369,40 @@ class SourceViewModel @Inject constructor(
         }
     }
 
-    /** `SOURCE_UNREACHABLE`, and only that: ask the server to try the same thing again. */
+    /**
+     * *Try again*, on a source that is kept with its error (US-024): the same
+     * source, asked to import again — never a second one made from the form.
+     *
+     * The outcomes are the list's (`SyncOutcome`): already running is what was
+     * asked for, a rate limit is a wait worded with the server's own delay, and a
+     * source deleted elsewhere closes the flow onto whatever is left.
+     */
     fun retry() {
         val sourceId = (_state.value.step as? AddSourceStep.Watching)?.sourceId ?: return
 
         viewModelScope.launch {
-            // A 409 here means a synchronisation is already running, which is what
-            // was asked for. Polling picks it up either way.
-            sources.sync(sourceId)
-            watch(sourceId)
+            when (val outcome = sources.sync(sourceId).asSyncOutcome()) {
+                is SyncOutcome.Accepted -> {
+                    show(outcome.source)
+                    watch(sourceId)
+                    activeSource.refresh()
+                }
+
+                SyncOutcome.AlreadyRunning -> watch(sourceId)
+
+                is SyncOutcome.RateLimited -> _state.update {
+                    it.copy(failure = AddSourceFailure.TooManyAttempts(outcome.retryAfterSeconds))
+                }
+
+                SyncOutcome.Gone -> {
+                    close()
+                    activeSource.onSourceGone(sourceId)
+                }
+
+                is SyncOutcome.Failed -> _state.update {
+                    it.copy(failure = outcome.error.asFailure())
+                }
+            }
         }
     }
 
@@ -378,7 +435,10 @@ class SourceViewModel @Inject constructor(
 /** Where the user is in the flow. */
 sealed interface AddSourceStep {
 
-    /** Asking what this account already has. */
+    /** The flow is not open: "My sources" shows its list. */
+    data object Idle : AddSourceStep
+
+    /** Asking what the plan allows. */
     data object Loading : AddSourceStep
 
     /** The plan is full. [max] comes from the server, never from a constant. */
@@ -401,7 +461,7 @@ sealed interface AddSourceStep {
 }
 
 data class AddSourceState(
-    val step: AddSourceStep = AddSourceStep.Loading,
+    val step: AddSourceStep = AddSourceStep.Idle,
     val label: String = "",
     val host: String = "",
     val username: String = "",
@@ -414,7 +474,21 @@ data class AddSourceState(
     val source: Source? = null,
     /** What that answer looks like on screen. Null until there is a source. */
     val view: SourceView? = null,
+    /** The source this device browses, as `ActiveSourceRepository` says it (US-018). */
+    val activeSourceId: String? = null,
 ) {
+    /**
+     * Whether the source being watched here is the one this device browses.
+     *
+     * The whole of "after adding" (US-024) hangs on it. True for the account's
+     * first source — the repository selects it without a question — and the
+     * screen proposes *Discover my catalogue*. False for an additional one, which
+     * does not steal the selection, and the screen proposes *Use this source*;
+     * pressing that makes this true, and the proposal follows.
+     */
+    val watchedIsActive: Boolean
+        get() = (step as? AddSourceStep.Watching)?.sourceId.let { it != null && it == activeSourceId }
+
     /**
      * Enough to be worth a round trip.
      *
@@ -519,13 +593,6 @@ internal fun LumoError.asFailure(): AddSourceFailure = when (this) {
     }
     is LumoError.UnknownCode, is LumoError.Unreadable -> AddSourceFailure.Unexpected
 }
-
-/**
- * The source this tab can actually show: selected, **and** known to the server's
- * list. A choice remembered offline has an identifier and nothing to draw.
- */
-private val ActiveSourceState.shownSourceId: String?
-    get() = (this as? ActiveSourceState.Selected)?.takeIf { it.source != null }?.selectedSourceId
 
 /** Often enough to feel live, rarely enough not to matter to a battery. */
 private const val POLL_INTERVAL_MILLIS = 2_000L

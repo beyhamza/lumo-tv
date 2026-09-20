@@ -62,7 +62,7 @@ import tv.lumo.android.feature.source.R
  * application's business: a feature does not know what else is on the back stack.
  * @param onLastSourceLost the account's last source is gone: the way forward is
  * adding one (US-018).
- * @param onOpenSources "My sources". The full screen is `S8-05`'s.
+ * @param onOpenSources "My sources" (US-024), this module's own destination.
  */
 @Composable
 fun SourceSwitcherMobile(

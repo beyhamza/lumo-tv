@@ -20,17 +20,21 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.ActiveSourceState
+import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.asCatalogueSource
 import tv.lumo.android.core.data.channelsOfSource
+import tv.lumo.android.core.data.face
 import tv.lumo.android.core.data.model.Cached
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
+import tv.lumo.android.core.data.notice
 import tv.lumo.android.core.data.ofSource
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.CatalogueRepository
@@ -56,8 +60,18 @@ import tv.lumo.android.core.data.sourceId
  * minute of somebody's data for a list that has not changed. So it happens on the
  * first open of an empty cache, and afterwards only when the user asks.
  *
- * The one exception is a source that is still importing: there is nothing to
- * cache yet, and the screen says so rather than showing an empty list.
+ * The one exception is a source whose **first** import has not succeeded: there
+ * is nothing to cache yet, and the screen says so — importing, or failed —
+ * rather than showing an empty list.
+ *
+ * <h2>A catalogue that exists is shown, in every status (lot C4)</h2>
+ *
+ * Any status but `READY` used to hide the grid, although Room still held the
+ * channels and, since C4, the server still lists them. A source that refreshes,
+ * or whose last attempt failed, now keeps its grid and gets a [SourceNotice]
+ * above it: the real step, or the reason and the warning that the list may be
+ * out of date (US-024). The rule itself is `CatalogueSource.face`, in
+ * `core:data`, shared with films and series.
  *
  * <h2>The source is the active one, and it can change under the screen</h2>
  *
@@ -155,23 +169,52 @@ class LiveViewModel @Inject constructor(
                 .distinctUntilChanged()
                 .collectLatest { source -> open(source) }
         }
+
+        // Apart from the collector above, and that is the point: the notice
+        // changes with every step of a synchronisation, and none of those steps
+        // may restart the grid.
+        viewModelScope.launch {
+            activeSource.state
+                .map { it.notice() }
+                .distinctUntilChanged()
+                .collect { notice -> _state.update { it.copy(notice = notice) } }
+        }
     }
 
     private suspend fun open(source: CatalogueSource) {
-        _state.update { it.browsing(source) }
+        val sourceId = source.sourceId
+        val cached = if (sourceId == null) 0 else catalogue.cachedChannelCount(sourceId)
 
-        // Not ready: nothing has been ingested yet. An empty channel list would
-        // read as "this source has no channels", which is a different and much
-        // more alarming thing than "it is still importing".
-        if (source !is CatalogueSource.Ready) return
+        _state.update { it.browsing(source, cachedItems = cached) }
+
+        // No grid: nothing was ever ingested and nothing is cached. An empty
+        // channel list would read as "this source has no channels", which is a
+        // different and much more alarming thing than "it is still importing".
+        if (sourceId == null || _state.value.step != LiveStep.Browsing) return
 
         coroutineScope {
-            launch { observeCategories(source.sourceId) }
+            launch { observeCategories(sourceId) }
 
-            if (catalogue.cachedChannelCount(source.sourceId) == 0) {
+            // Only a source the server can list: one that never finished an
+            // ingestion answers `409`, and asking would put a "refresh failed"
+            // banner over a cache that is merely waiting.
+            if (cached == 0 && source is CatalogueSource.Ready) {
                 refresh()
             }
         }
+    }
+
+    /**
+     * Asks for the list of sources again.
+     *
+     * What the screens call every few seconds **while a refresh is on display** —
+     * from the composition, so that it stops with the screen: the step of a
+     * synchronisation is only worth showing if it moves, and the notice has to go
+     * away when the refresh ends.
+     */
+    fun refreshSource() {
+        if (activeSource.state.value is ActiveSourceState.Loading) return
+        viewModelScope.launch { activeSource.refresh() }
     }
 
     private suspend fun observeCategories(sourceId: String) {
@@ -441,8 +484,15 @@ sealed interface LiveStep {
      */
     data object NeedsChoice : LiveStep
 
-    /** A source exists but has not finished importing, or failed to. */
-    data object NotReadyYet : LiveStep
+    /**
+     * The first import is running, and this device holds nothing of the source.
+     *
+     * Only a **first** import: a source that refreshes keeps its grid (lot C4).
+     */
+    data object Importing : LiveStep
+
+    /** The first import failed, and this device holds nothing of the source. */
+    data object ImportFailed : LiveStep
 
     data object Browsing : LiveStep
 }
@@ -463,6 +513,13 @@ data class LiveState(
     val filter: CatalogueFilter = CatalogueFilter.All,
     val refreshing: Boolean = false,
     val refreshFailed: Boolean = false,
+
+    /**
+     * What the active source is doing, said above the grid or in the first-import
+     * message: the real step of a refresh, or why the last attempt failed and that
+     * the list may be out of date (US-024). Null when there is nothing to say.
+     */
+    val notice: SourceNotice? = null,
 
     // ---- favourites (US-12) ------------------------------------------------
 
@@ -507,6 +564,9 @@ data class LiveState(
      * screen — importing, then ready — and a category somebody picked has to
      * survive that.
      *
+     * [cachedItems] is how many channels of [source] Room holds. It only matters
+     * for a source that was never ingested — see `CatalogueSource.face`.
+     *
      * **Another source, and everything that belonged to the old one goes**: the
      * filter, the categories it was picked from, the refresh outcome, the
      * favourites and recent channels drawn from it, a group sheet open on one of
@@ -517,13 +577,14 @@ data class LiveState(
      * What survives is what belongs to the account: the groups, the hearts Room
      * holds, a favourite write still in flight and its outcome.
      */
-    fun browsing(source: CatalogueSource): LiveState {
-        val step = when (source) {
-            CatalogueSource.Loading -> LiveStep.Loading
-            CatalogueSource.NoSource -> LiveStep.NoSource
-            CatalogueSource.NeedsChoice -> LiveStep.NeedsChoice
-            is CatalogueSource.NotReady -> LiveStep.NotReadyYet
-            is CatalogueSource.Ready -> LiveStep.Browsing
+    fun browsing(source: CatalogueSource, cachedItems: Int = 0): LiveState {
+        val step = when (source.face(cachedItems)) {
+            CatalogueFace.Loading -> LiveStep.Loading
+            CatalogueFace.NoSource -> LiveStep.NoSource
+            CatalogueFace.NeedsChoice -> LiveStep.NeedsChoice
+            CatalogueFace.Importing -> LiveStep.Importing
+            CatalogueFace.ImportFailed -> LiveStep.ImportFailed
+            CatalogueFace.Browsing -> LiveStep.Browsing
         }
 
         if (source.sourceId == sourceId) return copy(step = step)
@@ -531,6 +592,9 @@ data class LiveState(
         return LiveState(
             step = step,
             sourceId = source.sourceId,
+            // The active source's, written by its own collector: whichever of the
+            // two runs first, the notice on screen is never the old source's.
+            notice = notice,
             groups = groups,
             favoritedChannelIds = favoritedChannelIds,
             pendingFavorites = pendingFavorites,

@@ -61,11 +61,8 @@
     <string name="feature_home_explore_films">Films</string>
     <string name="feature_home_explore_series">Series</string>
 
-    <!-- A source that is importing keeps showing what the device already holds. -->
-    <string name="feature_home_syncing_title">Your source is being refreshed</string>
-    <string name="feature_home_syncing_hint">What is already on this device stays available.</string>
-
-    <!-- The reason follows, in the words of its ingestion code. -->
-    <string name="feature_home_error_title">Your source has a problem</string>
-    <string name="feature_home_open_sources">My sources</string>
+    <!--
+      The notice over the rails — refreshing, failed, "My sources" — is worded in
+      core:data since the three catalogue grids show the same one (US-024).
+    -->
 </resources>

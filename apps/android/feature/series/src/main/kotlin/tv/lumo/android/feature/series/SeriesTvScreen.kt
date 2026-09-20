@@ -39,10 +39,21 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import tv.lumo.android.core.data.EmptyGrid
+import tv.lumo.android.core.data.R as DataR
+import tv.lumo.android.core.data.SourceNotice
+import tv.lumo.android.core.data.emptyGridOf
+import tv.lumo.android.core.data.labelRes
+import tv.lumo.android.core.data.messageRes
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.Series
+import tv.lumo.android.core.data.wording
 import tv.lumo.android.core.designsystem.component.LumoPoster
+import tv.lumo.android.core.designsystem.component.LumoTvSourceNotice
+import tv.lumo.android.core.designsystem.component.LumoTvStateMessage
+import tv.lumo.android.core.designsystem.effect.PollWhile
+import tv.lumo.android.core.designsystem.effect.SOURCE_NOTICE_POLL_MILLIS
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
@@ -93,6 +104,7 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
 @Composable
 fun SeriesTvScreen(
     onOpenSeries: (seriesId: String) -> Unit,
+    onOpenSources: () -> Unit,
     modifier: Modifier = Modifier,
     returnedSeriesId: String? = null,
     onReturnHandled: () -> Unit = {},
@@ -100,6 +112,13 @@ fun SeriesTvScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val series = viewModel.items.collectAsLazyPagingItems()
+
+    // A refresh on display has to move, and to go away when it ends (US-024).
+    PollWhile(
+        active = state.notice is SourceNotice.Refreshing,
+        everyMillis = SOURCE_NOTICE_POLL_MILLIS,
+        onTick = viewModel::refreshSource,
+    )
 
     Box(
         modifier = modifier
@@ -128,14 +147,35 @@ fun SeriesTvScreen(
                 body = stringResource(R.string.feature_series_needs_choice_body),
             )
 
-            SeriesStep.NotReadyYet -> TvMessage(
-                title = stringResource(R.string.feature_series_not_ready_title),
-                body = stringResource(R.string.feature_series_not_ready_body),
+            // The two faces of a first import, which used to share one "not
+            // ready" sentence. Each has a button — "My sources" — so that `RIGHT`
+            // from the rail lands somewhere while there is no grid to land on.
+            SeriesStep.Importing -> LumoTvStateMessage(
+                title = stringResource(DataR.string.core_data_first_import_title),
+                detail = stringResource(
+                    (state.notice as? SourceNotice.Refreshing)?.step.labelRes(),
+                ),
+                body = stringResource(DataR.string.core_data_first_import_body),
+                actionLabel = stringResource(DataR.string.core_data_notice_open_sources),
+                onAction = onOpenSources,
+            )
+
+            SeriesStep.ImportFailed -> LumoTvStateMessage(
+                title = stringResource(DataR.string.core_data_first_import_failed_title),
+                detail = stringResource(
+                    (state.notice as? SourceNotice.Failed)?.code.messageRes(),
+                ),
+                isError = true,
+                body = stringResource(DataR.string.core_data_first_import_failed_body),
+                actionLabel = stringResource(DataR.string.core_data_notice_open_sources),
+                onAction = onOpenSources,
             )
 
             SeriesStep.Browsing -> Browsing(
                 state = state,
                 series = series,
+                onOpenSources = onOpenSources,
+                onRetry = viewModel::refresh,
                 onSelectCategory = viewModel::onCategorySelected,
                 onSelectResume = viewModel::onResumeSelected,
                 onOpenSeries = onOpenSeries,
@@ -150,6 +190,8 @@ fun SeriesTvScreen(
 private fun Browsing(
     state: SeriesState,
     series: LazyPagingItems<Series>,
+    onOpenSources: () -> Unit,
+    onRetry: () -> Unit,
     onSelectCategory: (String?) -> Unit,
     onSelectResume: () -> Unit,
     onOpenSeries: (String) -> Unit,
@@ -207,6 +249,24 @@ private fun Browsing(
                     color = LumoColors.OnDarkMuted,
                 )
             }
+
+            // In the header line, compact: a notice of its own height would take
+            // it from the one row of posters. A refresh is text; a failure adds
+            // the one stop this line has — "My sources", reached by `UP` from
+            // the category strip.
+            state.notice?.let { notice ->
+                val wording = notice.wording()
+                LumoTvSourceNotice(
+                    title = stringResource(wording.title),
+                    message = stringResource(wording.message),
+                    hint = wording.hint?.let { stringResource(it) },
+                    isError = wording.failed,
+                    actionLabel = stringResource(wording.action).takeIf { wording.failed },
+                    onAction = onOpenSources,
+                    compact = true,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
 
         Categories(
@@ -218,6 +278,22 @@ private fun Browsing(
             onSelect = onSelectCategory,
             onSelectResume = onSelectResume,
         )
+
+        // Failed to load is not empty (US-024) — except under a playlist, which
+        // cannot carry series whatever became of the request (adr/0010). The
+        // button is what gives this state a focus target below the strip.
+        if (
+            !state.isPlaylist &&
+            emptyGridOf(series.itemCount, state.refreshing, state.refreshFailed) == EmptyGrid.Unavailable
+        ) {
+            LumoTvStateMessage(
+                title = stringResource(DataR.string.core_data_catalogue_unavailable_title),
+                body = stringResource(DataR.string.core_data_catalogue_unavailable_body),
+                actionLabel = stringResource(DataR.string.core_data_catalogue_retry),
+                onAction = onRetry,
+            )
+            return@Column
+        }
 
         if (series.itemCount == 0 && !state.refreshing) {
             TvMessage(

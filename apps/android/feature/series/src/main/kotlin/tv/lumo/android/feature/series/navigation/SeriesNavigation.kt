@@ -24,9 +24,14 @@ import tv.lumo.android.feature.series.SeriesTvScreen
 fun NavGraphBuilder.seriesMobileScreen(
     onOpenSeries: (seriesId: String) -> Unit,
     onPlay: (episodeId: String, title: String?, atMs: Long) -> Unit,
+    onOpenSources: () -> Unit,
 ) {
     composable(route = SeriesDestination.route) {
-        SeriesMobileScreen(onOpenSeries = onOpenSeries, onPlay = onPlay)
+        SeriesMobileScreen(
+            onOpenSeries = onOpenSeries,
+            onPlay = onPlay,
+            onOpenSources = onOpenSources,
+        )
     }
 }
 
@@ -48,7 +53,7 @@ fun NavGraphBuilder.seriesDetailMobileScreen(
     }
 }
 
-fun NavGraphBuilder.episodePlayerMobileScreen(onBack: () -> Unit) {
+fun NavGraphBuilder.episodePlayerMobileScreen(onBack: () -> Unit, onOpenSources: () -> Unit) {
     composable(
         route = EpisodePlayerDestination.route,
         arguments = listOf(
@@ -72,6 +77,7 @@ fun NavGraphBuilder.episodePlayerMobileScreen(onBack: () -> Unit) {
                 ?.takeIf { it.isNotEmpty() },
             resumeFromMs = entry.arguments?.getLong(EpisodePlayerDestination.ARG_AT) ?: 0L,
             onBack = onBack,
+            onOpenSources = onOpenSources,
         )
     }
 }
@@ -93,7 +99,10 @@ const val KEY_RETURNED_SERIES: String = "returnedSeriesId"
  * `onOpenSeries` opens the series' own screen, which is the only thing it could
  * do: a series is not played, an episode is.
  */
-fun NavGraphBuilder.seriesTvScreen(onOpenSeries: (seriesId: String) -> Unit) {
+fun NavGraphBuilder.seriesTvScreen(
+    onOpenSeries: (seriesId: String) -> Unit,
+    onOpenSources: () -> Unit,
+) {
     composable(route = SeriesDestination.route) { entry ->
         // Written by the detail screen on its way out, read here on the way back
         // in. The saved state handle rather than a shared view model: the two
@@ -103,6 +112,7 @@ fun NavGraphBuilder.seriesTvScreen(onOpenSeries: (seriesId: String) -> Unit) {
 
         SeriesTvScreen(
             onOpenSeries = onOpenSeries,
+            onOpenSources = onOpenSources,
             returnedSeriesId = handle.get<String>(KEY_RETURNED_SERIES),
             // Cleared once used, so leaving and coming back to this tab later
             // does not re-focus a series from a previous visit.
@@ -148,7 +158,7 @@ fun NavGraphBuilder.seriesDetailTvScreen(
  * happens inside the screen rather than through this graph, so an evening of six
  * episodes leaves `BACK` one press from the series instead of six.
  */
-fun NavGraphBuilder.episodePlayerTvScreen(onBack: () -> Unit) {
+fun NavGraphBuilder.episodePlayerTvScreen(onBack: () -> Unit, onOpenSources: () -> Unit) {
     composable(
         route = EpisodePlayerDestination.route,
         arguments = listOf(
@@ -172,6 +182,7 @@ fun NavGraphBuilder.episodePlayerTvScreen(onBack: () -> Unit) {
                 ?.takeIf { it.isNotEmpty() },
             resumeFromMs = entry.arguments?.getLong(EpisodePlayerDestination.ARG_AT) ?: 0L,
             onBack = onBack,
+            onOpenSources = onOpenSources,
         )
     }
 }

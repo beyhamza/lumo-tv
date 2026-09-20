@@ -1,6 +1,7 @@
 package tv.lumo.android.feature.home
 
 import tv.lumo.android.core.data.ActiveSourceState
+import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.aggregatedFavorites
 import tv.lumo.android.core.data.channelsOfSource
 import tv.lumo.android.core.data.model.Channel
@@ -8,9 +9,7 @@ import tv.lumo.android.core.data.model.ContinueItem
 import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
 import tv.lumo.android.core.data.model.HOME_RAIL_SIZE
-import tv.lumo.android.network.generated.model.IngestionErrorCode
-import tv.lumo.android.network.generated.model.SourceStatus
-import tv.lumo.android.network.generated.model.SyncStep
+import tv.lumo.android.core.data.notice
 
 /**
  * Which of its faces the home screen is showing (US-017, design S8-E01 and S8-E02).
@@ -42,35 +41,6 @@ sealed interface HomeStep {
 }
 
 /**
- * What the home screen says about the source above its rails, or nothing.
- *
- * A notice and not a step: the decisions are explicit that a source which is
- * importing, or whose last import failed, **keeps showing what the device already
- * holds** ("garder le catalogue déjà disponible consultable"). So neither replaces
- * the rails — they sit over them.
- */
-sealed interface HomeNotice {
-
-    /**
-     * `PENDING` or `SYNCING`.
-     *
-     * @param step the phase the server reports, null when it has accepted the
-     * source and not started. The wording is `SyncStep?.labelRes()` in `core:data`,
-     * the same sentences the add-source screen shows.
-     */
-    data class Syncing(val step: SyncStep?) : HomeNotice
-
-    /**
-     * `ERROR`.
-     *
-     * @param code why, as the server states it. Null and unknown codes both get
-     * the generic sentence from `IngestionErrorCode?.messageRes()` — a code newer
-     * than this build must degrade, not crash.
-     */
-    data class Failed(val code: IngestionErrorCode?) : HomeNotice
-}
-
-/**
  * What the home screen makes of [ActiveSourceState], reduced to what it reads.
  *
  * Narrow on purpose, for the reason `CatalogueSource` gives: `Selected` carries a
@@ -82,7 +52,15 @@ sealed interface HomeNotice {
 data class HomeSource(
     val step: HomeStep,
     val sourceId: String? = null,
-    val notice: HomeNotice? = null,
+    /**
+     * What is said about the source above the rails, or nothing.
+     *
+     * `SourceNotice` lives in `core:data` since the catalogue grids say the same
+     * thing about the same source (US-024, lot C4) — it used to be a type of this
+     * module. A notice and not a step: a source that is refreshing, or whose last
+     * attempt failed, keeps its rails.
+     */
+    val notice: SourceNotice? = null,
 )
 
 /**
@@ -101,13 +79,7 @@ fun ActiveSourceState.asHomeSource(): HomeSource = when (this) {
     is ActiveSourceState.Selected -> HomeSource(
         step = HomeStep.Browsing,
         sourceId = sourceId,
-        notice = when (source?.status) {
-            SourceStatus.PENDING, SourceStatus.SYNCING -> HomeNotice.Syncing(source?.syncStep)
-            SourceStatus.ERROR -> HomeNotice.Failed(source?.errorCode)
-            // READY, a source that is unknown, and a status newer than this build:
-            // nothing to say, and saying nothing is the safe one of the three.
-            else -> null
-        },
+        notice = source.notice(),
     )
 }
 
@@ -145,7 +117,7 @@ sealed interface HomeSection {
 data class HomeState(
     val step: HomeStep = HomeStep.Loading,
     val sourceId: String? = null,
-    val notice: HomeNotice? = null,
+    val notice: SourceNotice? = null,
     /** Already scoped to [sourceId], merged, ordered and capped by `core:data`. */
     val continueWatching: List<ContinueItem> = emptyList(),
     val groups: List<FavoriteGroup> = emptyList(),

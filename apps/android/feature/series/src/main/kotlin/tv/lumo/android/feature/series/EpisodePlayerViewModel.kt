@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.PlaybackSourceGuard
 import tv.lumo.android.core.data.model.Episode
 import tv.lumo.android.core.data.model.EpisodePlaybackTarget
 import tv.lumo.android.core.data.repository.PlaybackRepository
@@ -88,6 +89,7 @@ class EpisodePlayerViewModel @Inject constructor(
     private val playback: PlaybackRepository,
     private val series: SeriesRepository,
     private val progress: ProgressRepository,
+    private val sourceGuard: PlaybackSourceGuard,
     /** Exposed for the video surface, which needs the instance rather than its state. */
     val player: LumoPlayer,
 ) : ViewModel() {
@@ -252,6 +254,12 @@ class EpisodePlayerViewModel @Inject constructor(
             val episode = series.episodesByIds(listOf(episodeId)).firstOrNull()
             _playing.update { it.copy(episode = episode) }
 
+            // An evening of episodes is hours without a word to the API — the
+            // streams come from the user's own server — so "does this source
+            // still exist" is asked on a clock (US-024). Idempotent per source:
+            // advancing to the next episode does not restart the sixty seconds.
+            episode?.sourceId?.let(::watchSource)
+
             when (val result = playback.episodePlaybackTarget(episodeId)) {
                 is LumoResult.Success -> {
                     val target = result.value
@@ -358,11 +366,58 @@ class EpisodePlayerViewModel @Inject constructor(
         }
     }
 
+    private fun watchSource(sourceId: String) = sourceGuard.watch(viewModelScope, sourceId) {
+        // No last save: the progress rows went with the source, and the server
+        // would answer `404` to a write that names it. No next episode either —
+        // nothing is started on the viewer's behalf.
+        saver?.cancel()
+        saver = null
+        countdown?.cancel()
+        countdown = null
+        player.stop()
+        _target.value = null
+        _playing.update { it.copy(upNext = null) }
+    }
+
+    // ---- a source deleted elsewhere while this plays (US-024, C4 D5) --------
+
+    /**
+     * True once the server has **proven** that the source of what is playing was
+     * deleted — `404 SOURCE_NOT_FOUND`, never a network error. Playback has been
+     * stopped by then; the screen says so and offers *Continue*.
+     */
+    val sourceDeleted: StateFlow<Boolean> = sourceGuard.deleted
+
+    /** The application is back in front of somebody: a reason to ask the server early. */
+    fun onForeground() = sourceGuard.onForeground()
+
+    /**
+     * *Continue*. The active source is re-decided first — the one left, a question
+     * when several are, "add a source" when none is — and only then does the
+     * screen leave, onto a shell that already knows what it browses. Nothing else
+     * is started on the viewer's behalf.
+     */
+    fun onSourceDeletedAcknowledged(leave: () -> Unit) {
+        // Once: a second press while the list is being read would pop a second
+        // entry off the back stack, and take the viewer out of where they were.
+        if (acknowledging) return
+        acknowledging = true
+
+        viewModelScope.launch {
+            sourceGuard.acknowledge()
+            leave()
+        }
+    }
+
+    private var acknowledging = false
+
     /** Leaving the screen. The player survives; the stream and its URL do not. */
     fun stop() {
+        sourceGuard.stop()
         // Before `player.stop()`, which resets the position to zero. Saving after it
         // would write a viewer back to the beginning of every episode they leave.
-        saveNow()
+        // Nothing to save once the source is gone: its progress went with it.
+        if (!sourceGuard.deleted.value) saveNow()
         saver?.cancel()
         saver = null
         countdown?.cancel()
@@ -443,8 +498,19 @@ sealed interface EpisodePlayerFailure {
      */
     data class TooManyStreams(val allowed: Int?) : EpisodePlayerFailure
 
-    /** The import has not finished. */
+    /**
+     * `SOURCE_NOT_READY`: the source is being refreshed, or was never imported.
+     * Since lot C4 the catalogue stays browsable during a refresh and **playback
+     * waits for its end**. Worth trying again: the refresh ends.
+     */
     data object SourceNotReady : EpisodePlayerFailure
+
+    /**
+     * `SOURCE_AUTH_FAILED`: the provider refused the credentials at the last
+     * synchronisation, and the server will not hand out a stream that would be
+     * refused too (C4, decision D2). Retrying cannot help; "My sources" can.
+     */
+    data object CredentialsRefused : EpisodePlayerFailure
 
     /** The user's subscription with their provider has expired. */
     data object SubscriptionExpired : EpisodePlayerFailure
@@ -463,6 +529,7 @@ internal fun LumoError.asEpisodeFailure(): EpisodePlayerFailure = when (this) {
     is LumoError.Api -> when (code) {
         ErrorCode.SOURCE_MAX_CONNECTIONS -> EpisodePlayerFailure.TooManyStreams(null)
         ErrorCode.SOURCE_NOT_READY -> EpisodePlayerFailure.SourceNotReady
+        ErrorCode.SOURCE_AUTH_FAILED -> EpisodePlayerFailure.CredentialsRefused
         ErrorCode.SOURCE_EXPIRED -> EpisodePlayerFailure.SubscriptionExpired
         ErrorCode.EPISODE_NOT_FOUND -> EpisodePlayerFailure.EpisodeGone
         else -> EpisodePlayerFailure.Unexpected
@@ -484,6 +551,7 @@ internal fun EpisodePlayerFailure.isRetryable(): Boolean = when (this) {
     is EpisodePlayerFailure.Unreachable -> retryable
     is EpisodePlayerFailure.TooManyStreams -> true
     EpisodePlayerFailure.SourceNotReady -> true
+    EpisodePlayerFailure.CredentialsRefused -> false
     EpisodePlayerFailure.SubscriptionExpired -> false
     EpisodePlayerFailure.EpisodeGone -> false
     EpisodePlayerFailure.Unplayable -> false

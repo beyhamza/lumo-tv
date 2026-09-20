@@ -13,8 +13,15 @@ import tv.lumo.android.feature.source.SourceTvScreen
  * route string is shared, so a deep link resolves to the same place on the phone
  * and on the television.
  */
-fun NavGraphBuilder.sourceMobileScreen() {
-    composable(route = SourceDestination.route) { SourceMobileScreen() }
+/**
+ * @param onDiscoverCatalogue where *Discover my catalogue* leads once a newly added
+ * source is ready (US-024). The application's wire: this feature does not know
+ * that Home exists.
+ */
+fun NavGraphBuilder.sourceMobileScreen(onDiscoverCatalogue: () -> Unit) {
+    composable(route = SourceDestination.route) {
+        SourceMobileScreen(onDiscoverCatalogue = onDiscoverCatalogue)
+    }
 }
 
 fun NavGraphBuilder.sourceTvScreen() {

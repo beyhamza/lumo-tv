@@ -97,9 +97,9 @@ fun LumoMobileApp(
                 SourceSwitcherMobile(
                     onSwitched = { navController.leaveDetailOfPreviousSource() },
                     onLastSourceLost = { navController.switchTopLevelTo(SourceDestination) },
-                    // The full "My sources" screen is S8-05's. Until then the
-                    // entry leads to the screen that exists — which left the bar
-                    // with US-017, and is reached from here and from Settings.
+                    // "My sources" (US-024): the list, and everything that can
+                    // be done to a source. It left the bar with US-017 and is
+                    // reached from here and from Settings.
                     onOpenSources = { navController.switchTopLevelTo(SourceDestination) },
                 )
             }

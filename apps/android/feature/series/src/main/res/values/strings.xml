@@ -20,8 +20,6 @@
     -->
     <string name="feature_series_needs_choice_title">Choose a source</string>
     <string name="feature_series_needs_choice_body">You have several sources. Choose the one to browse and its series will appear here.</string>
-    <string name="feature_series_not_ready_title">Import in progress</string>
-    <string name="feature_series_not_ready_body">Your source is still being read. This screen fills as soon as it is done.</string>
     <string name="feature_series_empty_title">No series</string>
     <string name="feature_series_empty_playlist">This source is an M3U playlist. The format declares neither seasons nor episodes, and Lumo does not invent a tree from titles. Series are available on Xtream sources.</string>
     <string name="feature_series_empty_panel">This provider offers no series.</string>
@@ -48,7 +46,15 @@
     <string name="feature_series_player_unreachable">Your server could not be reached. Check your connection, then try again.</string>
     <string name="feature_series_player_too_many_streams">Your subscription is already streaming as much as it allows. Stop another stream, then try again.</string>
     <string name="feature_series_player_too_many_streams_count">Your subscription allows %1$d simultaneous streams and they are all in use. Stop one, then try again.</string>
-    <string name="feature_series_player_not_ready">Your source is still being imported. Try again in a moment.</string>
+    <string name="feature_series_player_not_ready">This source is being refreshed. Playback is available again as soon as the refresh ends.</string>
+    <!--
+      Lot C4. `SOURCE_NOT_READY` at playback no longer means "never imported":
+      the catalogue is browsable during a refresh and playback waits for its end.
+      `SOURCE_AUTH_FAILED` is new among the refusals: the provider turned the
+      credentials down, retrying cannot help, and the way on is My sources.
+    -->
+    <string name="feature_series_player_auth_failed">Your provider refused this source\'s credentials. Correct them in My sources.</string>
+    <string name="feature_series_player_open_sources">My sources</string>
     <string name="feature_series_player_expired">Your subscription with this provider has expired.</string>
     <string name="feature_series_player_episode_gone">This episode is no longer listed. Reopen the series.</string>
     <string name="feature_series_player_unplayable">This episode cannot be played on this device.</string>

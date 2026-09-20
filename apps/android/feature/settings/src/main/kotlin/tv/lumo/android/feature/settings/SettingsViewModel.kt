@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.repository.AccountRepository
 import tv.lumo.android.core.data.repository.SourceRepository
 import tv.lumo.android.core.data.valueOrNull
@@ -48,16 +47,20 @@ import tv.lumo.android.network.generated.model.Source
  *
  * <h2>The rest of the screen (M6)</h2>
  *
- * The mobile mock-up adds three counts and one switch on top of the session:
- * how many sources the account has, whether they refresh on their own, how many
- * devices hold a session, and where a television is paired. All of it is read
- * here rather than in the screen so the television renders the same numbers
- * from the same state (AGENTS.md §2).
+ * The mobile mock-up adds counts on top of the session: how many sources the
+ * account has, how many devices hold a session, and where a television is
+ * paired. All of it is read here rather than in the screen so the television
+ * renders the same numbers from the same state (AGENTS.md §2).
  *
- * `auto_sync` is a property of each **source**, not of the account — the
- * contract is explicit about why. The switch therefore reads as "every source
- * refreshes on its own" and writes to every source; a mixed account shows the
- * switch off, and turning it on aligns them.
+ * <h2>No automatic-refresh switch, and no "refresh everything" (US-024)</h2>
+ *
+ * Both used to be here, account-wide. `auto_sync` is a property of each
+ * **source** — the contract is explicit about why — and one switch over several
+ * sources had to lie about a mixed account and, turned on, rewrote sources
+ * nobody had looked at. "Refresh the lists now" started one synchronisation per
+ * source and could say nothing about the `409` or the `429` any of them answered.
+ * Both now live per source in "My sources", which this screen opens: the switch
+ * beside the source it changes, the refresh beside the state it moves.
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -77,11 +80,8 @@ class SettingsViewModel @Inject constructor(
                 email = address,
                 signingOut = out,
                 sourceCount = more.sourceCount,
-                autoSync = more.autoSync,
-                autoSyncPending = more.autoSyncPending,
                 deviceCount = more.deviceCount,
                 sources = more.sources,
-                syncing = more.syncing,
                 activationUrl = BuildConfig.ACTIVATION_URL,
                 appVersion = more.appVersion,
             )
@@ -136,60 +136,10 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Turns automatic refresh on or off, for every source of the account.
-     *
-     * Optimistic: the switch moves at once, and moves back only if a write is
-     * refused. `auto_sync` is the one property of `PATCH /sources/{id}` that
-     * leaves the catalogue alone, so this never restarts an ingestion.
-     */
-    fun setAutoSync(enabled: Boolean) {
-        val current = details.value
-        if (current.autoSyncPending || current.sourceIds.isEmpty()) return
-
-        details.update { it.copy(autoSync = enabled, autoSyncPending = true) }
-
-        viewModelScope.launch {
-            val refused = current.sourceIds.any { id ->
-                sources.update(id, autoSync = enabled) is LumoResult.Failure
-            }
-            details.update { it.copy(autoSyncPending = false) }
-            // Re-read rather than assume: on a partial failure the honest value
-            // is whatever the server now holds, not the one that was asked for.
-            if (refused) loadSources()
-        }
-    }
-
-    /**
-     * « Actualiser les listes maintenant » — one synchronisation per source,
-     * started and left to the server. Failure is not reported: the source card
-     * shows the server's own state on the next read, which is the truthful
-     * outcome, and a set with nothing to type has nothing to correct.
-     */
-    fun syncNow() {
-        val current = details.value
-        if (current.syncing || current.sourceIds.isEmpty()) return
-
-        details.update { it.copy(syncing = true) }
-
-        viewModelScope.launch {
-            current.sourceIds.forEach { id -> sources.sync(id) }
-            loadSources()
-            details.update { it.copy(syncing = false) }
-        }
-    }
-
     private fun loadSources() {
         viewModelScope.launch {
             val list = sources.sources().valueOrNull() ?: return@launch
-            details.update {
-                it.copy(
-                    sources = list,
-                    sourceCount = list.size,
-                    sourceIds = list.map { source -> source.id.toString() },
-                    autoSync = autoSyncOf(list),
-                )
-            }
+            details.update { it.copy(sources = list, sourceCount = list.size) }
         }
     }
 
@@ -220,11 +170,7 @@ class SettingsViewModel @Inject constructor(
 /** What is read after the session, kept apart so a sign-out drops it in one move. */
 private data class SettingsDetails(
     val sources: List<Source> = emptyList(),
-    val syncing: Boolean = false,
     val sourceCount: Int? = null,
-    val sourceIds: List<String> = emptyList(),
-    val autoSync: Boolean? = null,
-    val autoSyncPending: Boolean = false,
     val deviceCount: Int? = null,
     val appVersion: String? = null,
 )
@@ -240,19 +186,10 @@ data class SettingsUiState(
 
     /** How many sources the account holds. Null until read, or when the read failed. */
     val sourceCount: Int? = null,
-    /**
-     * Whether every source refreshes on its own. Null when there is no source
-     * to ask, or while the list has not been read yet.
-     */
-    val autoSync: Boolean? = null,
-    /** A write to `auto_sync` is in flight; the switch waits for it. */
-    val autoSyncPending: Boolean = false,
     /** How many devices hold a session on this account, this one included. */
     val deviceCount: Int? = null,
     /** The sources themselves, for a surface that draws them as cards (TV5). */
     val sources: List<Source> = emptyList(),
-    /** A manual synchronisation is running. */
-    val syncing: Boolean = false,
     /** Where a television is paired from a phone — `LUMO_ACTIVATION_URL`. */
     val activationUrl: String = "",
     /** `versionName` of the running application. Null only if the package is unreadable. */
@@ -267,15 +204,6 @@ data class SettingsUiState(
     val activationLabel: String
         get() = activationUrl.removePrefix("https://").removePrefix("http://").trimEnd('/')
 }
-
-/**
- * The account-wide reading of a per-source flag.
- *
- * Null for an empty list: a switch on an account with nothing to refresh would
- * be a switch that does nothing, and the screen draws it disabled instead.
- */
-internal fun autoSyncOf(sources: List<Source>): Boolean? =
-    if (sources.isEmpty()) null else sources.all { it.autoSync }
 
 /**
  * Maps the state to a string resource, once, for both surfaces.

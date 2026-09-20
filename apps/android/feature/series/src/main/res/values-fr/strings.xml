@@ -11,8 +11,6 @@
     <string name="feature_series_no_source_body">Ajoutez votre fournisseur dans l\'onglet Source, et ses séries apparaîtront ici.</string>
     <string name="feature_series_needs_choice_title">Choisissez une source</string>
     <string name="feature_series_needs_choice_body">Vous avez plusieurs sources. Choisissez celle à parcourir et ses séries apparaîtront ici.</string>
-    <string name="feature_series_not_ready_title">Import en cours</string>
-    <string name="feature_series_not_ready_body">Votre source est encore en cours de lecture. Cet écran se remplit dès qu\'elle est prête.</string>
     <string name="feature_series_empty_title">Aucune série</string>
     <string name="feature_series_empty_playlist">Cette source est une playlist M3U. Le format ne déclare ni saison ni épisode, et Lumo n\'invente pas d\'arbre à partir des titres. Les séries sont disponibles sur les sources Xtream.</string>
     <string name="feature_series_empty_panel">Ce fournisseur ne propose pas de séries.</string>
@@ -39,7 +37,9 @@
     <string name="feature_series_player_unreachable">Votre serveur n\'a pas répondu. Vérifiez votre connexion, puis réessayez.</string>
     <string name="feature_series_player_too_many_streams">Votre abonnement diffuse déjà autant de flux qu\'il l\'autorise. Arrêtez un autre flux, puis réessayez.</string>
     <string name="feature_series_player_too_many_streams_count">Votre abonnement autorise %1$d flux simultanés et ils sont tous utilisés. Arrêtez-en un, puis réessayez.</string>
-    <string name="feature_series_player_not_ready">Votre source est encore en cours d\'import. Réessayez dans un instant.</string>
+    <string name="feature_series_player_not_ready">Cette source est en cours d\'actualisation. La lecture sera de nouveau possible dès la fin de l\'actualisation.</string>
+    <string name="feature_series_player_auth_failed">Votre fournisseur a refusé les identifiants de cette source. Corrigez-les dans Mes sources.</string>
+    <string name="feature_series_player_open_sources">Mes sources</string>
     <string name="feature_series_player_expired">Votre abonnement chez ce fournisseur a expiré.</string>
     <string name="feature_series_player_episode_gone">Cet épisode n\'est plus listé. Rouvrez la série.</string>
     <string name="feature_series_player_unplayable">Cet épisode ne peut pas être lu sur cet appareil.</string>

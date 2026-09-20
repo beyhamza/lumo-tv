@@ -27,7 +27,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
@@ -124,7 +123,7 @@ fun SettingsTvScreen(
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
         ) {
             when (section) {
-                SettingsSection.Sources -> SourcesPanel(state, viewModel, onOpenSources)
+                SettingsSection.Sources -> SourcesPanel(state, onOpenSources)
                 SettingsSection.Account -> AccountPanel(state, viewModel)
                 SettingsSection.Playback -> PlaybackPanel()
                 SettingsSection.Language -> LanguagePanel()
@@ -180,7 +179,6 @@ private fun MenuItem(
 @Composable
 private fun SourcesPanel(
     state: SettingsUiState,
-    viewModel: SettingsViewModel,
     onOpenSources: () -> Unit,
 ) {
     Text(
@@ -210,31 +208,10 @@ private fun SourcesPanel(
         onClick = onOpenSources,
     )
 
-    PanelRow(
-        title = stringResource(
-            if (state.syncing) R.string.feature_settings_tv_sync_started else R.string.feature_settings_tv_sync_now,
-        ),
-        trailing = {
-            Text(
-                text = stringResource(R.string.feature_settings_tv_press_ok),
-                style = MaterialTheme.typography.labelLarge,
-                color = LumoColors.OnDarkMuted,
-            )
-        },
-        onClick = { if (!state.syncing) viewModel.syncNow() },
-    )
-
-    PanelRow(
-        title = stringResource(R.string.feature_settings_tv_auto_sync),
-        trailing = {
-            if (state.autoSync == null) {
-                LumoMockMissingData(scale = TV_TYPE_SCALE)
-            } else {
-                Switch(checked = state.autoSync, pending = state.autoSyncPending)
-            }
-        },
-        onClick = state.autoSync?.let { current -> { viewModel.setAutoSync(!current) } },
-    )
+    // "Refresh the lists now" and the automatic-refresh switch used to follow.
+    // Refreshing is per source, in "My sources", where a refusal can be said
+    // beside the source it concerns; automatic refresh is set from the phone or
+    // lumo.tv, which that screen says (US-024).
 }
 
 /**
@@ -378,32 +355,6 @@ private fun PanelRow(
             }
         }
         trailing?.invoke()
-    }
-}
-
-/** The canvas's toggle: a pill track, the knob, the brand gradient when on. */
-@Composable
-private fun Switch(checked: Boolean, pending: Boolean) {
-    Box(
-        modifier = Modifier
-            .size(width = 72.dp, height = 40.dp)
-            .clip(LumoTvShapes.pill)
-            .background(
-                if (checked) {
-                    Brush.horizontalGradient(listOf(LumoColors.Accent, LumoColors.AccentViolet))
-                } else {
-                    Brush.horizontalGradient(listOf(LumoColors.Outline, LumoColors.Outline))
-                },
-            )
-            .padding(4.dp),
-        contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(LumoTvShapes.pill)
-                .background(if (pending) LumoColors.OnDarkMuted else LumoColors.OnDark),
-        )
     }
 }
 

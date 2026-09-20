@@ -51,13 +51,24 @@ import androidx.paging.compose.itemKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.SubcomposeAsyncImage
+import tv.lumo.android.core.data.EmptyGrid
+import tv.lumo.android.core.data.R as DataR
+import tv.lumo.android.core.data.SourceNotice
+import tv.lumo.android.core.data.emptyGridOf
+import tv.lumo.android.core.data.labelRes
+import tv.lumo.android.core.data.messageRes
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.FavoriteGroup
+import tv.lumo.android.core.data.wording
 import tv.lumo.android.core.designsystem.component.LumoFavoriteGroupChoice
 import tv.lumo.android.core.designsystem.component.LumoMockMissingData
 import tv.lumo.android.core.designsystem.component.LumoTvFavoriteGroupSheet
+import tv.lumo.android.core.designsystem.component.LumoTvSourceNotice
+import tv.lumo.android.core.designsystem.component.LumoTvStateMessage
+import tv.lumo.android.core.designsystem.effect.PollWhile
+import tv.lumo.android.core.designsystem.effect.SOURCE_NOTICE_POLL_MILLIS
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.theme.LumoTvShapes
@@ -88,6 +99,7 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
 @Composable
 fun LiveTvScreen(
     onPlay: (channelId: String, name: String?) -> Unit,
+    onOpenSources: () -> Unit,
     modifier: Modifier = Modifier,
     returnedChannelId: String? = null,
     onReturnHandled: () -> Unit = {},
@@ -95,6 +107,13 @@ fun LiveTvScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val channels = viewModel.channels.collectAsLazyPagingItems()
+
+    // A refresh on display has to move, and to go away when it ends (US-024).
+    PollWhile(
+        active = state.notice is SourceNotice.Refreshing,
+        everyMillis = SOURCE_NOTICE_POLL_MILLIS,
+        onTick = viewModel::refreshSource,
+    )
 
     Box(
         modifier = modifier
@@ -121,14 +140,35 @@ fun LiveTvScreen(
                 body = stringResource(R.string.feature_live_needs_choice_body),
             )
 
-            LiveStep.NotReadyYet -> Message(
-                title = stringResource(R.string.feature_live_not_ready_title),
-                body = stringResource(R.string.feature_live_not_ready_body),
+            // The two faces of a first import, which used to share one "not
+            // ready" sentence. Each has a button — "My sources" — so that `RIGHT`
+            // from the rail lands somewhere while there is no grid to land on.
+            LiveStep.Importing -> LumoTvStateMessage(
+                title = stringResource(DataR.string.core_data_first_import_title),
+                detail = stringResource(
+                    (state.notice as? SourceNotice.Refreshing)?.step.labelRes(),
+                ),
+                body = stringResource(DataR.string.core_data_first_import_body),
+                actionLabel = stringResource(DataR.string.core_data_notice_open_sources),
+                onAction = onOpenSources,
+            )
+
+            LiveStep.ImportFailed -> LumoTvStateMessage(
+                title = stringResource(DataR.string.core_data_first_import_failed_title),
+                detail = stringResource(
+                    (state.notice as? SourceNotice.Failed)?.code.messageRes(),
+                ),
+                isError = true,
+                body = stringResource(DataR.string.core_data_first_import_failed_body),
+                actionLabel = stringResource(DataR.string.core_data_notice_open_sources),
+                onAction = onOpenSources,
             )
 
             LiveStep.Browsing -> Browsing(
                 state = state,
                 channels = channels,
+                onOpenSources = onOpenSources,
+                onRetry = viewModel::refresh,
                 onSelectCategory = viewModel::onCategorySelected,
                 onSelectGroup = viewModel::onGroupSelected,
                 onSelectRecent = viewModel::onRecentSelected,
@@ -163,6 +203,8 @@ fun LiveTvScreen(
 private fun Browsing(
     state: LiveState,
     channels: LazyPagingItems<Channel>,
+    onOpenSources: () -> Unit,
+    onRetry: () -> Unit,
     onSelectCategory: (String?) -> Unit,
     onSelectGroup: (String) -> Unit,
     onSelectRecent: () -> Unit,
@@ -221,6 +263,40 @@ private fun Browsing(
                     color = LumoColors.OnDarkMuted,
                 )
             }
+
+            // In the header line, compact: the grid below has the height of two
+            // rows of cards, and a notice of its own height would push the second
+            // off the panel. A refresh is text; a failure adds the one stop this
+            // line has — "My sources", reached by `UP` from the filters.
+            state.notice?.let { notice ->
+                val wording = notice.wording()
+                LumoTvSourceNotice(
+                    title = stringResource(wording.title),
+                    message = stringResource(wording.message),
+                    hint = wording.hint?.let { stringResource(it) },
+                    isError = wording.failed,
+                    actionLabel = stringResource(wording.action).takeIf { wording.failed },
+                    onAction = onOpenSources,
+                    compact = true,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        // A grid that failed to load is not an empty grid (US-024), and on a
+        // television it needs a target: without one `RIGHT` from the rail is dead.
+        if (
+            state.filter == CatalogueFilter.All &&
+            emptyGridOf(channels.itemCount, state.refreshing, state.refreshFailed) ==
+            EmptyGrid.Unavailable
+        ) {
+            LumoTvStateMessage(
+                title = stringResource(DataR.string.core_data_catalogue_unavailable_title),
+                body = stringResource(DataR.string.core_data_catalogue_unavailable_body),
+                actionLabel = stringResource(DataR.string.core_data_catalogue_retry),
+                onAction = onRetry,
+            )
+            return@Column
         }
 
         Row(

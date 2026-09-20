@@ -38,9 +38,14 @@ class SeriesSourceSwitchTest {
 
     @Test
     fun `the same source changing status keeps the filters`() {
-        val importing = browsingPlaylist.browsing(CatalogueSource.NotReady("source-a"))
+        val importing = browsingPlaylist.browsing(
+            CatalogueSource.FirstImport("source-a", isPlaylist = true, failed = false),
+        )
 
-        assertThat(importing.step).isEqualTo(SeriesStep.NotReadyYet)
+        assertThat(importing.step).isEqualTo(SeriesStep.Importing)
+        // Still a playlist while it imports: the empty grid that follows has to
+        // say which of the two absences it is (adr/0010).
+        assertThat(importing.isPlaylist).isTrue()
         assertThat(importing.filter).isEqualTo(SeriesFilter.Category("drama"))
         assertThat(importing.query).isEqualTo("série 01")
     }
@@ -51,7 +56,10 @@ class SeriesSourceSwitchTest {
             CatalogueSource.Loading to SeriesStep.Loading,
             CatalogueSource.NoSource to SeriesStep.NoSource,
             CatalogueSource.NeedsChoice to SeriesStep.NeedsChoice,
-            CatalogueSource.NotReady("source-b") to SeriesStep.NotReadyYet,
+            CatalogueSource.FirstImport("source-b", isPlaylist = false, failed = false)
+                to SeriesStep.Importing,
+            CatalogueSource.FirstImport("source-b", isPlaylist = false, failed = true)
+                to SeriesStep.ImportFailed,
             CatalogueSource.Ready("source-b", isPlaylist = true) to SeriesStep.Browsing,
         )
 
@@ -59,5 +67,17 @@ class SeriesSourceSwitchTest {
             assertThat(browsingPlaylist.browsing(source).step).isEqualTo(step)
         }
         assertThat(browsingPlaylist.browsing(CatalogueSource.NeedsChoice).sourceId).isNull()
+    }
+
+    @Test
+    fun `series this device holds are shown, whatever the source is doing`() {
+        // Lot C4: the rule is `CatalogueSource.face` in core:data; this screen
+        // applies it.
+        val failed = CatalogueSource.FirstImport("source-b", isPlaylist = false, failed = true)
+
+        assertThat(browsingPlaylist.browsing(failed, cachedItems = 0).step)
+            .isEqualTo(SeriesStep.ImportFailed)
+        assertThat(browsingPlaylist.browsing(failed, cachedItems = 7).step)
+            .isEqualTo(SeriesStep.Browsing)
     }
 }

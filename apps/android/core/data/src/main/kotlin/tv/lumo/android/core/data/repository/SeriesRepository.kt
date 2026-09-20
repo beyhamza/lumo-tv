@@ -370,6 +370,23 @@ class SeriesRepository @Inject internal constructor(
         )
     }
 
+    /**
+     * How many series the source carries, or null when that is not known.
+     *
+     * The film counter's twin — see [VodRepository.filmCount] for why it is a
+     * `size = 1` listing and why an unknown number stays null. The caller does not
+     * ask at all for a playlist: an M3U source cannot carry series (`adr/0010`),
+     * and "0 series" under one would present a property of the format as a
+     * property of the subscription.
+     */
+    suspend fun seriesCount(sourceId: String): Int? = withContext(io) {
+        val listed = calls.call { api.listSeries(UUID.fromString(sourceId), page = 0, size = 1) }
+        when (listed) {
+            is LumoResult.Success -> listed.value.totalElements.toCountOrNull()
+            is LumoResult.Failure -> seriesDao.countForSource(sourceId).takeIf { it > 0 }
+        }
+    }
+
     /** Drops one source's series, for a source the user just deleted. */
     suspend fun forget(sourceId: String) = withContext(io) {
         // Seasons and episodes cascade with their series.

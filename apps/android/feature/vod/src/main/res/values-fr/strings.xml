@@ -15,8 +15,6 @@
     <string name="feature_vod_no_source_body">Ajoutez votre fournisseur dans l\'onglet Source, et ses films apparaîtront ici.</string>
     <string name="feature_vod_needs_choice_title">Choisissez une source</string>
     <string name="feature_vod_needs_choice_body">Vous avez plusieurs sources. Choisissez celle à parcourir et ses films apparaîtront ici.</string>
-    <string name="feature_vod_not_ready_title">Import en cours</string>
-    <string name="feature_vod_not_ready_body">Votre source est encore en cours de lecture. Cet écran se remplit dès qu\'elle est prête.</string>
     <string name="feature_vod_empty_title">Aucun film</string>
     <string name="feature_vod_empty_body">Cette source ne propose que des chaînes. Il ne manque rien ici.</string>
     <string name="feature_vod_no_results_title">Aucun résultat</string>
@@ -41,7 +39,9 @@
     <string name="feature_vod_player_unreachable">Votre serveur n\'a pas répondu. Vérifiez votre connexion, puis réessayez.</string>
     <string name="feature_vod_player_too_many_streams">Votre abonnement diffuse déjà autant de flux qu\'il l\'autorise. Arrêtez un autre flux, puis réessayez.</string>
     <string name="feature_vod_player_too_many_streams_count">Votre abonnement autorise %1$d flux simultanés et ils sont tous utilisés. Arrêtez-en un, puis réessayez.</string>
-    <string name="feature_vod_player_not_ready">Votre source est encore en cours d\'import. Réessayez dans un instant.</string>
+    <string name="feature_vod_player_not_ready">Cette source est en cours d\'actualisation. La lecture sera de nouveau possible dès la fin de l\'actualisation.</string>
+    <string name="feature_vod_player_auth_failed">Votre fournisseur a refusé les identifiants de cette source. Corrigez-les dans Mes sources.</string>
+    <string name="feature_vod_player_open_sources">Mes sources</string>
     <string name="feature_vod_player_expired">Votre abonnement chez ce fournisseur a expiré.</string>
     <string name="feature_vod_player_film_gone">Ce film n\'est plus dans votre catalogue. Actualisez la liste.</string>
     <string name="feature_vod_player_unplayable">Ce film ne peut pas être lu sur cet appareil.</string>

@@ -106,16 +106,9 @@ fun SettingsMobileScreen(
                 // and where it leads is the application's wire, not this module's.
                 onClick = onOpenSources,
             )
-            RowDivider()
-            SettingsRow(label = stringResource(R.string.feature_settings_auto_sync)) {
-                LumoSwitch(
-                    checked = state.autoSync == true,
-                    // No source to refresh, or a write in flight: the switch
-                    // shows the last known value and takes no tap.
-                    enabled = state.autoSync != null && !state.autoSyncPending,
-                    onCheckedChange = viewModel::setAutoSync,
-                )
-            }
+            // Automatic refresh used to be a second row here, one switch for
+            // every source. It is a setting of each source and now sits beside
+            // each of them, in "My sources" (US-024).
         }
 
         Section(title = stringResource(R.string.feature_settings_section_devices)) {

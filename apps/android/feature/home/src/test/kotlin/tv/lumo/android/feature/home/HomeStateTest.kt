@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import java.util.UUID
 import org.junit.Test
 import tv.lumo.android.core.data.ActiveSourceState
+import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.ContinueItem
 import tv.lumo.android.core.data.model.FavoriteChannel
@@ -158,7 +159,7 @@ class HomeStateTest {
     @Test
     fun `the same source changing status keeps its rails on screen`() {
         val importing = browsing(continueWatching = listOf(film("film-a")))
-            .copy(notice = HomeNotice.Syncing(SyncStep.PARSING_CHANNELS))
+            .copy(notice = SourceNotice.Refreshing(SyncStep.PARSING_CHANNELS))
 
         val ready = importing.showing(HomeSource(HomeStep.Browsing, sourceId = SOURCE))
 
@@ -184,14 +185,14 @@ class HomeStateTest {
         val home = selected(source(SourceStatus.SYNCING, step = SyncStep.PARSING_VOD)).asHomeSource()
 
         assertThat(home.step).isEqualTo(HomeStep.Browsing)
-        assertThat(home.notice).isEqualTo(HomeNotice.Syncing(SyncStep.PARSING_VOD))
+        assertThat(home.notice).isEqualTo(SourceNotice.Refreshing(SyncStep.PARSING_VOD))
     }
 
     @Test
     fun `a source accepted and not started is importing, with no step yet`() {
         val home = selected(source(SourceStatus.PENDING)).asHomeSource()
 
-        assertThat(home.notice).isEqualTo(HomeNotice.Syncing(null))
+        assertThat(home.notice).isEqualTo(SourceNotice.Refreshing(null))
     }
 
     @Test
@@ -201,7 +202,7 @@ class HomeStateTest {
         ).asHomeSource()
 
         assertThat(home.step).isEqualTo(HomeStep.Browsing)
-        assertThat(home.notice).isEqualTo(HomeNotice.Failed(IngestionErrorCode.SOURCE_AUTH_FAILED))
+        assertThat(home.notice).isEqualTo(SourceNotice.Failed(IngestionErrorCode.SOURCE_AUTH_FAILED))
     }
 
     @Test

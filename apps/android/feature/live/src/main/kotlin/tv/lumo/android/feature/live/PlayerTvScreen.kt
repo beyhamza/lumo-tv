@@ -47,12 +47,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
+import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.designsystem.component.LumoMockMissingData
 import tv.lumo.android.core.designsystem.component.LumoMockNotImplemented
+import tv.lumo.android.core.designsystem.component.LumoTvAcknowledgeDialog
 import tv.lumo.android.core.designsystem.component.LumoTvAudioTrackSheet
 import tv.lumo.android.core.designsystem.component.LumoTvButton
 import tv.lumo.android.core.designsystem.theme.LumoColors
@@ -96,11 +100,18 @@ fun PlayerTvScreen(
     channelId: String,
     channelName: String?,
     onBack: (channelId: String) -> Unit,
+    onOpenSources: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val audioTracks by viewModel.audioTracks.collectAsStateWithLifecycle()
+    val sourceDeleted by viewModel.sourceDeleted.collectAsStateWithLifecycle()
+
+    // Coming back to the foreground is one of the moments the product names for
+    // noticing a source deleted elsewhere (C4, D5). The `ON_START` of opening
+    // the player reaches nobody: the watch has not begun, and need not have.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onForeground() }
 
     LaunchedEffect(channelId) { viewModel.start(channelId) }
 
@@ -137,7 +148,10 @@ fun PlayerTvScreen(
     val surface = remember { FocusRequester() }
     val retry = remember { FocusRequester() }
     val pause = remember { FocusRequester() }
-    val failed = state.failure != null
+    // Not while the deleted-source dialog is up: it is a window of its own, it
+    // holds the focus, and a failure panel drawn under it would ask for the
+    // focus of a button nobody can reach.
+    val failed = state.failure != null && !sourceDeleted
 
     LaunchedEffect(failed, infoVisible) {
         // Whichever of the three is the real target right now. Requesting focus
@@ -203,12 +217,27 @@ fun PlayerTvScreen(
     ) {
         LumoVideo(viewModel)
 
+        // The source was deleted from another device, and the server has
+        // confirmed it (US-024). Playback is already stopped. One sentence, one
+        // button that takes the focus, and `BACK` does what the button does —
+        // leave the player; what is browsed next is the shell's to settle.
+        if (sourceDeleted) {
+            LumoTvAcknowledgeDialog(
+                message = stringResource(DataR.string.core_data_source_deleted_message),
+                actionLabel = stringResource(DataR.string.core_data_source_deleted_continue),
+                onAcknowledge = { viewModel.onSourceDeletedAcknowledged { onBack(currentId) } },
+            )
+        }
+
         when {
+            sourceDeleted -> Unit
+
             failed -> Failure(
                 failure = state.failure!!,
                 channelName = currentName,
                 onRetry = viewModel::retry,
                 onNext = viewModel::next,
+                onOpenSources = onOpenSources,
                 retryFocus = retry,
             )
 
@@ -423,6 +452,7 @@ private fun Failure(
     channelName: String?,
     onRetry: () -> Unit,
     onNext: () -> Unit,
+    onOpenSources: () -> Unit,
     retryFocus: FocusRequester,
 ) {
     Box(
@@ -462,7 +492,18 @@ private fun Failure(
             )
             Spacer(modifier = Modifier.height(LumoSpacing.sm))
             Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md)) {
-                if (failure.isRetryable()) {
+                if (failure == PlayerFailure.CredentialsRefused) {
+                    // The provider refused the credentials (C4, D2): every channel
+                    // of this source would be refused alike, so "next channel" is
+                    // not an offer. The one target is the screen that says where
+                    // a source is corrected.
+                    LumoTvButton(
+                        text = stringResource(R.string.feature_live_player_open_sources),
+                        onClick = onOpenSources,
+                        primary = true,
+                        focusRequester = retryFocus,
+                    )
+                } else if (failure.isRetryable()) {
                     LumoTvButton(
                         text = stringResource(R.string.feature_live_player_retry),
                         onClick = onRetry,
@@ -497,6 +538,7 @@ private fun PlayerFailure.tvMessage(): String = when (this) {
     }
 
     PlayerFailure.SourceNotReady -> stringResource(R.string.feature_live_player_not_ready)
+    PlayerFailure.CredentialsRefused -> stringResource(R.string.feature_live_player_auth_failed)
     PlayerFailure.SubscriptionExpired -> stringResource(R.string.feature_live_player_expired)
     PlayerFailure.ChannelGone -> stringResource(R.string.feature_live_player_channel_gone)
     PlayerFailure.Unplayable -> stringResource(R.string.feature_live_player_unplayable)

@@ -23,8 +23,13 @@ import tv.lumo.android.feature.vod.VodTvScreen
  * feature uses, and it is what lets the television compose the same routes with a
  * different set of surfaces.
  */
-fun NavGraphBuilder.vodMobileScreen(onOpenFilm: (filmId: String) -> Unit) {
-    composable(route = VodDestination.route) { VodMobileScreen(onOpenFilm = onOpenFilm) }
+fun NavGraphBuilder.vodMobileScreen(
+    onOpenFilm: (filmId: String) -> Unit,
+    onOpenSources: () -> Unit,
+) {
+    composable(route = VodDestination.route) {
+        VodMobileScreen(onOpenFilm = onOpenFilm, onOpenSources = onOpenSources)
+    }
 }
 
 fun NavGraphBuilder.vodDetailMobileScreen(
@@ -45,7 +50,7 @@ fun NavGraphBuilder.vodDetailMobileScreen(
     }
 }
 
-fun NavGraphBuilder.vodPlayerMobileScreen(onBack: () -> Unit) {
+fun NavGraphBuilder.vodPlayerMobileScreen(onBack: () -> Unit, onOpenSources: () -> Unit) {
     composable(
         route = VodPlayerDestination.route,
         arguments = listOf(
@@ -73,6 +78,7 @@ fun NavGraphBuilder.vodPlayerMobileScreen(onBack: () -> Unit) {
                 ?.takeIf { it.isNotEmpty() },
             resumeFromMs = entry.arguments?.getLong(VodPlayerDestination.ARG_AT) ?: 0L,
             onBack = onBack,
+            onOpenSources = onOpenSources,
         )
     }
 }
@@ -96,7 +102,10 @@ const val KEY_RETURNED_FILM: String = "returnedFilmId"
  * one place this differs from `liveTvScreen`: a channel is played, a film is
  * chosen, and choosing needs a year, a running time and a synopsis no card holds.
  */
-fun NavGraphBuilder.vodTvScreen(onOpenFilm: (filmId: String) -> Unit) {
+fun NavGraphBuilder.vodTvScreen(
+    onOpenFilm: (filmId: String) -> Unit,
+    onOpenSources: () -> Unit,
+) {
     composable(route = VodDestination.route) { entry ->
         // Written by the detail screen on its way out, read here on the way back
         // in. The saved state handle rather than a shared view model: the two
@@ -106,6 +115,7 @@ fun NavGraphBuilder.vodTvScreen(onOpenFilm: (filmId: String) -> Unit) {
 
         VodTvScreen(
             onOpenFilm = onOpenFilm,
+            onOpenSources = onOpenSources,
             returnedFilmId = handle.get<String>(KEY_RETURNED_FILM),
             // Cleared once used, so leaving and coming back to this tab later
             // does not re-focus a film from a previous visit.
@@ -148,7 +158,7 @@ fun NavGraphBuilder.vodDetailTvScreen(
  * channel player has to carry an id because there is no screen between it and the
  * grid.
  */
-fun NavGraphBuilder.vodPlayerTvScreen(onBack: () -> Unit) {
+fun NavGraphBuilder.vodPlayerTvScreen(onBack: () -> Unit, onOpenSources: () -> Unit) {
     composable(
         route = VodPlayerDestination.route,
         arguments = listOf(
@@ -176,6 +186,7 @@ fun NavGraphBuilder.vodPlayerTvScreen(onBack: () -> Unit) {
                 ?.takeIf { it.isNotEmpty() },
             resumeFromMs = entry.arguments?.getLong(VodPlayerDestination.ARG_AT) ?: 0L,
             onBack = onBack,
+            onOpenSources = onOpenSources,
         )
     }
 }
