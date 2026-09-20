@@ -59,7 +59,9 @@ Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulem
   158 tests et build verts, marketing statique. Carte de focus TV à jour. Reste :
   recette à l'écran. Écart connu : sur le web, une carte de film ouvre la fiche
   (« Reprendre à… ») au lieu de lancer la lecture
-- [ ] S8-05 — Mes sources
+- [ ] S8-05 — **en cours** depuis le 20 septembre, sur `feat/US-024-my-sources` : gestion
+  par surface, états C4 dans les catalogues, délai serveur, suppression pendant une
+  lecture ; la spécification est US-024
 - [ ] S8-06 — rubriques Réglages, retrait des accès Google et paiement
 - [ ] S8-07 — recette de la verticale
 
