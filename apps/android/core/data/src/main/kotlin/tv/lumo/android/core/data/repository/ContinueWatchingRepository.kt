@@ -49,7 +49,7 @@ class ContinueWatchingRepository @Inject internal constructor(
             // rail must not depend on a filter it cannot see having been applied.
             .filter { it.sourceId == sourceId }
 
-        return resumableFilms(rows, vod.filmsByIds(rows.map { it.filmId }))
+        return resumableFilms(rows, vod.filmsByIds(sourceId, rows.map { it.filmId }))
     }
 
     /** One card per series, most recently watched first. */

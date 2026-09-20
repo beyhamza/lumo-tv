@@ -212,6 +212,34 @@ class VodRepositoryTest {
     }
 
     @Test
+    fun `a film in progress the cache never held is resolved in one request, then kept`() = runTest {
+        // A television that was just paired: the position was saved from the phone
+        // and the Films screen was never opened here, so the cache is empty.
+        val id = UUID.randomUUID().toString()
+        server.enqueue(
+            json("""{"items":[${vodItem(id = id, name = "Les Falaises", plot = "Un synopsis.")}],"page":0,"size":100,"total_elements":1,"total_pages":1}"""),
+        )
+
+        val films = repository().filmsByIds(sourceId, listOf(id))
+
+        assertThat(films.map { it.name }).containsExactly("Les Falaises")
+        assertThat(server.takeRequest().requestUrl?.queryParameterValues("ids")).containsExactly(id)
+
+        // Written down: the next opening of the home screen asks nothing.
+        assertThat(repository().filmsByIds(sourceId, listOf(id)).map { it.name }).containsExactly("Les Falaises")
+        assertThat(server.requestCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `offline, the rail keeps the films the cache holds and drops the others`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(503))
+
+        val films = repository().filmsByIds(sourceId, listOf(UUID.randomUUID().toString()))
+
+        assertThat(films).isEmpty()
+    }
+
+    @Test
     fun `the film count is the listing's total, asked with one row`() = runTest {
         server.enqueue(
             json("""{"items":[],"page":0,"size":1,"total_elements":1248,"total_pages":1248}"""),

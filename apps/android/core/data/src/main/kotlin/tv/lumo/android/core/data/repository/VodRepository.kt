@@ -247,6 +247,38 @@ class VodRepository @Inject internal constructor(
         if (ids.isEmpty()) emptyList() else vodDao.byIds(ids).map { it.asVodItem() }
     }
 
+    /**
+     * The same, for one source, **asking the server for what the cache lacks**.
+     *
+     * [filmsByIds] alone made the "Continue" rail depend on the Films screen
+     * having been opened once: the film cache is filled by that screen, so on a
+     * television that was just paired, a film started on the phone had a saved
+     * position and no card — seen on the emulator in S8-04's recette, where the
+     * rail appeared only after a visit to Films.
+     *
+     * `GET /sources/{id}/vod?ids=` is the contract's resolver for exactly this, and
+     * it costs **one** request for the whole rail, never one per row. What it
+     * answers is written to the cache, so the next opening asks nothing. A failure
+     * is not an error of the rail: the films the cache holds are served, and the
+     * others are one card fewer until the network is back.
+     */
+    suspend fun filmsByIds(sourceId: String, ids: List<String>): List<VodItem> = withContext(io) {
+        if (ids.isEmpty()) return@withContext emptyList()
+
+        val cached = vodDao.byIds(ids)
+        val missing = ids - cached.map { it.id }.toSet()
+        if (missing.isEmpty()) return@withContext cached.map { it.asVodItem() }
+
+        val asked = missing.take(MAX_RESOLVED_IDS).mapNotNull { runCatching { UUID.fromString(it) }.getOrNull() }
+        val resolved = calls.call {
+            api.listVod(UUID.fromString(sourceId), ids = asked, page = 0, size = MAX_RESOLVED_IDS)
+        }
+        if (resolved is LumoResult.Success) {
+            vodDao.upsert(resolved.value.items.map { it.asEntity() })
+        }
+        vodDao.byIds(ids).map { it.asVodItem() }
+    }
+
     /** How many films the cache holds for a source. Drives the empty state. */
     suspend fun cachedFilmCount(sourceId: String): Int =
         withContext(io) { vodDao.countForSource(sourceId) }
@@ -302,6 +334,9 @@ class VodRepository @Inject internal constructor(
     private companion object {
         /** The contract's cap. Fewer round trips for the same thirty thousand rows. */
         const val PAGE_SIZE = 200
+
+        /** The contract bounds `ids` at one hundred; a rail never needs more. */
+        const val MAX_RESOLVED_IDS = 100
 
         /** 200 000 films. Past that, the server is not describing a catalogue. */
         const val MAX_PAGES = 1_000

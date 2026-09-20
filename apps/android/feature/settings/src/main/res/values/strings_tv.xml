@@ -13,7 +13,7 @@
     <string name="feature_settings_tv_source_summary">%1$s · %2$d channels · checked %3$s</string>
     <string name="feature_settings_tv_source_unsynced">%1$s · not synchronised yet</string>
     <string name="feature_settings_tv_source_error">In error — fix it from lumo.tv</string>
-    <string name="feature_settings_tv_status_active">Active</string>
+    <string name="feature_settings_tv_status_active">Ready</string>
     <string name="feature_settings_tv_status_error">Error</string>
     <string name="feature_settings_tv_status_syncing">Syncing</string>
     <string name="feature_settings_tv_status_pending">Pending</string>
