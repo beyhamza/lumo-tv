@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { CatalogueNotReady } from "@/components/app/CatalogueNotReady";
 import { CatalogueTabs } from "@/components/app/CatalogueTabs";
+import { SourceNotice } from "@/components/app/SourceNotice";
 import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { api, problemCode } from "@/lib/api/client";
+import { api } from "@/lib/api/client";
+import { errorMessage } from "@/lib/api/error-message";
 import type { Category, Episode, Series } from "@/lib/api/types";
+import { attempt, outcomeOf } from "@/lib/catalogue/attempt";
+import { cataloguePageState } from "@/lib/catalogue/page-state";
 import { isFinished } from "@/lib/playback/progress";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
+import { seriesApply } from "@/lib/sources/content-counts";
+import { sourceCondition } from "@/lib/sources/source-condition";
 
 /**
  * The series of one source (US-15, S6-07).
@@ -62,6 +69,15 @@ import { requireSession } from "@/lib/session/session";
  * episode, and this product does not reconstruct a tree from titles. The tab is
  * here anyway — hiding it is what made somebody conclude the feature did not
  * exist — and the empty state is where the reason is given.
+ *
+ * <h2>The catalogue is there whenever one exists (contract lot C4)</h2>
+ *
+ * Exactly as on the channel page, which is where the reasoning is written out:
+ * the source is fetched alongside the listing so that a refresh in progress or a
+ * failed one is said **above** the catalogue (`SourceNotice`);
+ * `409 SOURCE_NOT_READY` only ever means "no catalogue yet"
+ * (`CatalogueNotReady`); and a request that failed is labelled "could not be
+ * loaded", never drawn as an empty list (`cataloguePageState`).
  */
 
 export async function generateMetadata({
@@ -97,70 +113,78 @@ export default async function SeriesPage({
   const search = single(query.q);
   const page = Math.max(0, Number.parseInt(single(query.page) ?? "0", 10) || 0);
 
+  // Each through `attempt()`: a request with no answer at all must not reject
+  // the whole `Promise.all` and take the parts that did answer with it.
+  const token = session.accessToken;
   const [categories, series, source, progress] = await Promise.all([
-    api(session.accessToken).GET("/sources/{id}/categories", {
-      params: { path: { id }, query: { contentType: "SERIES" } },
-    }),
-    api(session.accessToken).GET("/sources/{id}/series", {
-      params: {
-        path: { id },
-        query: {
-          ...(categoryId ? { categoryId } : {}),
-          ...(search ? { q: search } : {}),
-          page,
-          size: PAGE_SIZE,
+    attempt(() =>
+      api(token).GET("/sources/{id}/categories", {
+        params: { path: { id }, query: { contentType: "SERIES" } },
+      }),
+    ),
+    attempt(() =>
+      api(token).GET("/sources/{id}/series", {
+        params: {
+          path: { id },
+          query: {
+            ...(categoryId ? { categoryId } : {}),
+            ...(search ? { q: search } : {}),
+            page,
+            size: PAGE_SIZE,
+          },
         },
-      },
-    }),
-    // Only to tell the two empty states apart: "this playlist cannot carry
-    // series" and "this panel offers none" are different facts, and one sentence
-    // for both would tell an Xtream user their panel cannot do something it can.
-    api(session.accessToken).GET("/sources/{id}", { params: { path: { id } } }),
+      }),
+    ),
+    // Twice useful. It tells the two empty states apart — "this playlist cannot
+    // carry series" and "this panel offers none" are different facts, and one
+    // sentence for both would tell an Xtream user their panel cannot do
+    // something it can — and it is what the notice above the catalogue is
+    // written from (C4).
+    attempt(() => api(token).GET("/sources/{id}", { params: { path: { id } } })),
     // The rail (S6-08). Already ordered most recently updated first, which the
     // contract says is the order this rail wants, so nothing here re-sorts it.
     // Its failure is deliberately not part of `failure` below: a catalogue that
     // refused to render because a rail could not be read would trade the whole
     // screen for its smallest part.
-    api(session.accessToken).GET("/me/progress", {
-      params: { query: { sourceId: id, itemType: "EPISODE", size: RAIL_SIZE * 4 } },
-    }),
+    attempt(() =>
+      api(token).GET("/me/progress", {
+        params: { query: { sourceId: id, itemType: "EPISODE", size: RAIL_SIZE * 4 } },
+      }),
+    ),
   ]);
 
-  const failure = problemCode(series.error) ?? problemCode(categories.error);
+  const state = cataloguePageState(outcomeOf(series), outcomeOf(categories));
 
-  if (failure === "SOURCE_NOT_READY") {
+  if (state.kind === "not-ready") {
     return (
-      <div className="border-border rounded-xl border border-dashed px-5 py-6">
-        <p className="font-medium">{t("catalogueNotReady")}</p>
-        <p className="mt-2 text-sm">
-          <a
-            href={hrefFor(locale as Locale, `/app/sources/${id}`)}
-            className="underline underline-offset-4"
-          >
-            {t("catalogueNotReadyLink")}
-          </a>
-        </p>
-      </div>
+      <CatalogueNotReady sourceId={id} source={source.data ?? null} locale={locale as Locale} />
     );
   }
-  if (failure) {
+  if (state.kind === "error") {
     return (
       <p role="alert" className="text-destructive text-sm">
-        {tErrors(failure as never)}
+        {errorMessage(state.code, tErrors)}
       </p>
     );
   }
-  if (!series.data || !categories.data) {
+  if (state.kind === "unavailable") {
     return <Unavailable />;
   }
 
-  const totalPages = series.data.total_pages;
-  const isPlaylist = source.data?.kind !== "XTREAM";
+  // Either request may still have failed — one of them, never both. `undefined`
+  // stays `undefined`, so nothing below can take "did not load" for "empty".
+  const listing = series.data;
+  const listed = listing?.items ?? [];
+  const totalPages = listing?.total_pages ?? 0;
+  // Three answers, not two. When the source request failed the kind is unknown,
+  // and both explanations of an empty grid — "a playlist cannot carry series",
+  // "this provider offers none" — would be a guess: neither is given then.
+  const isPlaylist = source.data ? !seriesApply(source.data.kind) : null;
   const rail = await continueWatching({
-    token: session.accessToken,
+    token,
     sourceId: id,
     rows: progress.data?.items ?? [],
-    onPage: series.data.items,
+    onPage: listed,
   });
   const context = { categoryId, q: search, page: page > 0 ? String(page) : undefined };
 
@@ -176,9 +200,14 @@ export default async function SeriesPage({
       </p>
 
       <h1 className="mt-4 text-2xl font-semibold tracking-tight">{t("seriesTitle")}</h1>
-      <p className="text-muted-foreground mt-2">
-        {t("seriesCount", { total: series.data.total_elements })}
-      </p>
+      {/* No total when the listing did not load — it is unknown, not zero — and
+          none for a playlist, where a series count does not apply (adr/0010):
+          the empty state below says why instead. */}
+      {listing && isPlaylist !== true ? (
+        <p className="text-muted-foreground mt-2">
+          {t("seriesCount", { total: listing.total_elements })}
+        </p>
+      ) : null}
 
       <CatalogueTabs
         sourceId={id}
@@ -189,6 +218,16 @@ export default async function SeriesPage({
         filmsLabel={t("filmsTitle")}
         seriesLabel={t("seriesTitle")}
       />
+
+      {/* Above the catalogue, not instead of it (C4). Renders nothing for a
+          source that is simply ready. */}
+      {source.data ? (
+        <SourceNotice
+          source={source.data}
+          condition={sourceCondition(source.data)}
+          locale={locale as Locale}
+        />
+      ) : null}
 
       <ContinueWatching
         entries={rail}
@@ -240,7 +279,8 @@ export default async function SeriesPage({
 
       <div className="mt-8 grid gap-8 md:grid-cols-[14rem_1fr]">
         <CategoryList
-          categories={categories.data.items}
+          categories={categories.data?.items ?? []}
+          failedLabel={state.categoriesFailed ? t("catalogueCategoriesFailed") : undefined}
           activeId={categoryId}
           sourceId={id}
           locale={locale as Locale}
@@ -249,7 +289,13 @@ export default async function SeriesPage({
         />
 
         <div>
-          {series.data.items.length === 0 ? (
+          {state.listingFailed ? (
+            // Not the empty state: nothing is known about this list.
+            <div role="alert" className="border-border rounded-xl border border-dashed px-5 py-6">
+              <p className="font-medium">{t("catalogueListFailed")}</p>
+              <p className="text-muted-foreground mt-1 text-sm">{t("catalogueListFailedHint")}</p>
+            </div>
+          ) : listed.length === 0 ? (
             <div className="border-border rounded-xl border border-dashed px-5 py-6">
               <p className="font-medium">
                 {search ? t("seriesNoResults") : t("seriesEmpty")}
@@ -257,9 +303,11 @@ export default async function SeriesPage({
               <p className="text-muted-foreground mt-1 text-sm">
                 {search
                   ? t("seriesNoResultsHint")
-                  : isPlaylist
-                    ? t("seriesEmptyPlaylist")
-                    : t("seriesEmptyPanel")}
+                  : isPlaylist === null
+                    ? null
+                    : isPlaylist
+                      ? t("seriesEmptyPlaylist")
+                      : t("seriesEmptyPanel")}
               </p>
             </div>
           ) : (
@@ -267,7 +315,7 @@ export default async function SeriesPage({
               aria-label={t("seriesTitle")}
               className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
             >
-              {series.data.items.map((row) => (
+              {listed.map((row) => (
                 <SeriesCard
                   key={row.id}
                   series={row}
@@ -341,6 +389,7 @@ function Poster({ series }: { series: Series }) {
 
 function CategoryList({
   categories,
+  failedLabel,
   activeId,
   sourceId,
   locale,
@@ -348,6 +397,12 @@ function CategoryList({
   allLabel,
 }: {
   categories: Category[];
+  /**
+   * Set when the categories request failed. "All" still works — it is a link to
+   * this page without a filter — and the sentence stands where the list would
+   * be, so an absent list is not read as a source with no categories.
+   */
+  failedLabel?: string;
   activeId?: string;
   sourceId: string;
   locale: Locale;
@@ -387,6 +442,11 @@ function CategoryList({
           </li>
         ))}
       </ul>
+      {failedLabel ? (
+        <p role="alert" className="text-muted-foreground mt-2 px-3 text-sm">
+          {failedLabel}
+        </p>
+      ) : null}
     </nav>
   );
 }
@@ -497,9 +557,11 @@ async function continueWatching({
   const refs = rows.map((row) => row.item_ref).slice(0, RAIL_SIZE * 4);
   if (refs.length === 0) return [];
 
-  const episodes = await api(token).GET("/sources/{id}/episodes", {
-    params: { path: { id: sourceId }, query: { ids: refs, size: refs.length } },
-  });
+  const episodes = await attempt(() =>
+    api(token).GET("/sources/{id}/episodes", {
+      params: { path: { id: sourceId }, query: { ids: refs, size: refs.length } },
+    }),
+  );
   const byId = new Map((episodes.data?.items ?? []).map((row) => [row.id, row]));
 
   // In the order the rows came in — most recently touched first — and one per
@@ -527,9 +589,11 @@ async function continueWatching({
     .filter((id) => !known.has(id));
 
   if (missing.length > 0) {
-    const resolved = await api(token).GET("/sources/{id}/series", {
-      params: { path: { id: sourceId }, query: { ids: missing, size: missing.length } },
-    });
+    const resolved = await attempt(() =>
+      api(token).GET("/sources/{id}/series", {
+        params: { path: { id: sourceId }, query: { ids: missing, size: missing.length } },
+      }),
+    );
     for (const item of resolved.data?.items ?? []) known.set(item.id, item);
   }
 

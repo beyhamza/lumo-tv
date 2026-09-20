@@ -351,8 +351,19 @@ test.describe.serial("sources", () => {
 
     await page.getByRole("link", { name: fr.App.sourceDelete }).click();
     // The confirmation is a query parameter, not a dialog: it works without
-    // JavaScript and it names what goes with the source.
-    await expect(page.getByText(fr.App.sourceDeleteConfirmBody)).toBeVisible();
+    // JavaScript, it names the source, and it says what goes with it and what
+    // does not (US-024, "Suppression").
+    await expect(
+      page.getByRole("heading", {
+        name: fr.App.sourceDeleteConfirmTitle.replace("{label}", "Banc d'essai"),
+      }),
+    ).toBeVisible();
+    await expect(page.getByText(fr.App.sourceDeleteConfirmRemoves)).toBeVisible();
+    await expect(page.getByText(fr.App.sourceDeleteConfirmKeeps)).toBeVisible();
+    await expect(page.getByText(fr.App.sourceDeleteConfirmProvider)).toBeVisible();
+    await expect(page.getByText(fr.App.sourceDeleteConfirmNoRestore)).toBeVisible();
+    // Cancel comes before the destructive button, for the keyboard.
+    await expect(page.getByRole("link", { name: fr.App.sourceDeleteCancel })).toBeVisible();
     await page.getByRole("button", { name: fr.App.sourceDeleteConfirm }).click();
 
     await expect(page.getByText(fr.App.sourcesEmpty)).toBeVisible();

@@ -45,10 +45,12 @@ export async function GET(
   }
 
   if (result.error || !result.data) {
-    // Passed through untouched. A source still importing, a subscription that
-    // has expired and a panel at its connection limit are three different
-    // sentences, and collapsing them here would make the player say "playback
-    // failed" to all three.
+    // Passed through untouched. A refresh in progress (`SOURCE_NOT_READY` — all
+    // it means here since contract lot C4), credentials the provider refused
+    // (`SOURCE_AUTH_FAILED`), a subscription that has expired and a panel at its
+    // connection limit are four different sentences with different ways out
+    // (`lib/playback/refusal.ts`), and collapsing them here would make the
+    // player say "playback failed" to all of them.
     const code = problemCode(result.error) ?? "INTERNAL_ERROR";
     return problem(result.response?.status ?? 502, code);
   }

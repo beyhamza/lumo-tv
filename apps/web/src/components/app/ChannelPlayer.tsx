@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { recordWatched } from "@/actions/playback";
+import { PlaybackRefusalMessage } from "@/components/app/PlaybackRefusalMessage";
+import { SourceDeleted } from "@/components/app/SourceDeleted";
+import { useSourceGone } from "@/lib/playback/use-source-gone";
 
 /**
  * Plays one live channel in the browser (US-11, ADR 0007).
@@ -29,23 +32,53 @@ import { recordWatched } from "@/actions/playback";
  * is broken when it is their provider refusing. Every branch here ends in a
  * sentence that says what happened, and — when nothing can be done in a browser
  * — points at the applications, which have neither constraint.
+ *
+ * <h2>The source deleted while this plays</h2>
+ *
+ * A stream comes from the user's provider, so this page talks to nobody while it
+ * plays and would never learn that the source was deleted from the phone. It
+ * asks once a minute (`useSourceGone`); on a deletion **the server confirmed**
+ * the stream is torn down, the player is replaced by one sentence and one
+ * "Continue" back to the home page, and nothing else is started (US-024). An
+ * outage is not a deletion and changes nothing here.
  */
 export function ChannelPlayer({
   channelId,
+  sourceId,
   name,
   quality,
+  sourceHref,
+  continueHref,
 }: {
   channelId: string;
+  /** The source this channel belongs to, for the once-a-minute existence check. */
+  sourceId: string;
   name: string;
   quality?: string | null;
+  /**
+   * The source's own page, where a refusal that needs the source fixed — or a
+   * refresh followed — sends the user. Built by the page, locale included: this
+   * component renders under a provider that carries messages, not routing.
+   */
+  sourceHref: string;
+  /** Where "Continue" goes once the source is gone: the home page. */
+  continueHref: string;
 }) {
   const t = useTranslations("App");
-  const tErrors = useTranslations("Errors");
   const videoRef = useRef<HTMLVideoElement>(null);
   const [failure, setFailure] = useState<Failure | null>(null);
   const [maxConnections, setMaxConnections] = useState<number | null>(null);
+  // A channel player is playing from the moment it is mounted: `?play=` is what
+  // mounts it.
+  const gone = useSourceGone(sourceId, true);
 
   useEffect(() => {
+    // Part of this effect's dependencies on purpose: when the source is
+    // confirmed gone, React runs the cleanup below — which destroys the hls.js
+    // instance and stops the watchdog — and this early return keeps anything
+    // from starting again. The `<video>` itself is unmounted by the render.
+    if (gone) return;
+
     let disposed = false;
     let hls: { destroy: () => void } | null = null;
 
@@ -188,7 +221,11 @@ export function ChannelPlayer({
       clearTimeout(watchdog);
       hls?.destroy();
     };
-  }, [channelId]);
+  }, [channelId, gone]);
+
+  if (gone) {
+    return <SourceDeleted continueHref={continueHref} />;
+  }
 
   return (
     <section
@@ -231,11 +268,11 @@ export function ChannelPlayer({
       {failure ? (
         <div role="alert" className="border-destructive/40 mt-3 rounded-lg border px-4 py-3">
           <p className="font-medium">{t("playerFailedTitle")}</p>
-          <p className="mt-1 text-sm">
-            {failure.kind === "api"
-              ? messageForCode(failure.code, tErrors, t)
-              : t(bodyKey(failure.kind))}
-          </p>
+          {failure.kind === "api" ? (
+            <PlaybackRefusalMessage code={failure.code} sourceHref={sourceHref} />
+          ) : (
+            <p className="mt-1 text-sm">{t(bodyKey(failure.kind))}</p>
+          )}
           {/* Offered only where it is true. A browser cannot get past mixed
               content or a missing CORS header, and telling someone to try again
               would be telling them to do the same thing twice. */}
@@ -268,28 +305,6 @@ function bodyKey(kind: Exclude<Failure["kind"], "api">) {
     default:
       return "playerUnsupported";
   }
-}
-
-/**
- * An API refusal, said in the API's own words where we have them.
- *
- * `SOURCE_EXPIRED` and `SOURCE_MAX_CONNECTIONS` are the two that matter here and
- * both have translated messages already. Anything else falls back rather than
- * crashing, because the contract allows new codes within v1.
- */
-function messageForCode(
-  code: string,
-  tErrors: (key: string) => string,
-  t: (key: string) => string,
-): string {
-  const known = [
-    "SOURCE_NOT_READY",
-    "SOURCE_EXPIRED",
-    "SOURCE_MAX_CONNECTIONS",
-    "CHANNEL_NOT_FOUND",
-    "UNAUTHENTICATED",
-  ];
-  return known.includes(code) ? tErrors(code) : t("playerUnplayable");
 }
 
 /**

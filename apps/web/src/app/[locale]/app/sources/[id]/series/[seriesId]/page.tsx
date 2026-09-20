@@ -176,6 +176,8 @@ export default async function SeriesDetailPage({
               resumeAt > 0 ? t("filmsResumeAt", { at: asClock(resumeAt) }) : null
             }
             audioCodec={episode.audio_codec ?? null}
+            sourceHref={hrefFor(locale as Locale, `/app/sources/${id}`)}
+            continueHref={hrefFor(locale as Locale, "/app")}
           />
         </NextIntlClientProvider>
       ) : null}

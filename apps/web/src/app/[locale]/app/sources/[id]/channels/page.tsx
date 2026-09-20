@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { addFavorite, removeFavorite } from "@/actions/favorites";
+import { CatalogueNotReady } from "@/components/app/CatalogueNotReady";
 import { CatalogueTabs } from "@/components/app/CatalogueTabs";
 import { ChannelLogo, ChannelRail } from "@/components/app/ChannelRail";
 import {
@@ -10,13 +11,18 @@ import {
   groupLabel,
 } from "@/components/app/FavoriteGroups";
 import { ChannelPlayer } from "@/components/app/ChannelPlayer";
+import { SourceNotice } from "@/components/app/SourceNotice";
 import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { api, problemCode } from "@/lib/api/client";
+import { api } from "@/lib/api/client";
+import { errorMessage } from "@/lib/api/error-message";
 import type { Category, Channel, FavoriteGroup } from "@/lib/api/types";
+import { attempt, outcomeOf } from "@/lib/catalogue/attempt";
+import { cataloguePageState } from "@/lib/catalogue/page-state";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
+import { sourceCondition } from "@/lib/sources/source-condition";
 
 /**
  * The channels of one source (US-08).
@@ -57,6 +63,22 @@ import { requireSession } from "@/lib/session/session";
  * Both rails are scoped to this source, because this page is. A favourite on
  * another source belongs to that source's catalogue, and linking to it from here
  * would produce a `?play=` this screen cannot honour.
+ *
+ * <h2>The catalogue is there whenever one exists (contract lot C4)</h2>
+ *
+ * The listings answer `200` in every status once an ingestion has succeeded. So
+ * this page also fetches the source, and says **above** the catalogue what it is
+ * going through — refreshing, with the server's real step; or failed, with the
+ * cause and "this catalogue may be out of date" (`SourceNotice`, shared with the
+ * home page). `409 SOURCE_NOT_READY` is left meaning one thing: no catalogue has
+ * ever been ingested (`CatalogueNotReady`).
+ *
+ * <h2>A part that failed is named, never drawn as empty</h2>
+ *
+ * `cataloguePageState` decides from the two main requests. When only one of them
+ * failed the other is kept, and the missing part says "could not be loaded":
+ * "No channel in this category" over a request that never answered would be a
+ * statement about somebody's subscription made from no information (US-024).
  */
 export async function generateMetadata({
   params,
@@ -115,66 +137,79 @@ export default async function ChannelsPage({
 
   // Not through `fetched()`: this screen has to tell three failures apart, and
   // that helper deliberately collapses everything that is not an unrouted 404
-  // into "unavailable". A source still importing is not an outage.
-  const [categories, channels, favorites, recents, groups] = await Promise.all([
-    api(session.accessToken).GET("/sources/{id}/categories", {
-      params: { path: { id }, query: { contentType: "LIVE" } },
-    }),
-    api(session.accessToken).GET("/sources/{id}/channels", {
-      params: {
-        path: { id },
-        query: {
-          ...(categoryId ? { categoryId } : {}),
-          ...(search ? { q: search } : {}),
-          page,
-          size: PAGE_SIZE,
+  // into "unavailable". A source with no catalogue yet is not an outage.
+  //
+  // Each through `attempt()`, so that one request with no answer at all cannot
+  // reject the whole `Promise.all` and take the parts that did answer with it.
+  const token = session.accessToken;
+  const [categories, channels, source, favorites, recents, groups] = await Promise.all([
+    attempt(() =>
+      api(token).GET("/sources/{id}/categories", {
+        params: { path: { id }, query: { contentType: "LIVE" } },
+      }),
+    ),
+    attempt(() =>
+      api(token).GET("/sources/{id}/channels", {
+        params: {
+          path: { id },
+          query: {
+            ...(categoryId ? { categoryId } : {}),
+            ...(search ? { q: search } : {}),
+            page,
+            size: PAGE_SIZE,
+          },
         },
-      },
-    }),
+      }),
+    ),
+    // What the source is going through, for the notice above the catalogue. Its
+    // failure costs the notice and nothing else.
+    attempt(() => api(token).GET("/sources/{id}", { params: { path: { id } } })),
     // Every favourite of the account, not only this source's: the contract has
     // no filter by source, and the list is small by nature — it is what one
     // person starred by hand. Its failure is deliberately not part of `failure`
     // below: a catalogue that refuses to render because a star could not be
     // read would be trading the whole screen for its smallest control.
-    api(session.accessToken).GET("/me/favorites", {}),
+    attempt(() => api(token).GET("/me/favorites", {})),
     // Watched on any device, which is the whole value of asking the server
     // rather than remembering locally: what was started on the phone this
     // morning is at the top of this rail now.
-    api(session.accessToken).GET("/me/recent-channels", {
-      params: { query: { limit: RAIL_SIZE } },
-    }),
+    attempt(() =>
+      api(token).GET("/me/recent-channels", {
+        params: { query: { limit: RAIL_SIZE } },
+      }),
+    ),
     // The account's groups. Like the favourites above, a failure here does not
     // take the catalogue down: the rail loses its group bar, the channel list is
     // untouched.
-    api(session.accessToken).GET("/me/favorite-groups", {}),
+    attempt(() => api(token).GET("/me/favorite-groups", {})),
   ]);
 
-  const failure = problemCode(channels.error) ?? problemCode(categories.error);
+  const state = cataloguePageState(outcomeOf(channels), outcomeOf(categories));
 
-  if (failure === "SOURCE_NOT_READY") {
+  if (state.kind === "not-ready") {
     return (
-      <NotReady
-        id={id}
-        locale={locale as Locale}
-        title={t("catalogueNotReady")}
-        link={t("catalogueNotReadyLink")}
-      />
+      <CatalogueNotReady sourceId={id} source={source.data ?? null} locale={locale as Locale} />
     );
   }
-  if (failure) {
+  if (state.kind === "error") {
     // Includes SOURCE_NOT_FOUND. The message comes from the code, never from an
-    // HTTP status.
+    // HTTP status, and a code nobody has seen degrades to the generic sentence.
     return (
       <p role="alert" className="text-destructive text-sm">
-        {tErrors(failure as never)}
+        {errorMessage(state.code, tErrors)}
       </p>
     );
   }
-  if (!channels.data || !categories.data) {
+  if (state.kind === "unavailable") {
     return <Unavailable />;
   }
 
-  const totalPages = channels.data.total_pages;
+  // From here on either request may still have failed — one of them, never both.
+  // `undefined` is kept as such so that nothing below can mistake "did not load"
+  // for "loaded, and empty".
+  const listing = channels.data;
+  const listed = listing?.items ?? [];
+  const totalPages = listing?.total_pages ?? 0;
   const messages = await getMessages();
 
   // Both lists come back for the whole account; this screen is one source.
@@ -241,7 +276,7 @@ export default async function ChannelsPage({
   // Everything this page has to name but was not handed by the query above: the
   // two rails, and the channel being played — which since `ids` exists no longer
   // has to be on the current page for its heading to be right.
-  const byId = new Map(channels.data.items.map((channel) => [channel.id, channel]));
+  const byId = new Map(listed.map((channel) => [channel.id, channel]));
   // A chosen group shows all of itself, not a rail's worth: picking
   // "Documentaire" and getting twelve of its thirty channels would make the
   // choice look broken. Capped at the contract's `ids` limit, which is also the
@@ -259,9 +294,11 @@ export default async function ChannelsPage({
     .slice(0, ID_LOOKUP_MAX);
 
   if (missing.length > 0) {
-    const resolved = await api(session.accessToken).GET("/sources/{id}/channels", {
-      params: { path: { id }, query: { ids: missing, size: missing.length } },
-    });
+    const resolved = await attempt(() =>
+      api(token).GET("/sources/{id}/channels", {
+        params: { path: { id }, query: { ids: missing, size: missing.length } },
+      }),
+    );
     // An identifier the last re-synchronisation dropped is simply not in the
     // answer, by contract. It falls out of the rail below rather than rendering
     // as a gap, which is the honest outcome: the channel is gone.
@@ -311,9 +348,12 @@ export default async function ChannelsPage({
       <h1 className="mt-4 text-2xl font-semibold tracking-tight">
         {t("catalogueTitle")}
       </h1>
-      <p className="text-muted-foreground mt-2">
-        {t("catalogueCount", { total: channels.data.total_elements })}
-      </p>
+      {/* No total when the listing did not load: it is not zero, it is unknown. */}
+      {listing ? (
+        <p className="text-muted-foreground mt-2">
+          {t("catalogueCount", { total: listing.total_elements })}
+        </p>
+      ) : null}
 
       {/* Always the three, and no request to decide it. An earlier version paid
           one call to hide the films tab on a source that had none; hiding it is
@@ -328,6 +368,16 @@ export default async function ChannelsPage({
         filmsLabel={t("filmsTitle")}
         seriesLabel={t("seriesTitle")}
       />
+
+      {/* Above the catalogue, not instead of it (C4). Renders nothing for a
+          source that is simply ready. */}
+      {source.data ? (
+        <SourceNotice
+          source={source.data}
+          condition={sourceCondition(source.data)}
+          locale={locale as Locale}
+        />
+      ) : null}
 
       <ChannelRail
         title={t("catalogueRecentTitle")}
@@ -421,7 +471,8 @@ export default async function ChannelsPage({
 
       <div className="mt-8 grid gap-8 md:grid-cols-[14rem_1fr]">
         <CategoryList
-          categories={categories.data.items}
+          categories={categories.data?.items ?? []}
+          failedLabel={state.categoriesFailed ? t("catalogueCategoriesFailed") : undefined}
           activeId={categoryId}
           sourceId={id}
           locale={locale as Locale}
@@ -436,13 +487,22 @@ export default async function ChannelsPage({
             >
               <ChannelPlayer
                 channelId={nowPlaying.id}
+                sourceId={id}
                 name={nowPlaying.name}
                 quality={nowPlaying.quality}
+                sourceHref={hrefFor(locale as Locale, `/app/sources/${id}`)}
+                continueHref={hrefFor(locale as Locale, "/app")}
               />
             </NextIntlClientProvider>
           ) : null}
 
-          {channels.data.items.length === 0 ? (
+          {state.listingFailed ? (
+            // Not the empty state: nothing is known about this list.
+            <div role="alert" className="border-border rounded-xl border border-dashed px-5 py-6">
+              <p className="font-medium">{t("catalogueListFailed")}</p>
+              <p className="text-muted-foreground mt-1 text-sm">{t("catalogueListFailedHint")}</p>
+            </div>
+          ) : listed.length === 0 ? (
             <div className="border-border rounded-xl border border-dashed px-5 py-6">
               <p className="font-medium">
                 {search ? t("catalogueNoResults") : t("catalogueEmpty")}
@@ -453,7 +513,7 @@ export default async function ChannelsPage({
             </div>
           ) : (
             <ul aria-label={t("catalogueTitle")} className="space-y-2">
-              {channels.data.items.map((channel) => (
+              {listed.map((channel) => (
                 <ChannelRow
                   key={channel.id}
                   channel={channel}
@@ -518,34 +578,9 @@ function railOf(
     .filter((channel): channel is Channel => channel !== undefined);
 }
 
-function NotReady({
-  id,
-  locale,
-  title,
-  link,
-}: {
-  id: string;
-  locale: Locale;
-  title: string;
-  link: string;
-}) {
-  return (
-    <div className="border-border rounded-xl border border-dashed px-5 py-6">
-      <p className="font-medium">{title}</p>
-      <p className="mt-3">
-        <a
-          href={hrefFor(locale, `/app/sources/${id}`)}
-          className="text-sm underline underline-offset-4"
-        >
-          {link}
-        </a>
-      </p>
-    </div>
-  );
-}
-
 function CategoryList({
   categories,
+  failedLabel,
   activeId,
   sourceId,
   locale,
@@ -553,6 +588,12 @@ function CategoryList({
   allLabel,
 }: {
   categories: Category[];
+  /**
+   * Set when the categories request failed. "All" still works — it is a link to
+   * this page without a filter — and the sentence stands where the list would
+   * be, so an absent list is not read as a source with no categories.
+   */
+  failedLabel?: string;
   activeId?: string;
   sourceId: string;
   locale: Locale;
@@ -598,6 +639,11 @@ function CategoryList({
           </li>
         ))}
       </ul>
+      {failedLabel ? (
+        <p role="alert" className="text-muted-foreground mt-2 px-3 text-sm">
+          {failedLabel}
+        </p>
+      ) : null}
     </nav>
   );
 }

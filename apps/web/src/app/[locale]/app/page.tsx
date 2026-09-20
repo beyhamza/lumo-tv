@@ -1,16 +1,14 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ChannelRail } from "@/components/app/ChannelRail";
 import { ContinueRail, type ContinueRailEntry } from "@/components/app/ContinueRail";
+import { SourceNotice } from "@/components/app/SourceNotice";
 import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { errorMessage } from "@/lib/api/error-message";
-import type { Source } from "@/lib/api/types";
 import { loadHomeRails, type HomeRails } from "@/lib/home/load-home-rails";
-import { sourceCondition } from "@/lib/home/source-condition";
 import { requireSession } from "@/lib/session/session";
 import { loadActiveSource } from "@/lib/sources/active-source-store";
-import { stepKey } from "@/lib/sources/sync-step";
+import { sourceCondition } from "@/lib/sources/source-condition";
 
 /**
  * The home page of the account zone (US-017, US-020, S8-E01 and S8-E02).
@@ -37,7 +35,7 @@ import { stepKey } from "@/lib/sources/sync-step";
  * - A source synchronising, or in error — said, **above** the rails rather than
  *   instead of them: since contract lot C4 the previous catalogue stays served in
  *   every status, so what was there yesterday is still there
- *   (`lib/home/source-condition.ts`).
+ *   (`lib/sources/source-condition.ts`).
  *
  * <h2>What is deliberately absent</h2>
  *
@@ -144,14 +142,9 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
         {t("homeOfSource", { source: source.label })}
       </p>
 
-      {condition.notice ? (
-        <SourceNotice
-          source={source}
-          notice={condition.notice}
-          browsable={condition.browsable}
-          locale={locale}
-        />
-      ) : null}
+      {/* Renders nothing for a source with nothing to announce. Shared with the
+          catalogue pages since S8-05: same two facts, same sentences. */}
+      <SourceNotice source={source} condition={condition} locale={locale} />
 
       {rails ? (
         <>
@@ -259,76 +252,6 @@ function continueEntries(
       },
     };
   });
-}
-
-/**
- * What the active source is going through, above whatever can still be shown.
- *
- * <h2>The step is the server's, in the source page's own words</h2>
- *
- * `sync_step` is the real phase and the message keys are the ones the source
- * page's checklist uses, so "Reading the channels" here is "Reading the
- * channels" there. `PENDING` has no step yet — claimed, not started — and says
- * so with the status word rather than inventing a phase.
- *
- * <h2>An error names itself and points at the fix, it does not carry it</h2>
- *
- * The message comes from `error_code` through `errorMessage`, the mapping every
- * other screen uses. Retrying and correcting credentials are forms that live on
- * the source's page, with its confirmation and its progress; a second copy here
- * would be a second place for them to drift. One link.
- *
- * `role="status"` for a synchronisation and `role="alert"` for a failure, as on
- * the source page: one is news, the other needs somebody.
- */
-async function SourceNotice({
-  source,
-  notice,
-  browsable,
-  locale,
-}: {
-  source: Source;
-  notice: "syncing" | "error";
-  browsable: boolean;
-  locale: Locale;
-}) {
-  const t = await getTranslations("App");
-  const tErrors = await getTranslations("Errors");
-  const sourceHref = hrefFor(locale, `/app/sources/${source.id}`);
-
-  if (notice === "syncing") {
-    return (
-      <div role="status" className="border-border mt-6 rounded-xl border px-5 py-4">
-        <p className="font-medium">{t("homeSyncingTitle", { source: source.label })}</p>
-        <p className="mt-1 text-sm">
-          {source.sync_step ? t(stepKey(source.sync_step)) : t("sourceStatusPending")}
-        </p>
-        <p className="text-muted-foreground mt-1 text-sm">
-          {browsable ? t("homeSyncingKeepsCatalogue") : t("homeSyncingFirst")}
-        </p>
-        <p className="mt-3">
-          <a href={sourceHref} className="text-sm underline underline-offset-4">
-            {t("homeSyncingLink")}
-          </a>
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div role="alert" className="border-destructive/40 mt-6 rounded-xl border px-5 py-4">
-      <p className="font-medium">{t("homeErrorTitle", { source: source.label })}</p>
-      <p className="mt-1 text-sm">{errorMessage(source.error_code ?? undefined, tErrors)}</p>
-      {browsable ? (
-        <p className="text-muted-foreground mt-1 text-sm">{t("homeErrorKeepsCatalogue")}</p>
-      ) : null}
-      <p className="mt-3">
-        <a href={sourceHref} className="text-sm underline underline-offset-4">
-          {t("homeErrorLink")}
-        </a>
-      </p>
-    </div>
-  );
 }
 
 /**

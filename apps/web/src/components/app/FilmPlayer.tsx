@@ -3,8 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { saveEpisodeProgress, saveFilmProgress } from "@/actions/playback";
+import { PlaybackRefusalMessage } from "@/components/app/PlaybackRefusalMessage";
+import { SourceDeleted } from "@/components/app/SourceDeleted";
 import { advanceMs, audibility, browserDecodes } from "@/lib/playback/audibility";
 import { savableProgress } from "@/lib/playback/progress";
+import { useSourceGone } from "@/lib/playback/use-source-gone";
 
 /**
  * Plays one film in the browser (US-13, ADR 0007).
@@ -80,6 +83,15 @@ import { savableProgress } from "@/lib/playback/progress";
  * is broken when it is their provider refusing. Every branch ends in a sentence,
  * and the ones a browser cannot get past point at the applications, which have
  * neither constraint.
+ *
+ * <h2>The source deleted while this plays</h2>
+ *
+ * Asked once a minute from the moment playback is requested (`useSourceGone`). On
+ * a deletion **the server confirmed**, the file is let go of, the player is
+ * replaced by one sentence and one "Continue", and nothing else is started
+ * (US-024). The saving loop stops with it; its parting write is refused by the
+ * server, the progress rows having gone with the source by cascade. An outage is
+ * not a deletion and changes nothing here.
  */
 export function FilmPlayer({
   filmId,
@@ -90,6 +102,8 @@ export function FilmPlayer({
   playbackPath = "vod",
   itemType = "VOD",
   audioCodec = null,
+  sourceHref,
+  continueHref,
 }: {
   filmId: string;
   /**
@@ -141,9 +155,15 @@ export function FilmPlayer({
    * day a third kind of thing is played.
    */
   itemType?: "VOD" | "EPISODE";
+  /**
+   * The source's own page, where a refusal that needs the source fixed — or a
+   * refresh followed — sends the user. Built by the page, locale included.
+   */
+  sourceHref: string;
+  /** Where "Continue" goes once the source is gone: the home page. */
+  continueHref: string;
 }) {
   const t = useTranslations("App");
-  const tErrors = useTranslations("Errors");
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [failure, setFailure] = useState<Failure | null>(null);
@@ -165,6 +185,9 @@ export function FilmPlayer({
    * are one player told two different things, not two players.
    */
   const [startAtMs, setStartAtMs] = useState(resumeFromMs);
+  // Only once playback has been asked for: a film page that is merely open is a
+  // page, and pages find out about a deletion by being navigated.
+  const gone = useSourceGone(sourceId, started);
 
   /**
    * The last position worth saving, kept in a ref rather than in state.
@@ -205,7 +228,7 @@ export function FilmPlayer({
   }, [filmId, sourceId, itemType]);
 
   useEffect(() => {
-    if (!started) return;
+    if (!started || gone) return;
     let disposed = false;
 
     async function start() {
@@ -268,12 +291,14 @@ export function FilmPlayer({
     return () => {
       disposed = true;
     };
-  }, [filmId, started, startAtMs, playbackPath]);
+  }, [filmId, started, startAtMs, playbackPath, gone]);
 
   // The thirty-second loop, plus the two moments that matter more than any tick:
   // the tab going away, and the component being taken down.
   useEffect(() => {
-    if (!started) return;
+    // `gone` ends the loop for good. What its cleanup does on the way out is
+    // written on the cleanup.
+    if (!started || gone) return;
 
     const timer = setInterval(save, SAVE_EVERY_MS);
     const onHidden = () => {
@@ -285,9 +310,21 @@ export function FilmPlayer({
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onHidden);
       // Last, and it is the one that catches navigating away from the page.
+      //
+      // It also runs when `gone` flips to true, and that write is then refused
+      // with `404 SOURCE_NOT_FOUND` (contract, `PUT /me/progress`): the rows
+      // were removed with the source. One refused request, and nothing to keep —
+      // cheaper than threading a second flag through a cleanup that cannot see
+      // the next value of `gone`.
       save();
     };
-  }, [started, save]);
+  }, [started, save, gone]);
+
+  if (gone) {
+    // The `<video>` is unmounted with everything else, which is what lets go of
+    // the file: a media element removed from the document stops loading.
+    return <SourceDeleted continueHref={continueHref} />;
+  }
 
   return (
     <section className="mt-6">
@@ -417,11 +454,11 @@ export function FilmPlayer({
       {failure ? (
         <div role="alert" className="border-destructive/40 mt-3 rounded-lg border px-4 py-3">
           <p className="font-medium">{t("playerFailedTitle")}</p>
-          <p className="mt-1 text-sm">
-            {failure.kind === "api"
-              ? messageForCode(failure.code, tErrors, t)
-              : t(bodyKey(failure.kind))}
-          </p>
+          {failure.kind === "api" ? (
+            <PlaybackRefusalMessage code={failure.code} sourceHref={sourceHref} />
+          ) : (
+            <p className="mt-1 text-sm">{t(bodyKey(failure.kind))}</p>
+          )}
           {/* Offered only where it is true. A browser cannot get past mixed
               content, and telling someone to try again would be telling them to
               do the same thing twice. */}
@@ -444,27 +481,4 @@ type Failure =
 
 function bodyKey(kind: Exclude<Failure["kind"], "api">) {
   return kind === "mixed-content" ? "playerMixedContent" : "playerUnplayable";
-}
-
-/**
- * An API refusal, said in the API's own words where we have them.
- *
- * `VOD_ITEM_NOT_FOUND` joins the three the channel player already knows; the
- * rest fall back rather than crashing, because the contract allows new codes
- * within v1.
- */
-function messageForCode(
-  code: string,
-  tErrors: (key: string) => string,
-  t: (key: string) => string,
-): string {
-  const known = [
-    "SOURCE_NOT_READY",
-    "SOURCE_EXPIRED",
-    "SOURCE_MAX_CONNECTIONS",
-    "VOD_ITEM_NOT_FOUND",
-    "EPISODE_NOT_FOUND",
-    "UNAUTHENTICATED",
-  ];
-  return known.includes(code) ? tErrors(code) : t("playerUnplayable");
 }

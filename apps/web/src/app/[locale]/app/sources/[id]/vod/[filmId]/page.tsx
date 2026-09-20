@@ -160,6 +160,8 @@ export default async function FilmPage({
               resumeLabel={
                 resumeFromMs > 0 ? t("filmsResumeAt", { at: asClock(resumeFromMs) }) : null
               }
+              sourceHref={hrefFor(locale as Locale, `/app/sources/${row.source_id}`)}
+              continueHref={hrefFor(locale as Locale, "/app")}
             />
           </NextIntlClientProvider>
         </div>

@@ -1,14 +1,20 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { CatalogueNotReady } from "@/components/app/CatalogueNotReady";
 import { CatalogueTabs } from "@/components/app/CatalogueTabs";
+import { SourceNotice } from "@/components/app/SourceNotice";
 import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { api, problemCode } from "@/lib/api/client";
+import { api } from "@/lib/api/client";
+import { errorMessage } from "@/lib/api/error-message";
 import { isFinished } from "@/lib/playback/progress";
 import type { Category, VodItem } from "@/lib/api/types";
+import { attempt, outcomeOf } from "@/lib/catalogue/attempt";
+import { cataloguePageState } from "@/lib/catalogue/page-state";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
+import { sourceCondition } from "@/lib/sources/source-condition";
 
 /**
  * The films of one source (US-13).
@@ -37,6 +43,15 @@ import { requireSession } from "@/lib/session/session";
  * many panels advertise posters over `http`, which this page is served over
  * `https`, so "the source gave no poster" and "the browser refused it" are one
  * outcome from where the visitor is sitting.
+ *
+ * <h2>The catalogue is there whenever one exists (contract lot C4)</h2>
+ *
+ * Exactly as on the channel page, which is where the reasoning is written out:
+ * the source is fetched alongside the listing so that a refresh in progress or a
+ * failed one is said **above** the catalogue (`SourceNotice`);
+ * `409 SOURCE_NOT_READY` only ever means "no catalogue yet"
+ * (`CatalogueNotReady`); and a request that failed is labelled "could not be
+ * loaded", never drawn as an empty list (`cataloguePageState`).
  */
 
 export async function generateMetadata({
@@ -77,62 +92,68 @@ export default async function VodPage({
   const search = single(query.q);
   const page = Math.max(0, Number.parseInt(single(query.page) ?? "0", 10) || 0);
 
-  const [categories, films, progress] = await Promise.all([
-    api(session.accessToken).GET("/sources/{id}/categories", {
-      params: { path: { id }, query: { contentType: "VOD" } },
-    }),
-    api(session.accessToken).GET("/sources/{id}/vod", {
-      params: {
-        path: { id },
-        query: {
-          ...(categoryId ? { categoryId } : {}),
-          ...(search ? { q: search } : {}),
-          page,
-          size: PAGE_SIZE,
+  // Each through `attempt()`: a request with no answer at all must not reject
+  // the whole `Promise.all` and take the parts that did answer with it.
+  const token = session.accessToken;
+  const [categories, films, source, progress] = await Promise.all([
+    attempt(() =>
+      api(token).GET("/sources/{id}/categories", {
+        params: { path: { id }, query: { contentType: "VOD" } },
+      }),
+    ),
+    attempt(() =>
+      api(token).GET("/sources/{id}/vod", {
+        params: {
+          path: { id },
+          query: {
+            ...(categoryId ? { categoryId } : {}),
+            ...(search ? { q: search } : {}),
+            page,
+            size: PAGE_SIZE,
+          },
         },
-      },
-    }),
+      }),
+    ),
+    // What the source is going through, for the notice above the catalogue. Its
+    // failure costs the notice and nothing else.
+    attempt(() => api(token).GET("/sources/{id}", { params: { path: { id } } })),
     // The "continue watching" rail (S5-11). Already ordered most recently
     // updated first — the contract says so, and says it is the order this rail
     // wants — so nothing here re-sorts it. Its failure is deliberately not part
     // of `failure` below: a catalogue that refused to render because a rail
     // could not be read would trade the whole screen for its smallest part.
-    api(session.accessToken).GET("/me/progress", {
-      params: { query: { itemType: "VOD", size: RAIL_SIZE * 2 } },
-    }),
+    attempt(() =>
+      api(token).GET("/me/progress", {
+        params: { query: { itemType: "VOD", size: RAIL_SIZE * 2 } },
+      }),
+    ),
   ]);
 
-  const failure = problemCode(films.error) ?? problemCode(categories.error);
+  const state = cataloguePageState(outcomeOf(films), outcomeOf(categories));
 
-  if (failure === "SOURCE_NOT_READY") {
+  if (state.kind === "not-ready") {
     return (
-      <div className="border-border rounded-xl border border-dashed px-5 py-6">
-        <p className="font-medium">{t("catalogueNotReady")}</p>
-        <p className="mt-2 text-sm">
-          <a
-            href={hrefFor(locale as Locale, `/app/sources/${id}`)}
-            className="underline underline-offset-4"
-          >
-            {t("catalogueNotReadyLink")}
-          </a>
-        </p>
-      </div>
+      <CatalogueNotReady sourceId={id} source={source.data ?? null} locale={locale as Locale} />
     );
   }
-  if (failure) {
+  if (state.kind === "error") {
     // Includes SOURCE_NOT_FOUND. The message comes from the code, never from an
-    // HTTP status.
+    // HTTP status, and a code nobody has seen degrades to the generic sentence.
     return (
       <p role="alert" className="text-destructive text-sm">
-        {tErrors(failure as never)}
+        {errorMessage(state.code, tErrors)}
       </p>
     );
   }
-  if (!films.data || !categories.data) {
+  if (state.kind === "unavailable") {
     return <Unavailable />;
   }
 
-  const totalPages = films.data.total_pages;
+  // Either request may still have failed — one of them, never both. `undefined`
+  // stays `undefined`, so nothing below can take "did not load" for "empty".
+  const listing = films.data;
+  const listed = listing?.items ?? [];
+  const totalPages = listing?.total_pages ?? 0;
 
   // Started, not finished, this source. Asked for twice over because the
   // finished ones are dropped here rather than by the server, and a page of
@@ -146,15 +167,17 @@ export default async function VodPage({
   // which is why `item_ref` holds a `VodItem.id`: this is the lookup it exists
   // for. One request, capped by the contract's own `ids` limit, and the order is
   // taken from the progress list rather than from the answer.
-  const railFilms = new Map(films.data.items.map((item) => [item.id, item]));
+  const railFilms = new Map(listed.map((item) => [item.id, item]));
   const unresolved = resumable
     .map((row) => row.item_ref)
     .filter((ref) => !railFilms.has(ref));
 
   if (unresolved.length > 0) {
-    const resolved = await api(session.accessToken).GET("/sources/{id}/vod", {
-      params: { path: { id }, query: { ids: unresolved, size: unresolved.length } },
-    });
+    const resolved = await attempt(() =>
+      api(token).GET("/sources/{id}/vod", {
+        params: { path: { id }, query: { ids: unresolved, size: unresolved.length } },
+      }),
+    );
     // A film the last re-synchronisation dropped is simply absent from the
     // answer, by contract. It falls out of the rail rather than rendering as a
     // gap, which is the honest outcome: the film is gone.
@@ -185,9 +208,12 @@ export default async function VodPage({
       </p>
 
       <h1 className="mt-4 text-2xl font-semibold tracking-tight">{t("filmsTitle")}</h1>
-      <p className="text-muted-foreground mt-2">
-        {t("filmsCount", { total: films.data.total_elements })}
-      </p>
+      {/* No total when the listing did not load: it is not zero, it is unknown. */}
+      {listing ? (
+        <p className="text-muted-foreground mt-2">
+          {t("filmsCount", { total: listing.total_elements })}
+        </p>
+      ) : null}
 
       <CatalogueTabs
         sourceId={id}
@@ -198,6 +224,16 @@ export default async function VodPage({
         filmsLabel={t("filmsTitle")}
         seriesLabel={t("seriesTitle")}
       />
+
+      {/* Above the catalogue, not instead of it (C4). Renders nothing for a
+          source that is simply ready. */}
+      {source.data ? (
+        <SourceNotice
+          source={source.data}
+          condition={sourceCondition(source.data)}
+          locale={locale as Locale}
+        />
+      ) : null}
 
       <ContinueWatching
         entries={rail}
@@ -244,7 +280,8 @@ export default async function VodPage({
 
       <div className="mt-8 grid gap-8 md:grid-cols-[14rem_1fr]">
         <CategoryList
-          categories={categories.data.items}
+          categories={categories.data?.items ?? []}
+          failedLabel={state.categoriesFailed ? t("catalogueCategoriesFailed") : undefined}
           activeId={categoryId}
           sourceId={id}
           locale={locale as Locale}
@@ -253,7 +290,13 @@ export default async function VodPage({
         />
 
         <div>
-          {films.data.items.length === 0 ? (
+          {state.listingFailed ? (
+            // Not the empty state: nothing is known about this list.
+            <div role="alert" className="border-border rounded-xl border border-dashed px-5 py-6">
+              <p className="font-medium">{t("catalogueListFailed")}</p>
+              <p className="text-muted-foreground mt-1 text-sm">{t("catalogueListFailedHint")}</p>
+            </div>
+          ) : listed.length === 0 ? (
             <div className="border-border rounded-xl border border-dashed px-5 py-6">
               <p className="font-medium">
                 {search ? t("filmsNoResults") : t("filmsEmpty")}
@@ -269,7 +312,7 @@ export default async function VodPage({
               aria-label={t("filmsTitle")}
               className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
             >
-              {films.data.items.map((film) => (
+              {listed.map((film) => (
                 <FilmCard
                   key={film.id}
                   film={film}
@@ -432,6 +475,7 @@ function Poster({ film }: { film: VodItem }) {
 /** The film categories, as links. The channel page's list, unchanged in shape. */
 function CategoryList({
   categories,
+  failedLabel,
   activeId,
   sourceId,
   locale,
@@ -439,6 +483,12 @@ function CategoryList({
   allLabel,
 }: {
   categories: Category[];
+  /**
+   * Set when the categories request failed. "All" still works — it is a link to
+   * this page without a filter — and the sentence stands where the list would
+   * be, so an absent list is not read as a source with no categories.
+   */
+  failedLabel?: string;
   activeId?: string;
   sourceId: string;
   locale: Locale;
@@ -480,6 +530,11 @@ function CategoryList({
           </li>
         ))}
       </ul>
+      {failedLabel ? (
+        <p role="alert" className="text-muted-foreground mt-2 px-3 text-sm">
+          {failedLabel}
+        </p>
+      ) : null}
     </nav>
   );
 }

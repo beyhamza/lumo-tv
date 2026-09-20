@@ -8,11 +8,13 @@ import { errorMessage } from "@/lib/api/error-message";
 import { fetched } from "@/lib/api/fetched";
 import type { CreateSourceRequest, FieldError, SourceKind } from "@/lib/api/types";
 import { requireSession } from "@/lib/session/session";
+import { isUuid } from "@/lib/sources/active-source";
 import {
   forgetActiveSource,
   readStoredSourceId,
   rememberActiveSource,
 } from "@/lib/sources/active-source-store";
+import { parseRetryAfter, retryAtParam } from "@/lib/sources/retry-after";
 
 /**
  * Registering and managing sources, from the web.
@@ -179,33 +181,119 @@ export async function updateSource(formData: FormData): Promise<void> {
 }
 
 /**
- * Asks for a re-synchronisation now.
+ * Asks for a re-synchronisation now (US-024, "Actualisation").
  *
- * `409 SOURCE_SYNC_IN_PROGRESS` is not surfaced as an error: it means the thing
- * the user just asked for is already happening, and the detail page they land on
- * shows it happening.
+ * <h2>Every outcome lands on the source page, and the page says which it was</h2>
+ *
+ * A form posted without JavaScript gets nothing back from a Server Action except
+ * its redirect, so the outcome travels in the redirect's query string and the
+ * source page reads it (`sync=`, `retryAt=`):
+ *
+ * - **`202`** — nothing to add: the page shows the import running.
+ * - **`409 SOURCE_SYNC_IN_PROGRESS`** — not an error either. The thing the user
+ *   asked for is already happening — two tabs, or the server's own automatic
+ *   refresh got there first — and the page they land on shows it happening. The
+ *   button is disabled while a refresh runs, so this is the race, not the rule.
+ * - **`429 SOURCE_SYNC_RATE_LIMITED`** — `sync=limited`, plus the instant the
+ *   wait ends when the server sent a usable `Retry-After`. **Never a duration of
+ *   ours**: a missing or unparsable header yields the message without a number
+ *   (`lib/sources/retry-after.ts`, which is also why it is an instant and why it
+ *   is not a cookie).
+ * - **`404 SOURCE_NOT_FOUND`** — no parameter: the source page fetches the
+ *   source itself and says it is gone.
+ * - **anything else, or no answer** — `sync=failed`. It used to be dropped: the
+ *   page reloaded unchanged and the button looked broken.
+ *
+ * openapi-fetch hands back the raw `response` beside `data` and `error`, which is
+ * where the header is read: `Retry-After` is not part of any body.
  */
 export async function syncSource(formData: FormData): Promise<void> {
   const locale = await getLocale();
   const session = await requireSession();
   const id = String(formData.get("id") ?? "");
 
-  await api(session.accessToken).POST("/sources/{id}/sync", {
-    params: { path: { id } },
-  });
+  // The id ends up in a redirect target below. It came from a hidden field,
+  // which is the browser's to rewrite, so it is a UUID or it goes nowhere.
+  if (!isUuid(id)) {
+    redirect({ href: "/app/sources", locale });
+    return;
+  }
+
+  let outcome = "";
+
+  try {
+    const result = await api(session.accessToken).POST("/sources/{id}/sync", {
+      params: { path: { id } },
+    });
+    const code = problemCode(result.error);
+
+    if (code === "SOURCE_SYNC_RATE_LIMITED") {
+      const wait = parseRetryAfter(result.response.headers.get("Retry-After"));
+      outcome =
+        wait === null
+          ? "?sync=limited"
+          : `?sync=limited&retryAt=${retryAtParam(wait, Date.now())}`;
+    } else if (
+      result.error &&
+      code !== "SOURCE_SYNC_IN_PROGRESS" &&
+      code !== "SOURCE_NOT_FOUND"
+    ) {
+      outcome = "?sync=failed";
+    }
+  } catch {
+    outcome = "?sync=failed";
+  }
 
   revalidatePath(`/${locale}/app/sources/${id}`);
-  redirect({ href: `/app/sources/${id}`, locale });
+  // The layout too: the rail's switcher shows each source's status.
+  revalidatePath(`/${locale}/app`, "layout");
+  redirect({ href: `/app/sources/${id}${outcome}`, locale });
 }
 
+/**
+ * Deletes a source and everything ingested from it (US-024, "Suppression").
+ *
+ * <h2>A deletion that failed is said, not swallowed</h2>
+ *
+ * This used to redirect to My sources whatever the API had answered. After a
+ * refusal or an outage the user landed on a list that still held the source, with
+ * nothing to say why — and no way to tell "it did not work" from "the list is
+ * stale". Now only a deletion the server **confirmed** goes to the list; anything
+ * else returns to the confirmation, which says it failed and offers the same two
+ * buttons again.
+ *
+ * `404 SOURCE_NOT_FOUND` counts as confirmed: the source is gone — deleted from
+ * the phone a minute ago, or by a double submit — which is what was asked for.
+ */
 export async function deleteSource(formData: FormData): Promise<void> {
   const locale = await getLocale();
   const session = await requireSession();
   const id = String(formData.get("id") ?? "");
 
-  const result = await api(session.accessToken).DELETE("/sources/{id}", {
-    params: { path: { id } },
-  });
+  // Same reason as `syncSource`: this value reaches a redirect target.
+  if (!isUuid(id)) {
+    redirect({ href: "/app/sources", locale });
+    return;
+  }
+
+  let deleted = false;
+  try {
+    const result = await api(session.accessToken).DELETE("/sources/{id}", {
+      params: { path: { id } },
+    });
+    deleted = !result.error || problemCode(result.error) === "SOURCE_NOT_FOUND";
+  } catch {
+    deleted = false;
+  }
+
+  if (!deleted) {
+    // Nothing is forgotten and nothing is revalidated: nothing changed.
+    redirect({
+      href: `/app/sources/${id}?confirm=delete&delete=failed#delete-confirmation`,
+      locale,
+    });
+    return;
+  }
 
   // If this browser was browsing it, forget that, and let the next render decide
   // again from what is left: the only one, a question, or "add a source"
@@ -213,12 +301,14 @@ export async function deleteSource(formData: FormData): Promise<void> {
   // refused or failed one leaves the source where it was, and the choice with it.
   //
   // Other browsers are not told, and do not need to be: their cookie now names
-  // a source absent from `GET /sources`, which resolves the same way.
-  if (!result.error && (await readStoredSourceId(session.userId)) === id) {
+  // a source absent from `GET /sources`, which resolves the same way — and a
+  // player open elsewhere finds out within a minute (`use-source-gone.ts`).
+  if ((await readStoredSourceId(session.userId)) === id) {
     await forgetActiveSource(session.userId);
   }
 
-  // Categories, channels, guide rows and favourites went with it, by cascade.
+  // Its catalogue, favourites, playback progress and recent channels went with
+  // it, by cascade (contract lot C4 — P4).
   // The layout, not only the list: the rail's source switcher is drawn from the
   // same `GET /sources`, on every page of the zone.
   revalidatePath(`/${locale}/app`, "layout");

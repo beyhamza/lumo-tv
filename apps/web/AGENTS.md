@@ -142,6 +142,17 @@ possible dans l'arbre.
   jamais une liste vide à la place d'un `GET /sources` en échec : une panne ne
   prouve pas une suppression. La cible de redirection après un changement est
   une liste blanche (`lib/sources/switch-target.ts`), pas un `next` nettoyé.
+- **Un lecteur ouvert vérifie toutes les 60 secondes que sa source existe encore**
+  (US-024, lot C4). Le navigateur ne tient pas le token : il interroge
+  `GET /api/sources/{id}/exists`, qui ne répond que `{ exists }`. Seul un
+  `404 SOURCE_NOT_FOUND` de l'API vaut suppression ; panne, délai dépassé, `5xx`
+  ou session expirée valent « inconnu » et n'arrêtent jamais la lecture
+  (`lib/sources/existence.ts`, pur et testé).
+- **Le résultat d'une Server Action voyage dans sa redirection**, jamais dans un
+  cookie : un formulaire sans JavaScript ne reçoit rien d'autre. Le délai imposé
+  par le serveur (`Retry-After`) arrive sur la page de la source sous la forme
+  d'un instant, `retryAt`, validé et borné à la lecture
+  (`lib/sources/retry-after.ts`). Aucune durée n'est inventée côté client.
 
 ---
 

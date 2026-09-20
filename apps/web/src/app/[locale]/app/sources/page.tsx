@@ -1,6 +1,7 @@
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { DeviceRows } from "@/components/app/DeviceRows";
-import { NotBuiltYet, Unavailable } from "@/components/app/Unavailable";
+import { Unavailable } from "@/components/app/Unavailable";
+import { UseSourceButton } from "@/components/app/UseSourceButton";
 import { MockBadge } from "@/components/site/MockBadge";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
@@ -9,6 +10,19 @@ import { errorMessage } from "@/lib/api/error-message";
 import { fetched } from "@/lib/api/fetched";
 import type { Source } from "@/lib/api/types";
 import { requireSession } from "@/lib/session/session";
+import { loadActiveSource } from "@/lib/sources/active-source-store";
+import {
+  contentCounts,
+  countMessage,
+  type ContentCount,
+  type TitleCounts,
+} from "@/lib/sources/content-counts";
+import {
+  LIST_TITLE_COUNTS_MAX_SOURCES,
+  loadTitleCounts,
+} from "@/lib/sources/load-title-counts";
+import { sourceCondition } from "@/lib/sources/source-condition";
+import { stepKey } from "@/lib/sources/sync-step";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,11 +32,37 @@ import { cn } from "@/lib/utils";
  * session cookie (never from client JavaScript), and `fetched` separates the
  * three outcomes that must not be confused — data, nothing yet, and no answer.
  *
- * One row per source: the kind badge (`m3u` cyan, `xtr` violet), the label, a
- * metadata line — channel count and last successful sync, or the cause of the
- * failure and how old it is — the status pill, and the way in. On a row in
+ * One row per source (US-024, S8-E05): the kind badge (`m3u` cyan, `xtr`
+ * violet), the label, what is happening to it — the real step of a running
+ * synchronisation, or the cause of a failure and how old it is — what it holds,
+ * the status pill, whether this browser is using it, and the way in. On a row in
  * error the way in is a `Fix` button in place of the menu: the way out of an
  * error is a button, not a menu entry.
+ *
+ * <h2>What a source holds is shown whenever it is known — in every status</h2>
+ *
+ * Since contract lot C4 a source that is refreshing, or whose last refresh
+ * failed, still has its previous catalogue and its counts. The row used to
+ * replace them with "Importing…" or the error; it now says both.
+ *
+ * <h2>Film and series counts: here too, within a budget</h2>
+ *
+ * `Source` carries channels and categories only. Films and series are
+ * `total_elements` of their listings asked with `size=1` — at most **two extra
+ * requests per source** (one for a playlist, none before a first import), all in
+ * parallel (`lib/sources/load-title-counts.ts`). That is within what was allowed
+ * for this list, so the list shows them. Past `LIST_TITLE_COUNTS_MAX_SOURCES`
+ * sources it stops asking and leaves those two numbers to each source's own
+ * page: this is also the page that reloads itself while an import runs, and a
+ * paid plan has no source limit.
+ *
+ * A number that is not known is **absent**, never zero (`content-counts.ts`).
+ *
+ * <h2>"Use this source"</h2>
+ *
+ * On every source this browser is not browsing; the one it is browsing is marked
+ * instead. The form posts to the switcher's own action and the user stays on
+ * this page. When `GET /sources` did not answer there is no list to mark.
  *
  * `PENDING` / `SYNCING` rows refresh the page every few seconds with a
  * `<meta http-equiv="refresh">`, like the source's own page: it costs no
@@ -50,13 +90,32 @@ export default async function SourcesPage({
   // is offered — never a number written into this file. A client carrying its
   // own copy of "FREE means one source" would be computing an access right
   // client-side, which AGENTS.md §1 forbids.
+  //
+  // The list comes through `loadActiveSource`: the layout already asked for it
+  // to draw the rail, the answer is memoised per request, and it says which
+  // source this browser is browsing — which a second `GET /sources` would not.
   const [sources, entitlement, devices] = await Promise.all([
-    fetched(() => api(session.accessToken).GET("/sources", {})),
+    loadActiveSource(session.accessToken, session.userId),
     fetched(() => api(session.accessToken).GET("/me/entitlement", {})),
     fetched(() => api(session.accessToken).GET("/me/devices", {})),
   ]);
 
-  const rows = sources.state === "ok" ? sources.data.items : [];
+  const listed = sources.state !== "unavailable";
+  const rows = listed ? sources.sources : [];
+  const activeId = listed && sources.state === "selected" ? sources.source.id : null;
+
+  // Films and series, per source and in parallel — see the budget above. Keyed
+  // by source id; a source with no entry simply shows no such numbers.
+  const titleCounts = new Map<string, TitleCounts>(
+    rows.length <= LIST_TITLE_COUNTS_MAX_SOURCES
+      ? await Promise.all(
+          rows.map(
+            async (row) =>
+              [row.id, await loadTitleCounts(session.accessToken, row)] as const,
+          ),
+        )
+      : [],
+  );
   const used = rows.length;
   const max =
     entitlement.state === "ok" ? (entitlement.data.max_sources ?? null) : null;
@@ -64,7 +123,7 @@ export default async function SourcesPage({
   // would render very differently.
   const roomLeft = max === null || used < max;
   const running = rows.some((row) => row.status === "PENDING" || row.status === "SYNCING");
-  const empty = sources.state === "ok" && rows.length === 0;
+  const empty = listed && rows.length === 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -85,16 +144,16 @@ export default async function SourcesPage({
         ) : null}
       </header>
 
-      {sources.state === "unavailable" ? (
+      {!listed ? (
         <Unavailable />
-      ) : sources.state === "not-implemented" ? (
-        <NotBuiltYet />
       ) : rows.length > 0 ? (
         <ul className="flex flex-col gap-3">
           {rows.map((row) => (
             <SourceRow
               key={row.id}
               row={row}
+              counts={contentCounts(row, titleCounts.get(row.id))}
+              active={row.id === activeId}
               locale={locale as Locale}
               t={t}
               tErrors={tErrors}
@@ -177,14 +236,27 @@ type Translate = Awaited<ReturnType<typeof getTranslations<"App">>>;
 type Format = Awaited<ReturnType<typeof getFormatter>>;
 
 /**
- * One source. The metadata line is the only part that changes shape: numbers
- * when it is ready, a running step when it is syncing, the cause when it
- * failed. `text-muted` carries the numbers because the pill carries the state —
- * the design system allows the muted colour only when it is not the sole
- * bearer of the information.
+ * One source.
+ *
+ * Two lines under the label, and the first can be absent:
+ *
+ * - **what is happening** — the server's real step while a synchronisation runs
+ *   (never a percentage: it reports none), or the cause of a failure and its
+ *   age. Nothing for a source that is simply ready;
+ * - **what it holds** — its kind in words, the counts that are known, and the
+ *   last *successful* synchronisation. The numbers are there in every status
+ *   once a catalogue exists, because the catalogue is (C4).
+ *
+ * `text-muted` carries the numbers because the pill carries the state — the
+ * design system allows the muted colour only when it is not the sole bearer of
+ * the information. The kind is said in words as well as on the badge: the badge
+ * is `aria-hidden`, and "M3U or Xtream" is one of the three things US-024 says a
+ * row must present.
  */
 function SourceRow({
   row,
+  counts,
+  active,
   locale,
   t,
   tErrors,
@@ -192,16 +264,34 @@ function SourceRow({
   now,
 }: {
   row: Source;
+  counts: ContentCount[];
+  active: boolean;
   locale: Locale;
   t: Translate;
   tErrors: Parameters<typeof errorMessage>[1];
   format: Format;
   now: Date;
 }) {
-  const failed = row.status === "ERROR";
-  const running = row.status === "PENDING" || row.status === "SYNCING";
+  const condition = sourceCondition(row);
+  const failed = condition.notice === "error";
+  const running = condition.notice === "syncing";
   const detail = hrefFor(locale, `/app/sources/${row.id}`);
-  const isM3u = row.kind === "M3U_URL";
+  const isM3u = row.kind !== "XTREAM";
+
+  const holdings = [
+    isM3u ? t("sourceKindM3u") : t("sourceKindXtream"),
+    ...counts.map((entry) => {
+      const message = countMessage(entry);
+      return t(message.key, message.values);
+    }),
+    row.last_synced_at
+      ? t("sourceMetaChecked", { when: format.relativeTime(new Date(row.last_synced_at), now) })
+      : // Said only when nothing else explains the absence of numbers: a source
+        // that is importing or failed has its own line for that.
+        condition.notice === null
+        ? t("sourceMetaNever")
+        : null,
+  ].filter((part): part is string => part !== null);
 
   return (
     <li
@@ -232,30 +322,30 @@ function SourceRow({
               : null}
           </p>
         ) : running ? (
-          <p
-            role="progressbar"
-            aria-label={t("sourceSyncingTitle")}
-            className="text-muted-foreground/80 mt-0.5 font-mono text-xs"
-          >
-            {t("sourceSyncingTitle")}…
+          <p role="status" className="text-muted-foreground/80 mt-0.5 font-mono text-xs">
+            {condition.browsable ? t("sourceRefreshingTitle") : t("sourceSyncingTitle")}
+            {" — "}
+            {row.sync_step ? t(stepKey(row.sync_step)) : t("sourceStatusPending")}
           </p>
-        ) : (
-          <p className="text-muted-foreground/80 mt-0.5 font-mono text-xs">
-            {row.channel_count != null && row.last_synced_at
-              ? t("sourceMeta", {
-                  channels: format.number(row.channel_count),
-                  when: format.relativeTime(new Date(row.last_synced_at), now),
-                })
-              : row.last_synced_at
-                ? t("sourceMetaChecked", {
-                    when: format.relativeTime(new Date(row.last_synced_at), now),
-                  })
-                : t("sourceMetaNever")}
-          </p>
-        )}
+        ) : null}
+        <p className="text-muted-foreground/80 mt-0.5 font-mono text-xs">
+          {holdings.join(" · ")}
+        </p>
       </div>
 
       <StatusPill status={row.status} t={t} />
+
+      {active ? (
+        <span className="text-brand-cyan text-[13px] font-medium">{t("sourceActiveHere")}</span>
+      ) : (
+        <UseSourceButton
+          sourceId={row.id}
+          from="/app/sources"
+          locale={locale}
+          label={t("sourceUse")}
+          accessibleLabel={t("sourceUseOf", { label: row.label })}
+        />
+      )}
 
       {failed ? (
         <a

@@ -30,6 +30,8 @@ export function EpisodePlayer({
   resumeFromMs,
   resumeLabel,
   audioCodec,
+  sourceHref,
+  continueHref,
 }: {
   episodeId: string;
   sourceId: string;
@@ -50,6 +52,10 @@ export function EpisodePlayer({
   resumeFromMs: number;
   /** "Resume at 20:14", or null when there is nothing to resume. */
   resumeLabel: string | null;
+  /** The source's own page, for a refusal that sends the user there. */
+  sourceHref: string;
+  /** Where "Continue" goes once the source is gone: the home page. */
+  continueHref: string;
 }) {
   return (
     <FilmPlayer
@@ -61,6 +67,8 @@ export function EpisodePlayer({
       playbackPath="episode"
       itemType="EPISODE"
       audioCodec={audioCodec}
+      sourceHref={sourceHref}
+      continueHref={continueHref}
     />
   );
 }
