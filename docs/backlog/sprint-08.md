@@ -50,8 +50,15 @@ Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulem
   (téléphone, télécommande, navigateur), le parcours à deux sources et deux
   appareils, et la vérification toutes les 60 s pendant une lecture (avec S8-05).
   Playwright : suite `journey` périmée depuis fin août, sans lien avec cette tâche
-- [ ] S8-04 — **en cours** depuis le 20 septembre : périmètre du socle arrêté dans US-017 ;
-  implémentation Android et web sur `feat/US-017-home-navigation`
+- [ ] S8-04 — **75 %** : accueil et navigation livrés sur les trois surfaces
+  (`feat/US-017-home-navigation`), périmètre arrêté dans US-017. Android : module
+  `:feature:home`, Explorer sur mobile, rail TV à six entrées, Ma bibliothèque sur
+  TV, assemblage des reprises et libellés de synchronisation descendus dans
+  `core:data` ; 330 tests unitaires, lint et `assembleDebug` verts. Web : accueil à
+  trois rangées, états vierge/synchronisation/erreur, menu 0.2.0 ; typecheck, lint,
+  158 tests et build verts, marketing statique. Carte de focus TV à jour. Reste :
+  recette à l'écran. Écart connu : sur le web, une carte de film ouvre la fiche
+  (« Reprendre à… ») au lieu de lancer la lecture
 - [ ] S8-05 — Mes sources
 - [ ] S8-06 — rubriques Réglages, retrait des accès Google et paiement
 - [ ] S8-07 — recette de la verticale

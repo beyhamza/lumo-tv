@@ -50,12 +50,19 @@ et sur une TV il est le premier endroit où la D-pad atterrit.
 
 | Depuis | UP | DOWN | LEFT | RIGHT | OK | BACK |
 |---|---|---|---|---|---|---|
-| Un élément du rail | élément précédent | élément suivant | — (bord) | entre dans le contenu | ouvre la destination | quitte l'application |
+| Un élément du rail | élément précédent | élément suivant | — (bord) | entre dans le contenu | ouvre la destination | **Accueil** ; depuis Accueil, quitte l'application |
 
-Trois éléments, quatre quand la source propose des films : **Chaînes · [Films] ·
-Source · Réglages**. Séries et recherche restent des placeholders et restent hors du
-rail — sur une TV chaque entrée de plus est un `DOWN` de plus entre le spectateur et
-ce qu'il vient chercher.
+Depuis S8-04, six éléments : **Accueil · Direct · Films · Séries · Ma bibliothèque ·
+Réglages** (décisions produit 0.2.0), et l'application s'ouvre sur Accueil. `BACK`
+depuis toute autre destination de premier niveau ramène à Accueil ; là où les
+sections ci-dessous disent encore « quitte l'application » ou « revient aux
+chaînes » pour `BACK` au niveau d'une grille, lire « revient à l'accueil ».
+
+**Source a quitté le rail.** Elle s'ouvre depuis *Mes sources* du sélecteur au pied
+du rail, et depuis Réglages, panneau Sources, ligne *Mes sources* — là c'est un
+empilement : `BACK` revient aux Réglages. La recherche reste hors du rail (S10) :
+sur une TV chaque entrée de plus est un `DOWN` de plus entre le spectateur et ce
+qu'il vient chercher.
 
 **Films n'apparaît que si la source en a** (US-13, `S5-09`). L'argument du téléphone
 pèse davantage ici : une entrée de rail est un arrêt obligatoire en descendant, donc
@@ -92,6 +99,59 @@ nouvelle zone de focus, il prolonge celle du rail.
 
 À vérifier à la télécommande en S8-07 : lisibilité du nom à trois mètres, et retour
 du focus au déclencheur après `BACK`.
+
+---
+
+## Accueil (`HomeTvScreen`) — S8-04
+
+Trois rangées pour la source active, dans cet ordre : **Continuer, Favoris,
+Direct**. Une rangée sans contenu n'existe pas — ni titre, ni arrêt. C'est le seul
+écran TV à rangées : la règle de `S2-13`/`S4-08` qui les écarte des grilles reste
+entière pour Direct, Films et Séries (arbitrage du 19 septembre 2026).
+
+Focus à l'arrivée : première carte de Continuer ; à défaut, première carte de la
+première rangée affichée ; état vierge, *Direct* ; sans source, *Vérifier à
+nouveau* ; indisponible, *Réessayer*. Au retour d'un lecteur ou d'une fiche, **la
+carte qui l'a lancé**. Le focus n'est jamais repris une fois que le spectateur a
+bougé.
+
+| Depuis | UP | DOWN | LEFT | RIGHT | OK | OK long | BACK |
+|---|---|---|---|---|---|---|---|
+| Carte Continuer, 1re | bouton du bandeau d'erreur, sinon bord | carte la plus proche de la rangée suivante | **rail** | carte suivante | reprend la lecture à la position enregistrée | ouvre la fiche | quitte l'application |
+| Carte Continuer, autre | idem | idem | carte précédente | carte suivante, ou bord | reprend | fiche | quitte |
+| Carte Favoris ou Direct, 1re | rangée du dessus, ou bandeau | rangée du dessous, ou bord | **rail** | carte suivante | lance le direct | — | quitte |
+| Carte Favoris ou Direct, autre | idem | idem | carte précédente | carte suivante, puis tuile de fin | lance le direct | — | quitte |
+| Tuile de fin (*Voir tous* / *Toutes les chaînes*) | rangée du dessus | rangée du dessous | dernière carte | bord | ouvre Ma bibliothèque / Direct, comme depuis le rail | — | quitte |
+| Bouton *Mes sources* du bandeau d'erreur | bord | première rangée, ou boutons de l'état vierge | **rail** | bord | ouvre la destination Source | — | quitte |
+| État vierge : *Direct*, *Films*, *Séries* | bandeau, ou bord | bord | bouton précédent, ou rail | bouton suivant | ouvre l'entrée | — | quitte |
+| *Vérifier à nouveau* / *Réessayer* | bord | bord | **rail** | bord | relit la liste des sources | — | quitte |
+
+- La fiche s'ouvre par un **appui long sur OK**, le geste que la grille des chaînes
+  utilise déjà, avec un rappel à côté du titre de la rangée : une seconde action
+  visible aurait ajouté un arrêt sous chaque carte.
+- *Voir tous* et *Toutes les chaînes* sont des **tuiles en fin de rangée**, pas des
+  boutons d'en-tête, qui auraient inséré une ligne de focus entre deux rangées.
+- Le bandeau de synchronisation est un texte, pas un arrêt. Quand il faut choisir
+  une source, la fenêtre du sélecteur tient le focus : l'accueil n'a pas de cible.
+
+À vérifier à la télécommande en S8-07 : défilement vertical quand la page dépasse
+l'écran, conservation de la colonne entre rangées, appui long, et le retour du focus
+sur la carte lancée — la carte qu'on vient de regarder passe en tête au rechargement.
+
+---
+
+## Ma bibliothèque (`FavoritesTvScreen`) — S8-04
+
+Grille à quatre colonnes des favoris de la source active, chaque chaîne une fois
+(US-020). Pas de gestion des groupes sur TV dans ce lot, pas d'appui long. Focus à
+l'arrivée : première carte, ou la chaîne lancée avant un lecteur ; grille vide,
+*Ouvrir Direct*.
+
+| Depuis | UP | DOWN | LEFT | RIGHT | OK | BACK |
+|---|---|---|---|---|---|---|
+| Carte, 1re colonne | carte au-dessus, ou bord | carte en dessous, ou bord | **rail** | carte suivante | lance le direct | accueil |
+| Carte, ailleurs | idem | idem | carte précédente | carte suivante, ou bord | lance le direct | accueil |
+| État vide, *Ouvrir Direct* | bord | bord | **rail** | bord | ouvre Direct | accueil |
 
 ---
 
