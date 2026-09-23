@@ -35,6 +35,20 @@ réussi est distinct de la synchronisation du catalogue et de la récupération 
 | S9-06 | Fiche programme, lecture en cours, retour à la case, absences/ancienneté/erreurs | Après S9-05 |
 | S9-07 | Recette intersurfaces et volume réseau mesuré, démonstration d'un changement de programme | Toutes |
 
+## Avancement
+
+Mis à jour le 24 septembre 2026. Une case cochée signifie recetté, pas seulement écrit.
+
+- [ ] S9-00 — **en recette** : banc XMLTV livré, huit tests, rapport S9-00
+- [x] S9-01 — cadrage D1–D5 validé le 24 septembre ; **gel** des plafonds
+  (5 000 occurrences, 4 Mio) et des schémas dans [C1 §8](../roadmap/0.2.0/c1-grouped-epg.md)
+- [ ] S9-02 — **en cours** sur `feat/US-16-grouped-epg` : contrat, migration, serveur, tests
+- [ ] S9-03 — cache et accès clients
+- [ ] S9-04 — Chaînes / Guide sur les trois surfaces
+- [ ] S9-05 — grilles et journée
+- [ ] S9-06 — fiche programme
+- [ ] S9-07 — recette
+
 ## Démo et sortie
 
 Preuve du 24 septembre : huit tests EPG, build API complet vert (295 tests).

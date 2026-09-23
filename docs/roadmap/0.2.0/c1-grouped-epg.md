@@ -216,3 +216,92 @@ S9-01 avant de passer au contrat et à l’implémentation S9-02.
 
 L’écriture dans `openapi.yaml` et l’implémentation restent en attente conformément
 à AGENTS.md §§3 et 9. Aucun changement du sprint 8 n’est inclus.
+
+## 8. Gel — S9-01, 24 septembre 2026
+
+Ce qui suit est **ce que S9-02 écrit dans le contrat**, ni plus ni moins. Il reprend
+D1 à D4 validés et le rapport S9-00 ; les seuls choix nouveaux sont nommés et
+justifiés. Toute PR qui l'implémente annonce le changement de contrat (AGENTS.md §3).
+
+### Plafonds
+
+**5 000 occurrences** et **4 Mio (4 194 304 octets) de JSON UTF-8 non compressé**,
+enveloppe comprise, deux limites indépendantes, vérifiées **avant** d'envoyer un
+`200`. La lecture SQL est bornée à plafond + 1 et la sérialisation à ce que ces
+occurrences produisent. Ils restent des plafonds de 0.2.0, révisables par un lot
+contractuel ultérieur, pas par une configuration.
+
+### Opération
+
+`GET /sources/{id}/epg` — `operationId: getSourceEpg`, tag `catalog`.
+
+| Paramètre | Forme | Règle |
+|---|---|---|
+| `channelIds` | **répétable**, comme `ids` sur les listes existantes (`?channelIds=a&channelIds=b`) — et non CSV : les trois clients générés savent déjà envoyer cette forme | 1 à 100 UUID distincts ; vide, doublon, forme invalide, > 100 → `400 VALIDATION_FAILED` |
+| `from` | RFC 3339 | inclusif ; défaut : instant serveur capturé une fois |
+| `to` | RFC 3339 | exclusif ; défaut : `from + 24 h` ; `0 < to − from ≤ 96 h` |
+
+Réponse `200` : schéma **`EpgGrid`**.
+
+| Champ | Type | Sens |
+|---|---|---|
+| `source_id` | uuid | source vérifiée |
+| `from`, `to` | date-time | bornes effectives |
+| `generated_at` | date-time | instant serveur de la réponse — pas l'âge du guide |
+| `epg` | `EpgImportStatus` | métadonnées d'import, D3 |
+| `channels[]` | `EpgChannelProgrammes` | une entrée par identifiant demandé, **dans l'ordre demandé** |
+
+`EpgChannelProgrammes` : `channel_id` (uuid), `mapping_status` (`MAPPED` \| `NO_TVG_ID`),
+`programmes[]` (`EpgProgramme` existant, triés par `starts_at` puis `id`).
+Deux chaînes partageant un `tvg_id` reçoivent chacune leur entrée ; le même
+programme peut apparaître sous plusieurs chaînes et compte une occurrence par
+apparition.
+
+`EpgImportStatus` : `configured` (bool), `last_successful_import_at`,
+`last_attempt_started_at`, `last_attempt_finished_at` (date-time, nullables),
+`last_attempt_status` (`UNKNOWN` \| `RUNNING` \| `SUCCEEDED` \| `FAILED` \| `INTERRUPTED`).
+Aucune URL, aucun secret.
+
+| Réponse | Condition |
+|---|---|
+| `400 VALIDATION_FAILED` | paramètres, voir tableau |
+| `401` | existant |
+| `404 SOURCE_NOT_FOUND` | source absente ou d'un autre compte, sans distinction |
+| `404 CHANNEL_NOT_FOUND` | au moins une chaîne absente de **cette** source ; lot entier refusé, aucun détail |
+| `422 EPG_WINDOW_TOO_LARGE` | **nouveau code**, ajouté à `ErrorCode` ; un des deux plafonds dépassé ; aucun programme rendu |
+
+Comme la lecture unitaire, l'opération **ne dépend pas de `READY`** et ne touche pas
+aux droits de lecture des flux. Aucune lecture n'appelle le fournisseur.
+
+### Opération unitaire existante
+
+`GET /channels/{id}/epg` est conservée. `EpgProgrammeList` gagne un champ **optionnel**
+`epg` (`EpgImportStatus`), additif : un client qui l'ignore continue de fonctionner.
+Sa description explicite enfin que la durée doit être strictement positive (le serveur
+refusait déjà `from == to`).
+
+### Persistance — D3
+
+Changeset Liquibase additif `0020-epg-import.sql`, avec rollback, sur la table
+`source` : `epg_last_success_at`, `epg_attempt_started_at`, `epg_attempt_finished_at`
+(timestamptz, nullables), `epg_attempt_status` (text, `UNKNOWN` par défaut, contrainte
+sur les cinq valeurs) et `epg_attempt_id` (uuid, nullable). Aucune reprise de
+`last_synced_at` : les sources existantes sont `UNKNOWN` sans date.
+
+- `RUNNING` et un nouvel `epg_attempt_id` sont écrits **avant le premier lot** ;
+  `SUCCEEDED` et `epg_last_success_at` après le dernier, `FAILED` sur exception —
+  toujours `WHERE epg_attempt_id = <celui de la tentative>`.
+- Un `PATCH` qui change `epg_url` remet `UNKNOWN`, efface les dates et `epg_attempt_id`
+  : une tentative lancée sur l'ancienne configuration **ne peut plus publier** son
+  résultat. Les anciens programmes ne sont pas supprimés ; ils sont signalés comme non
+  vérifiés (`UNKNOWN`).
+- Le balayage `housekeeping` qui libère une source bloquée en `SYNCING` passe une
+  tentative EPG encore `RUNNING` à `INTERRUPTED`.
+- Lecture cohérente : métadonnées et programmes sont lus dans **une transaction en
+  lecture seule `REPEATABLE READ`**, donc dans le même instantané. Pas de snapshot
+  du guide, pas de cache partagé, pas d'ADR.
+
+### Hors gel
+
+Les caches clients, le découpage borné côté client (D2, C1-11) et la présentation
+du seuil de 24 h (D4) sont S9-03 à S9-06. Les preuves réseau et la recette sont S9-07.
