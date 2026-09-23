@@ -15,22 +15,27 @@
 
 package tv.lumo.android.network.generated.model
 
+import tv.lumo.android.network.generated.model.EpgImportStatus
 import tv.lumo.android.network.generated.model.EpgProgramme
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
+ * The programmes of one channel over a window.  `epg` is the import status of the channel's source, so a day view can say the same thing about freshness as the grid does. It is additive and optional in the schema: a client generated before it existed ignores it and loses nothing it had. The server always sends it. 
  *
  * @param items 
+ * @param epg 
  */
 
 
 data class EpgProgrammeList (
 
     @Json(name = "items")
-    val items: kotlin.collections.List<EpgProgramme>
+    val items: kotlin.collections.List<EpgProgramme>,
+
+    @Json(name = "epg")
+    val epg: EpgImportStatus? = null
 
 ) {
 

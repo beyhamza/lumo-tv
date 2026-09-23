@@ -29,6 +29,11 @@ src/main/java/tv/lumo/api/generated/model/DeviceTokenRequest.java
 src/main/java/tv/lumo/api/generated/model/Entitlement.java
 src/main/java/tv/lumo/api/generated/model/EntitlementProvider.java
 src/main/java/tv/lumo/api/generated/model/EntitlementStatus.java
+src/main/java/tv/lumo/api/generated/model/EpgAttemptStatus.java
+src/main/java/tv/lumo/api/generated/model/EpgChannelProgrammes.java
+src/main/java/tv/lumo/api/generated/model/EpgGrid.java
+src/main/java/tv/lumo/api/generated/model/EpgImportStatus.java
+src/main/java/tv/lumo/api/generated/model/EpgMappingStatus.java
 src/main/java/tv/lumo/api/generated/model/EpgProgramme.java
 src/main/java/tv/lumo/api/generated/model/EpgProgrammeList.java
 src/main/java/tv/lumo/api/generated/model/Episode.java

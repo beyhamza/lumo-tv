@@ -3,6 +3,8 @@ package org.openapitools.configuration;
 import tv.lumo.api.generated.model.ContentType;
 import tv.lumo.api.generated.model.EntitlementProvider;
 import tv.lumo.api.generated.model.EntitlementStatus;
+import tv.lumo.api.generated.model.EpgAttemptStatus;
+import tv.lumo.api.generated.model.EpgMappingStatus;
 import tv.lumo.api.generated.model.ErrorCode;
 import tv.lumo.api.generated.model.IngestionErrorCode;
 import tv.lumo.api.generated.model.Locale;
@@ -44,6 +46,24 @@ public class EnumConverterConfiguration {
             @Override
             public EntitlementStatus convert(String source) {
                 return EntitlementStatus.fromValue(source);
+            }
+        };
+    }
+    @Bean(name = "org.openapitools.configuration.EnumConverterConfiguration.epgAttemptStatusConverter")
+    Converter<String, EpgAttemptStatus> epgAttemptStatusConverter() {
+        return new Converter<String, EpgAttemptStatus>() {
+            @Override
+            public EpgAttemptStatus convert(String source) {
+                return EpgAttemptStatus.fromValue(source);
+            }
+        };
+    }
+    @Bean(name = "org.openapitools.configuration.EnumConverterConfiguration.epgMappingStatusConverter")
+    Converter<String, EpgMappingStatus> epgMappingStatusConverter() {
+        return new Converter<String, EpgMappingStatus>() {
+            @Override
+            public EpgMappingStatus convert(String source) {
+                return EpgMappingStatus.fromValue(source);
             }
         };
     }

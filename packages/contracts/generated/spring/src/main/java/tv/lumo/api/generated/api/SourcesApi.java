@@ -136,7 +136,7 @@ public interface SourcesApi {
 
     /**
      * PATCH /sources/{id} : Update a source
-     * Omitted properties are left unchanged. Changing any property that affects ingestion (&#x60;host&#x60;, &#x60;username&#x60;, &#x60;password&#x60;, &#x60;m3u_url&#x60;, &#x60;epg_url&#x60;) moves the source back to &#x60;PENDING&#x60; and triggers a fresh ingestion.  &#x60;password&#x60; is write-only. It is re-encrypted with AES-256-GCM and is never echoed back. 
+     * Omitted properties are left unchanged. Changing any property that affects ingestion (&#x60;host&#x60;, &#x60;username&#x60;, &#x60;password&#x60;, &#x60;m3u_url&#x60;, &#x60;epg_url&#x60;) moves the source back to &#x60;PENDING&#x60; and triggers a fresh ingestion.  The same change resets the guide&#39;s import record (&#x60;EpgImportStatus&#x60;) to &#x60;UNKNOWN&#x60; with no dates: an import started under the previous configuration can no longer publish its result, and the programmes already stored are kept but reported as unverified until the next import finishes (C1, D3).  &#x60;password&#x60; is write-only. It is re-encrypted with AES-256-GCM and is never echoed back. 
      *
      * @param id Resource identifier. (required)
      * @param updateSourceRequest  (required)

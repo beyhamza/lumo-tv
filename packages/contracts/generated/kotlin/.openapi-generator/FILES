@@ -40,6 +40,11 @@ src/main/kotlin/tv/lumo/android/network/generated/model/DeviceTokenRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Entitlement.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/EntitlementProvider.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/EntitlementStatus.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/EpgAttemptStatus.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/EpgChannelProgrammes.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/EpgGrid.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/EpgImportStatus.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/EpgMappingStatus.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/EpgProgramme.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/EpgProgrammeList.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Episode.kt

@@ -453,6 +453,12 @@ export interface paths {
          *     ingestion (`host`, `username`, `password`, `m3u_url`, `epg_url`) moves the
          *     source back to `PENDING` and triggers a fresh ingestion.
          *
+         *     The same change resets the guide's import record (`EpgImportStatus`)
+         *     to `UNKNOWN` with no dates: an import started under the previous
+         *     configuration can no longer publish its result, and the programmes
+         *     already stored are kept but reported as unverified until the next
+         *     import finishes (C1, D3).
+         *
          *     `password` is write-only. It is re-encrypted with AES-256-GCM and is
          *     never echoed back.
          */
@@ -597,9 +603,76 @@ export interface paths {
          *     an empty list rather than an error.
          *
          *     A channel with no `tvg_id`, or a source with no EPG URL, returns an empty
-         *     list.
+         *     list. The `epg` field says which of the two it is, and how old the
+         *     stored guide may be: it is the same `EpgImportStatus` the grouped read
+         *     `GET /sources/{id}/epg` carries, so a day view and a grid apply one
+         *     rule. It is **additive** — a client written before it existed keeps
+         *     working by ignoring it.
+         *
+         *     **The duration must be strictly positive.** `to == from` is refused,
+         *     and always was; the earlier wording ("`to` before `from`") did not say
+         *     so. The ceiling is 96 hours, which is the four days it was.
+         *
+         *     Like every catalogue read, this answers in whatever `status` the source
+         *     is in. A guide ingested before is served during a re-synchronisation and
+         *     after a failed one; `epg` is what tells the client how much to trust it.
+         *     Nothing here contacts the provider.
          */
         get: operations["getChannelEpg"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sources/{id}/epg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Programme guide for a batch of channels of one source, in one call
+         * @description The grid's read (US-16, lot C1). One request loads the programmes of up
+         *     to a hundred channels of one source over one window, from the guide
+         *     this server has already stored. **Nothing here contacts the provider**;
+         *     a retry re-reads the stored guide, and refreshing the source is the
+         *     existing `POST /sources/{id}/sync`.
+         *
+         *     **One entry per requested channel, in the order requested**, including
+         *     the channels with nothing to show. There is no `size` and no pagination
+         *     on the channels: a grid that received ninety rows for a hundred
+         *     requested would have no way to know which ten were dropped. Each
+         *     entry's programmes are those overlapping the window — `ends_at > from`
+         *     and `starts_at < to`, so a programme that started before `from` and is
+         *     still running is included with its full times — ordered by `starts_at`
+         *     then `id`, a total order a client can merge on.
+         *
+         *     **Two channels sharing a `tvg_id` each get their entry.** The same
+         *     programme then appears under both, and counts once per appearance
+         *     towards the ceiling below. A client must not collapse a row of the grid
+         *     in the name of de-duplicating programme ids.
+         *
+         *     **The answer is complete or it is an error.** Two independent ceilings
+         *     are checked before a `200` is sent: 5 000 programme occurrences, and
+         *     4 MiB (4 194 304 bytes) of uncompressed UTF-8 JSON, envelope included.
+         *     Past either, the answer is `422 EPG_WINDOW_TOO_LARGE` and **no
+         *     programme is returned** — never a truncated list under a `200`. The
+         *     client then asks again for fewer channels or a narrower window; how it
+         *     splits is its own bounded rule (C1, D2). Both ceilings are those of
+         *     0.2.0 and are revised by a contract change, not by configuration.
+         *
+         *     **`epg` says how much to trust what came back.** It describes the last
+         *     import of the guide into this server — not the age of the provider's
+         *     listings, which nobody can know. See `EpgImportStatus`.
+         *
+         *     Like `GET /channels/{id}/epg`, this answers in whatever `status` the
+         *     source is in, and it changes nothing about playback rights.
+         */
+        get: operations["getSourceEpg"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1222,6 +1295,11 @@ export interface components {
          *       bare `CONFLICT` for the same reason as the quota codes below: a client
          *       that cannot tell "this one in particular cannot go" from "something
          *       clashed" has nothing useful to say to the person holding the remote.
+         *     - **Programme guide** — `EPG_WINDOW_TOO_LARGE`, a `422` from
+         *       `GET /sources/{id}/epg` when the batch over the window exceeds one of
+         *       its two ceilings. Its own code rather than `VALIDATION_FAILED`
+         *       because the request was well-formed and the fix is different: not
+         *       "correct the parameters" but "ask for less at a time".
          *     - **Plan limits and billing** — `SOURCE_LIMIT_REACHED`,
          *       `DEVICE_LIMIT_REACHED`, `ALREADY_SUBSCRIBED`,
          *       `BILLING_CUSTOMER_NOT_FOUND`.
@@ -1232,7 +1310,7 @@ export interface components {
          *       second: removing something, or upgrading.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "VOD_ITEM_NOT_FOUND" | "SERIES_NOT_FOUND" | "EPISODE_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_DELETABLE" | "SOURCE_LIMIT_REACHED" | "DEVICE_LIMIT_REACHED" | "ALREADY_SUBSCRIBED" | "BILLING_CUSTOMER_NOT_FOUND";
+        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "VOD_ITEM_NOT_FOUND" | "SERIES_NOT_FOUND" | "EPISODE_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_DELETABLE" | "EPG_WINDOW_TOO_LARGE" | "SOURCE_LIMIT_REACHED" | "DEVICE_LIMIT_REACHED" | "ALREADY_SUBSCRIBED" | "BILLING_CUSTOMER_NOT_FOUND";
         /**
          * @description UI language. FR and EN are supported from the first screen.
          * @enum {string}
@@ -1312,6 +1390,39 @@ export interface components {
          * @enum {string}
          */
         SyncStep: "CONNECTING" | "AUTHENTICATED" | "PARSING_CHANNELS" | "PARSING_VOD" | "PARSING_SERIES" | "FETCHING_EPG";
+        /**
+         * @description Whether a channel can be matched to the guide at all (C1, D2).
+         *
+         *     `MAPPED` — the channel carries a `tvg_id`. It says **only** that; it is
+         *     not a promise that any programme exists for it, and an empty list under
+         *     a `MAPPED` channel is a normal answer.
+         *
+         *     `NO_TVG_ID` — the channel carries none, so nothing in any guide can be
+         *     attributed to it. Its programmes are always empty, and a client says so
+         *     rather than showing a blank row: "this channel has no guide identifier"
+         *     is the one explanation that helps.
+         * @enum {string}
+         */
+        EpgMappingStatus: "MAPPED" | "NO_TVG_ID";
+        /**
+         * @description The outcome of the latest import of the guide into this server, as
+         *     recorded on the source (C1, D3).
+         *
+         *     | Value | Meaning |
+         *     |---|---|
+         *     | `UNKNOWN` | No import has been recorded under the current configuration: the source predates this field, or its guide settings changed since the last one. Whatever programmes are stored are unverified — not wrong, not fresh. |
+         *     | `RUNNING` | An import is writing now. Programmes may be a mix of old and new until it ends. |
+         *     | `SUCCEEDED` | The last import wrote its last batch; `last_successful_import_at` is its date. |
+         *     | `FAILED` | The last import stopped on an error. Batches written before it stopped are kept, so the stored guide may be partly refreshed. |
+         *     | `INTERRUPTED` | The last import was still running when the server released a synchronisation stuck for too long — a crash or a restart. Same reading as `FAILED`. |
+         *
+         *     A client shows a running, failed or interrupted attempt **before** a
+         *     recent success date, never behind it: "the last import did not finish"
+         *     is the sentence that matters, even when the one before it finished
+         *     an hour ago.
+         * @enum {string}
+         */
+        EpgAttemptStatus: "UNKNOWN" | "RUNNING" | "SUCCEEDED" | "FAILED" | "INTERRUPTED";
         /**
          * @description Kind of catalogue a `category` groups.
          *
@@ -2463,8 +2574,122 @@ export interface components {
             /** @description Genre as advertised by the guide. Free-form, not an enum. */
             category?: string | null;
         };
+        /**
+         * @description The programmes of one channel over a window.
+         *
+         *     `epg` is the import status of the channel's source, so a day view can
+         *     say the same thing about freshness as the grid does. It is additive
+         *     and optional in the schema: a client generated before it existed
+         *     ignores it and loses nothing it had. The server always sends it.
+         */
         EpgProgrammeList: {
             items: components["schemas"]["EpgProgramme"][];
+            epg?: components["schemas"]["EpgImportStatus"];
+        };
+        /**
+         * @description What this server knows about its own import of a source's guide (C1,
+         *     D3). **It dates the import, never the content.** A guide imported a
+         *     minute ago can carry a listing the provider stopped updating last
+         *     week, and nothing in an XMLTV file says when it was published. The
+         *     interface therefore says "last guide import", and never "programmes up
+         *     to date".
+         *
+         *     No URL and no secret is here, and none will be: the guide's location
+         *     stays on `Source.epg_url`, for its owner.
+         *
+         *     The product's staleness rule (US-16, D4): strictly more than 24 hours
+         *     since `last_successful_import_at` is old, 24 hours exactly is not yet.
+         *     The age is `generated_at - last_successful_import_at` at the moment the
+         *     answer is produced, then advances with the client's own clock. It
+         *     informs; it blocks neither the grid nor the channel.
+         */
+        EpgImportStatus: {
+            /**
+             * @description Whether the source has a guide URL at all. False means every
+             *     programme list under it is empty by construction, and the client
+             *     explains that rather than reporting a guide with nothing in it.
+             */
+            configured: boolean;
+            /**
+             * Format: date-time
+             * @description When the last import that finished wrote its last batch. Null when
+             *     none has under the current configuration. This is the date the
+             *     interface shows as "last guide import"; it is **not** the age of
+             *     the provider's listings, and neither `EpgGrid.generated_at` nor the
+             *     moment a client fetched the answer stands in for it.
+             */
+            last_successful_import_at: string | null;
+            /**
+             * Format: date-time
+             * @description When the latest import attempt began — the guide's own attempt,
+             *     distinct from the catalogue synchronisation that contains it. Null
+             *     when none is recorded.
+             */
+            last_attempt_started_at: string | null;
+            /**
+             * Format: date-time
+             * @description When that attempt ended, whatever its outcome. Null while it is
+             *     `RUNNING`, and when none is recorded.
+             */
+            last_attempt_finished_at: string | null;
+            last_attempt_status: components["schemas"]["EpgAttemptStatus"];
+        };
+        /**
+         * @description One row of the grid: one requested channel and its programmes over the
+         *     window. Identified by the catalogue's UUID and never by a name — a
+         *     name is what the next ingestion changes.
+         */
+        EpgChannelProgrammes: {
+            /**
+             * Format: uuid
+             * @description The identifier as it was requested.
+             */
+            channel_id: string;
+            mapping_status: components["schemas"]["EpgMappingStatus"];
+            /**
+             * @description Every stored programme overlapping the window, with its full
+             *     times, ordered by `starts_at` then `id`. Empty under `NO_TVG_ID`,
+             *     and empty under `MAPPED` when the guide has nothing for this
+             *     channel over this window. No stream URL is added here or anywhere
+             *     near here.
+             */
+            programmes: components["schemas"]["EpgProgramme"][];
+        };
+        /**
+         * @description The answer to `GET /sources/{id}/epg`: the whole batch, or nothing.
+         *     Bounded by the two ceilings the operation describes and never
+         *     truncated to fit under them.
+         */
+        EpgGrid: {
+            /**
+             * Format: uuid
+             * @description The source that was verified to be the caller's.
+             */
+            source_id: string;
+            /**
+             * Format: date-time
+             * @description The effective inclusive lower bound, defaults applied.
+             */
+            from: string;
+            /**
+             * Format: date-time
+             * @description The effective exclusive upper bound, defaults applied.
+             */
+            to: string;
+            /**
+             * Format: date-time
+             * @description The server's clock when this answer was produced. It is the
+             *     reference for computing the age of the guide against
+             *     `epg.last_successful_import_at`; it is **not** the age of the
+             *     guide itself, and a client must not present it as one.
+             */
+            generated_at: string;
+            epg: components["schemas"]["EpgImportStatus"];
+            /**
+             * @description One entry per identifier in `channelIds`, in the order they were
+             *     sent, empty lists included.
+             */
+            channels: components["schemas"]["EpgChannelProgrammes"][];
         };
         /**
          * @description A user-defined grouping of favourites. A default group is created on the
@@ -3876,9 +4101,15 @@ export interface operations {
     getChannelEpg: {
         parameters: {
             query?: {
-                /** @description Inclusive lower bound. Defaults to now. */
+                /**
+                 * @description Inclusive lower bound, RFC 3339 with an offset. Defaults to the
+                 *     server's clock, read once for the whole request.
+                 */
                 from?: string;
-                /** @description Exclusive upper bound. Defaults to `from` + 24 h. At most 4 days after `from`. */
+                /**
+                 * @description Exclusive upper bound. Defaults to `from` + 24 h. Must satisfy
+                 *     `0 < to - from <= 96 h`.
+                 */
                 to?: string;
             };
             header?: never;
@@ -3900,8 +4131,8 @@ export interface operations {
                 };
             };
             /**
-             * @description The range is invalid — `to` before `from`, or wider than four days
-             *     (`VALIDATION_FAILED`).
+             * @description The range is invalid — `to` not strictly after `from`, or wider than
+             *     96 hours (`VALIDATION_FAILED`).
              */
             400: {
                 headers: {
@@ -3914,6 +4145,116 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             /** @description No such channel on a source owned by the caller (`CHANNEL_NOT_FOUND`). */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getSourceEpg: {
+        parameters: {
+            query: {
+                /**
+                 * @description The channels to read, and only these. Repeatable:
+                 *     `?channelIds=…&channelIds=…` — the same form as `ids` on the
+                 *     listings, which all three generated clients already know how to
+                 *     send.
+                 *
+                 *     Between 1 and 100 **distinct** identifiers. An empty list, a
+                 *     duplicate, a malformed identifier or more than 100 is `400
+                 *     VALIDATION_FAILED`, with nothing read.
+                 *
+                 *     Every identifier must name a channel of **this** source. One that
+                 *     does not — absent, deleted by the last re-synchronisation, or on
+                 *     another source, even one of the same account — refuses the whole
+                 *     batch with `404 CHANNEL_NOT_FOUND` and says nothing about which one
+                 *     it was. Unlike `ids` on the listings, an unknown identifier is not
+                 *     silently absent here: a missing row in a grid is a hole a client
+                 *     would have to explain, and a lookup that answered for some
+                 *     identifiers and not others would let a caller probe for channel
+                 *     ids.
+                 */
+                channelIds: string[];
+                /**
+                 * @description Inclusive lower bound, RFC 3339 with an offset. Defaults to the
+                 *     server's clock, read once for the whole request. Echoed back as
+                 *     `EpgGrid.from`.
+                 */
+                from?: string;
+                /**
+                 * @description Exclusive upper bound. Defaults to `from` + 24 h. Must satisfy
+                 *     `0 < to - from <= 96 h`; anything else is `400 VALIDATION_FAILED`.
+                 *     Echoed back as `EpgGrid.to`.
+                 */
+                to?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /**
+             * @description The complete answer for the batch: one entry per requested channel,
+             *     in the order requested, plus the import status of the guide.
+             */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EpgGrid"];
+                };
+            };
+            /**
+             * @description `channelIds` is empty, has a duplicate or a malformed identifier,
+             *     or holds more than 100; or the window is not strictly positive or
+             *     is wider than 96 hours (`VALIDATION_FAILED`). Nothing is read.
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /**
+             * @description Two codes, checked in this order:
+             *
+             *     - `SOURCE_NOT_FOUND` — no such source on this account. Absent and
+             *       owned by someone else are the same answer, so the operation
+             *       cannot be used to probe for source ids;
+             *     - `CHANNEL_NOT_FOUND` — at least one identifier in `channelIds` is
+             *       not a channel of this source. The whole batch is refused and the
+             *       answer does not say which identifier failed, for the same reason.
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /**
+             * @description The batch over this window exceeds one of the two ceilings — 5 000
+             *     programme occurrences or 4 MiB of JSON (`EPG_WINDOW_TOO_LARGE`).
+             *     **No programme is returned**, so a client never mistakes a partial
+             *     grid for a complete one. Ask again for fewer channels or a narrower
+             *     window. Both ceilings were measured before being fixed
+             *     (docs/releases/0.2.0/s9-00-epg-bench.md): fifty channels over three
+             *     hours fits several times over; a hundred channels over four days
+             *     does not, and is meant to be split.
+             */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
