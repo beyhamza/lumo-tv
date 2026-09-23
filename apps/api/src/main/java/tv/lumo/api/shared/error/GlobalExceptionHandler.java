@@ -1,6 +1,7 @@
 package tv.lumo.api.shared.error;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.Locale;
 import org.slf4j.Logger;
@@ -83,6 +84,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HandlerMethodValidationException.class)
     public ResponseEntity<Problem> handleParameterValidation(HandlerMethodValidationException ex,
                                                              HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed",
+                request, List.of());
+    }
+
+    /**
+     * The same failure, raised the other way.
+     *
+     * <p>The generated interfaces are {@code @Validated}, so a constraint on a
+     * parameter — {@code @Size} on {@code channelIds}, on {@code ids}, on
+     * {@code q} — is checked by the AOP method-validation interceptor and
+     * surfaces as this exception, not as the MVC one above. Until this handler
+     * existed, sending 101 identifiers answered {@code 500} with a stack trace
+     * in the log, for a request the contract documents as {@code 400}.
+     *
+     * <p>Logged without the exception: its message quotes the violated value,
+     * which for a body constraint could be a password (AGENTS.md §5).
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Problem> handleConstraintViolation(ConstraintViolationException ex,
+                                                             HttpServletRequest request) {
+        log.debug("Constraint violation on {} {}", request.getMethod(), request.getRequestURI());
         return build(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed",
                 request, List.of());
     }

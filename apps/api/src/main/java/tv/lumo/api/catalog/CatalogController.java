@@ -13,6 +13,7 @@ import tv.lumo.api.generated.model.CategoryList;
 import tv.lumo.api.generated.model.Channel;
 import tv.lumo.api.generated.model.ChannelPage;
 import tv.lumo.api.generated.model.ContentType;
+import tv.lumo.api.generated.model.EpgGrid;
 import tv.lumo.api.generated.model.EpgProgrammeList;
 import tv.lumo.api.generated.model.ErrorCode;
 import tv.lumo.api.generated.model.IngestionErrorCode;
@@ -41,19 +42,20 @@ public class CatalogController implements CatalogApi {
     /** Matches the contract's cap; a client asking for more gets this. */
     private static final int MAX_PAGE_SIZE = 200;
     private static final int DEFAULT_PAGE_SIZE = 50;
-    private static final int MAX_EPG_RANGE_DAYS = 4;
 
     private final CatalogReadRepository catalog;
     private final SourceRepository sources;
     private final VodPlotSource plots;
     private final SeriesTreeSource trees;
+    private final EpgReadService epg;
 
     public CatalogController(CatalogReadRepository catalog, SourceRepository sources,
-                             VodPlotSource plots, SeriesTreeSource trees) {
+                             VodPlotSource plots, SeriesTreeSource trees, EpgReadService epg) {
         this.catalog = catalog;
         this.sources = sources;
         this.plots = plots;
         this.trees = trees;
+        this.epg = epg;
     }
 
     @Override
@@ -339,29 +341,42 @@ public class CatalogController implements CatalogApi {
         return ResponseEntity.ok(playback);
     }
 
+    /**
+     * The day view's guide, for one channel.
+     *
+     * <p>The window rule and the import record it now carries are
+     * {@link EpgReadService}'s, shared with the grid: a day view and a grid
+     * that disagreed on what "too wide" or "stale" means would be the same bug
+     * on two screens.
+     */
     @Override
     public ResponseEntity<EpgProgrammeList> getChannelEpg(UUID id, OffsetDateTime from, OffsetDateTime to) {
         UUID userId = CurrentUser.requireUserId();
+        EpgReadService.Window window = EpgReadService.resolveWindow(from, to);
+        return ResponseEntity.ok(epg.readChannel(id, userId, window));
+    }
 
-        // Confirms ownership without loading the stream URL.
-        catalog.findChannelTvgId(id, userId)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.CHANNEL_NOT_FOUND,
-                        "No such channel on a source owned by the caller"));
-
-        OffsetDateTime start = from == null ? OffsetDateTime.now() : from;
-        OffsetDateTime end = to == null ? start.plusDays(1) : to;
-
-        if (!end.isAfter(start)) {
-            throw ApiException.validation("'to' must be after 'from'", List.of());
-        }
-        if (start.plusDays(MAX_EPG_RANGE_DAYS).isBefore(end)) {
-            throw ApiException.validation(
-                    "The range must not exceed " + MAX_EPG_RANGE_DAYS + " days", List.of());
-        }
-
-        // A channel with no tvg_id, or a source with no guide, yields an empty
-        // list rather than an error.
-        return ResponseEntity.ok(new EpgProgrammeList(catalog.findProgrammes(id, userId, start, end)));
+    /**
+     * The grid's guide, for a batch of channels of one source (US-16, lot C1).
+     *
+     * <p>Not guarded by {@link #requireReadableSource}, and that is the
+     * contract rather than an omission: the operation lists no {@code 409}.
+     * Like the single-channel read it answers in whatever {@code status} the
+     * source is in — a guide ingested before is served during a
+     * re-synchronisation and after a failed one — and before the first success
+     * there are no channels to name, so the membership check answers
+     * {@code 404} on its own.
+     *
+     * <p>Validation happens here, outside the read transaction, so a malformed
+     * batch costs no connection; everything after it is one snapshot.
+     */
+    @Override
+    public ResponseEntity<EpgGrid> getSourceEpg(UUID id, List<UUID> channelIds,
+                                                OffsetDateTime from, OffsetDateTime to) {
+        UUID userId = CurrentUser.requireUserId();
+        List<UUID> batch = EpgReadService.requireBatch(channelIds);
+        EpgReadService.Window window = EpgReadService.resolveWindow(from, to);
+        return ResponseEntity.ok(epg.readGrid(id, userId, batch, window));
     }
 
     /**

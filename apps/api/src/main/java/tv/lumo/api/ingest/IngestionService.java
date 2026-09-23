@@ -482,27 +482,69 @@ public class IngestionService {
                 : "m3u:" + groupName;
     }
 
+    /**
+     * The guide, after the catalogue, as one recorded attempt (US-16, lot C1, D3).
+     *
+     * <p>Only reached when the source has an EPG URL: a source without one keeps
+     * its import record exactly as it was, because no attempt happened.
+     *
+     * <p><b>The record is written at three points, and each one is where it is
+     * for a reason.</b> {@code RUNNING} and a fresh attempt id go on the row
+     * <em>before</em> the fetch — before anything could have written a batch —
+     * so a reader can see that the stored guide may be mid-change.
+     * {@code SUCCEEDED} and the success date go on after {@code flushNow()},
+     * once the last batch is in and not a moment earlier: the date dates the
+     * guide that is stored, and a date stamped at the start would date an
+     * attempt. {@code FAILED} goes on in the catch, and the success date is left
+     * alone, because the guide it dates is still the one on disk (C1-07).
+     *
+     * <p><b>Every one of those writes is {@code WHERE epg_attempt_id = ours}</b>,
+     * and it is {@code SourceRepository.update} clearing that id on a PATCH
+     * that makes the guard mean something: an attempt that ran on the previous
+     * URL comes back to find no row to publish on, and its result is dropped
+     * (C1-10). The log line for that case says "superseded", not "failed".
+     *
+     * <p>The URL is parsed inside the attempt rather than before it, so a
+     * stored URL that no longer passes {@code SourceUrl.parse} — a row that
+     * predates the rule — is a recorded failure rather than an exception with
+     * nothing on the row to show for it. As everywhere in this class, the host
+     * is what reaches the logs; the URL never does (AGENTS.md §5).
+     */
     private void ingestEpg(SourceRepository.SourceRow source) {
-        URI uri = SourceUrl.parse(source.epgUrl());
-        String host = SourceUrl.hostOf(uri);
         sources.markSyncStep(source.id(), SyncStep.FETCHING_EPG);
+        UUID attempt = sources.beginEpgAttempt(source.id());
 
         CatalogWriteRepository.Batcher<CatalogWriteRepository.ProgrammeUpsert> batcher =
                 CatalogWriteRepository.batcher(batch -> catalogWrites.upsertProgrammes(source.id(), batch));
 
         try {
+            URI uri = SourceUrl.parse(source.epgUrl());
+            String host = SourceUrl.hostOf(uri);
             http.get(host, uri, stream -> xmltvParser.parse(stream, programme ->
                     batcher.add(new CatalogWriteRepository.ProgrammeUpsert(
                             UUID.randomUUID(), programme.channelId(), programme.startsAt(),
                             programme.endsAt(), programme.title(), programme.description(),
                             programme.category()))));
             batcher.flushNow();
+            if (!sources.markEpgSucceeded(source.id(), attempt)) {
+                log.info("Source {}: EPG import finished but was superseded by a configuration "
+                        + "change; its result is not published", source.id());
+            }
         } catch (IngestionException e) {
             // A guide that will not load must not fail the whole source: the user
             // still has a working channel list, which is what they came for.
-            // The EPG is simply absent until the next sync.
+            // The batches written before the failure stay, and the record says
+            // FAILED so nobody mistakes them for a finished import.
+            sources.markEpgFailed(source.id(), attempt);
             log.warn("Source {}: EPG ingestion failed ({}); channels are unaffected",
                     source.id(), e.code());
+        } catch (RuntimeException e) {
+            // A fault on our side, or a stored URL that no longer parses. It still
+            // fails the source, as it did before this record existed — but the
+            // attempt is closed first, so the row does not say RUNNING about a
+            // worker that has already died.
+            sources.markEpgFailed(source.id(), attempt);
+            throw e;
         }
     }
 
