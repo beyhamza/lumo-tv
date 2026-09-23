@@ -58,7 +58,7 @@ Mis à jour le 24 septembre 2026. Une case cochée signifie recetté, pas seulem
   « Dernier import du guide » ; typecheck, lint, 250 tests, build verts. Reste : recette
   à l'écran (hauteur des cartes TV à 140 dp, détection de la page visible, barre du
   lecteur), migration Room non testée faute de harnais, fuseau web = `Europe/Paris`
-- [ ] S9-04 — Chaînes / Guide sur les trois surfaces
+- [ ] S9-04 — **en cours** : cadrage ci-dessous, implémentation Android et web
 - [ ] S9-05 — grilles et journée
 - [ ] S9-06 — fiche programme
 - [ ] S9-07 — recette
@@ -80,6 +80,24 @@ indisponible », pas d'espace réservé (S7-03).
 
 Les heures s'affichent dans le fuseau de l'appareil ; « en ce moment » se calcule
 depuis les horaires et l'horloge locale, sans requête à la seconde.
+
+## Cadrage S9-04 — arrêté le 24 septembre 2026
+
+S9-04 construit la destination **Direct** à deux vues, **Chaînes** et **Guide**, sur
+les trois surfaces, avec les règles de
+[navigation et de mémoire](../design/0.2.0/guide-interactions.md) (GD-01 à GD-03).
+La grille horaire, la journée mobile et la fiche restent à S9-05 et S9-06 ; la règle
+« aucune commande inopérante » impose donc à la vue Guide un contenu réel dès S9-04.
+
+| Élément | Livré en S9-04 | Laissé à |
+|---|---|---|
+| Deux vues | Bascule Chaînes / Guide dans Direct, sur les trois surfaces ; première ouverture sur Chaînes ; **dernière vue mémorisée par appareil et par source** (DataStore Android, cookie web) | — |
+| Chaînes | Filtres partagés Toutes, Favoris (groupes) et catégories de la source ; sur web et TV, **colonne de catégories défilante à gauche**, cartes à droite (ajustement du 19 septembre) ; sélecteur compact sur mobile ; le programme en cours sous chaque carte vient de S9-03 ; sélection = lecture immédiate ; retour du lecteur = position et filtre retrouvés | Aperçu de lecture (S9-E01) : hors lot |
+| Recherche | Par nom de chaîne, **conserve le filtre actif** ; sans résultat, proposer d'effacer la recherche ou de revenir à Toutes ; la colonne de catégories reste accessible | — |
+| Guide, contenu S9-04 | La liste **En ce moment** : une ligne par chaîne du résultat filtré, programme en cours et suivant, une requête groupée par page (S9-03) ; sur mobile c'est le premier niveau validé (S9-E03) ; sur web et TV c'est le contenu du Guide **jusqu'à la grille de S9-05**, et le bouton Maintenant y ramène en haut | Grille horaire, jours, journée d'une chaîne : S9-05 ; fiche et états d'absence/ancienneté/erreur : S9-06 |
+| Mémoire de session | Recherche et filtre partagés entre Chaînes et Guide, conservés à travers fiche et lecteur ; **changement de source** : recherche et filtre effacés, réponses en cours ignorées, vue mémorisée de la nouvelle source ; entre sessions, seule la vue est retenue | — |
+| Accueil | *Toutes les chaînes* ouvre Chaînes sans recherche et sur Toutes ; **Guide TV** (nouveau lien, US-020) ouvre Guide sur Maintenant, sans recherche et sur Toutes ; ces accès priment sur la vue mémorisée | — |
+| TV | La bande de puces devient une colonne ; carte de focus à mettre à jour ; « Repris » **conservé** en attendant un arbitrage (non cité dans les filtres validés, mais livré en S4-08) | Focus de la grille horaire : S9-05 |
 
 ## Démo et sortie
 
