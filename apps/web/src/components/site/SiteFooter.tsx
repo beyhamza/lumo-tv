@@ -5,8 +5,9 @@ import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 
 /**
- * The marketing footer (W1): dark, logotype, `Guides` · `Pricing` ·
- * `Privacy` · `Terms` · `Contact`, and the domain in monospace.
+ * The marketing footer (W1): dark, logotype, `Guides` · `Privacy` · `Terms`
+ * · `Contact`, and the domain in monospace. `Pricing` left with the pricing
+ * section (S8-06).
  *
  * Dark inside a light page is the one place the design system allows it — the
  * footer is a full-width band, so the `.dark` scope covers everything it
@@ -37,9 +38,6 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
         <nav aria-label={t("navLabel")} className="text-muted-foreground flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px]">
           <a href={hrefFor(locale, "/guides")} className="hover:text-foreground">
             {nav("guides")}
-          </a>
-          <a href={`${home}#pricing`} className="hover:text-foreground">
-            {nav("pricing")}
           </a>
           <span>{t("privacy")}</span>
           <span>{t("terms")}</span>

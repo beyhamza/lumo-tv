@@ -9,6 +9,7 @@ import { normaliseActivationCode } from "@/lib/activation/code";
 import { errorMessage } from "@/lib/api/error-message";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { getSession } from "@/lib/session/session";
+import { settingsSectionPath } from "@/lib/settings/sections";
 import { cn } from "@/lib/utils";
 
 /**
@@ -218,7 +219,7 @@ function Success({ locale, t }: { locale: Locale; t: Translate }) {
         {t("success")} <MockBadge className="align-middle" />
       </p>
       <a
-        href={hrefFor(locale, "/app/devices")}
+        href={hrefFor(locale, settingsSectionPath("account"))}
         className="bg-secondary text-foreground inline-flex h-12 items-center rounded-full px-6 text-sm"
       >
         {t("successCta")}

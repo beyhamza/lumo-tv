@@ -12,10 +12,9 @@ const ENTRIES = [
   { href: `/fr/app/sources/${ACTIVE}/series` },
   { href: "/fr/app/favorites" },
   { href: "/fr/app/sources" },
-  { href: "/fr/app/devices" },
-  { href: "/fr/app/subscription" },
+  { href: "/fr/app/settings" },
 ];
-const [HOME, LIVE, FILMS, SERIES, LIBRARY, SOURCES, DEVICES, SUBSCRIPTION] = ENTRIES.map(
+const [HOME, LIVE, FILMS, SERIES, LIBRARY, SOURCES, SETTINGS] = ENTRIES.map(
   (_, index) => index,
 );
 
@@ -32,8 +31,8 @@ describe("currentEntryIndex", () => {
   });
 
   it("marks Home nowhere else, although every page is under /app", () => {
-    expect(currentEntryIndex("/fr/app/devices", ENTRIES)).toBe(DEVICES);
-    expect(currentEntryIndex("/fr/app/subscription", ENTRIES)).toBe(SUBSCRIPTION);
+    expect(currentEntryIndex("/fr/app/settings", ENTRIES)).toBe(SETTINGS);
+    expect(currentEntryIndex("/fr/app/settings/account", ENTRIES)).toBe(SETTINGS);
     expect(currentEntryIndex("/fr/app/somewhere-new", ENTRIES)).toBe(-1);
   });
 
@@ -67,7 +66,7 @@ describe("currentEntryIndex", () => {
   });
 
   it("does not match across locales", () => {
-    expect(currentEntryIndex("/en/app/devices", ENTRIES)).toBe(-1);
+    expect(currentEntryIndex("/en/app/settings", ENTRIES)).toBe(-1);
   });
 
   it("still marks one entry when no source is selected", () => {

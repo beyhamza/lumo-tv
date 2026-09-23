@@ -10,6 +10,7 @@ import { errorMessage } from "@/lib/api/error-message";
 import { fetched } from "@/lib/api/fetched";
 import type { Source } from "@/lib/api/types";
 import { requireSession } from "@/lib/session/session";
+import { settingsSectionPath } from "@/lib/settings/sections";
 import { loadActiveSource } from "@/lib/sources/active-source-store";
 import {
   contentCounts,
@@ -53,8 +54,8 @@ import { cn } from "@/lib/utils";
  * parallel (`lib/sources/load-title-counts.ts`). That is within what was allowed
  * for this list, so the list shows them. Past `LIST_TITLE_COUNTS_MAX_SOURCES`
  * sources it stops asking and leaves those two numbers to each source's own
- * page: this is also the page that reloads itself while an import runs, and a
- * paid plan has no source limit.
+ * page: this is also the page that reloads itself while an import runs, and an
+ * account whose `max_sources` is null has no source limit.
  *
  * A number that is not known is **absent**, never zero (`content-counts.ts`).
  *
@@ -85,11 +86,12 @@ export default async function SourcesPage({
   const format = await getFormatter();
   const now = new Date();
 
-  // Three calls, in parallel: the list, what the plan allows, and the devices
-  // for the preview panel. The second is what decides whether "add a source"
-  // is offered — never a number written into this file. A client carrying its
-  // own copy of "FREE means one source" would be computing an access right
-  // client-side, which AGENTS.md §1 forbids.
+  // Three calls, in parallel: the list, what the account allows, and the
+  // devices for the preview panel. The second is what decides whether "add a
+  // source" is offered — never a number written into this file. A client
+  // carrying its own copy of "one source" would be computing an access right
+  // client-side, which AGENTS.md §1 forbids; that the web no longer shows a
+  // plan changes nothing about where the ceiling comes from.
   //
   // The list comes through `loadActiveSource`: the layout already asked for it
   // to draw the rail, the answer is memoised per request, and it says which
@@ -182,17 +184,15 @@ export default async function SourcesPage({
           // Said before the form, not after a refused submission. The server
           // still answers SOURCE_LIMIT_REACHED if someone posts anyway — two
           // tabs, and the first one took the last slot.
+          //
+          // Said as a fact about this account, with no offer behind it: 0.2.0
+          // has nothing to sell (docs/backlog/dette.md §2), and the number is
+          // still the server's — `max_sources` — never one written here.
           <div className="border-border flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-6 text-center">
             <p className="font-medium">{t("sourcesLimitTitle", { max: max ?? 0 })}</p>
             <p className="text-muted-foreground max-w-[40ch] text-sm font-light">
               {t("sourcesLimitBody")}
             </p>
-            <a
-              href={hrefFor(locale as Locale, "/app/subscription")}
-              className="text-brand-cyan mt-2 text-sm font-medium"
-            >
-              {t("sourcesLimitUpgrade")}
-            </a>
           </div>
         )}
 
@@ -221,7 +221,7 @@ export default async function SourcesPage({
           )}
 
           <a
-            href={hrefFor(locale as Locale, "/app/devices")}
+            href={hrefFor(locale as Locale, settingsSectionPath("account"))}
             className="text-brand-cyan mt-auto pt-2 text-[13px] font-medium"
           >
             {t("devicesManageLink")}

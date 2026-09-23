@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { MockBadge } from "@/components/site/MockBadge";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import {
@@ -26,12 +25,14 @@ import { pageMetadata } from "@/lib/seo/metadata";
  *   screenshot will have to be taken on a royalty-free test set; one showing a
  *   real bouquet is the same violation as a fixture.
  *
- * The plan quotas ("1 source, 2 devices", "unlimited") are access rights, and
- * an access right is computed server-side (`Entitlement.max_sources`, G1 in
- * docs/design/api-gaps.md). A static page cannot read an authenticated
- * endpoint, so they are written in the messages and **labelled as mock data**
- * until a public plan description exists in the contract. The prices are not:
- * the specification keeps them in i18n on purpose.
+ * <h2>No pricing</h2>
+ *
+ * The page used to end on two plans, Free and Plus. 0.2.0 is a free
+ * application with no payment behind it (docs/backlog/dette.md §2, decision of
+ * 17 September 2026), so the section, the header and footer links to it and the
+ * FAQ entry about cancelling are gone rather than kept with a "coming soon":
+ * a price on a page is a promise, and this build makes none. What is free
+ * needs no plan card to say so; the primary call to action says it.
  */
 export async function generateMetadata({
   params,
@@ -71,7 +72,6 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
     ["faqOneQuestion", "faqOneAnswer"],
     ["faqTwoQuestion", "faqTwoAnswer"],
     ["faqThreeQuestion", "faqThreeAnswer"],
-    ["faqFourQuestion", "faqFourAnswer"],
   ] as const;
 
   return (
@@ -183,74 +183,6 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
         </div>
       </section>
 
-      {/* ---- pricing ---------------------------------------------------- */}
-      <section id="pricing" aria-labelledby="pricing-title" className="border-border border-t">
-        <div className="mx-auto w-full max-w-7xl px-6 py-16 sm:px-10 lg:px-16">
-          <h2 id="pricing-title" className="text-center text-3xl font-semibold tracking-tight">
-            {t("pricingTitle")}
-          </h2>
-
-          <div className="mt-11 flex flex-wrap justify-center gap-6">
-            <article className="border-border bg-card flex w-full max-w-[340px] flex-col gap-4 rounded-[20px] border p-8">
-              <h3 className="text-muted-foreground text-[15px] font-semibold">
-                {t("pricingFreeName")}
-              </h3>
-              <p className="text-[40px] leading-none font-semibold">{t("pricingFreePrice")}</p>
-              <ul className="text-muted-foreground flex flex-col gap-2.5 text-sm font-light">
-                <li className="flex flex-wrap items-center gap-x-2">
-                  <span>✓&nbsp; {t("pricingFreeQuota")}</span>
-                  <MockBadge />
-                </li>
-                <li>✓&nbsp; {t("pricingFreeChannels")}</li>
-                <li>✓&nbsp; {t("pricingFreeApps")}</li>
-              </ul>
-              <a
-                href={register}
-                className="border-input mt-auto inline-flex h-12 items-center justify-center rounded-full border text-sm font-semibold"
-              >
-                {t("pricingFreeCta")}
-              </a>
-            </article>
-
-            <article className="dark bg-background text-foreground relative flex w-full max-w-[340px] flex-col gap-4 rounded-[20px] p-8">
-              <span className="bg-brand-gradient text-primary-foreground absolute -top-3 left-8 inline-flex h-6 items-center rounded-full px-3 text-[11px] font-bold tracking-wide">
-                {t("pricingPlusBadge")}
-              </span>
-              <h3 className="text-muted-foreground text-[15px] font-semibold">
-                {t("pricingPlusName")}
-              </h3>
-              <p className="text-[40px] leading-none font-semibold">
-                {t("pricingPlusPrice")}
-                <span className="text-muted-foreground text-[15px] font-light">
-                  {" "}
-                  {t("pricingPlusPeriod")}
-                </span>
-              </p>
-              <ul className="text-muted-foreground flex flex-col gap-2.5 text-sm font-light">
-                <li className="text-foreground flex flex-wrap items-center gap-x-2">
-                  <span>✓&nbsp; {t("pricingPlusQuota")}</span>
-                  <MockBadge />
-                </li>
-                <li>✓&nbsp; {t("pricingPlusEpg")}</li>
-                <li>✓&nbsp; {t("pricingPlusResume")}</li>
-                <li>✓&nbsp; {t("pricingPlusSupport")}</li>
-              </ul>
-              <div className="mt-auto flex flex-col items-center gap-2">
-                <a
-                  href={register}
-                  className="bg-primary text-primary-foreground inline-flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold"
-                >
-                  {t("pricingPlusCta")}
-                </a>
-                {/* The trial and its length are billing state (G2, G3): the
-                    server decides, and nothing on this page can read it. */}
-                <MockBadge />
-              </div>
-            </article>
-          </div>
-        </div>
-      </section>
-
       {/* ---- FAQ -------------------------------------------------------- */}
       <section aria-labelledby="faq-title" className="border-border bg-card border-t">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 py-16 sm:px-10 lg:flex-row lg:gap-16 lg:px-16">
@@ -286,10 +218,6 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
                 </summary>
                 <p className="text-muted-foreground mt-2.5 max-w-[60ch] text-sm leading-[1.6] font-light">
                   {t(answer)}
-                  {/* Cancelling goes through billing (G3), which the server does
-                      not fully serve yet: the answer is the intended one, not an
-                      observed one. */}
-                  {answer === "faqFourAnswer" ? <MockBadge className="ml-2 align-middle" /> : null}
                 </p>
               </details>
             ))}

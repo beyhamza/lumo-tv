@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { signOut } from "@/actions/auth";
 import { SourceSwitcher } from "@/components/app/SourceSwitcher";
 import { Wordmark } from "@/components/site/Wordmark";
 import { hrefFor } from "@/i18n/navigation";
@@ -12,6 +11,7 @@ import { PATHNAME_HEADER } from "@/lib/http/pathname-header";
 import { currentEntryIndex } from "@/lib/navigation/current-entry";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
+import { settingsSectionPath } from "@/lib/settings/sections";
 import { loadActiveSource } from "@/lib/sources/active-source-store";
 import { cn } from "@/lib/utils";
 
@@ -34,16 +34,21 @@ import { cn } from "@/lib/utils";
  * the session.
  *
  * Note the absence of a `NextIntlClientProvider`: nothing in this shell is a
- * client component. Sign-out is a form posting to a Server Action, and so is
- * every row of the source switcher.
+ * client component. Every row of the source switcher is a form posting to a
+ * Server Action, and everything else is a link.
  *
- * <h2>Two groups of entries (US-017, S8-E03)</h2>
+ * <h2>Two groups of entries (US-017, S8-E03; US-025, S8-06)</h2>
  *
  * The validated menu, in its order: **Home, Live, Films, Series, My library**.
  * Below it, set apart, what manages the account rather than what is watched:
- * Sources, Devices, Subscription. That second group is exactly what it was —
- * S8-06 turns it into Settings and retires the subscription entry, and doing
- * half of that here would be doing it twice.
+ * **Sources** and **Settings**. Devices moved into Settings ("Account and
+ * devices"), and the subscription entry is gone with its page: 0.2.0 is free,
+ * with no payment to manage (docs/backlog/dette.md §2), so an entry named after
+ * one would lead to a page that says nothing.
+ *
+ * Signing out is in Settings too, behind a confirmation. The account card at
+ * the bottom of the rail links there rather than posting straight to the
+ * action: one path out of the account, and it asks first.
  *
  * "My library" is the favourites page under the name the product gave it: same
  * route, because a bookmark to `/app/favorites` is somebody's, and the watch
@@ -150,8 +155,9 @@ export default async function AppLayout({
   ];
   const secondary = [
     entry("/app/sources", t("navSources")),
-    entry("/app/devices", t("navDevices")),
-    entry("/app/subscription", t("navSubscription")),
+    // Current on every section: the sections are under `/app/settings`, and
+    // nothing more specific is listed (`lib/settings/sections.test.ts`).
+    entry("/app/settings", t("navSettings")),
   ];
 
   // One current entry across both groups, not one per group and never two. The
@@ -228,14 +234,12 @@ export default async function AppLayout({
             <p className="truncate text-xs font-medium">{displayName}</p>
             <p className="text-muted-foreground/80 truncate text-[11px]">{session.email}</p>
           </div>
-          <form action={signOut} className="flex-none">
-            <button
-              type="submit"
-              className="text-muted-foreground hover:text-foreground text-[11px] underline underline-offset-4"
-            >
-              {nav("logout")}
-            </button>
-          </form>
+          <a
+            href={`${hrefFor(locale as Locale, settingsSectionPath("account"))}?confirm=signout#signout-confirmation`}
+            className="text-muted-foreground hover:text-foreground flex-none text-[11px] underline underline-offset-4"
+          >
+            {nav("logout")}
+          </a>
         </div>
       </aside>
 

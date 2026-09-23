@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
@@ -38,15 +37,11 @@ export default async function RegisterPage({
         {t("registerSubtitle")}
       </p>
 
+      {/* The email form is the whole of registration, as on the sign-in page:
+          Google is out of 0.2.0 (docs/backlog/dette.md §1). */}
       <div className="mt-8">
         <SignUpForm />
       </div>
-
-      {/* The same control as the sign-in page, and the same flow behind it: a
-          first Google sign-in creates the account, a later one reuses it, and
-          the server decides which (US-03). Putting it on only one of the two
-          pages would ask the visitor to answer that in advance. */}
-      <GoogleSignInButton />
 
       <p className="text-muted-foreground mt-6 text-sm">
         {t("haveAccount")}{" "}

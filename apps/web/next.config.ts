@@ -1,5 +1,6 @@
 import createNextIntlPlugin from "next-intl/plugin";
 import type { NextConfig } from "next";
+import pkg from "./package.json";
 
 // Picks up src/i18n/request.ts by convention. It is what makes messages
 // available to Server Components without a provider, which is what lets the
@@ -23,6 +24,15 @@ const nextConfig: NextConfig = {
   expireTime: 60 * 60,
 
   poweredByHeader: false,
+
+  // The version Settings shows under "Help and information" (US-025). Taken
+  // from package.json at build time so that the page shows the build that is
+  // running, never a constant somebody forgot to bump; a deployment that tags
+  // its builds may override it. `env` inlines the value into every bundle,
+  // which is fine for a version and would not be for anything else.
+  env: {
+    NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION || pkg.version,
+  },
 };
 
 export default withNextIntl(nextConfig);

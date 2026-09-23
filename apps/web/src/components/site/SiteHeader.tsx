@@ -5,7 +5,9 @@ import { routing, type Locale } from "@/i18n/routing";
 
 /**
  * The marketing header (W1, docs/design/web-sprint-1.md): logotype,
- * `Features` · `Pricing` · `Guides`, then `Sign in` and the filled CTA.
+ * `Features` · `Guides`, then `Sign in` and the filled CTA. `Pricing` left
+ * with the pricing section (S8-06): 0.2.0 is free, and a link named after a
+ * price would lead to nothing.
  *
  * A Server Component with no interactivity at all — the language switch is two
  * links, not a dropdown, and navigation uses plain anchors rather than a
@@ -14,9 +16,8 @@ import { routing, type Locale } from "@/i18n/routing";
  * nothing blocking (docs/architecture.md §4). A content page entered from a
  * search result gains nothing from client-side routing.
  *
- * `Features` and `Pricing` are sections of the landing page, so from a guide
- * they are links back to `/#features` and `/#pricing` rather than anchors that
- * would go nowhere.
+ * `Features` is a section of the landing page, so from a guide it is a link
+ * back to `/#features` rather than an anchor that would go nowhere.
  */
 export async function SiteHeader({ locale }: { locale: Locale }) {
   const t = await getTranslations("Nav");
@@ -43,9 +44,6 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
         <a href={`${home}#features`} className="text-muted-foreground hover:text-foreground text-sm">
           {t("features")}
         </a>
-        <a href={`${home}#pricing`} className="text-muted-foreground hover:text-foreground text-sm">
-          {t("pricing")}
-        </a>
         <a
           href={hrefFor(locale, "/guides")}
           className="text-muted-foreground hover:text-foreground text-sm"
@@ -65,7 +63,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
             href={hrefFor(locale, "/register")}
             className="bg-primary text-primary-foreground inline-flex h-11 items-center rounded-full px-5 text-sm font-semibold"
           >
-            {t("tryFree")}
+            {t("register")}
           </a>
         </div>
       </nav>

@@ -8,9 +8,9 @@ import type { SessionPayload } from "./cookie";
  * renamed in openapi.yaml has to fail here, at build time, rather than at the
  * first sign-in after deployment.
  *
- * Shared by every road to a session — the sign-in and registration actions, and
- * the Google route handler — because they all receive the same `AuthSession` and
- * there is nothing about it for any of them to interpret differently.
+ * Shared by every road to a session — the sign-in and registration actions —
+ * because they all receive the same `AuthSession` and there is nothing about it
+ * for any of them to interpret differently.
  */
 export function sessionFrom(authSession: AuthSession): SessionPayload {
   return {

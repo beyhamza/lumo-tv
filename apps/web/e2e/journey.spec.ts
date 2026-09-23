@@ -33,14 +33,22 @@ test.describe("espace compte", () => {
   });
 
   test("la liste des appareils montre la session qui la consulte", async ({ page }) => {
-    await page.goto("/fr/app/devices");
+    // The devices live in Settings, "Account and devices" (US-025, S8-06). The
+    // old `/app/devices` still redirects there, but the test goes to the real
+    // address: a redirect is a courtesy, not the feature.
+    await page.goto("/fr/app/settings/account");
 
     // This screen used to assert "not built yet": `GET /me/devices` was in the
     // contract with no controller behind it. It has one now, so the assertion
     // is the opposite one — and it is worth more, because it crosses the whole
     // stack. Signing up opened exactly one session, so exactly one device is
-    // linked, and it is a WEB one: this browser.
+    // linked, and it is a WEB one: this browser — under "this device", with no
+    // way to revoke it from here.
     await expect(page.getByText("WEB")).toBeVisible();
+    await expect(page.getByText(fr.App.deviceThisOne.replace("{name}", "lumo.tv"))).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: fr.App.deviceRevokeOf.replace("{name}", "lumo.tv") }),
+    ).toHaveCount(0);
     // Neither of the two fallbacks. "Not built yet" would mean the controller
     // vanished; "unavailable" would mean the API is down. Both are calm grey
     // boxes to anyone reading a screenshot, which is exactly why they are
@@ -333,12 +341,13 @@ test.describe.serial("sources", () => {
     await context.close();
   });
 
-  test("le plafond de l'offre remplace le bouton d'ajout", async ({ page }) => {
+  test("le plafond du compte remplace le bouton d'ajout", async ({ page }) => {
     await page.goto("/fr/app/sources");
 
-    // FREE allows one source and one is registered. The ceiling is read from
-    // GET /me/entitlement, never written into the web: the day the free plan
-    // allows two, this screen follows without a release.
+    // The account allows one source and one is registered. The ceiling is read
+    // from GET /me/entitlement, never written into the web: the day the server
+    // allows two, this screen follows without a release. And it is said as a
+    // fact, with nothing to buy behind it (S8-06).
     await expect(page.getByText(fr.App.sourcesLimitBody)).toBeVisible();
     await expect(
       page.getByRole("link", { name: fr.App.sourcesAddCta }),

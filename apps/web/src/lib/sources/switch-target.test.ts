@@ -60,14 +60,20 @@ describe("sourceSwitchTarget", () => {
       ["/fr/app/sources", "/app/sources"],
       ["/fr/app/sources/new", "/app/sources/new"],
       ["/fr/app/favorites", "/app/favorites"],
-      ["/fr/app/devices", "/app/devices"],
-      ["/fr/app/subscription", "/app/subscription"],
+      ["/fr/app/settings", "/app/settings"],
+      ["/fr/app/settings/account", "/app/settings/account"],
+      ["/fr/app/settings/application", "/app/settings/application"],
+      ["/fr/app/settings/about", "/app/settings/about"],
     ])("%s", (from, expected) => {
       expect(to(from)).toBe(expected);
     });
 
     it("drops the query there too", () => {
       expect(to(`/fr/app/favorites?group=${ITEM}`)).toBe("/app/favorites");
+      // The open sign-out confirmation does not survive a switch either: the
+      // page re-renders, and a question asked on the old source is not
+      // re-asked on the new one.
+      expect(to("/fr/app/settings/account?confirm=signout")).toBe("/app/settings/account");
       expect(to(`/fr/app/sources/${OLD}?confirm=delete`)).toBe(`/app/sources/${OLD}`);
     });
 

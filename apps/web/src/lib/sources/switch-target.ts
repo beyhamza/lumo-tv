@@ -1,4 +1,5 @@
 import { safeRedirectTarget } from "@/lib/security/redirect-target";
+import { SETTINGS_SECTIONS, settingsSectionPath } from "@/lib/settings/sections";
 import { isUuid } from "./active-source";
 
 const FALLBACK = "/app";
@@ -22,8 +23,8 @@ const STAY: readonly string[] = [
   "/app/sources",
   "/app/sources/new",
   "/app/favorites",
-  "/app/devices",
-  "/app/subscription",
+  "/app/settings",
+  ...SETTINGS_SECTIONS.map(settingsSectionPath),
 ];
 
 /**
@@ -37,7 +38,7 @@ const STAY: readonly string[] = [
  * - from a film or a series page to the matching **catalogue**, never to the
  *   page itself: that identifier belongs to the old source, and under the new
  *   one it is a 404 at best;
- * - from anywhere else in the account zone — favourites, devices, My sources —
+ * - from anywhere else in the account zone — favourites, Settings, My sources —
  *   to where the user already is. Those pages re-render around the new source
  *   on their own;
  * - the query string never survives. A category, a search or a page number are

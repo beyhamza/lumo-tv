@@ -316,11 +316,19 @@ contorsions.
 
 ## 10. Ce qui n'est pas encore fait
 
-- Stripe (ADR 0003) : la page abonnement lit `GET /me/entitlement` et n'ouvre
-  aucune session de paiement.
-- Google Sign-In (US-03) : le bouton existe sur `/login` et `/register`, et rien
-  n'est dessiné tant que `NEXT_PUBLIC_GOOGLE_CLIENT_ID` est vide — l'état de ce
-  dépôt. Personne ne l'a donc encore vu avec un vrai client OAuth.
+- Stripe (ADR 0003) : **aucune surface d'abonnement** depuis S8-06 — ni page
+  `/app/subscription`, ni entrée de menu, ni section Tarifs sur le site
+  (`docs/backlog/dette.md` §2, décision du 17 septembre 2026). Le web lit
+  toujours `GET /me/entitlement` pour le plafond de sources, et n'ouvre aucune
+  session de paiement.
+- Google Sign-In (US-03) : **retiré du web** en S8-06 — plus de bouton sur
+  `/login` et `/register`, plus de route `/api/auth/google`, plus de
+  `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (`docs/backlog/dette.md` §1). Le serveur garde
+  `POST /auth/oauth/google` ; le réintroduire côté web est une décision produit.
+- Réglages (US-025, S8-06) : `/app/settings/{account|application|about}`,
+  liste à gauche et rubrique à droite. Pas de rubrique Lecture (sprint 13), pas
+  de choix de langue (sprint 13), pas de lien confidentialité ni conditions —
+  ces pages n'existent pas. `/app/devices` redirige vers la rubrique Compte.
 - **La lecture web est directe ou refusée, jamais relayée** (`adr/0007`). Elle ne
   marche donc pas chez tous les fournisseurs, et l`échec est nommé plutôt que
   silencieux — c'est la moitié du travail, pas un détail.
