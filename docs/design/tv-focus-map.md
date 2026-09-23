@@ -658,19 +658,36 @@ le dialogue au-dessus de chaque lecteur.
 
 ---
 
-## Réglages (`SettingsTvScreen`)
+## Réglages (`SettingsTvScreen`) — S8-06
 
-Même forme, et une action réelle : la déconnexion. C'est aussi la seule façon de
-remettre un téléviseur à son écran d'activation sans réinitialiser la box — ce dont
-la recette a besoin, et ce dont a besoin quelqu'un qui passe son appareil à un
-autre.
+Un sous-menu à gauche — **Sources · Compte et appareils · Application · À propos** —
+et un panneau à droite. Pas de rubrique Lecture avant S13 (US-025) : une entrée
+sans réglage derrière serait un arrêt pour rien. Focus à l'arrivée : *Sources*.
+Un panneau s'ouvre dès que son entrée est focalisée ; `OK` n'a rien à ajouter.
 
-| Depuis | UP/DOWN | LEFT | RIGHT | OK | BACK |
-|---|---|---|---|---|---|
-| La carte | — | rail | — | déconnecte | retour aux chaînes |
+| Depuis | UP | DOWN | LEFT | RIGHT | OK | BACK |
+|---|---|---|---|---|---|---|
+| Entrée du sous-menu | entrée précédente, ou bord | entrée suivante, ou bord | **rail** | première cible du panneau, s'il en a une | — | accueil |
+| Sources : *Mes sources* | bord | bord | sous-menu | bord | empile Mes sources (`BACK` y revient) | **sous-menu** |
+| Compte : *Réessayer* (appareils illisibles) | bord | *Déconnecter cette télévision* | sous-menu | bord | relit la liste | sous-menu |
+| Compte : *Déconnecter cette télévision* | *Réessayer* s'il existe, sinon bord | bord | sous-menu | bord | ouvre la confirmation | sous-menu |
+| Confirmation : *Annuler* (focus à l'arrivée) | — | — | *Déconnecter* | — | ferme, focus rendu au déclencheur | ferme |
+| Confirmation : *Déconnecter* | — | — | — | *Annuler* | déconnecte ; graphe reconstruit sur l'activation, pile vidée | ferme |
+| Application, À propos, lignes d'appareils, guidage | texte, pas d'arrêt | | | | | |
 
-Après la déconnexion, le graphe est reconstruit sur l'activation et la pile est
-vidée : `BACK` ne doit pas ramener dans un compte qui n'existe plus.
+- Les autres appareils sont en lecture seule sur TV : les révoquer se fait depuis le
+  téléphone ou lumo.tv, et le panneau le dit. La déconnexion est la seule action de
+  compte, derrière une confirmation dont *Annuler* est le défaut.
+- `BACK` dans un panneau revient au sous-menu, puis à l'accueil : c'est l'exception
+  à « `BACK` = accueil » du rail, parce que le sous-menu est une zone de focus à
+  part entière.
+- L'adresse des guides est affichée, pas ouverte : une TV n'a pas de navigateur à
+  proposer.
+
+Après la déconnexion, `BACK` ne doit pas ramener dans un compte qui n'existe plus.
+
+À vérifier à la télécommande en S8-07 : `RIGHT` dans chaque panneau, retour du
+focus sur l'entrée après `BACK`, et sur *Déconnecter* après *Annuler*.
 
 ---
 

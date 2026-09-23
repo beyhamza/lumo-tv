@@ -72,9 +72,17 @@ Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulem
   Android, un serveur injoignable affiche encore « aucune source » dans les grilles
   au lieu de Réessayer et Changer de source (US-024, hors ligne) ; correction des
   identifiants depuis le web (voir compléments)
-- [ ] S8-06 — **en cours** depuis le 23 septembre sur `feat/US-025-settings-scope` :
-  périmètre arrêté dans US-025 (structure des rubriques, retraits Google, Abonnement,
-  Tarifs) ; inclut la correction du cas hors ligne d'Android laissé par S8-05
+- [ ] S8-06 — **75 %**, sur `feat/US-025-settings-scope`, périmètre dans US-025. Web :
+  Réglages en sous-routes (Compte et appareils avec révocation et déconnexion
+  confirmées, Mes sources, Application, Aide), Abonnement retiré de l'espace,
+  Google retiré des pages d'authentification, Tarifs retirés du site ; typecheck,
+  lint, 215 tests et build verts, marketing statique. Android : Réglages mobile en
+  quatre rubriques opérationnelles, Réglages TV en quatre panneaux, Google retiré
+  avec ses dépendances, limite de sources et d'appareils expliquées sans offre,
+  grilles et accueil hors ligne avec Réessayer et Changer de source (reliquat S8-05) ;
+  418 tests unitaires, lint et `assembleDebug` verts. Carte de focus TV à jour.
+  Reste : recette à l'écran ; pages Confidentialité et Conditions inexistantes sur
+  le site (hors sprint)
 - [ ] S8-07 — recette de la verticale
 
 Arbitrages du 19 septembre 2026 pour ce sprint :
