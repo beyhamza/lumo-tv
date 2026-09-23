@@ -42,8 +42,14 @@ Mis à jour le 24 septembre 2026. Une case cochée signifie recetté, pas seulem
 - [ ] S9-00 — **en recette** : banc XMLTV livré, huit tests, rapport S9-00
 - [x] S9-01 — cadrage D1–D5 validé le 24 septembre ; **gel** des plafonds
   (5 000 occurrences, 4 Mio) et des schémas dans [C1 §8](../roadmap/0.2.0/c1-grouped-epg.md)
-- [ ] S9-02 — **en cours** sur `feat/US-16-grouped-epg` : contrat, migration, serveur, tests
-- [ ] S9-03 — cache et accès clients
+- [x] S9-02 — contrat C1 écrit et trois clients régénérés ; changeset 0020 (fiche
+  d'import EPG avec identifiant de tentative) ; `EpgReadService` sous les deux plafonds
+  en lecture `REPEATABLE READ` ; 24 tests, build API vert (319 tests). Vérifié le
+  24 septembre sur la pile Docker avec un XMLTV local : 20 contrôles sur 20 (ordre
+  des entrées, `NO_TVG_ID`, métadonnées, 400/404, bornes, `epg` sur la lecture
+  unitaire, reconfiguration puis import raté sans fausse fraîcheur, lecture pendant
+  `SYNCING`). Non joué sur la pile : les plafonds 5 001 / 4 Mio (couverts par les tests)
+- [ ] S9-03 — **en cours** : cadrage ci-dessous, implémentation Android et web
 - [ ] S9-04 — Chaînes / Guide sur les trois surfaces
 - [ ] S9-05 — grilles et journée
 - [ ] S9-06 — fiche programme
