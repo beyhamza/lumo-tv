@@ -18,6 +18,11 @@ ajoute notamment la grille horaire TV. Réestimer, sans réutiliser ses 34 point
 
 ## Tâches proposées
 
+Préparation du 23 septembre : [proposition C1, D1 à D5 et C1-01 à C1-12](../roadmap/0.2.0/c1-grouped-epg.md).
+Non approuvée. Les plafonds de volume restent des hypothèses jusqu’au rapport S9-00 ;
+S9-01 les fige avant toute évolution OpenAPI dans S9-02. Le dernier import EPG
+réussi est distinct de la synchronisation du catalogue et de la récupération client.
+
 | ID | Travail | Reprise/dépendance |
 |---|---|---|
 | S9-00 | Ajouter XMLTV relatif à la date, gzip, guide cassé/absent/ancien ; vérifier ingestion et rétention | Reprend S7-00 |
