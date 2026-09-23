@@ -1,8 +1,17 @@
 import "server-only";
 
 import { api } from "@/lib/api/client";
-import type { Channel, Episode, PlaybackProgress, Series, VodItem } from "@/lib/api/types";
+import type {
+  Channel,
+  Episode,
+  EpgProgramme,
+  PlaybackProgress,
+  Series,
+  VodItem,
+} from "@/lib/api/types";
 import { resolveChannels } from "@/lib/catalogue/resolve-channels";
+import { NOW_WINDOW_MS, loadEpgWindow } from "@/lib/epg/load-epg-window";
+import { onAirByChannel } from "@/lib/epg/now";
 import { aggregateFavorites, recentChannelsOf } from "./channels";
 import {
   continueCards,
@@ -21,7 +30,10 @@ import {
  * 2. What those identifiers *are*: episodes, films and channels by id — in
  *    parallel. `Favorite`, `RecentChannel` and `PlaybackProgress` carry
  *    identifiers only, on purpose: a name copied onto them would be a name the
- *    next ingestion has already changed.
+ *    next ingestion has already changed. **And what is on** those channels
+ *    (S9-03): the guide needs the identifiers and not the names, so it rides
+ *    in this wave rather than adding a fourth — one grouped request for both
+ *    channel rails over the next three hours, never one per card.
  * 3. The series those episodes belong to. It cannot be folded into the second
  *    wave: which series to ask for is what the second wave answers.
  *
@@ -66,6 +78,13 @@ export type HomeRails = {
   favorites: Channel[];
   recents: Channel[];
   /**
+   * What is on air, by channel id, for the channels of both rails — at the
+   * `now` the page was rendered at. A channel with nothing on is absent, and
+   * so is every channel when the guide could not be read: the rails then
+   * look exactly as they did before sprint 9, which is the rule (S7-03).
+   */
+  onAir: ReadonlyMap<string, EpgProgramme>;
+  /**
    * At least one of the first-wave requests did not answer. The group list is
    * not counted: without it the favourites keep the server's order, which is
    * the same rail.
@@ -76,6 +95,8 @@ export type HomeRails = {
 export async function loadHomeRails(
   accessToken: string,
   sourceId: string,
+  /** The instant "on now" is decided at; the page's, so that its clock and this one agree. */
+  now: Date = new Date(),
 ): Promise<HomeRails> {
   const client = api(accessToken);
 
@@ -126,7 +147,11 @@ export async function loadHomeRails(
     rows.filter((row) => row.item_type === "VOD").map((row) => row.item_ref),
   ).slice(0, FILM_ROWS);
 
-  const [episodes, films, channelsById] = await Promise.all([
+  // Both rails' channels, once each: a favourite watched this morning is in
+  // both, and the server refuses a batch with a duplicate.
+  const railIds = unique([...starred, ...watched].map((entry) => entry.channel_id));
+
+  const [episodes, films, channelsById, guide] = await Promise.all([
     episodeIds.length > 0
       ? quiet(
           client.GET("/sources/{id}/episodes", {
@@ -154,6 +179,10 @@ export async function loadHomeRails(
         return answer.data?.items ?? [];
       },
     ),
+    // One request for what is on across both rails (S9-03). Never throws and
+    // never blanks a rail: unavailable is an empty map below, and the cards
+    // are drawn without their second line.
+    loadEpgWindow(accessToken, sourceId, railIds, now, new Date(now.getTime() + NOW_WINDOW_MS)),
   ]);
 
   const candidates = onePerSeries(rows, byId<Episode>(episodes?.items));
@@ -189,6 +218,7 @@ export async function loadHomeRails(
     ),
     favorites: named(starred),
     recents: named(watched),
+    onAir: guide.state === "ok" ? onAirByChannel(guide.grid.channels, now) : new Map(),
     failed: [filmRows, episodeRows, favorites, recents].some((answer) => answer === undefined),
   };
 }

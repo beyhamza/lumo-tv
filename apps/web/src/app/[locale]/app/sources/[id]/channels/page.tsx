@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
+import {
+  getFormatter,
+  getMessages,
+  getTimeZone,
+  getTranslations,
+  setRequestLocale,
+} from "next-intl/server";
 import { addFavorite, removeFavorite } from "@/actions/favorites";
 import { CatalogueNotReady } from "@/components/app/CatalogueNotReady";
 import { CatalogueTabs } from "@/components/app/CatalogueTabs";
-import { ChannelLogo, ChannelRail } from "@/components/app/ChannelRail";
+import { ChannelLogo, ChannelRail, type OnAirLine } from "@/components/app/ChannelRail";
 import {
   FavoriteGroups,
   defaultGroupLabel,
@@ -20,6 +26,10 @@ import { errorMessage } from "@/lib/api/error-message";
 import type { Category, Channel, FavoriteGroup } from "@/lib/api/types";
 import { attempt, outcomeOf } from "@/lib/catalogue/attempt";
 import { cataloguePageState } from "@/lib/catalogue/page-state";
+import { clockTime } from "@/lib/epg/format";
+import { epgFreshness } from "@/lib/epg/freshness";
+import { NOW_WINDOW_MS, loadEpgWindow, type EpgWindow } from "@/lib/epg/load-epg-window";
+import { onAirByChannel } from "@/lib/epg/now";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
 import { sourceCondition } from "@/lib/sources/source-condition";
@@ -79,6 +89,25 @@ import { sourceCondition } from "@/lib/sources/source-condition";
  * failed the other is kept, and the missing part says "could not be loaded":
  * "No channel in this category" over a request that never answered would be a
  * statement about somebody's subscription made from no information (US-024).
+ *
+ * <h2>What is on, under each channel of the page (S9-03)</h2>
+ *
+ * The programme on air and when it ends, under each row of the listing, from
+ * **one** grouped guide request for the page's channel ids — the page is
+ * bounded by `PAGE_SIZE`, so one request it is, and it rides alongside the
+ * name lookup rather than after it. The rule of S7-03 applies to the letter: a
+ * channel with nothing on shows its name as before, and a guide that could not
+ * be read shows the page as it was before sprint 9. No "programme unavailable",
+ * no reserved space.
+ *
+ * The header says when the guide was last imported, and **only when that is
+ * worth saying** (D4): more than twenty-four hours ago, or an import that
+ * failed or was interrupted. "Last guide import", never "programmes up to
+ * date" — the server dates its import, not the provider's listings (D3). A
+ * fresh guide, an unknown one, or a source with no guide at all say nothing:
+ * "imported three hours ago" on every visit is noise, and "no guide" under a
+ * catalogue somebody came to browse is a sentence about a feature they did not
+ * ask for. The grid is S9-05; this page draws no cell.
  */
 export async function generateMetadata({
   params,
@@ -293,21 +322,41 @@ export default async function ChannelsPage({
     // bounded by that same number — so this is a guard rather than a paging loop.
     .slice(0, ID_LOOKUP_MAX);
 
-  if (missing.length > 0) {
-    const resolved = await attempt(() =>
-      api(token).GET("/sources/{id}/channels", {
-        params: { path: { id }, query: { ids: missing, size: missing.length } },
-      }),
-    );
-    // An identifier the last re-synchronisation dropped is simply not in the
-    // answer, by contract. It falls out of the rail below rather than rendering
-    // as a gap, which is the honest outcome: the channel is gone.
-    for (const channel of resolved.data?.items ?? []) byId.set(channel.id, channel);
-  }
+  // One clock for the render: what is "on now" is decided at this instant, and
+  // the guide's age is measured from it.
+  const now = new Date();
+
+  const [resolved, guide] = await Promise.all([
+    missing.length > 0
+      ? attempt(() =>
+          api(token).GET("/sources/{id}/channels", {
+            params: { path: { id }, query: { ids: missing, size: missing.length } },
+          }),
+        )
+      : undefined,
+    // The page's channels over the next three hours, in one request (S9-03).
+    // Only the listing's: the rails' cards are not asked for, so that a rail
+    // does not show a programme under the three channels that happen to be on
+    // this page and nothing under the nine that are not. Never throws.
+    loadEpgWindow(
+      token,
+      id,
+      listed.map((channel) => channel.id),
+      now,
+      new Date(now.getTime() + NOW_WINDOW_MS),
+    ),
+  ]);
+  // An identifier the last re-synchronisation dropped is simply not in the
+  // answer, by contract. It falls out of the rail below rather than rendering
+  // as a gap, which is the honest outcome: the channel is gone.
+  for (const channel of resolved?.data?.items ?? []) byId.set(channel.id, channel);
 
   const nowPlaying = playing ? byId.get(playing) : undefined;
   const railFavorites = railOf(starred.slice(0, railSize), byId);
   const railRecents = railOf(watched.slice(0, RAIL_SIZE), byId);
+
+  const guideLines = await onAirLines(guide, now, locale as Locale, t);
+  const guideNotice = await guideImportNotice(guide, now, t);
 
   // Where a star sends the user back to: this exact view, category, search, page
   // and player included. Built from the same values the links are built from, so
@@ -353,6 +402,11 @@ export default async function ChannelsPage({
         <p className="text-muted-foreground mt-2">
           {t("catalogueCount", { total: listing.total_elements })}
         </p>
+      ) : null}
+      {/* Only when the guide's import is worth a sentence: old, failed or
+          interrupted. See the header comment; a fresh guide says nothing. */}
+      {guideNotice ? (
+        <p className="text-muted-foreground/80 mt-1 text-[13px]">{guideNotice}</p>
       ) : null}
 
       {/* Always the three, and no request to decide it. An earlier version paid
@@ -529,6 +583,7 @@ export default async function ChannelsPage({
                   removeFromLabel={(group) => t("catalogueFavoriteRemoveFrom", { group })}
                   groupId={activeGroup?.id}
                   href={playHref(channel.id)}
+                  onAir={guideLines.get(channel.id)}
                 />
               ))}
             </ul>
@@ -663,6 +718,7 @@ function ChannelRow({
   channel,
   href,
   playing,
+  onAir,
   memberships,
   groups,
   defaultGroupName,
@@ -677,6 +733,8 @@ function ChannelRow({
   channel: Channel;
   href: string;
   playing: boolean;
+  /** What is on, and until when — or nothing, and then nothing is drawn. */
+  onAir?: OnAirLine;
   memberships?: Map<string, string>;
   groups: FavoriteGroup[];
   defaultGroupName: string;
@@ -700,12 +758,20 @@ function ChannelRow({
 
       <ChannelLogo channel={channel} />
 
-      {/* A link, so playing a channel is a URL like every other state on this
-          page: it survives a reload, it can be shared, and the back button
-          closes the player. */}
-      <a href={href} className="min-w-0 flex-1 truncate font-medium underline-offset-4 hover:underline">
-        {channel.name}
-      </a>
+      <span className="min-w-0 flex-1">
+        {/* A link, so playing a channel is a URL like every other state on this
+            page: it survives a reload, it can be shared, and the back button
+            closes the player. */}
+        <a href={href} className="block truncate font-medium underline-offset-4 hover:underline">
+          {channel.name}
+        </a>
+        {/* The programme on air, or nothing at all (S7-03). */}
+        {onAir ? (
+          <span className="text-muted-foreground block truncate text-xs">
+            {onAir.title} · {onAir.until}
+          </span>
+        ) : null}
+      </span>
 
       {channel.quality ? (
         <span className="border-border text-muted-foreground shrink-0 rounded border px-1.5 py-0.5 text-xs">
@@ -976,6 +1042,67 @@ function Pagination({
       ) : null}
     </nav>
   );
+}
+
+type Translate = Awaited<ReturnType<typeof getTranslations<"App">>>;
+
+/**
+ * The line under each channel, from the guide read for the page.
+ *
+ * Formatted here and not in the row: the sentence is the page's language and
+ * the hour is the zone next-intl is configured with (`getTimeZone()`), the
+ * same decision the home page makes for its rails. A programme whose end
+ * cannot be read gets no line rather than one with "Invalid Date" in it.
+ */
+async function onAirLines(
+  guide: EpgWindow,
+  now: Date,
+  locale: Locale,
+  t: Translate,
+): Promise<Map<string, OnAirLine>> {
+  const lines = new Map<string, OnAirLine>();
+  if (guide.state !== "ok") return lines;
+
+  const timeZone = await getTimeZone();
+  for (const [channelId, programme] of onAirByChannel(guide.grid.channels, now)) {
+    const ends = clockTime(programme.ends_at, locale, timeZone);
+    if (ends === undefined) continue;
+    lines.set(channelId, { title: programme.title, until: t("epgUntil", { time: ends }) });
+  }
+  return lines;
+}
+
+/**
+ * What the header says about the guide's import, or nothing (D3, D4).
+ *
+ * Three cases earn a sentence — stale, failed, interrupted — and every other
+ * one earns silence: fresh (noise), unknown and not configured (a sentence
+ * about a feature nobody asked for, on a page that is about channels), running
+ * (over in a minute, and the page has no way to follow it).
+ */
+async function guideImportNotice(
+  guide: EpgWindow,
+  now: Date,
+  t: Translate,
+): Promise<string | undefined> {
+  if (guide.state !== "ok") return undefined;
+
+  const freshness = epgFreshness(guide.grid.epg, guide.grid.generated_at, now);
+  switch (freshness.kind) {
+    case "stale": {
+      // "2 days ago" from the server's import date, against this render's
+      // clock — `relativeTime` on the formatter every date of this zone goes
+      // through (`AGENTS.md` §7).
+      const format = await getFormatter();
+      return t("epgLastImport", { ago: format.relativeTime(freshness.importedAt, now) });
+    }
+    case "attempt-failed":
+      return t("epgImportFailed");
+    case "attempt-interrupted":
+      return t("epgImportInterrupted");
+    default:
+      return undefined;
+  }
 }
 
 /** `?a=1&b=2`, or an empty string. Absent values are omitted, never sent empty. */

@@ -27,6 +27,18 @@ import { cn } from "@/lib/utils";
  * Every card is one link and the caller decides where it goes; on both screens
  * that use this, it is a `?play=` URL, so choosing a channel starts it (US-020)
  * and the back button closes the player.
+ *
+ * <h2>What is on, under the name — or nothing (S9-03)</h2>
+ *
+ * A card may carry the programme on air and when it ends. It is the caller's
+ * to load — in **one** request for the whole rail, never one per card — and
+ * to format; this component only draws two lines when it is handed them.
+ *
+ * A channel with nothing on shows the name, **as before**, and nothing else:
+ * no "programme unavailable", no reserved space. Somebody whose provider ships
+ * no guide would read that sentence under every card, forever. An absent
+ * information hides nothing (S7-03), which is the opposite of the rule for a
+ * tab — a tab is a door.
  */
 export function ChannelRail({
   title,
@@ -34,11 +46,18 @@ export function ChannelRail({
   playHref,
   prominent = false,
   more,
+  onAir,
 }: {
   title: string;
   channels: Channel[];
   /** Builds the link that plays one channel. */
   playHref: (channelId: string) => string;
+  /**
+   * By channel id, the programme on air and the sentence saying when it ends,
+   * already in the reader's language and zone. A channel absent from the map
+   * has nothing on, and its card says nothing about it.
+   */
+  onAir?: ReadonlyMap<string, OnAirLine>;
   /**
    * A section of a page rather than a shortcut above a list. The channels page
    * keeps the small capitals it has always had, because there the rail is a
@@ -54,6 +73,10 @@ export function ChannelRail({
   more?: { href: string; label: string };
 }) {
   if (channels.length === 0) return null;
+
+  // Whether any card of this rail has a programme to show. Decided once for
+  // the rail rather than per card, so that the cards keep one width.
+  const guided = channels.some((channel) => onAir?.has(channel.id));
 
   const heading = (
     <h2
@@ -86,23 +109,50 @@ export function ChannelRail({
         aria-label={title}
         className={cn("flex gap-3 overflow-x-auto pb-2", prominent ? "mt-3" : "mt-2")}
       >
-        {channels.map((channel) => (
-          <li key={channel.id} className="shrink-0">
-            <a
-              href={playHref(channel.id)}
-              className="border-border hover:bg-secondary/60 flex w-40 items-center gap-2 rounded-xl border px-3 py-2"
-            >
-              <ChannelLogo channel={channel} />
-              <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                {channel.name}
-              </span>
-            </a>
-          </li>
-        ))}
+        {channels.map((channel) => {
+          const airing = onAir?.get(channel.id);
+          return (
+            <li key={channel.id} className="shrink-0">
+              <a
+                href={playHref(channel.id)}
+                className={cn(
+                  "border-border hover:bg-secondary/60 flex h-full items-center gap-2 rounded-xl border px-3 py-2",
+                  // Wider once the rail carries programme titles: under a logo
+                  // and a gap, ten rems leave six for text, which cuts most
+                  // titles at their third word. A rail with no guide keeps the
+                  // width it has always had.
+                  guided ? "w-52" : "w-40",
+                )}
+              >
+                <ChannelLogo channel={channel} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">{channel.name}</span>
+                  {airing ? (
+                    <>
+                      <span className="text-muted-foreground block truncate text-xs">
+                        {airing.title}
+                      </span>
+                      <span className="text-muted-foreground/80 block truncate text-[11px] tabular-nums">
+                        {airing.until}
+                      </span>
+                    </>
+                  ) : null}
+                </span>
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
 }
+
+/** The two lines a card draws under a channel's name when something is on. */
+export type OnAirLine = {
+  title: string;
+  /** "Until 21:00", already translated and in the reader's zone. */
+  until: string;
+};
 
 /**
  * The logo the user's own playlist advertises, or nothing.
