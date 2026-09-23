@@ -54,6 +54,33 @@ pour la lecture automatique. Le contrôle de lecture selon le réseau relève du
 client mobile ; aucun endpoint nouveau n'est défini ici. Aucun changement de droits
 d'accès ou de modèle d'authentification n'est inclus dans cette story.
 
+## Règles de réalisation des rubriques — arrêtées le 23 septembre 2026 (S8-06)
+
+S8 pose la **structure** des cinq rubriques sur les trois surfaces et n'y met que ce
+qui est opérationnel. Règle commune du sprint : ce qui n'est pas livré n'est pas
+affiché — aucune commande factice, aucun libellé « bientôt ».
+
+| Rubrique | En S8-06 | Laissé à |
+|---|---|---|
+| Compte et appareils | Email du compte, appareil courant identifié, autres appareils avec dernière activité connue ou « indisponible », déconnexion confirmée ; sur TV, guidage vers le téléphone ou le web pour révoquer un appareil | Édition du profil : hors lot |
+| Mes sources | Ouvre l'écran d'US-024 (S8-05) | — |
+| Lecture | **Absente** tant que ses réglages n'existent pas | S13 (US-023, données mobiles) |
+| Application | Langue de l'interface : lecture seule, valeur suivant la langue du système, avec la mention que le choix arrive | Choix FR/EN et portée : S13, Q6 |
+| Aide et informations | Version installée ou déployée, liens vers les guides et les pages confidentialité et conditions **quand elles existent** ; sinon la rubrique ne liste que la version | Pages manquantes : à créer hors sprint |
+
+Retraits de la 0.2.0 (décision du 17 septembre, périmètre gratuit sans Google ni
+paiement), sans refondre l'authentification :
+
+- **Google** : le bouton disparaît des écrans de connexion et d'inscription sur mobile
+  et web ; le code du client OAuth reste (dette n° 1), rien n'est appelé.
+- **Abonnement** : l'entrée de menu web, la carte d'accueil, le lien « offre
+  supérieure » à la limite de sources et la page `/app/subscription` sont retirés
+  des parcours ; la limite de sources s'explique sans renvoi vers un paiement.
+- **Tarifs** : la section du site marketing et ses liens d'en-tête et de pied sont
+  retirés ; le site présente une application gratuite.
+- **Android** : le texte « passez à une offre supérieure » à la limite de sources est
+  remplacé par une explication neutre. Les quotas servis par le serveur ne changent pas.
+
 ## Avant planification
 
 - Préciser la portée par compte/appareil de la langue d'interface et sa valeur initiale.

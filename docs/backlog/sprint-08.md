@@ -72,7 +72,9 @@ Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulem
   Android, un serveur injoignable affiche encore « aucune source » dans les grilles
   au lieu de Réessayer et Changer de source (US-024, hors ligne) ; correction des
   identifiants depuis le web (voir compléments)
-- [ ] S8-06 — rubriques Réglages, retrait des accès Google et paiement
+- [ ] S8-06 — **en cours** depuis le 23 septembre sur `feat/US-025-settings-scope` :
+  périmètre arrêté dans US-025 (structure des rubriques, retraits Google, Abonnement,
+  Tarifs) ; inclut la correction du cas hors ligne d'Android laissé par S8-05
 - [ ] S8-07 — recette de la verticale
 
 Arbitrages du 19 septembre 2026 pour ce sprint :
