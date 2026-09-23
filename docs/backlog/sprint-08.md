@@ -32,7 +32,9 @@ navigation et sources précisés. Pas de changement implicite des droits ou du c
 
 Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulement écrit.
 
-- [ ] S8-00 — parcours de référence et recettes historiques
+- [x] S8-00 — [parcours de référence et plan de recette](sprint-08-recette.md) : cas
+  historiques repris hors Google (R-15/R-16 retirés de la 0.2.0), R-400 à R-434 pour
+  S8-03 à S8-06, prérequis du banc
 - [x] S8-01 — [lot C4](../roadmap/0.2.0/c4-previous-catalogue.md) cadré à partir du
   code réel, décisions D1 à D5 validées et reportées dans le registre, les
   décisions produit et US-024
@@ -83,7 +85,8 @@ Mis à jour le 19 septembre 2026. Une case cochée signifie recetté, pas seulem
   418 tests unitaires, lint et `assembleDebug` verts. Carte de focus TV à jour.
   Reste : recette à l'écran ; pages Confidentialité et Conditions inexistantes sur
   le site (hors sprint)
-- [ ] S8-07 — recette de la verticale
+- [ ] S8-07 — recette de la verticale : plan dans `sprint-08-recette.md`, à jouer sur
+  téléphone réel, télécommande et navigateur, FR et EN
 
 Arbitrages du 19 septembre 2026 pour ce sprint :
 
