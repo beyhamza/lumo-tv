@@ -1,6 +1,6 @@
 # Sprint 9 — Direct et guide sur les trois surfaces
 
-Statut : proposé, non commencé. Taille relative : XL.
+Statut : préparation technique en cours ; banc S9-00 livré, en recette. Taille relative : XL.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 Première [proposition d’écrans](../design/0.2.0/direct-guide.md) préparée le
@@ -19,7 +19,8 @@ ajoute notamment la grille horaire TV. Réestimer, sans réutiliser ses 34 point
 ## Tâches proposées
 
 Préparation du 23 septembre : [proposition C1, D1 à D5 et C1-01 à C1-12](../roadmap/0.2.0/c1-grouped-epg.md).
-Non approuvée. Les plafonds de volume restent des hypothèses jusqu’au rapport S9-00 ;
+Cadrage D1–D5 validé le 24 septembre. Le [rapport S9-00](../releases/0.2.0/s9-00-epg-bench.md)
+recommande les plafonds de 5 000 occurrences et 4 Mio ;
 S9-01 les fige avant toute évolution OpenAPI dans S9-02. Le dernier import EPG
 réussi est distinct de la synchronisation du catalogue et de la récupération client.
 
@@ -35,6 +36,10 @@ réussi est distinct de la synchronisation du catalogue et de la récupération 
 | S9-07 | Recette intersurfaces et volume réseau mesuré, démonstration d'un changement de programme | Toutes |
 
 ## Démo et sortie
+
+Preuve du 24 septembre : huit tests EPG, build API complet vert (295 tests).
+Fixtures relatives à l’horloge et neuf mesures de volume, plus descriptions longues.
+S9-00 est en recette ; S9-01 doit figer le contrat, S9-02 et les écrans restent à réaliser.
 
 Complément du 20 septembre : [interactions et cas GD-01 à GD-14](../design/0.2.0/guide-interactions.md)
 pour S9-00 et S9-04 à S9-07. Les règles de navigation Q5 sont précisées ; la

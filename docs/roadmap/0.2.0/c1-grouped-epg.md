@@ -1,6 +1,9 @@
 # C1 — Proposition de lecture groupée et fraîcheur EPG
 
-Date : 23 septembre 2026. **Proposition à valider, non approuvée, non implémentée.**
+Date : 23 septembre 2026. **Cadrage D1–D5 validé par l’utilisateur le 24 septembre ; non implémenté.**
+Le [banc S9-00 exécuté](../../releases/0.2.0/s9-00-epg-bench.md) recommande de conserver
+les plafonds proposés ; leur gel final appartient à S9-01. Cette validation autorise
+le banc, pas une déclaration de livraison du contrat ou des clients.
 Préparation de [S9-01](../../backlog/sprint-09.md), après les preuves de S9-00.
 Le contrat OpenAPI reste inchangé. Les noms de route, champs et codes ci-dessous
 sont des candidats à relire, jamais des capacités déjà disponibles.
@@ -203,12 +206,13 @@ de performance n’est annoncé atteint avant ce rapport.
 | C1-11 | Dépassement puis découpage client borné : pas de doublon de programme par ligne ni boucle infinie |
 | C1-12 | Coupure réseau avec cache ; retour réseau ; lecteur et navigation du Guide restent distincts de l’ingestion |
 
-## Validation à obtenir
+## Validation finale de S9-01 à obtenir
 
-Valider D1 (lot de 100, fenêtre de 96 h), D2 (réponse exhaustive, erreur de volume),
+Le cadrage D1 (lot de 100, fenêtre de 96 h), D2 (réponse exhaustive, erreur de volume),
 D3 (métadonnées d’import et transparence sur les écritures partielles), D4 (seuil
-24 h sans blocage) et D5 (mesures S9-00 avant plafonds définitifs). Cet accord de
-cadrage ne dispense pas du rapport S9-00 ni de la validation finale de S9-01.
+24 h sans blocage) et D5 (mesures S9-00 avant plafonds définitifs) est validé.
+Le rapport S9-00 est disponible ; confirmer le gel des plafonds et des schémas dans
+S9-01 avant de passer au contrat et à l’implémentation S9-02.
 
 L’écriture dans `openapi.yaml` et l’implémentation restent en attente conformément
 à AGENTS.md §§3 et 9. Aucun changement du sprint 8 n’est inclus.

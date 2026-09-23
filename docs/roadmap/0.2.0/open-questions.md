@@ -9,7 +9,7 @@ Aucun endpoint ni changement d'ADR n'est défini ici.
 
 | ID | Besoin | État | Avant |
 |---|---|---|---|
-| C1 | EPG groupé, bornes, volume, âge réel des données du guide | [Proposition du 23 septembre, D1–D5](c1-grouped-epg.md), non approuvée : lot de 100, 96 h, volume à mesurer en S9-00, métadonnées d’import distinctes du catalogue et de la récupération ; OpenAPI inchangé | S9 |
+| C1 | EPG groupé, bornes, volume, âge réel des données du guide | [Cadrage D1–D5](c1-grouped-epg.md) validé le 24 septembre ; banc S9-00 exécuté, recommande 5 000 occurrences / 4 Mio. Gel final S9-01 encore requis ; métadonnées d’import distinctes du catalogue et de la récupération ; OpenAPI inchangé | S9 |
 | C2 | Liste À regarder de films et séries, partagée, tri par ajout, retrait et suppression de source | Besoin validé, forme contractuelle à soumettre | S11 |
 | C3 | Masquage partagé de Continuer et mesure d'éligibilité après 30 secondes effectives | Règles produit Q1/Q2 acquises ; garanties d’ordre, de réessai et de propagation hors ligne à définir, forme contractuelle à soumettre | S12 |
 | C4 | Consultation du catalogue précédent pendant SYNCING/ERROR et cascades documentées de suppression | [Lot validé le 19 septembre](c4-previous-catalogue.md) (D1 à D5) : consultation ouverte dès qu'une ingestion a réussi ; lecture fermée en PENDING/SYNCING, autorisée en ERROR avec catalogue sauf identifiants refusés ou abonnement expiré ; cascades décrites ; délai serveur implémenté ; aucun endpoint ni ADR. Réalisation : S8-02 | S8 |
