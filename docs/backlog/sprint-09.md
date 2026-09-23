@@ -49,7 +49,15 @@ Mis à jour le 24 septembre 2026. Une case cochée signifie recetté, pas seulem
   des entrées, `NO_TVG_ID`, métadonnées, 400/404, bornes, `epg` sur la lecture
   unitaire, reconfiguration puis import raté sans fausse fraîcheur, lecture pendant
   `SYNCING`). Non joué sur la pile : les plafonds 5 001 / 4 Mio (couverts par les tests)
-- [ ] S9-03 — **en cours** : cadrage ci-dessous, implémentation Android et web
+- [ ] S9-03 — **75 %**, cadrage ci-dessous. Android : Room `epg_programme` (migration
+  6 → 7), `EpgRepository` cache d'abord puis une requête groupée, découpage borné du
+  422, purge D−1, fraîcheur D4 et « en ce moment » en fonctions pures, barre du lecteur
+  TV, grille Direct par page visible, cartes Direct de l'accueil ; 459 tests, lint et
+  `assembleDebug` verts. Web : chargeur `server-only` avec le même découpage, mêmes
+  fonctions pures, programme en cours sur l'accueil et la page catalogue, ligne
+  « Dernier import du guide » ; typecheck, lint, 250 tests, build verts. Reste : recette
+  à l'écran (hauteur des cartes TV à 140 dp, détection de la page visible, barre du
+  lecteur), migration Room non testée faute de harnais, fuseau web = `Europe/Paris`
 - [ ] S9-04 — Chaînes / Guide sur les trois surfaces
 - [ ] S9-05 — grilles et journée
 - [ ] S9-06 — fiche programme
