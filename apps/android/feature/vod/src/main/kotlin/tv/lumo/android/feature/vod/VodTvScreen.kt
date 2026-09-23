@@ -160,11 +160,24 @@ fun VodTvScreen(
                 onAction = onOpenSources,
             )
 
+            // An outage with nothing cached (US-024, "Indisponibilité et hors
+            // ligne"): not "no source", and two targets so that `RIGHT` from
+            // the rail lands somewhere — "try again" first, then "change source".
+            VodStep.Unreachable -> LumoTvStateMessage(
+                title = stringResource(DataR.string.core_data_unreached_title),
+                body = stringResource(DataR.string.core_data_unreached_body),
+                actionLabel = stringResource(DataR.string.core_data_catalogue_retry),
+                onAction = viewModel::refreshSource,
+                secondaryActionLabel = stringResource(DataR.string.core_data_notice_change_source),
+                onSecondaryAction = onOpenSources,
+            )
+
             VodStep.Browsing -> Browsing(
                 state = state,
                 films = films,
                 onOpenSources = onOpenSources,
                 onRetry = viewModel::refresh,
+                onRefreshSource = viewModel::refreshSource,
                 onSelectCategory = viewModel::onCategorySelected,
                 onSelectResume = viewModel::onResumeSelected,
                 onOpenFilm = onOpenFilm,
@@ -181,6 +194,7 @@ private fun Browsing(
     films: LazyPagingItems<VodItem>,
     onOpenSources: () -> Unit,
     onRetry: () -> Unit,
+    onRefreshSource: () -> Unit,
     onSelectCategory: (String?) -> Unit,
     onSelectResume: () -> Unit,
     onOpenFilm: (String) -> Unit,
@@ -253,8 +267,11 @@ private fun Browsing(
                     message = stringResource(wording.message),
                     hint = wording.hint?.let { stringResource(it) },
                     isError = wording.failed,
-                    actionLabel = stringResource(wording.action).takeIf { wording.failed },
+                    actionLabel = stringResource(wording.action).takeIf { wording.actionable },
                     onAction = onOpenSources,
+                    // An outage adds "try again" before it, on the same line.
+                    retryLabel = wording.retry?.let { stringResource(it) },
+                    onRetry = onRefreshSource,
                     compact = true,
                     modifier = Modifier.weight(1f),
                 )

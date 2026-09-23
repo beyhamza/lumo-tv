@@ -84,6 +84,28 @@ class CatalogueSourceTest {
     }
 
     @Test
+    fun `an outage shows what the device holds, and never no source`() {
+        // US-024, "Indisponibilité et hors ligne" (S8-06). The list could not be
+        // fetched: what is on the device is browsed, what is not is explained.
+        val remembered = CatalogueSource.Ready(a.key, isPlaylist = false, unreached = true)
+
+        // A cached catalogue is shown — under a notice, which is `SourceNotice`'s
+        // business — and the cache is what decides, never the outage alone.
+        assertThat(remembered.face(cachedItems = 12)).isEqualTo(CatalogueFace.Browsing)
+        // Nothing cached: an explanation with "try again" and "change source",
+        // not an empty grid that would read as "this source has nothing".
+        assertThat(remembered.face(cachedItems = 0)).isEqualTo(CatalogueFace.Unreachable)
+
+        // No choice on this device at all: nothing to read a cache with.
+        assertThat(CatalogueSource.Unreachable.face(cachedItems = 0)).isEqualTo(CatalogueFace.Unreachable)
+        assertThat(CatalogueSource.Unreachable.face(cachedItems = 12)).isEqualTo(CatalogueFace.Unreachable)
+
+        // The server answered: the cache is irrelevant to the face, as before.
+        assertThat(CatalogueSource.Ready(a.key, isPlaylist = false).face(cachedItems = 0))
+            .isEqualTo(CatalogueFace.Browsing)
+    }
+
+    @Test
     fun `a refresh moving through its steps does not restart a grid`() {
         val synced = java.time.OffsetDateTime.parse("2026-09-01T10:00:00Z")
         val connecting = a.copy(
@@ -121,8 +143,10 @@ class CatalogueSourceTest {
         // "offline" into "no catalogue".
         val offline = ActiveSourceState.Selected(a.key, source = null, sources = emptyList())
 
+        // ...and it says the server was not reached, which is what lets the face
+        // tell an empty cache from an empty source (S8-06).
         assertThat(offline.asCatalogueSource())
-            .isEqualTo(CatalogueSource.Ready(a.key, isPlaylist = false))
+            .isEqualTo(CatalogueSource.Ready(a.key, isPlaylist = false, unreached = true))
     }
 
     @Test
@@ -131,6 +155,16 @@ class CatalogueSourceTest {
             .isEqualTo(CatalogueSource.NeedsChoice)
         assertThat(ActiveSourceState.None.asCatalogueSource()).isEqualTo(CatalogueSource.NoSource)
         assertThat(ActiveSourceState.Loading.asCatalogueSource()).isEqualTo(CatalogueSource.Loading)
+    }
+
+    @Test
+    fun `a list that could not be fetched is an outage, not no source`() {
+        // The two used to fold together on a grid, and the fold sent somebody
+        // whose network blinked to "add a source" (US-024: an outage is never a
+        // proof of deletion).
+        assertThat(ActiveSourceState.Unavailable.asCatalogueSource())
+            .isEqualTo(CatalogueSource.Unreachable)
+        assertThat(CatalogueSource.Unreachable).isNotEqualTo(CatalogueSource.NoSource)
     }
 
     @Test

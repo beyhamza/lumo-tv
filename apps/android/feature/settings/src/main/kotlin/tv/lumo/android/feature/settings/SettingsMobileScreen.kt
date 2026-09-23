@@ -3,6 +3,7 @@ package tv.lumo.android.feature.settings
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import android.text.format.DateUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -10,10 +11,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,9 +22,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -33,33 +31,42 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import tv.lumo.android.core.data.LumoError
+import tv.lumo.android.core.designsystem.component.LumoConfirmDialog
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
+import tv.lumo.android.network.generated.model.Device
 
 /**
- * The account, and the way out of it (US-04) — laid out as the M6 mock-up
- * draws it (docs/design/canvas, mobile artboard 22).
+ * The settings of the phone, in the five sections US-025 validated — minus the
+ * one that has nothing to show yet (S8-06).
  *
- * <h2>What is real and what is not</h2>
+ * <h2>Account and devices · My sources · Application · Help and information</h2>
  *
- * The account card, the source count, the automatic-refresh switch, the device
- * count, the pairing link and the version are read from the server or the
- * package, through [SettingsViewModel]. Two rows — the language and playback on
- * mobile data — have nothing behind them yet: no preference store, and no
- * contract field. They are drawn so the layout is the mock-up's, and each one
- * says `[mock]` rather than looking like a control that forgot to work.
+ * In that order, and no Playback: its settings arrive with sprint 13, and the
+ * rule of the sprint is that what is not delivered is not drawn. That is also
+ * why the two `[mock]` rows this screen used to carry — the language *choice*,
+ * playback on mobile data — are gone rather than disabled. What is left is read
+ * from the server, the package or the build, through [SettingsViewModel].
+ *
+ * <h2>Devices, as the server tells them</h2>
+ *
+ * The row marked "This device" is the one `is_current` names; the others print a
+ * last activity when the server has one and say "unavailable" when it does not
+ * — never "online", which nothing announces. Each of the others can be
+ * disconnected, behind a confirmation that names it and whose default is
+ * Cancel; a refusal keeps the device and the question, with the reason under it.
  *
  * <h2>Why the address is on the card</h2>
  *
@@ -77,6 +84,7 @@ fun SettingsMobileScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val language = currentLanguage()
 
     Column(
         modifier = modifier
@@ -92,7 +100,34 @@ fun SettingsMobileScreen(
             color = MaterialTheme.colorScheme.onBackground,
         )
 
-        AccountCard(state)
+        Section(title = stringResource(R.string.feature_settings_section_account)) {
+            AccountCard(state)
+            RowDivider()
+            Devices(state = state, onRevoke = viewModel::askRevoke, onRetry = viewModel::reloadDevices)
+            RowDivider()
+            SettingsRow(
+                label = stringResource(R.string.feature_settings_pair_tv),
+                value = state.activationLabel,
+                valueColor = accentInk(),
+                chevron = true,
+                onClick = { openInBrowser(context, state.activationUrl) },
+            )
+            if (state.signedIn) {
+                RowDivider()
+                SettingsRow(
+                    label = stringResource(R.string.feature_settings_sign_out),
+                    labelColor = MaterialTheme.colorScheme.error,
+                    onClick = if (state.signingOut) null else viewModel::askSignOut,
+                ) {
+                    if (state.signingOut) {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(LumoSpacing.md),
+                        )
+                    }
+                }
+            }
+        }
 
         Section(title = stringResource(R.string.feature_settings_section_sources)) {
             SettingsRow(
@@ -106,95 +141,98 @@ fun SettingsMobileScreen(
                 // and where it leads is the application's wire, not this module's.
                 onClick = onOpenSources,
             )
-            // Automatic refresh used to be a second row here, one switch for
-            // every source. It is a setting of each source and now sits beside
-            // each of them, in "My sources" (US-024).
-        }
-
-        Section(title = stringResource(R.string.feature_settings_section_devices)) {
-            SettingsRow(
-                label = stringResource(R.string.feature_settings_devices_connected),
-                value = state.deviceCount?.toString(),
-                chevron = true,
-            )
-            RowDivider()
-            SettingsRow(
-                label = stringResource(R.string.feature_settings_pair_tv),
-                value = state.activationLabel,
-                valueColor = accentInk(),
-                chevron = true,
-                onClick = { openInBrowser(context, state.activationUrl) },
-            )
         }
 
         Section(title = stringResource(R.string.feature_settings_section_application)) {
+            // Read-only, and no chevron: there is nothing to open. The line
+            // under it is the one sentence US-025 allows about what comes later.
             SettingsRow(
                 label = stringResource(R.string.feature_settings_language),
-                value = currentLanguageName(),
-                note = stringResource(R.string.feature_settings_mock_missing),
-                chevron = true,
+                value = language.displayName,
+                note = stringResource(R.string.feature_settings_language_note),
             )
-            RowDivider()
-            SettingsRow(
-                label = stringResource(R.string.feature_settings_mobile_data),
-                note = stringResource(R.string.feature_settings_mock_missing),
-            ) {
-                LumoSwitch(checked = false, enabled = false, onCheckedChange = {})
-            }
         }
 
-        if (state.signedIn) {
-            Section(title = null) {
+        Section(title = stringResource(R.string.feature_settings_section_help)) {
+            // Derived from the same variable as the pairing link, so a local
+            // stack cannot pair against one host and open guides on another.
+            // Absent rather than dead when the build carries no origin.
+            SettingsLinks.guidesUrlOf(state.activationUrl, language.code)?.let { guides ->
                 SettingsRow(
-                    label = stringResource(R.string.feature_settings_sign_out),
-                    labelColor = MaterialTheme.colorScheme.error,
-                    onClick = if (state.signingOut) null else viewModel::signOut,
-                ) {
-                    if (state.signingOut) {
-                        CircularProgressIndicator(
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(LumoSpacing.md),
-                        )
-                    }
-                }
+                    label = stringResource(R.string.feature_settings_guides),
+                    value = SettingsLinks.label(guides),
+                    valueColor = accentInk(),
+                    chevron = true,
+                    onClick = { openInBrowser(context, guides) },
+                )
+                RowDivider()
             }
-        } else {
+            // Privacy and terms would follow, and do not: the website has no
+            // such pages yet (docs/design/0.2.0/settings.md), and a link to a
+            // page that does not exist is a link somebody presses to find out.
+            SettingsRow(
+                label = stringResource(R.string.feature_settings_version),
+                value = state.appVersion ?: stringResource(R.string.feature_settings_unknown_value),
+            )
+        }
+
+        if (!state.signedIn) {
             Text(
                 text = stringResource(sessionLabelOf(state)),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
 
-        Spacer(modifier = Modifier.height(LumoSpacing.md))
+    when (val asked = state.confirmation) {
+        null -> Unit
 
-        Text(
-            text = stringResource(
-                R.string.feature_settings_footer,
-                state.appVersion ?: stringResource(R.string.feature_settings_unknown_value),
-            ),
-            style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
+        SettingsConfirmation.SignOut -> LumoConfirmDialog(
+            title = stringResource(R.string.feature_settings_sign_out_title),
+            message = stringResource(R.string.feature_settings_sign_out_body),
+            confirmLabel = stringResource(R.string.feature_settings_sign_out),
+            cancelLabel = stringResource(R.string.feature_settings_cancel),
+            onConfirm = viewModel::confirmSignOut,
+            onCancel = viewModel::dismissConfirmation,
+        )
+
+        is SettingsConfirmation.Revoke -> LumoConfirmDialog(
+            title = stringResource(R.string.feature_settings_revoke_title, deviceTitle(asked.device)),
+            message = stringResource(R.string.feature_settings_revoke_body),
+            confirmLabel = stringResource(R.string.feature_settings_revoke),
+            cancelLabel = stringResource(R.string.feature_settings_cancel),
+            onConfirm = viewModel::confirmRevoke,
+            onCancel = viewModel::dismissConfirmation,
+            busy = asked.busy,
+            failure = asked.failure?.let { failure ->
+                stringResource(
+                    if (failure is LumoError.Offline) {
+                        R.string.feature_settings_revoke_offline
+                    } else {
+                        R.string.feature_settings_revoke_failed
+                    },
+                )
+            },
         )
     }
 }
 
 /**
- * The account: a disc in the brand gradient carrying the address's initial.
+ * The account: a disc in the brand gradient carrying the address's initial,
+ * the display name when the user gave one, and the address.
  *
  * The gradient is the one place the charter allows it besides focus and
  * progress — the mark — and the disc is the mark's own shape, drawn the way
- * `LumoWordmark` draws it.
+ * `LumoWordmark` draws it. No chevron: the contract lets the profile change
+ * only its display name and locale, and editing it is not in this lot
+ * (docs/design/0.2.0/settings.md) — a chevron over nothing is a promise.
  */
 @Composable
 private fun AccountCard(state: SettingsUiState) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(LumoShapes.large)
-            .background(MaterialTheme.colorScheme.surface)
             .padding(LumoSpacing.md),
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
@@ -221,9 +259,12 @@ private fun AccountCard(state: SettingsUiState) {
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = stringResource(R.string.feature_settings_account_title),
+                text = state.displayName?.takeIf { it.isNotBlank() }
+                    ?: stringResource(R.string.feature_settings_account_title),
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 // The address when there is one, the session line when there is
@@ -235,9 +276,84 @@ private fun AccountCard(state: SettingsUiState) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-
-        Chevron()
     }
+}
+
+/**
+ * This device, then the others — or the reason neither can be listed.
+ *
+ * A list that failed to load offers a retry and is never drawn as "no other
+ * device" (docs/design/0.2.0/settings.md). While it loads, one line says so:
+ * an account with three devices must not read as one with none for a frame.
+ */
+@Composable
+private fun Devices(
+    state: SettingsUiState,
+    onRevoke: (Device) -> Unit,
+    onRetry: () -> Unit,
+) {
+    when (val devices = state.devices) {
+        DevicesState.Loading -> SettingsRow(
+            label = stringResource(R.string.feature_settings_devices_loading),
+            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        DevicesState.Unavailable -> SettingsRow(
+            label = stringResource(R.string.feature_settings_devices_unavailable),
+            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ) {
+            TextButton(onClick = onRetry) {
+                Text(stringResource(R.string.feature_settings_devices_retry))
+            }
+        }
+
+        is DevicesState.Loaded -> {
+            state.currentDevice?.let { current ->
+                SettingsRow(
+                    label = deviceTitle(current),
+                    note = stringResource(R.string.feature_settings_this_device),
+                )
+            }
+            state.otherDevices.forEach { device ->
+                RowDivider()
+                SettingsRow(
+                    label = deviceTitle(device),
+                    note = lastActivity(device),
+                ) {
+                    // Quiet and in the error colour, like a deletion: the
+                    // prominent thing on this row is its name, not its removal.
+                    TextButton(onClick = { onRevoke(device) }) {
+                        Text(
+                            text = stringResource(R.string.feature_settings_revoke),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** The name the user gave the device, else its model, else its platform. */
+@Composable
+private fun deviceTitle(device: Device): String =
+    device.givenTitle() ?: stringResource(device.platform.labelRes())
+
+/**
+ * "Last activity 2 hours ago", or that it is unavailable. A last request seen,
+ * never a presence: the contract says so in as many words.
+ */
+@Composable
+private fun lastActivity(device: Device): String {
+    val seen = device.lastSeenAt ?: return stringResource(R.string.feature_settings_last_seen_unknown)
+    return stringResource(
+        R.string.feature_settings_last_seen,
+        DateUtils.getRelativeTimeSpanString(
+            seen.toInstant().toEpochMilli(),
+            System.currentTimeMillis(),
+            DateUtils.MINUTE_IN_MILLIS,
+        ).toString(),
+    )
 }
 
 /** A titled group of rows on one raised card, as the mock-up stacks them. */
@@ -267,16 +383,16 @@ private fun Section(title: String?, content: @Composable () -> Unit) {
  * One row: a label on the left, and on the right a value, a note, a chevron, a
  * control — whichever of those the caller gives it.
  *
- * @param note a second line under the value, in the muted colour: what the
- *   `[mock]` rows use to say they are not wired.
+ * @param note a second line under the label, in the muted colour: a device's
+ *   last activity, the sentence under the language.
  */
 @Composable
 private fun SettingsRow(
     label: String,
     value: String? = null,
     note: String? = null,
-    labelColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
-    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    labelColor: Color = MaterialTheme.colorScheme.onSurface,
+    valueColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     chevron: Boolean = false,
     onClick: (() -> Unit)? = null,
     trailing: @Composable () -> Unit = {},
@@ -339,59 +455,37 @@ private fun Chevron() {
 }
 
 /**
- * The charter's switch: an accent track with a dark thumb when on, a raised
- * surface with a muted thumb when off. Cyan here is a state, not a fill — the
- * mock-up draws it this way and it is the one control where "active" is what the
- * colour means.
- */
-@Composable
-private fun LumoSwitch(checked: Boolean, enabled: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Switch(
-        checked = checked,
-        onCheckedChange = onCheckedChange,
-        enabled = enabled,
-        colors = SwitchDefaults.colors(
-            checkedTrackColor = accentInk(),
-            checkedThumbColor = if (isSystemInDarkTheme()) LumoColors.OnAccent else MaterialTheme.colorScheme.onPrimary,
-            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-            uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            uncheckedBorderColor = MaterialTheme.colorScheme.outline,
-            disabledCheckedTrackColor = accentInk().copy(alpha = 0.5f),
-            disabledUncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-            disabledUncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            disabledUncheckedBorderColor = MaterialTheme.colorScheme.outline,
-        ),
-    )
-}
-
-/**
  * The accent as ink: the Spectre cyan on the dark theme, the primary ink on the
  * phone's light scheme, where the cyan falls under 3:1 (see `LumoMobileTheme`).
  */
 @Composable
-private fun accentInk(): androidx.compose.ui.graphics.Color =
+private fun accentInk(): Color =
     if (isSystemInDarkTheme()) LumoColors.Accent else MaterialTheme.colorScheme.primary
 
+/** The interface language: its ISO code, for a URL, and its name in itself, for a row. */
+private data class InterfaceLanguage(val code: String, val displayName: String)
+
 /**
- * The interface language, named in itself: "Français", "English".
- *
  * Read from the configuration and nowhere else: `Locale.getDefault()` is not
  * observable, and a composable that reads it does not recompose when the
  * language changes (lint `NonObservableLocale`). An empty locale list is
- * impossible on a real configuration; the empty string is only the honest
+ * impossible on a real configuration; the empty strings are only the honest
  * fallback for one that says nothing.
  */
 @Composable
-private fun currentLanguageName(): String {
+private fun currentLanguage(): InterfaceLanguage {
     val locales = LocalConfiguration.current.locales
-    if (locales.isEmpty) return ""
+    if (locales.isEmpty) return InterfaceLanguage(code = "", displayName = "")
     val locale = locales[0]
-    return locale.getDisplayLanguage(locale)
-        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
+    return InterfaceLanguage(
+        code = locale.language,
+        displayName = locale.getDisplayLanguage(locale)
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() },
+    )
 }
 
 /**
- * Hands the activation page to whatever browser the phone has.
+ * Hands a page to whatever browser the phone has.
  *
  * A phone with no browser is a phone that cannot pair a television this way,
  * and the tap does nothing rather than crash: the page's address is on the row

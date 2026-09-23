@@ -41,6 +41,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.SubcomposeAsyncImage
 import kotlinx.coroutines.delay
+import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.ContinueItem
@@ -124,22 +125,33 @@ fun HomeMobileScreen(
                 body = stringResource(R.string.feature_home_needs_choice_body),
             )
 
+            // The two ways on US-024 names for an outage: ask again, or stop
+            // depending on this answer and choose a source in "My sources".
             HomeStep.Unavailable -> Message(
                 title = stringResource(R.string.feature_home_unavailable_title),
                 body = stringResource(R.string.feature_home_unavailable_body),
             ) {
-                Button(onClick = viewModel::refreshSource) {
-                    Text(stringResource(R.string.feature_home_retry))
+                Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
+                    Button(onClick = viewModel::refreshSource) {
+                        Text(stringResource(R.string.feature_home_retry))
+                    }
+                    OutlinedButton(onClick = actions.onOpenSources) {
+                        Text(stringResource(DataR.string.core_data_notice_change_source))
+                    }
                 }
             }
 
-            HomeStep.Browsing -> Browsing(state = state, actions = actions)
+            HomeStep.Browsing -> Browsing(
+                state = state,
+                actions = actions,
+                onRetry = viewModel::refreshSource,
+            )
         }
     }
 }
 
 @Composable
-private fun Browsing(state: HomeState, actions: HomeActions) {
+private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit) {
     val sections = remember(state) { state.sections }
 
     LazyColumn(
@@ -148,7 +160,13 @@ private fun Browsing(state: HomeState, actions: HomeActions) {
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
     ) {
         state.notice?.let { notice ->
-            item(key = "notice") { Notice(notice = notice, onOpenSources = actions.onOpenSources) }
+            item(key = "notice") {
+                Notice(
+                    notice = notice,
+                    onOpenSources = actions.onOpenSources,
+                    onRetry = onRetry,
+                )
+            }
         }
 
         when {
@@ -205,10 +223,11 @@ private val HomeSection.railKey: String
  * too (US-024, lot C4): the **real step** of an import, because "refreshing…"
  * with nothing after it is a spinner in words; a failure in the words of its
  * ingestion code, and whether what is on screen may be out of date. One action,
- * the screen where a source is looked after.
+ * the screen where a source is looked after — and, for an outage, a second one
+ * that asks the server again (US-024, "Indisponibilité et hors ligne").
  */
 @Composable
-private fun Notice(notice: SourceNotice, onOpenSources: () -> Unit) {
+private fun Notice(notice: SourceNotice, onOpenSources: () -> Unit, onRetry: () -> Unit) {
     val wording = notice.wording()
 
     LumoSourceNotice(
@@ -218,6 +237,8 @@ private fun Notice(notice: SourceNotice, onOpenSources: () -> Unit) {
         isError = wording.failed,
         actionLabel = stringResource(wording.action),
         onAction = onOpenSources,
+        retryLabel = wording.retry?.let { stringResource(it) },
+        onRetry = onRetry,
         modifier = Modifier.padding(horizontal = LumoSpacing.md),
     )
 }

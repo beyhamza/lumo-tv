@@ -136,10 +136,9 @@ fun SignUpMobileScreen(
             busy = state.submitting,
         )
 
-        // The same button as the sign-in screen, and the same flow: a first
-        // Google sign-in creates the account, so putting it only on the other
-        // screen would ask the user to guess which of the two they need.
-        GoogleSignInButton()
+        // No "Continue with Google" here either, for the reason written on the
+        // sign-in screen: the 0.2.0 scope is a free version without a
+        // third-party sign-in (US-025, decision of 17 September 2026).
     }
 }
 

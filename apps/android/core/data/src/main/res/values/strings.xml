@@ -58,6 +58,24 @@
     <string name="core_data_notice_open_sources">My sources</string>
 
     <!--
+      The server could not be reached and the device browses from its own memory
+      (US-024, "Indisponibilité et hors ligne"). Two controls, the two the story
+      names; and nothing about the source itself, which an outage proves nothing
+      about. "Change source" leads to My sources, where a source is chosen.
+    -->
+    <string name="core_data_notice_unreached_title">Lumo could not be reached</string>
+    <string name="core_data_notice_unreached_message">This catalogue may be out of date.</string>
+    <string name="core_data_notice_change_source">Change source</string>
+
+    <!--
+      The same outage with nothing to show: no choice on this device, or a choice
+      whose catalogue was never cached. Never "no source", and it says so: an
+      outage is not a proof of deletion.
+    -->
+    <string name="core_data_unreached_title">Lumo could not be reached</string>
+    <string name="core_data_unreached_body">Your sources could not be fetched, and nothing of this catalogue is stored on this device. Nothing has been removed. Check your connection, then try again — or choose another source.</string>
+
+    <!--
       The first import of a source, on a catalogue screen (US-024, lot C4). The
       only case where a grid is not shown: nothing was ever ingested and nothing
       is cached. Importing and failed used to share one "not ready" sentence; the

@@ -64,12 +64,15 @@ data class HomeSource(
 )
 
 /**
- * <h2>A choice without a list is browsable, and says nothing</h2>
+ * <h2>A choice without a list is browsable, and says the server was not reached</h2>
  *
  * `Selected` with a null `Source` is a device that knows which source it browses
  * and could not reach the server. Favourites and recent channels are in Room, so
- * there are rails to draw; there is no status to report, so there is no notice. An
- * unreachable server proves nothing about the source (US-018).
+ * there are rails to draw; there is no status to report about the source — an
+ * unreachable server proves nothing about it (US-018) — so what the notice says
+ * is about the server: what is on screen may be out of date, try again or change
+ * source (US-024, "Indisponibilité et hors ligne"). `core:data` decides that, for
+ * the three grids and this screen alike.
  */
 fun ActiveSourceState.asHomeSource(): HomeSource = when (this) {
     ActiveSourceState.Loading -> HomeSource(HomeStep.Loading)
@@ -79,7 +82,7 @@ fun ActiveSourceState.asHomeSource(): HomeSource = when (this) {
     is ActiveSourceState.Selected -> HomeSource(
         step = HomeStep.Browsing,
         sourceId = sourceId,
-        notice = source.notice(),
+        notice = notice(),
     )
 }
 

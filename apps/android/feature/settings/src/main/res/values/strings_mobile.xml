@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  English strings for the M6 settings screen (mobile mock-up, artboard 22). The
-  French set lives in values-fr/strings_mobile.xml and ships at the same time
-  (AGENTS.md §4); lint fails the build on a missing translation.
+  English strings for the phone's settings screen (US-025, S8-06). The French set
+  lives in values-fr/strings_mobile.xml and ships at the same time (AGENTS.md
+  §4); lint fails the build on a missing translation.
 
   Section labels are written in capitals here rather than transformed at the
   call site: Compose has no text transform, and upper-casing is locale-sensitive.
@@ -10,28 +10,30 @@
 <resources>
     <string name="feature_settings_account_title">Your account</string>
 
-    <string name="feature_settings_section_sources">SOURCES</string>
+    <!-- The five sections of US-025, minus Playback, which has nothing to show yet. -->
+    <string name="feature_settings_section_account">ACCOUNT AND DEVICES</string>
+    <string name="feature_settings_section_sources">MY SOURCES</string>
+    <string name="feature_settings_section_application">APPLICATION</string>
+    <string name="feature_settings_section_help">HELP AND INFORMATION</string>
+
     <string name="feature_settings_my_sources">My sources</string>
     <plurals name="feature_settings_sources_active">
         <item quantity="one">%d active</item>
         <item quantity="other">%d active</item>
     </plurals>
 
-    <string name="feature_settings_section_devices">DEVICES</string>
-    <string name="feature_settings_devices_connected">Connected devices</string>
     <string name="feature_settings_pair_tv">Pair a television</string>
 
-    <string name="feature_settings_section_application">APPLICATION</string>
-    <string name="feature_settings_language">Language</string>
-    <string name="feature_settings_mobile_data">Play on mobile data</string>
     <!--
-      Two rows the mock-up draws and no contract or preference backs yet. They
-      are on screen so the layout is complete, and say so rather than pretend.
+      Disconnecting another device (US-025). The confirmation names it and says
+      what follows — it signs in again at its next call — and, on a refusal, that
+      it is still linked: the row does not go on this screen's word.
     -->
-    <string name="feature_settings_mock_missing">[mock] missing data</string>
+    <string name="feature_settings_revoke">Disconnect</string>
+    <string name="feature_settings_revoke_title">Disconnect %1$s?</string>
+    <string name="feature_settings_revoke_body">It will be signed out at its next call to Lumo and will have to sign in again. Nothing is removed from your account.</string>
+    <string name="feature_settings_revoke_failed">This device could not be disconnected. It is still linked — try again.</string>
+    <string name="feature_settings_revoke_offline">No connection. The device is still linked.</string>
 
-    <!-- Brand and product URL: not translated. -->
-    <string name="feature_settings_footer" translatable="false">lumo v%1$s · lumo.tv</string>
-    <string name="feature_settings_unknown_value" translatable="false">—</string>
     <string name="feature_settings_chevron" translatable="false">›</string>
 </resources>

@@ -1,5 +1,6 @@
 package tv.lumo.android.feature.settings
 
+import android.text.format.DateUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -12,9 +13,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +29,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,37 +43,48 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import tv.lumo.android.core.designsystem.component.LumoMockMissingData
 import tv.lumo.android.core.designsystem.component.LumoTvButton
+import tv.lumo.android.core.designsystem.component.LumoTvConfirmDialog
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.tv.lumoTvFocus
 import tv.lumo.android.core.designsystem.tv.tvOverscan
+import tv.lumo.android.network.generated.model.Device
 import tv.lumo.android.network.generated.model.Source
 import tv.lumo.android.network.generated.model.SourceKind
 import tv.lumo.android.network.generated.model.SourceStatus
-import android.text.format.DateUtils
 
 /**
- * `TV5 — Réglages`: a sub-menu down the left — Sources, Compte, Lecture,
- * Langue, À propos — and one panel on the right for whichever entry is open.
+ * `TV5 — Réglages`: a sub-menu down the left — Sources, Account and devices,
+ * Application, About — and one panel on the right for whichever entry is open
+ * (US-025, S8-06).
  *
- * <h2>What is real and what says `[mock]`</h2>
+ * <h2>Four entries, and nothing that is not delivered</h2>
  *
- * Sources, the account, the devices count, automatic refresh and the version
- * come from the server or the build. Playback preferences (quality, subtitles,
- * audio language) and the language choice are drawn as the canvas draws them
- * and labelled `[mock] données manquantes`: the product has no preference
- * store yet, and a switch that flips nothing is worse than a switch that says
- * so.
+ * Playback is absent until its settings exist (sprint 13), and Language is no
+ * longer an entry of its own: it is one read-only line of Application, since
+ * that is all that is true about it. The `[mock]` badges this screen used to
+ * draw are gone with the rows that carried them.
+ *
+ * <h2>Devices are read here and decided elsewhere</h2>
+ *
+ * The account panel names this television, lists the other installations with
+ * their last activity, and says where one is disconnected: on the phone or on
+ * lumo.tv, with the same account (docs/design/0.2.0/settings.md, S13-E10). A
+ * remote is the wrong instrument for a decision that names a device, and a
+ * list that cannot be acted on is text — no stop on any of its rows.
  *
  * <h2>Focus</h2>
  *
- * Arrival lands on the first menu entry. `DOWN` walks the menu, `RIGHT` enters
- * the panel where it has something to press, `LEFT` returns to the menu and
- * then to the rail. Opening an entry is a matter of focusing it: a menu that
- * needed `OK` to reveal its panel would cost a press for every look.
+ * The map of this screen is in `docs/design/tv-focus-map.md`. Arrival lands on
+ * the first menu entry. `DOWN` walks the menu, and opening an entry is a matter
+ * of focusing it: a menu that needed `OK` to reveal its panel would cost a press
+ * for every look. `RIGHT` enters the panel where it has something to press —
+ * "My sources", "Try again", "Sign out" — and `LEFT` returns to the menu, then
+ * to the rail. `BACK` from inside a panel returns to its menu entry; from the
+ * menu it is the shell's, and goes to Home. Signing out asks first, in a dialog
+ * that holds the focus with Cancel as its default.
  */
 @Composable
 fun SettingsTvScreen(
@@ -75,9 +94,9 @@ fun SettingsTvScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var section by remember { mutableStateOf(SettingsSection.Sources) }
-    val first = remember { FocusRequester() }
+    val menu = remember { SettingsSection.entries.associateWith { FocusRequester() } }
 
-    LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+    LaunchedEffect(Unit) { runCatching { menu.getValue(SettingsSection.Sources).requestFocus() } }
 
     Row(
         modifier = modifier
@@ -100,12 +119,12 @@ fun SettingsTvScreen(
                 color = LumoColors.OnDark,
                 modifier = Modifier.padding(bottom = LumoSpacing.md),
             )
-            SettingsSection.entries.forEachIndexed { index, entry ->
+            SettingsSection.entries.forEach { entry ->
                 MenuItem(
                     label = stringResource(entry.titleRes),
                     selected = section == entry,
                     onFocused = { section = entry },
-                    modifier = if (index == 0) Modifier.focusRequester(first) else Modifier,
+                    modifier = Modifier.focusRequester(menu.getValue(entry)),
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
@@ -119,25 +138,56 @@ fun SettingsTvScreen(
         Column(
             modifier = Modifier
                 .weight(1f - MENU_SHARE)
-                .fillMaxHeight(),
+                .fillMaxHeight()
+                // `BACK` inside a panel goes back to the menu entry that opened
+                // it, not to Home: the viewer went right, and the key that means
+                // "out" should undo that step before undoing the screen. Seen
+                // here first, before Compose treats it as a focus search that
+                // finds nothing and lets it fall through to the shell.
+                .onPreviewKeyEvent { event ->
+                    val isBack = event.key == Key.Back || event.key == Key.Escape
+                    if (!isBack) return@onPreviewKeyEvent false
+                    if (event.type == KeyEventType.KeyUp) {
+                        runCatching { menu.getValue(section).requestFocus() }
+                    }
+                    true
+                }
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
         ) {
             when (section) {
                 SettingsSection.Sources -> SourcesPanel(state, onOpenSources)
-                SettingsSection.Account -> AccountPanel(state, viewModel)
-                SettingsSection.Playback -> PlaybackPanel()
-                SettingsSection.Language -> LanguagePanel()
+                SettingsSection.Account -> AccountPanel(
+                    state = state,
+                    onRetryDevices = viewModel::reloadDevices,
+                    onSignOut = viewModel::askSignOut,
+                )
+                SettingsSection.Application -> ApplicationPanel()
                 SettingsSection.About -> AboutPanel(state)
             }
         }
+    }
+
+    // A dialog window: the focus cannot leak to the panel underneath, Cancel
+    // takes it on arrival, and `BACK` cancels. The revoke question never opens
+    // here — nothing on this surface asks it.
+    if (state.confirmation == SettingsConfirmation.SignOut) {
+        LumoTvConfirmDialog(
+            title = stringResource(R.string.feature_settings_tv_sign_out_title),
+            message = stringResource(R.string.feature_settings_tv_sign_out_body),
+            confirmLabel = stringResource(R.string.feature_settings_tv_account_sign_out),
+            cancelLabel = stringResource(R.string.feature_settings_cancel),
+            onConfirm = viewModel::confirmSignOut,
+            onCancel = viewModel::dismissConfirmation,
+            busy = state.signingOut,
+        )
     }
 }
 
 private enum class SettingsSection(val titleRes: Int) {
     Sources(R.string.feature_settings_tv_menu_sources),
     Account(R.string.feature_settings_tv_menu_account),
-    Playback(R.string.feature_settings_tv_menu_playback),
-    Language(R.string.feature_settings_tv_menu_language),
+    Application(R.string.feature_settings_tv_menu_application),
     About(R.string.feature_settings_tv_menu_about),
 }
 
@@ -241,73 +291,170 @@ private fun SourceRow(source: Source) {
                 R.string.feature_settings_tv_source_summary,
                 kind,
                 count,
-                DateUtils.getRelativeTimeSpanString(
-                    checked.toInstant().toEpochMilli(),
-                    System.currentTimeMillis(),
-                    DateUtils.MINUTE_IN_MILLIS,
-                ).toString(),
+                relativeTime(checked.toInstant().toEpochMilli()),
             )
         },
         trailing = { StatusPill(label, color) },
     )
 }
 
-// ---- Compte ----------------------------------------------------------------
+// ---- Account and devices ---------------------------------------------------
 
+/**
+ * The account, this television, the other devices — read-only — and the way out.
+ *
+ * Two stops at most: "Try again" when the list could not be read, and "Sign
+ * out". Every device row is text, on purpose: a stop with nothing behind it is
+ * a dead end on the way `DOWN`, and the guidance line says where the decision
+ * about a device is made.
+ */
 @Composable
-private fun AccountPanel(state: SettingsUiState, viewModel: SettingsViewModel) {
+private fun AccountPanel(
+    state: SettingsUiState,
+    onRetryDevices: () -> Unit,
+    onSignOut: () -> Unit,
+) {
     PanelRow(
         title = state.email ?: stringResource(R.string.feature_settings_session_none),
         subtitle = state.email?.let { stringResource(R.string.feature_settings_tv_account_signed_in, it) },
     )
-    PanelRow(
-        title = stringResource(R.string.feature_settings_tv_account_devices),
-        trailing = {
-            if (state.deviceCount == null) {
-                LumoMockMissingData(scale = TV_TYPE_SCALE)
-            } else {
-                Text(
-                    text = state.deviceCount.toString(),
-                    style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Monospace),
-                    color = LumoColors.OnDark,
+
+    when (val devices = state.devices) {
+        DevicesState.Loading -> PanelRow(title = stringResource(R.string.feature_settings_devices_loading))
+
+        DevicesState.Unavailable -> PanelRow(
+            title = stringResource(R.string.feature_settings_devices_unavailable),
+            trailing = {
+                LumoTvButton(
+                    text = stringResource(R.string.feature_settings_devices_retry),
+                    onClick = onRetryDevices,
+                )
+            },
+        )
+
+        is DevicesState.Loaded -> {
+            state.currentDevice?.let { current ->
+                PanelRow(
+                    title = deviceTitle(current),
+                    subtitle = stringResource(R.string.feature_settings_tv_this_device),
                 )
             }
-        },
-    )
+            Text(
+                text = stringResource(R.string.feature_settings_tv_other_devices),
+                style = MaterialTheme.typography.labelLarge,
+                color = LumoColors.OnDarkMuted,
+                modifier = Modifier.padding(top = LumoSpacing.sm),
+            )
+            if (state.otherDevices.isEmpty()) {
+                PanelRow(title = stringResource(R.string.feature_settings_tv_no_other_device))
+            }
+            state.otherDevices.forEach { device ->
+                PanelRow(title = deviceTitle(device), subtitle = lastActivity(device))
+            }
+            Text(
+                text = stringResource(R.string.feature_settings_tv_devices_guidance),
+                style = MaterialTheme.typography.bodyLarge,
+                color = LumoColors.OnDarkMuted,
+            )
+        }
+    }
+
     if (state.signedIn) {
         LumoTvButton(
             text = stringResource(R.string.feature_settings_tv_account_sign_out),
-            onClick = { if (!state.signingOut) viewModel.signOut() },
+            onClick = { if (!state.signingOut) onSignOut() },
             primary = true,
             enabled = !state.signingOut,
         )
     }
 }
 
-// ---- Lecture / Langue / À propos ------------------------------------------
-
+/** The name the user gave the device, else its model, else its platform. */
 @Composable
-private fun PlaybackPanel() {
-    PanelRow(title = stringResource(R.string.feature_settings_tv_playback_quality), trailing = { LumoMockMissingData(scale = TV_TYPE_SCALE) })
-    PanelRow(title = stringResource(R.string.feature_settings_tv_playback_subtitles), trailing = { LumoMockMissingData(scale = TV_TYPE_SCALE) })
-    PanelRow(title = stringResource(R.string.feature_settings_tv_playback_audio), trailing = { LumoMockMissingData(scale = TV_TYPE_SCALE) })
-}
+private fun deviceTitle(device: Device): String =
+    device.givenTitle() ?: stringResource(device.platform.labelRes())
 
+/** "Last activity 2 hours ago", or that it is unavailable. A last request seen, never a presence. */
 @Composable
-private fun LanguagePanel() {
-    PanelRow(
-        title = stringResource(R.string.feature_settings_tv_menu_language),
-        subtitle = stringResource(R.string.feature_settings_tv_language_value),
-        trailing = { LumoMockMissingData(scale = TV_TYPE_SCALE) },
+private fun lastActivity(device: Device): String {
+    val seen = device.lastSeenAt ?: return stringResource(R.string.feature_settings_last_seen_unknown)
+    return stringResource(
+        R.string.feature_settings_last_seen,
+        relativeTime(seen.toInstant().toEpochMilli()),
     )
 }
 
+private fun relativeTime(epochMillis: Long): String =
+    DateUtils.getRelativeTimeSpanString(
+        epochMillis,
+        System.currentTimeMillis(),
+        DateUtils.MINUTE_IN_MILLIS,
+    ).toString()
+
+// ---- Application / About ---------------------------------------------------
+
+/**
+ * The interface language, read-only, and the one sentence about what comes
+ * later. No stop: there is nothing to press, and `RIGHT` from the menu stays on
+ * the menu — which is what a panel of facts should do.
+ */
+@Composable
+private fun ApplicationPanel() {
+    PanelRow(
+        title = stringResource(R.string.feature_settings_language),
+        subtitle = stringResource(R.string.feature_settings_tv_language_value),
+        trailing = {
+            Text(
+                text = currentLanguageName(),
+                style = MaterialTheme.typography.titleLarge,
+                color = LumoColors.OnDark,
+            )
+        },
+    )
+    Text(
+        text = stringResource(R.string.feature_settings_language_note),
+        style = MaterialTheme.typography.bodyLarge,
+        color = LumoColors.OnDarkMuted,
+    )
+}
+
+/**
+ * The version, and where the guides are. A television opens no browser, so the
+ * address is printed for somebody to type on a phone — derived from the same
+ * variable as the pairing page, so it names the same site. Privacy and terms
+ * would follow, and do not: the website has no such pages yet.
+ */
 @Composable
 private fun AboutPanel(state: SettingsUiState) {
     PanelRow(
         title = stringResource(R.string.feature_settings_tv_about_version, state.appVersion ?: "—"),
         subtitle = stringResource(R.string.feature_settings_tv_about_site),
     )
+    SettingsLinks.guidesUrlOf(state.activationUrl, currentLanguageCode())?.let { guides ->
+        PanelRow(
+            title = stringResource(R.string.feature_settings_guides),
+            subtitle = stringResource(R.string.feature_settings_tv_about_guides, SettingsLinks.label(guides)),
+        )
+    }
+}
+
+/**
+ * The interface language, named in itself: "Français", "English". Read from the
+ * configuration and nowhere else, for the reason the phone's screen gives.
+ */
+@Composable
+private fun currentLanguageName(): String {
+    val locales = LocalConfiguration.current.locales
+    if (locales.isEmpty) return ""
+    val locale = locales[0]
+    return locale.getDisplayLanguage(locale)
+        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
+}
+
+@Composable
+private fun currentLanguageCode(): String {
+    val locales = LocalConfiguration.current.locales
+    return if (locales.isEmpty) "" else locales[0].language
 }
 
 // ---- Building blocks -------------------------------------------------------
@@ -374,7 +521,3 @@ private fun StatusPill(label: String, color: androidx.compose.ui.graphics.Color)
 
 /** The sub-menu's share of the content width, as on the canvas. */
 private const val MENU_SHARE = 0.34f
-
-/** `platforms.tv.typeScale` — what the mock badge grows by on a television. */
-private const val TV_TYPE_SCALE = 1.75f
-

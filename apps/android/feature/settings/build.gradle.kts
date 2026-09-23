@@ -8,9 +8,10 @@ android {
     namespace = "tv.lumo.android.feature.settings"
 
     buildFeatures {
-        // For one field: the page a television's QR code points at (US-05).
-        // It comes from `.env` at build time, like the Google client ID in
-        // feature:auth, because it differs between a local stack and production.
+        // For one field: the page a television's QR code points at (US-05). It
+        // comes from `.env` at build time because it differs between a local
+        // stack and production — and its origin is also where the web guides
+        // live (US-025), so one variable names the website for both.
         buildConfig = true
     }
 

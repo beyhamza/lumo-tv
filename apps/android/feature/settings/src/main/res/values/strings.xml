@@ -1,18 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  English strings for feature:settings. The French set lives in values-fr and ships
-  at the same time (AGENTS.md §4); lint fails the build on a missing translation.
+  English strings for feature:settings, shared by both surfaces. The French set
+  lives in values-fr and ships at the same time (AGENTS.md §4); lint fails the
+  build on a missing translation. Phone-only wording is in strings_mobile.xml,
+  television-only wording in strings_tv.xml.
 -->
 <resources>
     <string name="feature_settings_title">Settings</string>
-    <string name="feature_settings_placeholder">Account, playback and language settings.</string>
     <string name="feature_settings_session_open">Signed in on this device.</string>
     <string name="feature_settings_session_none">Not signed in on this device.</string>
-    <string name="feature_settings_sign_out">Sign out of this device</string>
+
     <!--
-      The card is the control on a television, so its own text has to say what the
-      centre key does. A separate button inside a focusable card would give the
-      D-pad two places to land on a screen with one thing to do.
+      Signing out is behind a confirmation since S8-06 (US-025), Cancel being the
+      default. The body says what happens and what does not: nothing about the
+      account, the catalogue or the progress is removed by leaving a device.
     -->
-    <string name="feature_settings_sign_out_tv">Press OK to sign out of this television.</string>
+    <string name="feature_settings_sign_out">Sign out of this device</string>
+    <string name="feature_settings_sign_out_title">Sign out of this device?</string>
+    <string name="feature_settings_sign_out_body">You will have to sign in again to find your sources here. Nothing is removed from your account.</string>
+    <string name="feature_settings_cancel">Cancel</string>
+
+    <!--
+      Devices (US-025). `is_current` and `last_seen_at` are the server's: the
+      screen marks the row it is told to, and prints a last activity — never
+      "online", which nothing announces.
+    -->
+    <string name="feature_settings_this_device">This device</string>
+    <string name="feature_settings_last_seen">Last activity %1$s</string>
+    <string name="feature_settings_last_seen_unknown">Last activity unavailable</string>
+    <!-- The platform, for a device that has neither a name nor a model. -->
+    <string name="feature_settings_platform_android_mobile">Android phone or tablet</string>
+    <string name="feature_settings_platform_android_tv">Android TV</string>
+    <string name="feature_settings_platform_web">Web browser</string>
+    <string name="feature_settings_devices_loading">Reading your devices…</string>
+    <!-- A list that failed to load is not an empty one: it offers a retry. -->
+    <string name="feature_settings_devices_unavailable">Your devices could not be read.</string>
+    <string name="feature_settings_devices_retry">Try again</string>
+
+    <!--
+      Application. The language is read-only in S8: it follows the system, and
+      the one sentence under it says the choice comes later (S13). No switch.
+    -->
+    <string name="feature_settings_language">Language</string>
+    <string name="feature_settings_language_note">Follows your device\'s language. Choosing it in Lumo will come in a later version.</string>
+
+    <!-- Help and information: the guides on the website, and the installed version. -->
+    <string name="feature_settings_guides">Guides</string>
+    <string name="feature_settings_version">Version</string>
+    <string name="feature_settings_unknown_value" translatable="false">—</string>
 </resources>

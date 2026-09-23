@@ -283,6 +283,14 @@ sealed interface SeriesStep {
 
     /** The first import failed, and this device holds no series of the source. */
     data object ImportFailed : SeriesStep
+
+    /**
+     * The server could not be reached and there is nothing cached to show
+     * (US-024, "Indisponibilité et hors ligne"). Not [NoSource]: an outage
+     * proves nothing about the account, and the screen says so.
+     */
+    data object Unreachable : SeriesStep
+
     data object Browsing : SeriesStep
 }
 
@@ -338,6 +346,7 @@ data class SeriesState(
             CatalogueFace.NeedsChoice -> SeriesStep.NeedsChoice
             CatalogueFace.Importing -> SeriesStep.Importing
             CatalogueFace.ImportFailed -> SeriesStep.ImportFailed
+            CatalogueFace.Unreachable -> SeriesStep.Unreachable
             CatalogueFace.Browsing -> SeriesStep.Browsing
         }
         val playlist = source.isPlaylist

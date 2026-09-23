@@ -134,6 +134,17 @@ fun SeriesMobileScreen(
                 onAction = onOpenSources,
             )
 
+            // An outage with nothing cached (US-024, "Indisponibilité et hors
+            // ligne"): not "no source", and the two ways on the story names.
+            SeriesStep.Unreachable -> LumoStateMessage(
+                title = stringResource(DataR.string.core_data_unreached_title),
+                body = stringResource(DataR.string.core_data_unreached_body),
+                actionLabel = stringResource(DataR.string.core_data_catalogue_retry),
+                onAction = viewModel::refreshSource,
+                secondaryActionLabel = stringResource(DataR.string.core_data_notice_change_source),
+                onSecondaryAction = onOpenSources,
+            )
+
             SeriesStep.Browsing -> {
                 Header(state = state, onRefresh = viewModel::refresh)
 
@@ -148,6 +159,9 @@ fun SeriesMobileScreen(
                         isError = wording.failed,
                         actionLabel = stringResource(wording.action),
                         onAction = onOpenSources,
+                        // Only an outage has one: it reads the list again.
+                        retryLabel = wording.retry?.let { stringResource(it) },
+                        onRetry = viewModel::refreshSource,
                         modifier = Modifier.padding(
                             horizontal = LumoSpacing.md,
                             vertical = LumoSpacing.xs,

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -48,6 +49,9 @@ import tv.lumo.android.core.designsystem.theme.LumoTvShapes
  * or that the catalogue on screen may be out of date.
  * @param actionLabel null draws no button. The caller decides; on the phone a
  * failure always has one.
+ * @param retryLabel a second control, drawn first: the one that asks the server
+ * again. Only an outage has one (US-024, "Indisponibilité et hors ligne") —
+ * "try again" beside "change source", the two ways on the story names.
  */
 @Composable
 fun LumoSourceNotice(
@@ -58,6 +62,8 @@ fun LumoSourceNotice(
     isError: Boolean = false,
     actionLabel: String? = null,
     onAction: () -> Unit = {},
+    retryLabel: String? = null,
+    onRetry: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -87,8 +93,17 @@ fun LumoSourceNotice(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (actionLabel != null) {
-            OutlinedButton(onClick = onAction) { Text(actionLabel) }
+        if (retryLabel != null || actionLabel != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
+                // Retrying is the answer the notice expects, so it is the filled
+                // one; where a source is looked after is the quieter way out.
+                if (retryLabel != null) {
+                    Button(onClick = onRetry) { Text(retryLabel) }
+                }
+                if (actionLabel != null) {
+                    OutlinedButton(onClick = onAction) { Text(actionLabel) }
+                }
+            }
         }
     }
 }
@@ -99,7 +114,9 @@ fun LumoSourceNotice(
  * **Without an action it is text and not a focus stop**: there is nothing to
  * press, and a stop with nothing behind it is a dead end on the way `UP`. With
  * one it has exactly one control, to the right of the text so that the notice
- * costs a row of height and not two (docs/design/tv-focus-map.md, Home).
+ * costs a row of height and not two (docs/design/tv-focus-map.md, Home). An
+ * outage has two, side by side on that same line — *try again*, then *change
+ * source* — and `LEFT`/`RIGHT` walk between them.
  *
  * @param compact the form for a **grid's header line**. A television grid has
  * the height of two rows of cards after overscan, and a card-sized notice above
@@ -117,6 +134,8 @@ fun LumoTvSourceNotice(
     actionLabel: String? = null,
     onAction: () -> Unit = {},
     compact: Boolean = false,
+    retryLabel: String? = null,
+    onRetry: () -> Unit = {},
 ) {
     Row(
         modifier = if (compact) {
@@ -170,6 +189,9 @@ fun LumoTvSourceNotice(
             }
         }
 
+        if (retryLabel != null) {
+            LumoTvButton(text = retryLabel, onClick = onRetry, primary = true)
+        }
         if (actionLabel != null) {
             LumoTvButton(text = actionLabel, onClick = onAction)
         }

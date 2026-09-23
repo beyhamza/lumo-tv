@@ -46,27 +46,14 @@
     <string name="feature_auth_error_invalid">Something in this form was refused. Check the address and try again.</string>
     <string name="feature_auth_error_rate_limited">Too many attempts. Try again in a moment.</string>
     <string name="feature_auth_error_rate_limited_seconds">Too many attempts. Try again in %1$d seconds.</string>
-    <string name="feature_auth_error_device_limit">Your plan does not allow another device. Unlink one from your account, or move to a larger plan.</string>
+    <!--
+      The ceiling is the server's (`DEVICE_LIMIT_REACHED`) and the sentence names
+      the one way out that exists in the 0.2.0 scope: no plan to move to, so no
+      plan is mentioned (US-025, decision of 17 September 2026).
+    -->
+    <string name="feature_auth_error_device_limit">This account cannot sign in on another device. Disconnect one from Settings on a device that is signed in, or on lumo.tv.</string>
     <string name="feature_auth_error_offline">No connection. Your details were not sent.</string>
     <string name="feature_auth_error_unexpected">Something went wrong. Please try again.</string>
-
-    <!--
-      Google sign-in (US-03). The whole block is absent from the screen when no
-      OAuth client is configured in the build, so none of these appear then.
-    -->
-    <string name="feature_auth_google_continue">Continue with Google</string>
-    <string name="feature_auth_google_no_account">No Google account on this device. Add one in your phone\'s settings, or use an email address.</string>
-    <!--
-      Does not offer to try again: nothing will have changed by the next press.
-      Names the way in that does work instead.
-    -->
-    <string name="feature_auth_google_unavailable">Google sign-in is not available on this device. Use an email address instead.</string>
-    <!--
-      OAUTH_TOKEN_INVALID. Not something the user did - most often a build
-      configured with the wrong OAuth client - so it does not blame the account
-      and does not send anybody to Google to fix something that is not there.
-    -->
-    <string name="feature_auth_google_rejected">Google sign-in could not be completed. Use an email address instead.</string>
 
     <!--
       Activating a television from a phone (US-05). Read from three metres,

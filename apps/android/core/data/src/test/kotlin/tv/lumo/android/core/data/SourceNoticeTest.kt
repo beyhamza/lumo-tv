@@ -27,10 +27,31 @@ class SourceNoticeTest {
     }
 
     @Test
-    fun `a choice remembered offline says nothing, because nothing is known`() {
+    fun `a choice remembered offline says the server was not reached, and nothing about the source`() {
+        // US-024, "Indisponibilité et hors ligne" (S8-06). Nothing is known about
+        // the source, so nothing is said about it; what is said is that the list
+        // on screen is the device's own copy and may be old.
         assertThat(ActiveSourceState.Selected(a.key, source = null, sources = emptyList()).notice())
-            .isNull()
+            .isEqualTo(SourceNotice.Unreached)
+        // No choice at all is a face of the screen, not a notice over it.
         assertThat(ActiveSourceState.Unavailable.notice()).isNull()
+    }
+
+    @Test
+    fun `an outage is the only notice with a second control, and it is not an error`() {
+        val outage = SourceNotice.Unreached.wording()
+
+        assertThat(outage.retry).isEqualTo(R.string.core_data_catalogue_retry)
+        assertThat(outage.action).isEqualTo(R.string.core_data_notice_change_source)
+        // Nothing is wrong with the catalogue but its age: not in red.
+        assertThat(outage.failed).isFalse()
+        // ...and still a stop on a television, unlike a refresh in progress.
+        assertThat(outage.actionable).isTrue()
+
+        val refreshing = SourceNotice.Refreshing(SyncStep.CONNECTING, hasCatalogue = true).wording()
+        assertThat(refreshing.retry).isNull()
+        assertThat(refreshing.actionable).isFalse()
+        assertThat(SourceNotice.Failed(null, hasCatalogue = true).wording().actionable).isTrue()
     }
 
     @Test

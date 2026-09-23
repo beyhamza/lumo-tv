@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="feature_settings_tv_menu_sources">Sources</string>
-    <string name="feature_settings_tv_menu_account">Compte</string>
-    <string name="feature_settings_tv_menu_playback">Lecture</string>
-    <string name="feature_settings_tv_menu_language">Langue</string>
+    <string name="feature_settings_tv_menu_account">Compte et appareils</string>
+    <string name="feature_settings_tv_menu_application">Application</string>
     <string name="feature_settings_tv_menu_about">À propos</string>
 
     <string name="feature_settings_tv_sources_hint">Les sources se gèrent depuis votre téléphone ou lumo.tv — jamais de saisie ici.</string>
@@ -19,15 +18,17 @@
     <string name="feature_settings_tv_press_ok">OK ›</string>
 
     <string name="feature_settings_tv_account_signed_in">Connecté en tant que %1$s</string>
-    <string name="feature_settings_tv_account_devices">Appareils connectés</string>
+    <string name="feature_settings_tv_this_device">Ce téléviseur</string>
+    <string name="feature_settings_tv_other_devices">Autres appareils</string>
+    <string name="feature_settings_tv_no_other_device">Aucun autre appareil n\'est connecté à ce compte.</string>
+    <string name="feature_settings_tv_devices_guidance">Pour déconnecter un appareil, ouvrez Réglages › Compte et appareils sur votre téléphone ou sur lumo.tv, avec le même compte.</string>
     <string name="feature_settings_tv_account_sign_out">Déconnecter cette télévision</string>
-
-    <string name="feature_settings_tv_playback_quality">Qualité préférée</string>
-    <string name="feature_settings_tv_playback_subtitles">Sous-titres</string>
-    <string name="feature_settings_tv_playback_audio">Langue audio</string>
+    <string name="feature_settings_tv_sign_out_title">Déconnecter cette télévision ?</string>
+    <string name="feature_settings_tv_sign_out_body">Elle reviendra à son écran d\'activation. Rien n\'est supprimé de votre compte.</string>
 
     <string name="feature_settings_tv_language_value">Suit la langue du téléviseur</string>
 
     <string name="feature_settings_tv_about_version">lumo tv v%1$s</string>
     <string name="feature_settings_tv_about_site">lumo.tv</string>
+    <string name="feature_settings_tv_about_guides">Guides : %1$s</string>
 </resources>

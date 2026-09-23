@@ -42,10 +42,10 @@
     <string name="feature_source_retry">Réessayer</string>
     <string name="feature_source_syncing_body">Une grosse playlist peut prendre jusqu\'à une minute.</string>
 
-    <string name="feature_source_limit_title">Votre offre autorise %1$d source(s)</string>
-    <string name="feature_source_limit_body">Supprimez une source existante, ou passez à une offre supérieure pour en ajouter d\'autres.</string>
+    <string name="feature_source_limit_title">Ce compte peut contenir %1$d source(s)</string>
+    <string name="feature_source_limit_body">Supprimez-en une pour en ajouter une autre.</string>
 
-    <string name="feature_source_error_limit">Votre offre ne permet pas d\'ajouter une source de plus.</string>
+    <string name="feature_source_error_limit">Ce compte ne peut pas contenir une source de plus. Supprimez-en une pour en ajouter une autre.</string>
     <string name="feature_source_error_validation">Certaines informations sont incorrectes.</string>
     <string name="feature_source_error_offline">Pas de connexion. Rien n\'a été envoyé.</string>
 

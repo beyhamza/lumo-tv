@@ -269,7 +269,9 @@ Le scaffolding s'arrête volontairement là où le sprint 1 commence.
   déclenché par l'UI.
 - `core:database` n'a pas de `RemoteMediator` : le cache existe, ce qui le
   remplit reste à écrire (US-08).
-- `LUMO_GOOGLE_WEB_CLIENT_ID` et `LUMO_ACTIVATION_URL` sont documentés dans
-  `.env.example` mais pas encore lus par un module (US-03, US-05).
+- `LUMO_ACTIVATION_URL` est lu par `feature:settings` (lien d'appairage, guides
+  web). `LUMO_GOOGLE_WEB_CLIENT_ID` n'existe plus : le bouton Google a quitté
+  les écrans avec le périmètre 0.2.0 (US-025), le code serveur reste une dette
+  documentée (`docs/backlog/dette.md` §1).
 - Aucun test instrumenté ni test d'UI Compose. La dépendance est en place.
 - L'app TV n'a pas encore été pilotée à la télécommande sur un appareil réel.

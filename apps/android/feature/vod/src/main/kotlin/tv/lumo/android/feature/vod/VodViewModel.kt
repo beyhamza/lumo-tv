@@ -330,6 +330,13 @@ sealed interface VodStep {
     /** The first import failed, and this device holds no film of the source. */
     data object ImportFailed : VodStep
 
+    /**
+     * The server could not be reached and there is nothing cached to show
+     * (US-024, "Indisponibilité et hors ligne"). Not [NoSource]: an outage
+     * proves nothing about the account, and the screen says so.
+     */
+    data object Unreachable : VodStep
+
     data object Browsing : VodStep
 }
 
@@ -375,6 +382,7 @@ data class VodState(
             CatalogueFace.NeedsChoice -> VodStep.NeedsChoice
             CatalogueFace.Importing -> VodStep.Importing
             CatalogueFace.ImportFailed -> VodStep.ImportFailed
+            CatalogueFace.Unreachable -> VodStep.Unreachable
             CatalogueFace.Browsing -> VodStep.Browsing
         }
 

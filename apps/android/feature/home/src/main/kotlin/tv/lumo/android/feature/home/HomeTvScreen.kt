@@ -149,20 +149,28 @@ fun HomeTvScreen(
                 body = stringResource(R.string.feature_home_needs_choice_body),
             )
 
+            // The two ways on US-024 names for an outage, "try again" taking the
+            // focus and "change source" one `RIGHT` away.
             HomeStep.Unavailable -> Message(
                 title = stringResource(R.string.feature_home_unavailable_title),
                 body = stringResource(R.string.feature_home_unavailable_body),
                 action = stringResource(R.string.feature_home_retry),
                 onAction = viewModel::refreshSource,
+                secondaryAction = stringResource(DataR.string.core_data_notice_change_source),
+                onSecondaryAction = actions.onOpenSources,
             )
 
-            HomeStep.Browsing -> Browsing(state = state, actions = actions)
+            HomeStep.Browsing -> Browsing(
+                state = state,
+                actions = actions,
+                onRetry = viewModel::refreshSource,
+            )
         }
     }
 }
 
 @Composable
-private fun Browsing(state: HomeState, actions: HomeActions) {
+private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit) {
     val sections = remember(state) { state.sections }
     val keys = remember(sections) { focusKeysOf(sections) }
 
@@ -216,7 +224,9 @@ private fun Browsing(state: HomeState, actions: HomeActions) {
             color = LumoColors.OnDark,
         )
 
-        state.notice?.let { notice -> Notice(notice = notice, onOpenSources = actions.onOpenSources) }
+        state.notice?.let { notice ->
+            Notice(notice = notice, onOpenSources = actions.onOpenSources, onRetry = onRetry)
+        }
 
         when {
             state.waiting -> Text(
@@ -310,11 +320,12 @@ private fun PlaceFocus(
  * An import in progress is **text and not a focus stop**: there is nothing to
  * press, and a stop with nothing behind it is a dead end on the way `UP`. A failed
  * one has exactly one control, "My sources" — a television cannot correct a source,
- * but that screen says what is wrong with it and where to fix it. Drawn by
+ * but that screen says what is wrong with it and where to fix it. An outage has
+ * two, "try again" then "change source", on the notice's one line. Drawn by
  * `LumoTvSourceNotice`, worded by `core:data`, like the three grids' (US-024).
  */
 @Composable
-private fun Notice(notice: SourceNotice, onOpenSources: () -> Unit) {
+private fun Notice(notice: SourceNotice, onOpenSources: () -> Unit, onRetry: () -> Unit) {
     val wording = notice.wording()
 
     LumoTvSourceNotice(
@@ -322,8 +333,10 @@ private fun Notice(notice: SourceNotice, onOpenSources: () -> Unit) {
         message = stringResource(wording.message),
         hint = wording.hint?.let { stringResource(it) },
         isError = wording.failed,
-        actionLabel = stringResource(wording.action).takeIf { wording.failed },
+        actionLabel = stringResource(wording.action).takeIf { wording.actionable },
         onAction = onOpenSources,
+        retryLabel = wording.retry?.let { stringResource(it) },
+        onRetry = onRetry,
     )
 }
 
@@ -643,7 +656,8 @@ private fun Blank(actions: HomeActions) {
  * A full-screen message, with its one action when it has one.
  *
  * The action takes the focus on arrival: it is the only thing on the screen that
- * answers a key.
+ * answers a key. A second one, when there is one, sits to its right — `RIGHT`
+ * reaches it, and it never takes the focus first.
  */
 @Composable
 private fun Message(
@@ -651,6 +665,8 @@ private fun Message(
     body: String,
     action: String? = null,
     onAction: () -> Unit = {},
+    secondaryAction: String? = null,
+    onSecondaryAction: () -> Unit = {},
 ) {
     val button = remember { FocusRequester() }
     LaunchedEffect(action) { if (action != null) runCatching { button.requestFocus() } }
@@ -672,13 +688,20 @@ private fun Message(
             color = LumoColors.OnDarkMuted,
         )
         if (action != null) {
-            LumoTvButton(
-                text = action,
-                onClick = onAction,
-                primary = true,
-                focusRequester = button,
+            Row(
                 modifier = Modifier.padding(top = LumoSpacing.sm, start = LumoSpacing.xs),
-            )
+                horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+            ) {
+                LumoTvButton(
+                    text = action,
+                    onClick = onAction,
+                    primary = true,
+                    focusRequester = button,
+                )
+                if (secondaryAction != null) {
+                    LumoTvButton(text = secondaryAction, onClick = onSecondaryAction)
+                }
+            }
         }
     }
 }

@@ -67,8 +67,29 @@ sealed interface CatalogueSource {
      * @param isPlaylist whether the source is a playlist rather than a panel,
      * which only the series screen reads — see `SeriesState.isPlaylist`. False
      * when the source itself is unknown, which is the cautious of the two.
+     * @param unreached the identifier is the device's own and the server could
+     * not be reached to say anything about the source (US-024, "Indisponibilité
+     * et hors ligne"). It changes exactly once per outage — when the list comes
+     * back — so the pager it restarts is one that was about to refresh anyway.
+     * What it decides is in [face]: a cached catalogue is shown under a notice, an
+     * empty cache is an explanation and not an empty grid.
      */
-    data class Ready(val sourceId: String, val isPlaylist: Boolean) : CatalogueSource
+    data class Ready(
+        val sourceId: String,
+        val isPlaylist: Boolean,
+        val unreached: Boolean = false,
+    ) : CatalogueSource
+
+    /**
+     * The list of sources could not be fetched and this device holds no choice.
+     *
+     * Kept apart from [NoSource] since S8-06, for the reason `ActiveSourceState`
+     * keeps `Unavailable` apart from `None`: one is the server saying the
+     * account has no source, the other is an absence of facts. A grid that read
+     * the second as the first told somebody on a train that their subscription
+     * was gone (US-024: an outage is never a proof of deletion).
+     */
+    data object Unreachable : CatalogueSource
 }
 
 /** The identifier a grid reads its cache with, or null when there is nothing to read. */
@@ -89,12 +110,14 @@ val CatalogueSource.sourceId: String?
  * "Indisponibilité et hors ligne"). Waiting for a status that cannot arrive would
  * turn "offline" into "no catalogue".
  *
- * <h2>[ActiveSourceState.Unavailable] reads as no source, and that is inherited</h2>
+ * <h2>[ActiveSourceState.Unavailable] is an outage, not an absence of source</h2>
  *
  * Nothing is known and nothing is cached under any identifier this device holds,
- * so there is no grid to draw. It is what these screens already showed when the
- * list could not be fetched; telling the two apart on a grid is still to do
- * (US-024, "Indisponibilité et hors ligne") — the home screen already does.
+ * so there is no grid to draw — but "add a source" would be the wrong answer to
+ * a network that blinked. It reads as [CatalogueSource.Unreachable], which a
+ * grid words as an outage with *try again* and *change source* (US-024,
+ * "Indisponibilité et hors ligne", closed in S8-06). Until then it inherited
+ * [CatalogueSource.NoSource], which only the home screen told apart.
  *
  * <h2>The status no longer decides whether there is a grid (C4)</h2>
  *
@@ -106,7 +129,8 @@ val CatalogueSource.sourceId: String?
  */
 fun ActiveSourceState.asCatalogueSource(): CatalogueSource = when (this) {
     ActiveSourceState.Loading -> CatalogueSource.Loading
-    ActiveSourceState.None, ActiveSourceState.Unavailable -> CatalogueSource.NoSource
+    ActiveSourceState.None -> CatalogueSource.NoSource
+    ActiveSourceState.Unavailable -> CatalogueSource.Unreachable
     is ActiveSourceState.NeedsChoice -> CatalogueSource.NeedsChoice
     is ActiveSourceState.Selected -> {
         val playlist = source != null && source.kind != SourceKind.XTREAM
@@ -118,7 +142,11 @@ fun ActiveSourceState.asCatalogueSource(): CatalogueSource = when (this) {
                     failed = source.status == SourceStatus.ERROR,
                 )
 
-            else -> CatalogueSource.Ready(sourceId = sourceId, isPlaylist = playlist)
+            else -> CatalogueSource.Ready(
+                sourceId = sourceId,
+                isPlaylist = playlist,
+                unreached = source == null,
+            )
         }
     }
 }
@@ -140,6 +168,14 @@ enum class CatalogueFace {
     /** The first import failed and the device holds nothing of this source. */
     ImportFailed,
 
+    /**
+     * The server could not be reached and there is nothing to draw: no choice
+     * recorded on this device, or a choice whose catalogue was never cached.
+     * The grid explains, offers to try again and to change source — and says
+     * that nothing was removed (US-024).
+     */
+    Unreachable,
+
     Browsing,
 }
 
@@ -153,6 +189,12 @@ enum class CatalogueFace {
  * grid show the first-import state, and then it says which of the two it is —
  * importing or failed — instead of the single "not ready" both used to share.
  *
+ * **An outage shows what the device holds, and nothing else** (US-024,
+ * "Indisponibilité et hors ligne"). A choice remembered offline draws its cached
+ * catalogue under a notice that it may be out of date; the same choice with an
+ * empty cache has no list to show and says so — never "no films", which would
+ * be a statement about the source made from a request that never reached it.
+ *
  * @param cachedItems how many rows of *this* catalogue Room holds for the
  * source. Zero and unknown are the same here: nothing to draw.
  */
@@ -160,7 +202,9 @@ fun CatalogueSource.face(cachedItems: Int): CatalogueFace = when (this) {
     CatalogueSource.Loading -> CatalogueFace.Loading
     CatalogueSource.NoSource -> CatalogueFace.NoSource
     CatalogueSource.NeedsChoice -> CatalogueFace.NeedsChoice
-    is CatalogueSource.Ready -> CatalogueFace.Browsing
+    CatalogueSource.Unreachable -> CatalogueFace.Unreachable
+    is CatalogueSource.Ready ->
+        if (unreached && cachedItems == 0) CatalogueFace.Unreachable else CatalogueFace.Browsing
     is CatalogueSource.FirstImport -> when {
         cachedItems > 0 -> CatalogueFace.Browsing
         failed -> CatalogueFace.ImportFailed

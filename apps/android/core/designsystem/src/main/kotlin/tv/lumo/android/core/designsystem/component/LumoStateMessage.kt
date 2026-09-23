@@ -2,10 +2,12 @@ package tv.lumo.android.core.designsystem.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,6 +32,10 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
  *
  * @param detail the line that moves or names the cause: a synchronisation step,
  * an ingestion error. Announced politely when it changes.
+ * @param secondaryActionLabel a quieter second way on, beside the first. An
+ * outage is the one message with two — *try again* and *change source* (US-024,
+ * "Indisponibilité et hors ligne") — because neither answers for the other: one
+ * asks the same server again, the other stops depending on it.
  */
 @Composable
 fun LumoStateMessage(
@@ -40,6 +46,8 @@ fun LumoStateMessage(
     isError: Boolean = false,
     actionLabel: String? = null,
     onAction: () -> Unit = {},
+    secondaryActionLabel: String? = null,
+    onSecondaryAction: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -65,8 +73,15 @@ fun LumoStateMessage(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (actionLabel != null) {
-            Button(onClick = onAction) { Text(actionLabel) }
+        if (actionLabel != null || secondaryActionLabel != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
+                if (actionLabel != null) {
+                    Button(onClick = onAction) { Text(actionLabel) }
+                }
+                if (secondaryActionLabel != null) {
+                    OutlinedButton(onClick = onSecondaryAction) { Text(secondaryActionLabel) }
+                }
+            }
         }
     }
 }
@@ -78,7 +93,8 @@ fun LumoStateMessage(
  * no focus target leaves the rail as the only place the remote can be, and `RIGHT`
  * from it as a key that does nothing (docs/design/tv-focus-map.md, rule 1). It
  * does not take the focus on arrival — the viewer came from the rail and is
- * still there; `RIGHT` finds it.
+ * still there; `RIGHT` finds it. Two buttons sit on one line, the primary first:
+ * `RIGHT` from the rail lands on it, `RIGHT` again reaches the second.
  */
 @Composable
 fun LumoTvStateMessage(
@@ -89,6 +105,8 @@ fun LumoTvStateMessage(
     isError: Boolean = false,
     actionLabel: String? = null,
     onAction: () -> Unit = {},
+    secondaryActionLabel: String? = null,
+    onSecondaryAction: () -> Unit = {},
 ) {
     Column(
         modifier = modifier.padding(LumoSpacing.xxl),
@@ -111,8 +129,15 @@ fun LumoTvStateMessage(
             style = TvMaterialTheme.typography.bodyLarge,
             color = LumoColors.OnDarkMuted,
         )
-        if (actionLabel != null) {
-            LumoTvButton(text = actionLabel, onClick = onAction, primary = true)
+        if (actionLabel != null || secondaryActionLabel != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md)) {
+                if (actionLabel != null) {
+                    LumoTvButton(text = actionLabel, onClick = onAction, primary = true)
+                }
+                if (secondaryActionLabel != null) {
+                    LumoTvButton(text = secondaryActionLabel, onClick = onSecondaryAction)
+                }
+            }
         }
     }
 }

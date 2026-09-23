@@ -49,14 +49,25 @@ sealed interface SourceNotice {
      * what is on screen **may be out of date** and the notice says so.
      */
     data class Failed(val code: IngestionErrorCode?, val hasCatalogue: Boolean = false) : SourceNotice
+
+    /**
+     * The server could not be reached, and the source on screen is a choice this
+     * device remembered on its own (US-024, "Indisponibilité et hors ligne").
+     *
+     * Nothing is said about the source itself — an outage proves nothing about
+     * it (US-018) — only that what is on screen may be older than the server's
+     * copy. Its two ways on are the two the story names: try again, which reads
+     * the list once more, and change source.
+     */
+    data object Unreached : SourceNotice
 }
 
 /**
  * The notice for one source, or null when there is nothing to say.
  *
- * `READY`, a source that is unknown — a choice remembered offline — and a status
- * newer than this build all say nothing, and saying nothing is the safe one of
- * the three: an unreachable server proves nothing about the source (US-018).
+ * `READY`, and a status newer than this build, say nothing. An unknown source —
+ * a choice remembered offline — is null here too: what it has to say is not
+ * about the source but about the server, and that is [ActiveSourceState.notice].
  */
 fun Source?.notice(): SourceNotice? = when (this?.status) {
     SourceStatus.PENDING, SourceStatus.SYNCING ->
@@ -67,20 +78,33 @@ fun Source?.notice(): SourceNotice? = when (this?.status) {
     else -> null
 }
 
-/** The notice of the source being browsed. See [notice]. */
-fun ActiveSourceState.notice(): SourceNotice? =
-    (this as? ActiveSourceState.Selected)?.source.notice()
+/**
+ * The notice of the source being browsed. See [notice].
+ *
+ * A selection whose `Source` is null is the one shape that says something the
+ * source cannot: the list could not be fetched and this device is browsing from
+ * its own memory. That is [SourceNotice.Unreached], and it is decided here so the
+ * home screen and the three grids cannot come to disagree about it.
+ */
+fun ActiveSourceState.notice(): SourceNotice? {
+    val selected = this as? ActiveSourceState.Selected ?: return null
+    return if (selected.source == null) SourceNotice.Unreached else selected.source.notice()
+}
 
 /**
- * The four strings of a notice, as resources.
+ * The strings of a notice, as resources.
  *
  * Resolved here rather than in each screen so that the home screen and the three
  * grids cannot word one state four ways. The composables that draw it live in
  * `core:designsystem`, which knows nothing about sources and takes plain strings.
  *
  * @param hint the quieter line under the message, or null.
- * @param failed whether the notice is an error — it colours the title and, on a
- * television, decides whether the notice carries a focus stop at all.
+ * @param action the way to the screen where a source is looked after — "My
+ * sources", or "Change source" during an outage, which leads to the same place.
+ * @param failed whether the notice is an error — it colours the title.
+ * @param retry the label of a second control that reads the list of sources
+ * again, or null. Only an outage has one: retrying a refresh that is running,
+ * or an ingestion the provider refused, would be a button that changes nothing.
  */
 data class SourceNoticeWording(
     @StringRes val title: Int,
@@ -88,7 +112,17 @@ data class SourceNoticeWording(
     @StringRes val hint: Int?,
     @StringRes val action: Int,
     val failed: Boolean,
-)
+    @StringRes val retry: Int? = null,
+) {
+
+    /**
+     * Whether the notice carries a control at all on a television, where a stop
+     * with nothing behind it is a dead end on the way `UP`. A refresh in progress
+     * is text; a failure and an outage each have something to press.
+     */
+    val actionable: Boolean
+        get() = failed || retry != null
+}
 
 fun SourceNotice.wording(): SourceNoticeWording = when (this) {
     is SourceNotice.Refreshing -> SourceNoticeWording(
@@ -109,5 +143,17 @@ fun SourceNotice.wording(): SourceNoticeWording = when (this) {
         hint = if (hasCatalogue) R.string.core_data_notice_failed_stale else null,
         action = R.string.core_data_notice_open_sources,
         failed = true,
+    )
+
+    // Not an error of the source, so not in the error colour: nothing is wrong
+    // with what is on screen except its age, and red over a working catalogue
+    // would say otherwise.
+    SourceNotice.Unreached -> SourceNoticeWording(
+        title = R.string.core_data_notice_unreached_title,
+        message = R.string.core_data_notice_unreached_message,
+        hint = null,
+        action = R.string.core_data_notice_change_source,
+        failed = false,
+        retry = R.string.core_data_catalogue_retry,
     )
 }

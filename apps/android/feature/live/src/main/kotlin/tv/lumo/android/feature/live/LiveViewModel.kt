@@ -494,6 +494,13 @@ sealed interface LiveStep {
     /** The first import failed, and this device holds nothing of the source. */
     data object ImportFailed : LiveStep
 
+    /**
+     * The server could not be reached and there is nothing cached to show
+     * (US-024, "Indisponibilité et hors ligne"). Not [NoSource]: an outage
+     * proves nothing about the account, and the screen says so.
+     */
+    data object Unreachable : LiveStep
+
     data object Browsing : LiveStep
 }
 
@@ -584,6 +591,7 @@ data class LiveState(
             CatalogueFace.NeedsChoice -> LiveStep.NeedsChoice
             CatalogueFace.Importing -> LiveStep.Importing
             CatalogueFace.ImportFailed -> LiveStep.ImportFailed
+            CatalogueFace.Unreachable -> LiveStep.Unreachable
             CatalogueFace.Browsing -> LiveStep.Browsing
         }
 

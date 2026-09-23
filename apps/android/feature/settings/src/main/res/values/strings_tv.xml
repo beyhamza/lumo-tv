@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the television's settings screen (TV5, US-025 S8-06). The
+  French set lives in values-fr/strings_tv.xml and ships at the same time
+  (AGENTS.md §4); lint fails the build on a missing translation.
+-->
 <resources>
-    <!-- TV5 — Réglages: the sub-menu on the left, one panel per entry. -->
+    <!--
+      The sub-menu on the left, one panel per entry: Sources, Account and
+      devices, Application, About. No Playback until its settings exist (S13),
+      and Language folded into Application, read-only.
+    -->
     <string name="feature_settings_tv_menu_sources">Sources</string>
-    <string name="feature_settings_tv_menu_account">Account</string>
-    <string name="feature_settings_tv_menu_playback">Playback</string>
-    <string name="feature_settings_tv_menu_language">Language</string>
+    <string name="feature_settings_tv_menu_account">Account and devices</string>
+    <string name="feature_settings_tv_menu_application">Application</string>
     <string name="feature_settings_tv_menu_about">About</string>
 
     <string name="feature_settings_tv_sources_hint">Sources are managed from your phone or lumo.tv — nothing to type here.</string>
@@ -19,16 +27,24 @@
     <string name="feature_settings_tv_status_pending">Pending</string>
     <string name="feature_settings_tv_press_ok">OK ›</string>
 
+    <!--
+      Account and devices. Other devices are read-only on a television in this
+      lot: a remote is the wrong instrument for a decision that names a device,
+      and the guidance says where the decision is made (US-025, S13-E10).
+    -->
     <string name="feature_settings_tv_account_signed_in">Signed in as %1$s</string>
-    <string name="feature_settings_tv_account_devices">Connected devices</string>
+    <string name="feature_settings_tv_this_device">This television</string>
+    <string name="feature_settings_tv_other_devices">Other devices</string>
+    <string name="feature_settings_tv_no_other_device">No other device is signed in to this account.</string>
+    <string name="feature_settings_tv_devices_guidance">To disconnect a device, open Settings › Account and devices on your phone or on lumo.tv, with the same account.</string>
     <string name="feature_settings_tv_account_sign_out">Sign out of this television</string>
-
-    <string name="feature_settings_tv_playback_quality">Preferred quality</string>
-    <string name="feature_settings_tv_playback_subtitles">Subtitles</string>
-    <string name="feature_settings_tv_playback_audio">Audio language</string>
+    <string name="feature_settings_tv_sign_out_title">Sign out of this television?</string>
+    <string name="feature_settings_tv_sign_out_body">It will go back to its activation screen. Nothing is removed from your account.</string>
 
     <string name="feature_settings_tv_language_value">Follows the television\'s language</string>
 
     <string name="feature_settings_tv_about_version">lumo tv v%1$s</string>
     <string name="feature_settings_tv_about_site">lumo.tv</string>
+    <!-- A television opens no browser: the address is printed, to be typed elsewhere. -->
+    <string name="feature_settings_tv_about_guides">Guides: %1$s</string>
 </resources>

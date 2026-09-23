@@ -1,9 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="feature_settings_title">Réglages</string>
-    <string name="feature_settings_placeholder">Compte, lecture et langue.</string>
     <string name="feature_settings_session_open">Connecté sur cet appareil.</string>
     <string name="feature_settings_session_none">Non connecté sur cet appareil.</string>
+
     <string name="feature_settings_sign_out">Se déconnecter de cet appareil</string>
-    <string name="feature_settings_sign_out_tv">Appuyez sur OK pour vous déconnecter de ce téléviseur.</string>
+    <string name="feature_settings_sign_out_title">Se déconnecter de cet appareil ?</string>
+    <string name="feature_settings_sign_out_body">Vous devrez vous reconnecter pour retrouver vos sources ici. Rien n\'est supprimé de votre compte.</string>
+    <string name="feature_settings_cancel">Annuler</string>
+
+    <string name="feature_settings_this_device">Cet appareil</string>
+    <string name="feature_settings_last_seen">Dernière activité %1$s</string>
+    <string name="feature_settings_last_seen_unknown">Dernière activité indisponible</string>
+    <string name="feature_settings_platform_android_mobile">Téléphone ou tablette Android</string>
+    <string name="feature_settings_platform_android_tv">Android TV</string>
+    <string name="feature_settings_platform_web">Navigateur web</string>
+    <string name="feature_settings_devices_loading">Lecture de vos appareils…</string>
+    <string name="feature_settings_devices_unavailable">Vos appareils n\'ont pas pu être lus.</string>
+    <string name="feature_settings_devices_retry">Réessayer</string>
+
+    <string name="feature_settings_language">Langue</string>
+    <string name="feature_settings_language_note">Suit la langue de votre appareil. Le choix dans Lumo arrivera dans une prochaine version.</string>
+
+    <string name="feature_settings_guides">Guides</string>
+    <string name="feature_settings_version">Version</string>
 </resources>

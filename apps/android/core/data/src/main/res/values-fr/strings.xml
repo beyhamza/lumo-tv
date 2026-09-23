@@ -28,6 +28,13 @@
     <string name="core_data_notice_failed_stale">Ce catalogue peut être ancien.</string>
     <string name="core_data_notice_open_sources">Mes sources</string>
 
+    <string name="core_data_notice_unreached_title">Lumo est injoignable</string>
+    <string name="core_data_notice_unreached_message">Ce catalogue peut être ancien.</string>
+    <string name="core_data_notice_change_source">Changer de source</string>
+
+    <string name="core_data_unreached_title">Lumo est injoignable</string>
+    <string name="core_data_unreached_body">Vos sources n\'ont pas pu être récupérées, et rien de ce catalogue n\'est conservé sur cet appareil. Rien n\'a été supprimé. Vérifiez votre connexion, puis réessayez — ou choisissez une autre source.</string>
+
     <string name="core_data_first_import_title">Importation de votre source en cours</string>
     <string name="core_data_first_import_body">Votre catalogue apparaîtra ici dès la fin de la première importation. Vous pouvez quitter cet écran en attendant.</string>
     <string name="core_data_first_import_failed_title">La première importation a échoué</string>

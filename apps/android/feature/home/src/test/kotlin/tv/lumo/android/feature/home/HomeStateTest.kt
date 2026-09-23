@@ -206,12 +206,15 @@ class HomeStateTest {
     }
 
     @Test
-    fun `a ready source, and a choice with no list behind it, say nothing`() {
+    fun `a ready source says nothing, and a choice with no list behind it says the server was not reached`() {
         assertThat(selected(source(SourceStatus.READY)).asHomeSource().notice).isNull()
 
         // Offline: the device knows which source, the server could not be asked.
+        // The rails are drawn — and the notice says they may be old, with "try
+        // again" and "change source" (US-024, "Indisponibilité et hors ligne").
         val offline = ActiveSourceState.Selected(SOURCE, source = null, sources = emptyList())
-        assertThat(offline.asHomeSource()).isEqualTo(HomeSource(HomeStep.Browsing, SOURCE, null))
+        assertThat(offline.asHomeSource())
+            .isEqualTo(HomeSource(HomeStep.Browsing, SOURCE, SourceNotice.Unreached))
     }
 
     @Test

@@ -164,11 +164,24 @@ fun LiveTvScreen(
                 onAction = onOpenSources,
             )
 
+            // An outage with nothing cached (US-024, "Indisponibilité et hors
+            // ligne"): not "no source", and two targets so that `RIGHT` from
+            // the rail lands somewhere — "try again" first, then "change source".
+            LiveStep.Unreachable -> LumoTvStateMessage(
+                title = stringResource(DataR.string.core_data_unreached_title),
+                body = stringResource(DataR.string.core_data_unreached_body),
+                actionLabel = stringResource(DataR.string.core_data_catalogue_retry),
+                onAction = viewModel::refreshSource,
+                secondaryActionLabel = stringResource(DataR.string.core_data_notice_change_source),
+                onSecondaryAction = onOpenSources,
+            )
+
             LiveStep.Browsing -> Browsing(
                 state = state,
                 channels = channels,
                 onOpenSources = onOpenSources,
                 onRetry = viewModel::refresh,
+                onRefreshSource = viewModel::refreshSource,
                 onSelectCategory = viewModel::onCategorySelected,
                 onSelectGroup = viewModel::onGroupSelected,
                 onSelectRecent = viewModel::onRecentSelected,
@@ -205,6 +218,7 @@ private fun Browsing(
     channels: LazyPagingItems<Channel>,
     onOpenSources: () -> Unit,
     onRetry: () -> Unit,
+    onRefreshSource: () -> Unit,
     onSelectCategory: (String?) -> Unit,
     onSelectGroup: (String) -> Unit,
     onSelectRecent: () -> Unit,
@@ -267,7 +281,8 @@ private fun Browsing(
             // In the header line, compact: the grid below has the height of two
             // rows of cards, and a notice of its own height would push the second
             // off the panel. A refresh is text; a failure adds the one stop this
-            // line has — "My sources", reached by `UP` from the filters.
+            // line has — "My sources", reached by `UP` from the filters — and an
+            // outage two, "try again" then "change source", on the same line.
             state.notice?.let { notice ->
                 val wording = notice.wording()
                 LumoTvSourceNotice(
@@ -275,8 +290,10 @@ private fun Browsing(
                     message = stringResource(wording.message),
                     hint = wording.hint?.let { stringResource(it) },
                     isError = wording.failed,
-                    actionLabel = stringResource(wording.action).takeIf { wording.failed },
+                    actionLabel = stringResource(wording.action).takeIf { wording.actionable },
                     onAction = onOpenSources,
+                    retryLabel = wording.retry?.let { stringResource(it) },
+                    onRetry = onRefreshSource,
                     compact = true,
                     modifier = Modifier.weight(1f),
                 )

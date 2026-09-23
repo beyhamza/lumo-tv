@@ -24,28 +24,9 @@
     <string name="feature_auth_error_invalid">Quelque chose dans ce formulaire a été refusé. Vérifiez l\'adresse et réessayez.</string>
     <string name="feature_auth_error_rate_limited">Trop de tentatives. Réessayez dans un instant.</string>
     <string name="feature_auth_error_rate_limited_seconds">Trop de tentatives. Réessayez dans %1$d secondes.</string>
-    <string name="feature_auth_error_device_limit">Votre offre n\'autorise pas un appareil de plus. Déliez-en un depuis votre compte, ou passez à une offre supérieure.</string>
+    <string name="feature_auth_error_device_limit">Ce compte ne peut pas se connecter sur un appareil de plus. Déconnectez-en un depuis les Réglages d\'un appareil connecté, ou sur lumo.tv.</string>
     <string name="feature_auth_error_offline">Pas de connexion. Vos identifiants n\'ont pas été envoyés.</string>
     <string name="feature_auth_error_unexpected">Une erreur est survenue. Réessayez.</string>
-
-    <!--
-      Connexion Google (US-03). Tout le bloc est absent de l'écran quand aucun
-      client OAuth n'est configuré dans le build : aucune de ces chaînes
-      n'apparaît alors.
-    -->
-    <string name="feature_auth_google_continue">Continuer avec Google</string>
-    <string name="feature_auth_google_no_account">Aucun compte Google sur cet appareil. Ajoutez-en un dans les réglages du téléphone, ou utilisez une adresse email.</string>
-    <!--
-      Ne propose pas de réessayer : rien n'aura changé au prochain appui. Nomme
-      l'entrée qui fonctionne, à la place.
-    -->
-    <string name="feature_auth_google_unavailable">La connexion Google n\'est pas disponible sur cet appareil. Utilisez une adresse email.</string>
-    <!--
-      OAUTH_TOKEN_INVALID. Ce n'est pas l'utilisateur - le plus souvent un build
-      configuré avec le mauvais client OAuth - donc le message n'accuse pas le
-      compte et n'envoie personne chez Google réparer ce qui n'y est pas.
-    -->
-    <string name="feature_auth_google_rejected">La connexion Google n\'a pas pu aboutir. Utilisez une adresse email.</string>
 
     <string name="feature_auth_tv_preparing">Préparation…</string>
     <string name="feature_auth_tv_title">Connectez-vous depuis votre téléphone</string>

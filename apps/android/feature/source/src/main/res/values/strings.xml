@@ -62,14 +62,20 @@
     <string name="feature_source_retry">Try again</string>
     <string name="feature_source_syncing_body">A large playlist can take up to a minute.</string>
 
-    <string name="feature_source_limit_title">Your plan allows %1$d source(s)</string>
-    <string name="feature_source_limit_body">Remove an existing source, or move to a larger plan to add more.</string>
+    <!--
+      The ceiling comes from `GET /me/entitlement` and is explained without a
+      way to pay for a higher one: the 0.2.0 scope is a free version (US-025,
+      decision of 17 September 2026). What the sentence offers is the one thing
+      the user can do.
+    -->
+    <string name="feature_source_limit_title">This account can hold %1$d source(s)</string>
+    <string name="feature_source_limit_body">Remove one to add another.</string>
 
     <!--
       What is left here is what only the add-source form can meet. One message per
       code, never a generic fallback: the contract says no client may collapse them.
     -->
-    <string name="feature_source_error_limit">Your plan does not allow one more source.</string>
+    <string name="feature_source_error_limit">This account cannot hold one more source. Remove one to add another.</string>
     <string name="feature_source_error_validation">Some of the information is incorrect.</string>
     <string name="feature_source_error_offline">No connection. Nothing was sent.</string>
     <!-- "Too many attempts" is the same wait as a refresh asked too soon: see feature_source_list_refresh_wait. -->
