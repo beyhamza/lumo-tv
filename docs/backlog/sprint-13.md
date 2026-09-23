@@ -11,13 +11,18 @@ S12 ; décisions Q2/Q6/Q7 avant les tâches concernées.
 
 ## Tâches proposées
 
+Complément du 23 septembre : [décisions Q6/Q7, états et cas PS-01 à PS-13](../design/0.2.0/player-settings-cases.md).
+Ce document précise les règles produit pour S13-00 à S13-06 ; les capacités des
+lecteurs, la détection réseau et la recette restent à vérifier. Aucun changement
+du sprint 8 ou de la réalisation S8-06 n’est inclus.
+
 Proposition d’écrans : [Reprise et lecteur](../design/0.2.0/resume-player.md).
 Les écrans S13-E01 à E04 illustrent les commandes et l’enchaînement ; ils ne
 valident pas les capacités des lecteurs ni les arbitrages Q2/Q6/Q7.
 
 Suite : [Réglages](../design/0.2.0/settings.md), S13-E05 à E10, pour S13-04/05/06.
-Q7 partiellement fermé : pause et demande de Wi-Fi lors de sa perte en lecture,
-si Lecture sur données mobiles est désactivée. Les autres cas réseau restent ouverts.
+Q6/Q7 cadrés côté produit le 23 septembre dans le complément ci-dessus, notamment
+reprise explicite après retour du Wi-Fi ; réalisation et recette non exécutées.
 
 | ID | Travail | Surface/dépendance |
 |---|---|---|

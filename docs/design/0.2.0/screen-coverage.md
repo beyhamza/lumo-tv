@@ -10,7 +10,7 @@ lecteur, une garantie contractuelle ou une recette sur appareil.
 | S10 — Recherche | [Présentation](unified-search.md), [interactions](search-interactions.md) | Vérifier le clavier TV réel, la pagination et les réponses obsolètes sur l’interface branchée |
 | S11 — Bibliothèque | [Présentation](library.md), [favoris FO-01 à FO-12](favorite-organization-cases.md), [À regarder WL-01 à WL-17](watchlist-states.md) | Présenter le résultat partiel d’un retrait et la carte indisponible lors de la démo ; garanties C2 encore à soumettre |
 | S12 — Reprise | [Reprise et lecteur](resume-player.md), [CW-01 à CW-33](continue-watching-cases.md) | Démonstration à deux appareils, retrait pendant lecture concurrente et arrivée tardive d’une position ; garanties C3 encore à soumettre |
-| S13 — Lecteur/réglages | [Lecteur](resume-player.md), [enchaînement](episode-continuation.md), [réglages S13-E05 à E10](settings.md) | Relire les états avec pistes absentes/non supportées ; Q6 et suite de Q7 encore ouverts |
+| S13 — Lecteur/réglages | [Lecteur](resume-player.md), [enchaînement](episode-continuation.md), [réglages S13-E05 à E10](settings.md), [Q6/Q7 et schémas d’états](player-settings-cases.md) | Complément du 23 septembre : PS-01 à PS-13 ; règles produit cadrées, capacités et recette encore à vérifier |
 | S14 — Qualification | [Dossier de livraison](../../releases/0.2.0/execution-plan.md), [recette](../../releases/0.2.0/acceptance.md) | Captures du build candidat sur les trois surfaces, FR/EN, états d’erreur et focus ; aucun nouvel écran produit requis |
 
 ## Preuves à joindre à la recette visuelle

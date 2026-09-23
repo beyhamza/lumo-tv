@@ -2,6 +2,12 @@
 
 Date : 19 septembre 2026. Statut : proposition à relire ; développement non commencé.
 
+Complément du 23 septembre : [décisions Q6/Q7 et états PS-01 à PS-13](player-settings-cases.md).
+Il remplace les mentions historiques « encore ouvert » de Q6/Q7 ci-dessous : portée
+et défauts des préférences, sous-titres forcés, pistes sans langue et règles réseau
+sont désormais cadrés. Les capacités et la recette restent à vérifier ; les écrans
+du 19 septembre ne simulent pas toutes ces décisions.
+
 Références : [US-025](../../backlog/stories/US-025-general-settings.md),
 [US-023](../../backlog/stories/US-023-player-preferences.md),
 [US-024](../../backlog/stories/US-024-source-management.md),
