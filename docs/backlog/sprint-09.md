@@ -49,6 +49,24 @@ Mis à jour le 24 septembre 2026. Une case cochée signifie recetté, pas seulem
 - [ ] S9-06 — fiche programme
 - [ ] S9-07 — recette
 
+## Cadrage S9-03 — arrêté le 24 septembre 2026
+
+S9-03 reprend S7-02, S7-03 et S7-04 et pose le socle client de C1 avant les
+écrans de S9-04 à S9-06. Règle commune : **une requête groupée par écran**, jamais
+une par carte, et **rien d'affiché quand il n'y a rien** — pas de « programme
+indisponible », pas d'espace réservé (S7-03).
+
+| Surface | Livré en S9-03 | Laissé à |
+|---|---|---|
+| Android, `core:data` + Room | Table `epg_programme` (migration 6 → 7, schéma exporté), `EpgRepository` : fenêtre groupée par source, **le cache gagne**, purge locale avant D−1, oubli à la suppression d'une source ; `EpgWindow` porte sa date de récupération **et** l'`EpgImportStatus` du serveur ; fraîcheur D4 en fonction pure (> 24 h = ancien, à 24 h exactes non) ; découpage borné du 422 (chaînes puis fenêtre, 2 requêtes simultanées, 3 niveaux, fusion par UUID) | Grille TV, journée mobile : S9-05 |
+| Android TV | « En ce moment » et « Ensuite » dans la barre du lecteur, une requête à l'ouverture de la chaîne, fenêtre de 3 h (S7-03) ; programme en cours sous chaque carte de la grille Direct, une requête par page visible (S7-04) | Vue Guide : S9-04/05 |
+| Android mobile | Programme en cours sur les cartes Direct de l'accueil | Liste Chaînes et journée : S9-04/05 |
+| Web | Chargeur `server-only` de la lecture groupée avec le même découpage borné et la même fonction de fraîcheur ; programme en cours sur les cartes Direct de l'accueil et sur les chaînes de la page catalogue, une requête par page | Grille horaire : S9-05 |
+| Toutes | Aucun appel au fournisseur ; une chaîne sans `tvg_id`, une source sans guide, un guide non chargé → **rien**, la chaîne reste lisible ; libellé « Dernier import du guide », jamais « programmes à jour » | Lien Guide TV de l'accueil : S9-04 |
+
+Les heures s'affichent dans le fuseau de l'appareil ; « en ce moment » se calcule
+depuis les horaires et l'horloge locale, sans requête à la seconde.
+
 ## Démo et sortie
 
 Preuve du 24 septembre : huit tests EPG, build API complet vert (295 tests).
