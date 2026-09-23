@@ -52,6 +52,13 @@ Credential Manager sur le téléphone (`S2-06`), le bouton de Google sur le web
 `exp`. Il ne fait jamais confiance à un email transmis par un client, ce qui était le
 point qui comptait.
 
+**Depuis S8-06 (23 septembre 2026), l'interface ne le propose plus.** Le bouton
+et son code client de surface ont été retirés des écrans de connexion et
+d'inscription sur mobile et web, avec la variable d'identifiant client et, sur
+Android, les dépendances Credential Manager. Ce qui reste : l'opération du contrat,
+sa vérification côté serveur, et l'appel de dépôt Android. Réintroduire Google,
+c'est remettre un bouton devant un serveur qui sait déjà répondre.
+
 **Ce qui manque n'est pas du code.** Il n'existe aucun client OAuth dans ce dépôt, et
 il ne doit pas y en avoir — ce serait un secret versionné. Ce qui manque est une
 configuration : un projet chez Google, un identifiant client web avec ses origines
