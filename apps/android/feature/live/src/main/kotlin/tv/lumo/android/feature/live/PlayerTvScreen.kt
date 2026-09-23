@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -52,13 +53,15 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import java.time.Instant
 import kotlinx.coroutines.delay
+import tv.lumo.android.core.data.NowAndNext
 import tv.lumo.android.core.data.R as DataR
-import tv.lumo.android.core.designsystem.component.LumoMockMissingData
 import tv.lumo.android.core.designsystem.component.LumoMockNotImplemented
 import tv.lumo.android.core.designsystem.component.LumoTvAcknowledgeDialog
 import tv.lumo.android.core.designsystem.component.LumoTvAudioTrackSheet
 import tv.lumo.android.core.designsystem.component.LumoTvButton
+import tv.lumo.android.core.designsystem.format.formatTimeOfDay
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.theme.LumoTvShapes
@@ -78,12 +81,25 @@ import tv.lumo.android.core.player.ui.asChoices
  *
  * <h2>The bar, as the canvas draws it</h2>
  *
- * Number, name, what is on and what is next, a progress bar, `DIRECT`, and a row
- * of pills: pause, subtitles, quality, guide. Of those, the programme and its
- * progress are the guide the server does not serve yet, and subtitles, quality
- * and the guide are screens that do not exist: each is on the bar and says so
- * with the shared `[mock]` badge, rather than being left off and looking like a
- * decision.
+ * Number, name, what is on and what is next, `DIRECT`, and a row of pills:
+ * pause, subtitles, quality, guide. Subtitles, quality and the guide are screens
+ * that do not exist: each is on the bar and says so with the shared `[mock]`
+ * badge, rather than being left off and looking like a decision.
+ *
+ * <h2>What is on, and what is not said (US-16, S7-03)</h2>
+ *
+ * Two lines under the channel's name: the programme on air with the time it
+ * ends, and the one after it. They come from **one** request made when the
+ * channel opened, over three hours, and are recomputed against the clock each
+ * time the bar opens — never per second, and never by asking again. No progress
+ * bar: it would redraw per second a layer that leaves after five.
+ *
+ * When the guide has nothing — a channel without `tvg_id`, a source without a
+ * guide, a guide that has not loaded — the bar shows **the channel's name, as
+ * before, and nothing else**. No "programme unavailable", no reserved space:
+ * somebody whose provider never gives a guide would read that sentence at every
+ * opening, for ever. A missing piece of information hides nothing; a missing
+ * door would.
  *
  * Pause is real. It is not timeshift (v2): a paused live stream resumes at the
  * live edge or thereabouts, which is what the button honestly does.
@@ -245,6 +261,10 @@ fun PlayerTvScreen(
                 channelName = currentName,
                 channelNumber = state.channel?.number,
                 quality = state.channel?.quality,
+                // Against the clock at this opening of the bar, over the window
+                // fetched when the channel opened. `remember` on the guide as
+                // well: it may arrive while the bar is up.
+                onAir = remember(state.programmes) { state.onAir(Instant.now()) },
                 paused = state.paused,
                 audioHint = canPickAudio,
                 mockNotice = mockNotice,
@@ -293,6 +313,7 @@ private fun InfoBar(
     channelName: String?,
     channelNumber: Int?,
     quality: String?,
+    onAir: NowAndNext,
     paused: Boolean,
     audioHint: Boolean,
     mockNotice: Boolean,
@@ -350,34 +371,41 @@ private fun InfoBar(
                         color = LumoColors.OnDark,
                         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     )
-                    // « 21:00 – 22:00 · Généralistes · HD · Ensuite : Météo » —
-                    // the guide is not served yet; the quality is real.
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        LumoMockMissingData(scale = TV_TYPE_SCALE)
-                        quality?.let {
-                            Text(
-                                text = "· $it",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = LumoColors.OnDarkMuted,
-                            )
-                        }
+                    // « Journal · Fin à 21:30 » then « Ensuite : Météo », each
+                    // only when the guide has it; the quality is always real.
+                    onAir.current?.let { current ->
+                        Text(
+                            text = stringResource(
+                                R.string.feature_live_tv_on_air,
+                                current.title,
+                                formatTimeOfDay(current.endsAt),
+                            ),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = LumoColors.OnDark,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    onAir.next?.let { next ->
+                        Text(
+                            text = stringResource(R.string.feature_live_tv_next_program, next.title),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = LumoColors.OnDarkMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    quality?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = LumoColors.OnDarkMuted,
+                        )
                     }
                 }
 
                 LiveBadge()
             }
-
-            // The programme's progress: track only, the guide being what it is.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(LumoTvShapes.pill)
-                    .background(LumoColors.SurfaceRaised),
-            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

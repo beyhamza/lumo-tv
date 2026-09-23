@@ -15,7 +15,7 @@ import tv.lumo.android.network.generated.model.ErrorCode
  * **a failed deletion must change nothing locally**: dropping the cache and then
  * learning the request never left would leave a source that still exists with an
  * empty catalogue. Only then is the device's copy dropped — channels, films,
- * series, each from its own repository — and only then does
+ * series and the programme guide, each from its own repository — and only then does
  * [ActiveSourceRepository] re-decide what is browsed: the one source left, a
  * question when several are, the add flow when none is.
  *
@@ -51,6 +51,7 @@ class SourceRemover internal constructor(
         catalogue: CatalogueRepository,
         vod: VodRepository,
         series: SeriesRepository,
+        epg: EpgRepository,
         favorites: FavoriteRepository,
         recents: RecentChannelRepository,
         activeSource: ActiveSourceRepository,
@@ -60,6 +61,9 @@ class SourceRemover internal constructor(
             { sourceId -> catalogue.forget(sourceId) },
             { sourceId -> vod.forget(sourceId) },
             { sourceId -> series.forget(sourceId) },
+            // The guide too (S9-03): programmes of a deleted source would sit in
+            // the cache until the daily purge, joined to nothing.
+            { sourceId -> epg.forget(sourceId) },
         ),
         accountLists = listOf(
             { favorites.refresh() },

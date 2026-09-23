@@ -3,6 +3,7 @@ package tv.lumo.android.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Clock
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,8 +14,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.ActiveSourceState
+import tv.lumo.android.core.data.OnAirTracker
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.ContinueWatchingRepository
+import tv.lumo.android.core.data.repository.EpgRepository
 import tv.lumo.android.core.data.repository.FavoriteRepository
 import tv.lumo.android.core.data.repository.RecentChannelRepository
 
@@ -41,6 +44,15 @@ import tv.lumo.android.core.data.repository.RecentChannelRepository
  *
  * `LiveViewModel`'s rule (US-018). Changing source from the shell leaves this
  * screen where it is and reloads it for the new one; nothing here navigates.
+ *
+ * <h2>What is on the Live cards, in one request (US-16, S9-03)</h2>
+ *
+ * The Live rail holds at most twelve channels of the active source, and their
+ * guide is asked for **once for the rail**, through [OnAirTracker] — the same
+ * one-request-per-page rule as the television's grid, and never a request per
+ * card. What is on is recomputed against the clock each time the screen is
+ * shown again ([onShown]), over the window held. A card with nothing draws
+ * nothing. The way into the TV guide is S9-04's, and is not drawn here.
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -48,10 +60,14 @@ class HomeViewModel @Inject constructor(
     private val continueWatching: ContinueWatchingRepository,
     private val favorites: FavoriteRepository,
     private val recentChannels: RecentChannelRepository,
+    epg: EpgRepository,
+    clock: Clock,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
     val state: StateFlow<HomeState> = _state
+
+    private val guide = OnAirTracker(epg, clock, viewModelScope)
 
     /** The reload in flight, so that a second trigger replaces it instead of racing it. */
     private var loading: Job? = null
@@ -59,6 +75,24 @@ class HomeViewModel @Inject constructor(
     init {
         observeCache()
         observeActiveSource()
+        observeGuide()
+    }
+
+    /**
+     * The Live rail's channels, followed as a list of ids: the rail changes when
+     * a channel is played, and the guide is asked for the new id only.
+     */
+    private fun observeGuide() {
+        viewModelScope.launch {
+            _state.map { it.sourceId to it.liveChannelIds }
+                .distinctUntilChanged()
+                .collect { (sourceId, ids) ->
+                    if (sourceId != null && ids.isNotEmpty()) guide.show(sourceId, ids)
+                }
+        }
+        viewModelScope.launch {
+            guide.onAir.collect { onAir -> _state.update { it.copy(onAir = onAir) } }
+        }
     }
 
     /**
@@ -119,6 +153,9 @@ class HomeViewModel @Inject constructor(
     fun onShown() {
         refreshSource()
         if (_state.value.step == HomeStep.Browsing && loading?.isActive != true) reload()
+        // What was on when the screen was left may have ended: recomputed over
+        // the window held, no request.
+        guide.tick()
     }
 
     /**

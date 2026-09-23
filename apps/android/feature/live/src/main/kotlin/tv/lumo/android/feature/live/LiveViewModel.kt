@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Clock
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
@@ -24,6 +25,7 @@ import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.OnAirTracker
 import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.asCatalogueSource
 import tv.lumo.android.core.data.channelsOfSource
@@ -32,12 +34,14 @@ import tv.lumo.android.core.data.model.Cached
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
+import tv.lumo.android.core.data.model.EpgProgramme
 import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
 import tv.lumo.android.core.data.notice
 import tv.lumo.android.core.data.ofSource
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.CatalogueRepository
+import tv.lumo.android.core.data.repository.EpgRepository
 import tv.lumo.android.core.data.repository.FavoriteRepository
 import tv.lumo.android.core.data.repository.RecentChannelRepository
 import tv.lumo.android.core.data.repository.onFailureNaming
@@ -81,6 +85,16 @@ import tv.lumo.android.core.data.sourceId
  * again for the new source, and whatever filtered the old one — a category, a
  * group, the recent shelf — is dropped, since none of it means anything in a
  * catalogue it did not come from. See [LiveState.browsing].
+ *
+ * <h2>What is on, one request per page of the grid (US-16, S7-04 by S9-03)</h2>
+ *
+ * The television's grid says what is on under each card. The trap is the number
+ * of requests: a paginated grid that asked card by card would make one per
+ * visible card and more at every scroll. So the screen reports the **page** of
+ * channels on display ([onChannelsVisible]) and [OnAirTracker] asks once for
+ * the ones it does not hold — one request per page, none for a page scrolled
+ * back into view. What it answers lands in [LiveState.onAir]; a card with
+ * nothing there draws nothing (S7-03).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -89,10 +103,14 @@ class LiveViewModel @Inject constructor(
     private val activeSource: ActiveSourceRepository,
     private val favorites: FavoriteRepository,
     private val recents: RecentChannelRepository,
+    epg: EpgRepository,
+    clock: Clock,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LiveState())
     val state: StateFlow<LiveState> = _state
+
+    private val guide = OnAirTracker(epg, clock, viewModelScope)
 
     /**
      * The channels of the chosen category, paginated straight out of SQLite.
@@ -143,6 +161,23 @@ class LiveViewModel @Inject constructor(
     init {
         observeActiveSource()
         observeFavorites()
+        viewModelScope.launch {
+            guide.onAir.collect { onAir -> _state.update { it.copy(onAir = onAir) } }
+        }
+    }
+
+    /**
+     * The channels of the page on display, from the television's grid.
+     *
+     * A page, not the visible cards: the screen rounds what is visible to a
+     * page of [EPG_PAGE_SIZE], so that scrolling within a page costs nothing
+     * and scrolling into the next costs one request. The tracker holds what it
+     * has already asked for; repeating a page is free.
+     */
+    fun onChannelsVisible(channelIds: List<String>) {
+        val sourceId = _state.value.sourceId ?: return
+        if (channelIds.isEmpty()) return
+        guide.show(sourceId, channelIds)
     }
 
     /**
@@ -562,6 +597,13 @@ data class LiveState(
 
     /** The last favourite write that failed. Offline is the ordinary case here. */
     val favoriteError: LumoError? = null,
+
+    /**
+     * The programme on air per channel id, for the pages the grid has shown
+     * (S7-04). Absent for a channel with nothing on, and the card then draws
+     * nothing under the name — no placeholder, no "unavailable" (S7-03).
+     */
+    val onAir: Map<String, EpgProgramme> = emptyMap(),
 ) {
 
     /**
@@ -597,6 +639,9 @@ data class LiveState(
 
         if (source.sourceId == sourceId) return copy(step = step)
 
+        // `onAir` goes with the source: the tracker resets on the next page
+        // shown, and a programme of the old source under a new card in between
+        // is the GD-03 failure.
         return LiveState(
             step = step,
             sourceId = source.sourceId,
@@ -648,3 +693,12 @@ data class LiveState(
     fun stillFavoritedWithout(channelId: String, groupId: String): Boolean =
         favorites.any { it.channel.id == channelId && it.groupId != groupId }
 }
+
+/**
+ * How many channels one guide request covers on the television's grid.
+ *
+ * Six rows of four: three screens of a two-row grid, so that a viewer stepping
+ * down the catalogue costs one request every three screens and not one per row.
+ * Well under the contract's cap of 100.
+ */
+const val EPG_PAGE_SIZE: Int = 24

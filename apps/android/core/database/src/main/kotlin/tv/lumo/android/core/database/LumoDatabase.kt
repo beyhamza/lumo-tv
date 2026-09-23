@@ -7,12 +7,15 @@ import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.ChannelDao
+import tv.lumo.android.core.database.dao.EpgDao
 import tv.lumo.android.core.database.dao.FavoriteDao
 import tv.lumo.android.core.database.dao.RecentChannelDao
 import tv.lumo.android.core.database.dao.SeriesDao
 import tv.lumo.android.core.database.dao.VodDao
 import tv.lumo.android.core.database.model.CategoryEntity
 import tv.lumo.android.core.database.model.ChannelEntity
+import tv.lumo.android.core.database.model.EpgImportStatusEntity
+import tv.lumo.android.core.database.model.EpgProgrammeEntity
 import tv.lumo.android.core.database.model.FavoriteEntity
 import tv.lumo.android.core.database.model.FavoriteGroupEntity
 import tv.lumo.android.core.database.model.RecentChannelEntity
@@ -46,8 +49,10 @@ import tv.lumo.android.core.database.model.VodItemEntity
         SeriesEntity::class,
         SeasonEntity::class,
         EpisodeEntity::class,
+        EpgProgrammeEntity::class,
+        EpgImportStatusEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class LumoDatabase : RoomDatabase() {
@@ -57,6 +62,7 @@ abstract class LumoDatabase : RoomDatabase() {
     abstract fun recentChannelDao(): RecentChannelDao
     abstract fun vodDao(): VodDao
     abstract fun seriesDao(): SeriesDao
+    abstract fun epgDao(): EpgDao
 }
 
 /**
@@ -302,6 +308,68 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
         )
         connection.execSQL(
             "CREATE INDEX IF NOT EXISTS `index_episode_series_id` ON `episode` (`series_id`)",
+        )
+    }
+}
+
+/**
+ * 6 → 7: the programme guide and its import status (US-16, S9-03).
+ *
+ * Two tables. `epg_programme` is the first cache in this schema whose rows go
+ * stale on their own — see [EpgProgrammeEntity] — and it is purged by the
+ * repository rather than replaced whole at a refresh: a window read writes only
+ * the programmes it fetched, and the ones that ended before D−1 are dropped on
+ * a daily pass. `epg_import_status` holds one row per source, the server's
+ * account of its last guide import beside the device's clock at the fetch,
+ * because the two dates are different things and a screen needs both
+ * (C1 D3, D4).
+ *
+ * No foreign key from `epg_programme` to `channel`, for the reason `favorite`
+ * gives: the association is through `(source_id, tvg_id)`, resolved by a join
+ * at read time, and a programme may land before the channel it belongs to has
+ * been cached.
+ *
+ * Nothing to backfill: no build before this one ever stored a programme, and
+ * the first guide read fills both tables. The statements are the ones Room
+ * generates for these entities, written out because `DatabaseModule` still has
+ * no `fallbackToDestructiveMigration`.
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `epg_programme` (
+                `id` TEXT NOT NULL,
+                `source_id` TEXT NOT NULL,
+                `tvg_id` TEXT NOT NULL,
+                `starts_at` INTEGER NOT NULL,
+                `ends_at` INTEGER NOT NULL,
+                `title` TEXT NOT NULL,
+                `description` TEXT,
+                `category` TEXT,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent(),
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_epg_programme_source_id_tvg_id_ends_at` " +
+                "ON `epg_programme` (`source_id`, `tvg_id`, `ends_at`)",
+        )
+
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `epg_import_status` (
+                `source_id` TEXT NOT NULL,
+                `configured` INTEGER NOT NULL,
+                `last_successful_import_at` INTEGER,
+                `last_attempt_started_at` INTEGER,
+                `last_attempt_finished_at` INTEGER,
+                `last_attempt_status` TEXT NOT NULL,
+                `generated_at` INTEGER NOT NULL,
+                `fetched_at` INTEGER NOT NULL,
+                PRIMARY KEY(`source_id`)
+            )
+            """.trimIndent(),
         )
     }
 }

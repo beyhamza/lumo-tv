@@ -3,6 +3,8 @@ package tv.lumo.android.feature.live
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Clock
+import java.time.Instant
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,10 +15,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.NowAndNext
+import tv.lumo.android.core.data.OnAirTracker
 import tv.lumo.android.core.data.PlaybackSourceGuard
+import tv.lumo.android.core.data.currentAndNext
 import tv.lumo.android.core.data.model.Channel
+import tv.lumo.android.core.data.model.EpgProgramme
 import tv.lumo.android.core.data.model.PlaybackTarget
 import tv.lumo.android.core.data.repository.CatalogueRepository
+import tv.lumo.android.core.data.repository.EpgRepository
 import tv.lumo.android.core.data.repository.PlaybackRepository
 import tv.lumo.android.core.player.AudioTrack
 import tv.lumo.android.core.player.LumoPlayer
@@ -50,15 +57,28 @@ import tv.lumo.android.network.generated.model.ErrorCode
  * A codec is scarce on the cheap boxes this product runs on. Releasing it here
  * would leave the next screen without a player at all; stopping clears the media
  * item, which is what drops the credential-bearing URL out of memory.
+ *
+ * <h2>What is on, asked once per channel (US-16, S7-03 taken up by S9-03)</h2>
+ *
+ * The guide of the channel is asked for **when the channel opens**, over three
+ * hours, and never again while it plays: the bar opens several times an
+ * evening, and each opening recomputes "now" and "next" over the window already
+ * held ([PlayerUiState.onAir]) rather than asking the server. The one request
+ * goes through [OnAirTracker], which the grid and the home screen share, so
+ * that the three surfaces of S9-03 cannot count requests differently.
  */
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     private val playback: PlaybackRepository,
     private val catalogue: CatalogueRepository,
     private val sourceGuard: PlaybackSourceGuard,
+    epg: EpgRepository,
+    clock: Clock,
     /** Exposed for the video surface, which needs the instance rather than its state. */
     val player: LumoPlayer,
 ) : ViewModel() {
+
+    private val guide = OnAirTracker(epg, clock, viewModelScope)
 
     private val _failure = MutableStateFlow<PlayerFailure?>(null)
     private val _target = MutableStateFlow<PlaybackTarget?>(null)
@@ -78,6 +98,10 @@ class PlayerViewModel @Inject constructor(
                 channel = channel,
                 paused = paused,
             )
+        }.combine(guide.programmes) { state, programmes ->
+            // The guide of the channel on screen, which after "next channel" is
+            // not the one the route named.
+            state.copy(programmes = state.channel?.id?.let { programmes[it] }.orEmpty())
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
@@ -107,6 +131,9 @@ class PlayerViewModel @Inject constructor(
             // API for as long as it plays, so the question "does this source still
             // exist" has to be asked on a clock (US-024).
             channel?.sourceId?.let(::watchSource)
+            // One request, now, over three hours (S7-03). Nothing when the
+            // channel is not cached: there is no source to ask under.
+            channel?.sourceId?.let { guide.show(it, listOf(channelId)) }
         }
         open(channelId)
     }
@@ -226,6 +253,7 @@ class PlayerViewModel @Inject constructor(
     fun stop() {
         sourceGuard.stop()
         player.stop()
+        guide.clear()
         _target.value = null
         _channel.value = null
         channelId = null
@@ -243,7 +271,24 @@ data class PlayerUiState(
     val channel: Channel? = null,
     /** The viewer pressed pause; the picture is held until they press again. */
     val paused: Boolean = false,
-)
+    /**
+     * The channel's guide over the three hours from its opening, or empty: no
+     * `tvg_id`, no guide on the source, a guide that has not loaded — the three
+     * are one empty list here, and the bar draws nothing for it (S7-03).
+     */
+    val programmes: List<EpgProgramme> = emptyList(),
+) {
+
+    /**
+     * "En ce moment" and "Ensuite" at [now], over the window held.
+     *
+     * Computed when the bar opens, with the screen's clock, and not on a timer:
+     * a bar that goes away after five seconds has no business redrawing per
+     * second (S7-03). Both null when the guide has nothing — and the bar then
+     * shows the channel's name, as before, and nothing else.
+     */
+    fun onAir(now: Instant): NowAndNext = currentAndNext(programmes, now)
+}
 
 /** What this screen can say, and what it offers when it says it. */
 sealed interface PlayerFailure {

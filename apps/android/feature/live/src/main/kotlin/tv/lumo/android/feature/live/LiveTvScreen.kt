@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +52,9 @@ import androidx.paging.compose.itemKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.SubcomposeAsyncImage
+import java.time.Duration
+import java.time.Instant
+import kotlinx.coroutines.flow.distinctUntilChanged
 import tv.lumo.android.core.data.EmptyGrid
 import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.data.SourceNotice
@@ -60,10 +64,10 @@ import tv.lumo.android.core.data.messageRes
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
+import tv.lumo.android.core.data.model.EpgProgramme
 import tv.lumo.android.core.data.model.FavoriteGroup
 import tv.lumo.android.core.data.wording
 import tv.lumo.android.core.designsystem.component.LumoFavoriteGroupChoice
-import tv.lumo.android.core.designsystem.component.LumoMockMissingData
 import tv.lumo.android.core.designsystem.component.LumoTvFavoriteGroupSheet
 import tv.lumo.android.core.designsystem.component.LumoTvSourceNotice
 import tv.lumo.android.core.designsystem.component.LumoTvStateMessage
@@ -80,14 +84,19 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
  * focus, a four-column grid on the right, the category chips above it and one
  * line of key hints at the bottom.
  *
- * <h2>What the panel can and cannot say</h2>
+ * <h2>What is on, under each card and in the panel (US-16, S7-04 by S9-03)</h2>
  *
- * The canvas gives it a programme in progress, its time slot and a progress
- * bar. The product has a channel and a category; the programme guide is in the
- * contract (`GET /channels/{id}/epg`) but the server's `epg` package is empty in
- * v1 (`apps/api/AGENTS.md` §2). So the panel draws the slot as the canvas does
- * and labels the programme `[mock] données manquantes` — the honest version of
- * the design, and the first thing to replace when the guide arrives.
+ * The guide arrived with C1. Each card carries the title of the programme on
+ * air, the panel says it with its progress, and both come from **one request
+ * per page** of the grid: the screen watches which indices are visible, rounds
+ * them to a page of [EPG_PAGE_SIZE] and hands the page's channel ids to the
+ * view model, which asks once for what it does not hold. Never a request per
+ * card — that is the trap S7-04 names.
+ *
+ * Where the guide has nothing — no `tvg_id`, no guide on the source, not loaded
+ * — a card shows its name and number and **nothing else**: no placeholder, no
+ * "unavailable". The `[mock] données manquantes` badge that stood here while
+ * the server's `epg` package was empty is gone with it (S7-03).
  *
  * <h2>Focus</h2>
  *
@@ -179,6 +188,7 @@ fun LiveTvScreen(
             LiveStep.Browsing -> Browsing(
                 state = state,
                 channels = channels,
+                onChannelsVisible = viewModel::onChannelsVisible,
                 onOpenSources = onOpenSources,
                 onRetry = viewModel::refresh,
                 onRefreshSource = viewModel::refreshSource,
@@ -216,6 +226,7 @@ fun LiveTvScreen(
 private fun Browsing(
     state: LiveState,
     channels: LazyPagingItems<Channel>,
+    onChannelsVisible: (List<String>) -> Unit,
     onOpenSources: () -> Unit,
     onRetry: () -> Unit,
     onRefreshSource: () -> Unit,
@@ -254,6 +265,16 @@ private fun Browsing(
         if (previewed == null || channels.itemSnapshotList.items.none { it.id == previewed?.id }) {
             previewed = channels.itemSnapshotList.items.firstOrNull()
         }
+    }
+
+    // The page on display, for the guide. Read from the grid's layout and from
+    // Paging's snapshot — both are state, so this re-runs when a page loads in
+    // or the grid scrolls, and `distinctUntilChanged` keeps a scroll within a
+    // page from asking anything.
+    LaunchedEffect(gridState, channels) {
+        snapshotFlow { visiblePageIds(gridState.layoutInfo.visibleItemsInfo.map { it.index }, channels) }
+            .distinctUntilChanged()
+            .collect { ids -> onChannelsVisible(ids) }
     }
 
     Column(
@@ -324,6 +345,7 @@ private fun Browsing(
         ) {
             Preview(
                 channel = previewed,
+                onAir = previewed?.let { state.onAir[it.id] },
                 categoryName = previewed?.categoryId?.let { id ->
                     state.categories.firstOrNull { it.id == id }?.name
                 },
@@ -361,6 +383,7 @@ private fun Browsing(
                         val channel = channels[index]
                         ChannelCard(
                             channel = channel,
+                            onAir = channel?.let { state.onAir[it.id] },
                             favorited = channel != null && state.isFavorited(channel.id),
                             onPlay = onPlay,
                             onFavorite = onFavorite,
@@ -389,14 +412,20 @@ private fun Browsing(
 
 /**
  * The left panel of the canvas: a picture of the channel, its name, what is on,
- * when, and how far along.
+ * and how far along.
  *
- * The picture is the logo, since a television has no still of a live stream;
- * the programme and the slot are the guide the server does not serve yet, said
- * as such rather than invented.
+ * The picture is the logo, since a television has no still of a live stream.
+ * The programme is the guide's, when it has one; the progress is computed once
+ * per focused card against the clock, not ticked — a panel that follows the
+ * D-pad is redrawn often enough as it is.
  */
 @Composable
-private fun Preview(channel: Channel?, categoryName: String?, modifier: Modifier = Modifier) {
+private fun Preview(
+    channel: Channel?,
+    onAir: EpgProgramme?,
+    categoryName: String?,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
@@ -433,15 +462,18 @@ private fun Preview(channel: Channel?, categoryName: String?, modifier: Modifier
             overflow = TextOverflow.Ellipsis,
         )
 
-        // « En ce moment : Journal du soir » — the programme is the guide, and
-        // the guide is not served yet. The badge stands for the programme and
-        // for its slot at once: one badge, not two, in a panel this narrow.
-        Text(
-            text = stringResource(R.string.feature_live_tv_now, ""),
-            style = MaterialTheme.typography.bodyLarge,
-            color = LumoColors.OnDark,
-        )
-        LumoMockMissingData(scale = TV_BADGE_SCALE)
+        // « En ce moment : Journal du soir » — only when the guide has it.
+        // Nothing otherwise, not even the label: an empty "Now:" would be the
+        // reserved space S7-03 rules out.
+        onAir?.let { programme ->
+            Text(
+                text = stringResource(R.string.feature_live_tv_now, programme.title),
+                style = MaterialTheme.typography.bodyLarge,
+                color = LumoColors.OnDark,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
 
         // « Généralistes · HD » — the category and the quality are real.
         Text(
@@ -452,8 +484,9 @@ private fun Preview(channel: Channel?, categoryName: String?, modifier: Modifier
             overflow = TextOverflow.Ellipsis,
         )
 
-        // The progress of a programme nobody knows the length of: the track is
-        // drawn, the fill stays at zero.
+        // How far along the programme is, as of the moment the card took the
+        // focus. The track stays at zero when there is no programme to measure.
+        val fraction = remember(onAir) { onAir?.elapsedFraction(Instant.now()) ?: 0f }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -463,7 +496,7 @@ private fun Preview(channel: Channel?, categoryName: String?, modifier: Modifier
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(fraction = 0f)
+                    .fillMaxWidth(fraction = fraction)
                     .height(6.dp)
                     .background(Brush.horizontalGradient(listOf(LumoColors.Accent, LumoColors.AccentViolet))),
             )
@@ -569,14 +602,16 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
 }
 
 /**
- * One cell of the grid, as the canvas draws it: the name, and the number under
- * it in a monospaced face. The logo lives in the panel — at four columns a
- * card is read by its name, and a logo that small is a smudge.
+ * One cell of the grid, as the canvas draws it: the name, the number under it
+ * in a monospaced face, and the programme on air under that when the guide has
+ * one (S7-04). The logo lives in the panel — at four columns a card is read by
+ * its name, and a logo that small is a smudge.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChannelCard(
     channel: Channel?,
+    onAir: EpgProgramme?,
     favorited: Boolean,
     onPlay: (channelId: String, name: String?) -> Unit,
     onFavorite: (Channel) -> Unit,
@@ -637,7 +672,43 @@ private fun ChannelCard(
                 )
             }
         }
+        // Nothing under a card without a guide (S7-03): the line is absent,
+        // not blank, and the card is a little shorter on the inside.
+        onAir?.let { programme ->
+            Text(
+                text = programme.title,
+                style = MaterialTheme.typography.labelLarge,
+                color = LumoColors.OnDarkMuted,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
+}
+
+/**
+ * The channel ids of the page(s) covering the visible indices, in grid order.
+ *
+ * Rounded to whole pages of [EPG_PAGE_SIZE] so that the set only changes when
+ * the grid crosses a page boundary or a page's rows load in — never on a
+ * scroll of one row. Placeholders (rows Paging has not loaded) contribute
+ * nothing and are asked for when they do.
+ */
+private fun visiblePageIds(visible: List<Int>, channels: LazyPagingItems<Channel>): List<String> {
+    if (visible.isEmpty()) return emptyList()
+    val first = (visible.min() / EPG_PAGE_SIZE) * EPG_PAGE_SIZE
+    val last = minOf((visible.max() / EPG_PAGE_SIZE + 1) * EPG_PAGE_SIZE, channels.itemCount)
+    val snapshot = channels.itemSnapshotList
+    return (first until last).mapNotNull { index -> snapshot.getOrNull(index)?.id }
+}
+
+/** How far into the programme [now] is, clamped to `0..1`. */
+private fun EpgProgramme.elapsedFraction(now: Instant): Float {
+    val length = Duration.between(startsAt, endsAt).toMillis()
+    if (length <= 0) return 0f
+    val elapsed = Duration.between(startsAt, now).toMillis()
+    return (elapsed.toFloat() / length).coerceIn(0f, 1f)
 }
 
 @Composable
@@ -667,15 +738,9 @@ private fun Centered(content: @Composable () -> Unit) {
 // Four columns, as the canvas: three metres away a name is still readable at
 // this width on a 1080p panel, and a fifth column would not be.
 private const val GRID_COLUMNS = 4
-private val CARD_HEIGHT = 128.dp
+
+/** Two lines of name, the number, and one line of programme (S7-04). Two rows still fit a 1080p panel. */
+private val CARD_HEIGHT = 140.dp
 
 /** The preview panel's share of the content width, as on the canvas. */
 private const val PREVIEW_SHARE = 0.30f
-
-/**
- * The badge at the label step, not the TV scale: the preview column is 183 dp
- * on a 1080p panel, and the nineteen monospaced characters of the badge only
- * fit it unscaled. It is read up close by whoever is checking the gap, never
- * from the sofa.
- */
-private const val TV_BADGE_SCALE = 1.0f

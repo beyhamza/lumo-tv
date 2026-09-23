@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- TV3 — the channel grid and its preview panel. -->
+    <!--
+      TV3 — the channel grid and its preview panel; TV4 — the player's bar
+      (US-16, S9-03). "Now" in the panel, "on air" and "next" in the bar. Each
+      is drawn only when the guide has it: there is no string for its absence,
+      on purpose (S7-03).
+    -->
     <string name="feature_live_tv_now">Now: %1$s</string>
+    <!-- The programme on air and when it ends: « Programme 01 · Ends at 21:30 ». -->
+    <string name="feature_live_tv_on_air">%1$s · Ends at %2$s</string>
     <string name="feature_live_tv_next_program">Next: %1$s</string>
     <string name="feature_live_tv_preview">preview — %1$s</string>
     <string name="feature_live_tv_grid_hints">OK: watch · LEFT: categories</string>
