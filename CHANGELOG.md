@@ -12,6 +12,27 @@ avec la maturité du produit.
 
 ## [Non publié]
 
+### Ajouté
+
+**Contrat — lot C1 : le guide de plusieurs chaînes en une requête.** Touche les
+trois applications, donc annoncé ici (AGENTS.md §3). `GET /sources/{id}/epg`
+répond une entrée par chaîne demandée, dans l'ordre demandé, listes vides
+comprises, avec la fiche d'import du guide de la source (`EpgImportStatus` :
+configuré, dernier import réussi, dernière tentative et son état). Deux plafonds
+indépendants — 5 000 occurrences, 4 Mio non compressés — répondent
+`422 EPG_WINDOW_TOO_LARGE` plutôt qu'un `200` tronqué ; le client réduit le lot
+ou la fenêtre. La lecture unitaire `GET /channels/{id}/epg` gagne la même fiche
+en champ optionnel. « Dernier import du guide » n'est pas « programmes à jour » :
+la date mesure notre import, pas la fraîcheur du fournisseur. Détail :
+`docs/roadmap/0.2.0/c1-grouped-epg.md` §8.
+
+**lumo-api — une fiche d'import EPG par source.** Changeset 0020 : chaque tentative
+écrit `RUNNING` avec son propre identifiant avant le premier lot, et ne publie
+`SUCCEEDED` ou `FAILED` que si cet identifiant tient encore — une source
+reconfigurée pendant l'import ne reçoit pas un succès périmé. Une tentative
+bloquée est `INTERRUPTED` par le balayage. Les sources existantes restent
+`UNKNOWN`, sans recopier `last_synced_at`.
+
 ### Modifié
 
 **Contrat — lot C4 : l'ancien catalogue reste consultable.** Touche les trois
