@@ -1,7 +1,12 @@
 import createIntlMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { routing } from "@/i18n/routing";
-import { sessionCookieName } from "@/lib/env";
+import {
+  DIRECT_VIEW_MAX_AGE_SECONDS,
+  directViewCookieName,
+  explicitView,
+} from "@/lib/direct/view-memory";
+import { sessionCookieName, sessionCookieSecure } from "@/lib/env";
 import { PATHNAME_HEADER } from "@/lib/http/pathname-header";
 import {
   isAccessTokenStale,
@@ -47,6 +52,12 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   // response the browser will immediately replace.
   if (isRedirect(response)) return response;
 
+  // The Direct view memory (S9-04-06). Written here and not in the page because
+  // a Server Component cannot set a cookie, and the view switch is a plain link
+  // that has to work without JavaScript: an explicit `?view=` primes the cookie
+  // on the way to the render that shows it.
+  rememberDirectView(request, response);
+
   const { pathname } = request.nextUrl;
   const locale = localeOf(pathname);
   const isProtected = isProtectedPath(pathname, locale);
@@ -89,6 +100,60 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
 function isRedirect(response: NextResponse): boolean {
   return response.status >= 300 && response.status < 400;
+}
+
+/**
+ * Remembers an explicit Direct view for one source.
+ *
+ * Only `/app/sources/<id>/channels` carries a view, and only when the URL says
+ * one: a bare `/channels` — an S8 link, an Explore door — writes nothing and so
+ * keeps the memory (`resolveDirectView`). A value the cookie already holds is
+ * not rewritten, so an ordinary switch writes once.
+ */
+function rememberDirectView(request: NextRequest, response: NextResponse): void {
+  const sourceId = viewSourceId(request.nextUrl.pathname);
+  if (!sourceId) return;
+
+  const view = explicitView(request.nextUrl.searchParams.get("view") ?? undefined);
+  if (!view) return;
+
+  const name = directViewCookieName(sourceId);
+  if (!name) return;
+  if (request.cookies.get(name)?.value === view) return;
+
+  response.cookies.set(name, view, {
+    // Not a secret, but no script has any business with it — and the page reads
+    // it on the server, exactly as the active-source cookie is read.
+    httpOnly: true,
+    sameSite: "lax",
+    secure: sessionCookieSecure(),
+    // `/` and not `/app`: with `localePrefix: "always"` the zone lives under
+    // `/fr/app` and `/en/app`, which share no prefix but `/`
+    // (`lib/sources/active-source-store.ts`).
+    path: "/",
+    maxAge: DIRECT_VIEW_MAX_AGE_SECONDS,
+  });
+}
+
+/**
+ * The source id of `/<locale>/app/sources/<id>/channels`, or null.
+ *
+ * Split rather than matched with a regular expression so that the locale list
+ * stays the single source of truth (`routing.locales`), and so that a trailing
+ * slash or a deeper path is simply not the channels page.
+ */
+function viewSourceId(pathname: string): string | null {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length !== 5) return null;
+
+  const [maybeLocale, app, sources, sourceId, channels] = segments;
+  if (app !== "app" || sources !== "sources" || channels !== "channels") {
+    return null;
+  }
+  if (!routing.locales.includes(maybeLocale as (typeof routing.locales)[number])) {
+    return null;
+  }
+  return sourceId ? decodeURIComponent(sourceId) : null;
 }
 
 function localeOf(pathname: string): string {

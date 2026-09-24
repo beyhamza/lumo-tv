@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import {
   getFormatter,
@@ -17,6 +18,7 @@ import {
   groupLabel,
 } from "@/components/app/FavoriteGroups";
 import { ChannelPlayer } from "@/components/app/ChannelPlayer";
+import { DirectGuideNow, DirectViews, type GuideRow } from "@/components/app/DirectViews";
 import { SourceNotice } from "@/components/app/SourceNotice";
 import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
@@ -26,10 +28,11 @@ import { errorMessage } from "@/lib/api/error-message";
 import type { Category, Channel, FavoriteGroup } from "@/lib/api/types";
 import { attempt, outcomeOf } from "@/lib/catalogue/attempt";
 import { cataloguePageState } from "@/lib/catalogue/page-state";
+import { explicitView, resolveDirectView, storedDirectView, type DirectView } from "@/lib/direct/view-memory";
 import { clockTime } from "@/lib/epg/format";
 import { epgFreshness } from "@/lib/epg/freshness";
 import { NOW_WINDOW_MS, loadEpgWindow, type EpgWindow } from "@/lib/epg/load-epg-window";
-import { onAirByChannel } from "@/lib/epg/now";
+import { currentAndNext, onAirByChannel } from "@/lib/epg/now";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
 import { sourceCondition } from "@/lib/sources/source-condition";
@@ -150,6 +153,16 @@ export default async function ChannelsPage({
   const { locale, id } = await params;
   const query = await searchParams;
   setRequestLocale(locale);
+
+  // Which of Direct's two views opens (S9-04-06): an explicit `?view=` primes the
+  // per-source memory cookie the proxy wrote before this render, and the memory
+  // primes the default (GD-02). A bare `/channels` — an S8 link, the Explore bar
+  // — passes no view and therefore opens what this browser last used.
+  const cookieStore = await cookies();
+  const directView = resolveDirectView(
+    storedDirectView((name) => cookieStore.get(name)?.value, id),
+    explicitView(single(query.view)),
+  );
 
   const session = await requireSession();
   const t = await getTranslations("App");
@@ -357,11 +370,24 @@ export default async function ChannelsPage({
 
   const guideLines = await onAirLines(guide, now, locale as Locale, t);
   const guideNotice = await guideImportNotice(guide, now, t);
+  // The Guide's own lines: the programme on air and the one after, per channel.
+  // Same single window as the channel rows above, so the view costs no extra
+  // request (S9-04-06).
+  const guideAiring = await nowAndNextLines(guide, now, locale as Locale);
+
+  // The Guide's rows: one per channel of the filtered page, in the listing's
+  // order. A channel absent from `guideAiring` draws only its name.
+  const guideRows: GuideRow[] = listed.map((channel) => ({
+    channel,
+    current: guideAiring.current.get(channel.id),
+    next: guideAiring.next.get(channel.id),
+  }));
 
   // Where a star sends the user back to: this exact view, category, search, page
   // and player included. Built from the same values the links are built from, so
   // the two cannot drift apart.
   const returnTo = `/app/sources/${id}/channels${queryString({
+    view: directView,
     categoryId,
     q: search,
     page: page > 0 ? String(page) : undefined,
@@ -376,6 +402,7 @@ export default async function ChannelsPage({
     hrefFor(
       locale as Locale,
       `/app/sources/${id}/channels${queryString({
+        view: directView,
         categoryId,
         q: search,
         page: page > 0 ? String(page) : undefined,
@@ -423,6 +450,24 @@ export default async function ChannelsPage({
         seriesLabel={t("seriesTitle")}
       />
 
+      {/* The two views of Direct (S9-04-06). Links, not buttons: this zone works
+          without JavaScript, and the view is a URL like every other state here. */}
+      <DirectViews
+        locale={locale as Locale}
+        sourceId={id}
+        active={directView}
+        query={{
+          categoryId,
+          q: search,
+          page,
+          group: activeGroup?.id,
+          play: playing,
+        }}
+        label={t("directViewsLabel")}
+        channelsLabel={t("directViewChannels")}
+        guideLabel={t("directViewGuide")}
+      />
+
       {/* Above the catalogue, not instead of it (C4). Renders nothing for a
           source that is simply ready. */}
       {source.data ? (
@@ -445,6 +490,7 @@ export default async function ChannelsPage({
           hrefFor(
             locale as Locale,
             `/app/sources/${id}/channels${queryString({
+              view: directView,
               categoryId,
               q: search,
               group: groupId,
@@ -494,6 +540,9 @@ export default async function ChannelsPage({
           other control on this page does too. `page` is deliberately absent:
           a new search starts at the first page. */}
       <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
+        {/* The view survives a search: a GET that dropped it would send the
+            person back to Chaînes on the next submit (GD-01). */}
+        <input type="hidden" name="view" value={directView} />
         {categoryId ? (
           <input type="hidden" name="categoryId" value={categoryId} />
         ) : null}
@@ -530,6 +579,7 @@ export default async function ChannelsPage({
           activeId={categoryId}
           sourceId={id}
           locale={locale as Locale}
+          view={directView}
           search={search}
           allLabel={t("catalogueAllCategories")}
         />
@@ -565,6 +615,15 @@ export default async function ChannelsPage({
                 {search ? t("catalogueNoResultsHint") : t("catalogueEmptyHint")}
               </p>
             </div>
+          ) : directView === "guide" ? (
+            <DirectGuideNow
+              title={t("directOnNow")}
+              nowButton={t("directNowButton")}
+              nowLabel={t("directNowLabel")}
+              nextLabel={t("directNextLabel")}
+              rows={guideRows}
+              playHref={playHref}
+            />
           ) : (
             <ul aria-label={t("catalogueTitle")} className="space-y-2">
               {listed.map((channel) => (
@@ -595,6 +654,7 @@ export default async function ChannelsPage({
               totalPages={totalPages}
               sourceId={id}
               locale={locale as Locale}
+              view={directView}
               categoryId={categoryId}
               search={search}
               previousLabel={t("cataloguePrevious")}
@@ -639,6 +699,7 @@ function CategoryList({
   activeId,
   sourceId,
   locale,
+  view,
   search,
   allLabel,
 }: {
@@ -652,13 +713,15 @@ function CategoryList({
   activeId?: string;
   sourceId: string;
   locale: Locale;
+  /** Kept in every link, so a category does not drop the open view (GD-01). */
+  view: DirectView;
   search?: string;
   allLabel: string;
 }) {
   const link = (categoryId?: string) =>
     hrefFor(
       locale,
-      `/app/sources/${sourceId}/channels${queryString({ categoryId, q: search })}`,
+      `/app/sources/${sourceId}/channels${queryString({ view, categoryId, q: search })}`,
     );
 
   return (
@@ -1001,6 +1064,7 @@ function Pagination({
   totalPages,
   sourceId,
   locale,
+  view,
   categoryId,
   search,
   previousLabel,
@@ -1011,6 +1075,7 @@ function Pagination({
   totalPages: number;
   sourceId: string;
   locale: Locale;
+  view: DirectView;
   categoryId?: string;
   search?: string;
   previousLabel: string;
@@ -1021,6 +1086,7 @@ function Pagination({
     hrefFor(
       locale,
       `/app/sources/${sourceId}/channels${queryString({
+        view,
         categoryId,
         q: search,
         page: target > 0 ? String(target) : undefined,
@@ -1103,6 +1169,46 @@ async function guideImportNotice(
     default:
       return undefined;
   }
+}
+
+/**
+ * The Guide's two lines per channel: the programme on air and the one after,
+ * each with its start time (S9-04-06).
+ *
+ * Built from the same single window as `onAirLines` above — so the Guide view
+ * costs no extra request (the rule of S9-04: one grouped read per screen, never
+ * one per card) — and formatted with the same zone. A channel with no programme
+ * gets no entry, and its row draws only its name (S7-03).
+ */
+async function nowAndNextLines(
+  guide: EpgWindow,
+  now: Date,
+  locale: Locale,
+): Promise<{
+  current: Map<string, { time: string; title: string }>;
+  next: Map<string, { time: string; title: string }>;
+}> {
+  const current = new Map<string, { time: string; title: string }>();
+  const next = new Map<string, { time: string; title: string }>();
+  if (guide.state !== "ok") return { current, next };
+
+  const timeZone = await getTimeZone();
+  for (const row of guide.grid.channels) {
+    const airing = currentAndNext(row.programmes, now);
+    if (airing.current) {
+      const time = clockTime(airing.current.starts_at, locale, timeZone);
+      if (time !== undefined) {
+        current.set(row.channel_id, { time, title: airing.current.title });
+      }
+    }
+    if (airing.next) {
+      const time = clockTime(airing.next.starts_at, locale, timeZone);
+      if (time !== undefined) {
+        next.set(row.channel_id, { time, title: airing.next.title });
+      }
+    }
+  }
+  return { current, next };
 }
 
 /** `?a=1&b=2`, or an empty string. Absent values are omitted, never sent empty. */
