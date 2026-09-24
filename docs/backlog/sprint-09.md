@@ -143,9 +143,30 @@ d'exécution. Réalisation : **@Dev**. Recette : **@QA**.
 |---|---|---|---|---|
 | S9-07-01 | Toutes | Protocole de recette GD-01→GD-14 : horloge contrôlable, fixtures à identifiants stables, preuve réseau du volume borné (une requête groupée par écran, jamais par carte), démonstration d'un changement de programme | `docs/releases/0.2.0/s9-07-recette.md` | Chaque cas GD a son pas-à-pas et son résultat attendu ; la preuve réseau montre un nombre d'appels indépendant du nombre de cartes |
 | S9-07-02 | TV + web | Recette FR/EN, clavier web, D-pad réel, fuseau et changement d'heure (GD-12/14) | même rapport, annexe | Actions nommées, focus visible, aucun piège ni texte tronqué essentiel |
+| S9-07-03 | Banc + infra | **Harnais de recette** : XMLTV de banc à dates relatives et variantes (I-1, I-2), horloge `LUMO_NOW` du web SSR (I-3), compteur d'appels `/epg` et panne partielle (I-4, I-5), playlist/XMLTV 100 chaînes (I-6) | `apps/web/e2e/bench/**`, helper `now()` et `src/lib/epg/now.ts` (remplace `new Date()` de `channels/page.tsx:327`), profil Compose de banc | Le protocole S9-07 s'exécute sans attente réelle ni source réelle : horloge surchargée, 100 chaînes, échec EPG injectable ; la preuve réseau compte les appels API |
 
 > S9-04 est déjà `In Progress` ; S9-05 et S9-06 passent en `Todo` (découpées et prêtes) ;
-> S9-07 reste en `Backlog` : la recette dépend de S9-04 à S9-06.
+> S9-07 reste en `Backlog` : la recette dépend de S9-04 à S9-06, et son harnais
+> S9-07-03 doit être livré avant toute session de recette.
+>
+> **Revue (convention arrêtée le 24 septembre 2026).** Plane n'a pas d'état
+> `In Review` : états réels `Backlog`, `Todo`, `In Progress`, `En recette`,
+> `Done`, `Cancelled`. Une sous-issue reste donc `In Progress` pendant la revue
+> Tech Lead et passe `Done` à l'approbation ; la story reste `In Progress`
+> pendant la revue puis passe `En recette` quand elle part en QA.
+>
+> **Revue S9-04-01 — approuvée** le 24 septembre 2026 (branche
+> `feat/S9-04-01-direct-view-memory`, commit `1ed4390`). Sécurité : une
+> préférence non chiffrée, sans secret, assumée comme `ActiveSourceStore` ; ADR :
+> aucune (même patron que US-018, pas de schéma ni de protocole) ; tests : 5 cas
+> sur le vrai DataStore, dont la lecture brute des préférences qui prouve qu'aucune
+> recherche ni filtre n'est persisté — `253/0/0` sur la suite `core:data`,
+> rejouée indépendamment par le Tech Lead ; lisibilité : conforme au module.
+> Réserve : le test tourne sur le stockage Okio alors que la production utilise le
+> stockage `File` (raison Windows documentée) ; le schéma de clé est au-dessus des
+> deux, l'écart est accepté. Ordre d'exécution validé pour le reste de S9-04 :
+> 05 → 02 → 03 → 04 → 06 → 07 (05 fournit la liste « En ce moment » dont 02 et 03
+> dépendent).
 
 ## Démo et sortie
 
