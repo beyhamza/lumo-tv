@@ -48,4 +48,16 @@
     <string name="feature_live_audio_track_number">Piste %1$d</string>
     <string name="feature_live_audio_unsupported">Cet appareil ne sait pas décoder cette piste</string>
     <string name="feature_live_audio_track_hint">Appuyez sur HAUT pour changer de piste audio.</string>
+
+    <!-- Liste « En ce moment » du Guide (S9-04-05). -->
+    <string name="feature_live_guide_heading">En ce moment</string>
+    <string name="feature_live_guide_now">Maintenant</string>
+    <string name="feature_live_guide_now_label">En ce moment</string>
+    <string name="feature_live_guide_next">Ensuite</string>
+    <string name="feature_live_guide_programme">%1$s · %2$s · %3$s</string>
+
+    <!-- Grille horaire du Guide (S9-05-03). -->
+    <string name="feature_live_guide_see_channels">Voir les chaînes</string>
+    <string name="feature_live_guide_today">Aujourd\'hui</string>
+    <string name="feature_live_guide_empty_slot">Aucun programme disponible sur ce créneau</string>
 </resources>

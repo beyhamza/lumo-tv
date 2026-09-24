@@ -11,16 +11,23 @@
     -->
     <string name="feature_live_channels_heading">Channels</string>
     <string name="feature_live_search">Search</string>
+
     <!--
-      The search screen is still a placeholder (see MobileDestinations in
-      app-mobile). The button is drawn because the mock-up draws it, and says so
-      when tapped rather than opening a room nobody has built.
+      The two views of the Direct destination, and their shared search
+      (S9-04-02). The search is over the local cache, so it answers offline; it
+      shares the filter strip with the Guide.
     -->
-    <string name="feature_live_search_mock">[mock] screen not implemented</string>
+    <string name="feature_live_view_channels">Channels</string>
+    <string name="feature_live_view_guide">Guide</string>
+    <string name="feature_live_search_hint">Search a channel</string>
+    <string name="feature_live_search_clear">Clear</string>
+    <string name="feature_live_search_empty_title">No channel found</string>
+    <string name="feature_live_search_empty_body">Nothing matches “%1$s”.</string>
 
     <!-- Glyphs: the product has no icon set yet, as the nav bar explains. -->
     <string name="feature_live_subtitle_join" translatable="false">%1$s · %2$s</string>
     <string name="feature_live_glyph_search" translatable="false">⌕</string>
     <string name="feature_live_glyph_refresh" translatable="false">↻</string>
     <string name="feature_live_glyph_chevron" translatable="false">›</string>
+    <string name="feature_live_glyph_clear" translatable="false">✕</string>
 </resources>

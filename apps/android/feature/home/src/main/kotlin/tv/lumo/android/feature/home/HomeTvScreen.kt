@@ -50,6 +50,7 @@ import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.ContinueItem
+import tv.lumo.android.core.data.model.EpgProgramme
 import tv.lumo.android.core.data.wording
 import tv.lumo.android.core.designsystem.component.LumoPoster
 import tv.lumo.android.core.designsystem.component.LumoTvSourceNotice
@@ -254,11 +255,14 @@ private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit
                     is HomeSection.Live -> ChannelRail(
                         title = stringResource(R.string.feature_home_live),
                         action = stringResource(R.string.feature_home_all_channels),
-                        onAction = actions.onOpenLive,
+                        onAction = actions.onOpenLiveChannels,
+                        secondaryAction = stringResource(R.string.feature_home_tv_guide),
+                        onSecondaryAction = actions.onOpenLiveGuide,
                         channels = section.channels,
                         keyOf = ::recentKey,
                         onPlay = actions.onPlayChannel,
                         cards = cards,
+                        onAir = state.onAir,
                     )
                 }
             }
@@ -473,6 +477,10 @@ private fun BoxScope.PositionBar(fraction: Float?) {
  * costs nothing to somebody who is not looking for it — and the nav rail's own
  * entries lead to the same two places in fewer presses, so nobody *has* to travel
  * twelve cards to reach it.
+ *
+ * The Live rail closes with **two** such tiles, in the order *All channels* then
+ * *Guide TV* (S9-04-04): two explicit ways into Direct's two views, where the
+ * favourites rail keeps its single "See all".
  */
 @Composable
 private fun ChannelRail(
@@ -483,6 +491,9 @@ private fun ChannelRail(
     keyOf: (channelId: String) -> String,
     onPlay: (channelId: String, name: String?) -> Unit,
     cards: HomeCardFocus,
+    secondaryAction: String? = null,
+    onSecondaryAction: (() -> Unit)? = null,
+    onAir: Map<String, EpgProgramme> = emptyMap(),
 ) {
     val listState = rememberLazyListState()
     PlaceFocus(keys = channels.map { keyOf(it.id) }, cards = cards, scrollTo = listState::scrollToItem)
@@ -498,12 +509,18 @@ private fun ChannelRail(
             items(channels, key = { keyOf(it.id) }) { channel ->
                 ChannelCard(
                     channel = channel,
+                    onAir = onAir[channel.id],
                     key = keyOf(channel.id),
                     onPlay = onPlay,
                     cards = cards,
                 )
             }
             item(key = "action") { ActionTile(label = action, onClick = onAction) }
+            if (secondaryAction != null && onSecondaryAction != null) {
+                item(key = "action-secondary") {
+                    ActionTile(label = secondaryAction, onClick = onSecondaryAction)
+                }
+            }
         }
     }
 }
@@ -512,10 +529,16 @@ private fun ChannelRail(
  * One channel. `OK` starts it — selecting a favourite launches the live player at
  * once (US-020) — and there is no long press: filing a favourite is the channel
  * grid's gesture, and group management is not on this screen.
+ *
+ * On the Live rail, the programme on air under the number when the guide has
+ * one (US-16, S9-03), and nothing when it has not. The card's height does not
+ * change with it: a rail of cards of two heights would send `DOWN` further from
+ * some than from others.
  */
 @Composable
 private fun ChannelCard(
     channel: Channel,
+    onAir: EpgProgramme?,
     key: String,
     onPlay: (channelId: String, name: String?) -> Unit,
     cards: HomeCardFocus,
@@ -558,6 +581,16 @@ private fun ChannelCard(
                 text = "%03d".format(number),
                 style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
                 color = if (focused) LumoColors.Accent else LumoColors.OnDarkMuted,
+            )
+        }
+        onAir?.let { programme ->
+            Text(
+                text = programme.title,
+                style = MaterialTheme.typography.labelLarge,
+                color = LumoColors.OnDarkMuted,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -723,7 +756,9 @@ private val POSTER_WIDTH = 160.dp
 
 /** The channel grid's card, a little narrower: a rail shows five and the edge of a sixth. */
 private val CHANNEL_CARD_WIDTH = 232.dp
-private val CHANNEL_CARD_HEIGHT = 112.dp
+
+/** Two lines of name, the number, and room for the programme on air (S9-03). */
+private val CHANNEL_CARD_HEIGHT = 132.dp
 private val POSITION_BAR_HEIGHT = 6.dp
 private val MESSAGE_WIDTH = 900.dp
 

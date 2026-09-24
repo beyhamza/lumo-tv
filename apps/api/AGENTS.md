@@ -256,6 +256,7 @@ Ceux-ci ont coûté du temps ; ils sont documentés pour que ça n'arrive qu'une
 | **`@Transactional`** | Auto-invocation = annotation ignorée. Appeler une méthode transactionnelle depuis la même classe ne fait rien du tout. Pire : révoquer puis lever dans la même transaction annule la révocation (voir `TokenChainRevoker`). |
 | **`writeOnly` ignoré** | openapi-generator ne traduit **pas** le `writeOnly` du contrat en `@JsonProperty(access = WRITE_ONLY)`. Les modèles de requête resérialiseraient un mot de passe tel quel. `SecretSerializationConfig` le corrige par mix-ins. |
 | **`@JsonTest`** | Slice : construit son propre `ObjectMapper` et ne prend pas les `@Configuration` applicatives. Un test de sérialisation en `@JsonTest` peut être vert tout en n'testant pas le mapper réel. Utiliser le contexte complet. |
+| **Deux validations de paramètres** | Les interfaces générées sont `@Validated`, donc une contrainte sur un paramètre de requête (`@Size` sur `channelIds` ou `ids`, `maxLength` sur `q`) est vérifiée par l'intercepteur AOP et lève `ConstraintViolationException` — pas la `HandlerMethodValidationException` de MVC. Avant S9-02, 101 identifiants répondaient 500 avec une stack trace. `GlobalExceptionHandler` traite les deux en `400 VALIDATION_FAILED`. |
 
 ---
 

@@ -1,10 +1,12 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ChannelRail } from "@/components/app/ChannelRail";
+import { getTimeZone, getTranslations, setRequestLocale } from "next-intl/server";
+import { ChannelRail, type OnAirLine } from "@/components/app/ChannelRail";
 import { ContinueRail, type ContinueRailEntry } from "@/components/app/ContinueRail";
 import { SourceNotice } from "@/components/app/SourceNotice";
 import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import type { EpgProgramme } from "@/lib/api/types";
+import { clockTime } from "@/lib/epg/format";
 import { loadHomeRails, type HomeRails } from "@/lib/home/load-home-rails";
 import { requireSession } from "@/lib/session/session";
 import { loadActiveSource } from "@/lib/sources/active-source-store";
@@ -37,10 +39,17 @@ import { sourceCondition } from "@/lib/sources/source-condition";
  *   every status, so what was there yesterday is still there
  *   (`lib/sources/source-condition.ts`).
  *
+ * <h2>What is on, under the channel cards (S9-03)</h2>
+ *
+ * The programme on air and when it ends, under each card of the two channel
+ * rails, from **one** grouped request made by the loader alongside the name
+ * lookup. A channel with nothing on — no guide on this source, no `tvg_id`, a
+ * guide that could not be read — shows its name and nothing else. No "TV
+ * guide" link yet (S9-04), and no grid (S9-05).
+ *
  * <h2>What is deliberately absent</h2>
  *
- * No "TV guide" link and no current programme under a channel (sprint 9), no
- * search (sprint 10), no watch list (sprint 11), no "remove from Continue"
+ * No search (sprint 10), no watch list (sprint 11), no "remove from Continue"
  * (sprint 12). Each would be a control that leads nowhere today.
  *
  * <h2>No client component</h2>
@@ -114,9 +123,13 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
   // Nothing is asked of a source that has never finished an import: every lookup
   // would answer `409 SOURCE_NOT_READY`, and there is no history on a catalogue
   // nobody has seen yet.
+  // One clock for the whole render: what is "on now" is decided at this
+  // instant, and the hours drawn are relative to it.
+  const now = new Date();
   const rails = condition.browsable
-    ? await loadHomeRails(session.accessToken, source.id)
+    ? await loadHomeRails(session.accessToken, source.id, now)
     : null;
+  const onAir = rails ? await onAirLines(rails.onAir, locale, t) : undefined;
   const hasRails =
     rails !== null &&
     rails.continueWatching.length + rails.favorites.length + rails.recents.length > 0;
@@ -157,6 +170,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
             title={t("homeFavoritesTitle")}
             channels={rails.favorites}
             playHref={playHref}
+            onAir={onAir}
             more={{
               href: hrefFor(locale, "/app/favorites"),
               label: t("catalogueFavoritesSeeAll"),
@@ -167,6 +181,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
             title={t("homeLiveTitle")}
             channels={rails.recents}
             playHref={playHref}
+            onAir={onAir}
             more={{ href: hrefFor(locale, channelsHref), label: t("homeAllChannels") }}
           />
         </>
@@ -188,6 +203,29 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
 }
 
 type Translate = Awaited<ReturnType<typeof getTranslations<"App">>>;
+
+/**
+ * The two lines under a card, from the programme the loader found on air.
+ *
+ * Formatted here and not in the rail: the sentence is the page's language and
+ * the hour is the zone next-intl is configured with (`getTimeZone()`), which
+ * the rail has no business knowing. A programme whose end cannot be read gets
+ * no line at all rather than a sentence with "Invalid Date" in it.
+ */
+async function onAirLines(
+  onAir: ReadonlyMap<string, EpgProgramme>,
+  locale: Locale,
+  t: Translate,
+): Promise<Map<string, OnAirLine>> {
+  const timeZone = await getTimeZone();
+  const lines = new Map<string, OnAirLine>();
+  for (const [channelId, programme] of onAir) {
+    const ends = clockTime(programme.ends_at, locale, timeZone);
+    if (ends === undefined) continue;
+    lines.set(channelId, { title: programme.title, until: t("epgUntil", { time: ends }) });
+  }
+  return lines;
+}
 
 /**
  * Cards, from the decisions made in `lib/home/continue-watching.ts`.

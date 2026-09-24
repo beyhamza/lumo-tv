@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.lang.Nullable;
+import tv.lumo.api.generated.model.EpgImportStatus;
 import tv.lumo.api.generated.model.EpgProgramme;
 import java.time.OffsetDateTime;
 import jakarta.validation.Valid;
@@ -18,7 +19,7 @@ import java.util.*;
 import jakarta.annotation.Generated;
 
 /**
- * EpgProgrammeList
+ * The programmes of one channel over a window.  &#x60;epg&#x60; is the import status of the channel&#39;s source, so a day view can say the same thing about freshness as the grid does. It is additive and optional in the schema: a client generated before it existed ignores it and loses nothing it had. The server always sends it. 
  */
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.14.0")
@@ -26,6 +27,8 @@ public class EpgProgrammeList {
 
   @Valid
   private List<@Valid EpgProgramme> items = new ArrayList<>();
+
+  private @Nullable EpgImportStatus epg;
 
   public EpgProgrammeList() {
     super();
@@ -65,6 +68,25 @@ public class EpgProgrammeList {
     this.items = items;
   }
 
+  public EpgProgrammeList epg(@Nullable EpgImportStatus epg) {
+    this.epg = epg;
+    return this;
+  }
+
+  /**
+   * Get epg
+   * @return epg
+   */
+  @Valid 
+  @JsonProperty("epg")
+  public @Nullable EpgImportStatus getEpg() {
+    return epg;
+  }
+
+  public void setEpg(@Nullable EpgImportStatus epg) {
+    this.epg = epg;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -74,12 +96,13 @@ public class EpgProgrammeList {
       return false;
     }
     EpgProgrammeList epgProgrammeList = (EpgProgrammeList) o;
-    return Objects.equals(this.items, epgProgrammeList.items);
+    return Objects.equals(this.items, epgProgrammeList.items) &&
+        Objects.equals(this.epg, epgProgrammeList.epg);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(items);
+    return Objects.hash(items, epg);
   }
 
   @Override
@@ -87,6 +110,7 @@ public class EpgProgrammeList {
     StringBuilder sb = new StringBuilder();
     sb.append("class EpgProgrammeList {\n");
     sb.append("    items: ").append(toIndentedString(items)).append("\n");
+    sb.append("    epg: ").append(toIndentedString(epg)).append("\n");
     sb.append("}");
     return sb.toString();
   }

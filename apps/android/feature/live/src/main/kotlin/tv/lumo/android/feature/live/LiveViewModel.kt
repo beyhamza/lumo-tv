@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Clock
+import java.time.Instant
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
@@ -22,22 +24,30 @@ import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.ActiveSourceState
 import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
+import tv.lumo.android.core.data.DirectView
+import tv.lumo.android.core.data.EpgDay
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.NowAndNext
+import tv.lumo.android.core.data.OnAirTracker
 import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.asCatalogueSource
 import tv.lumo.android.core.data.channelsOfSource
+import tv.lumo.android.core.data.currentAndNext
 import tv.lumo.android.core.data.face
 import tv.lumo.android.core.data.model.Cached
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
+import tv.lumo.android.core.data.model.EpgProgramme
 import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
 import tv.lumo.android.core.data.notice
 import tv.lumo.android.core.data.ofSource
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.CatalogueRepository
+import tv.lumo.android.core.data.repository.DirectViewRepository
+import tv.lumo.android.core.data.repository.EpgRepository
 import tv.lumo.android.core.data.repository.FavoriteRepository
 import tv.lumo.android.core.data.repository.RecentChannelRepository
 import tv.lumo.android.core.data.repository.onFailureNaming
@@ -81,6 +91,16 @@ import tv.lumo.android.core.data.sourceId
  * again for the new source, and whatever filtered the old one — a category, a
  * group, the recent shelf — is dropped, since none of it means anything in a
  * catalogue it did not come from. See [LiveState.browsing].
+ *
+ * <h2>What is on, one request per page of the grid (US-16, S7-04 by S9-03)</h2>
+ *
+ * The television's grid says what is on under each card. The trap is the number
+ * of requests: a paginated grid that asked card by card would make one per
+ * visible card and more at every scroll. So the screen reports the **page** of
+ * channels on display ([onChannelsVisible]) and [OnAirTracker] asks once for
+ * the ones it does not hold — one request per page, none for a page scrolled
+ * back into view. What it answers lands in [LiveState.onAir]; a card with
+ * nothing there draws nothing (S7-03).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -89,10 +109,36 @@ class LiveViewModel @Inject constructor(
     private val activeSource: ActiveSourceRepository,
     private val favorites: FavoriteRepository,
     private val recents: RecentChannelRepository,
+    private val epg: EpgRepository,
+    private val directViews: DirectViewRepository,
+    clock: Clock,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LiveState())
     val state: StateFlow<LiveState> = _state
+
+    private val guide = OnAirTracker(epg, clock, viewModelScope)
+
+    /**
+     * The channel ids the current day's grid has already asked for (S9-05-03).
+     *
+     * The grid reports the page of channels it draws for the day on display; the
+     * ones already asked for are not asked again, so the number of `/epg` calls
+     * does not depend on the number of cells. Cleared with the day and with the
+     * source, for the same reason [OnAirTracker] clears.
+     */
+    private val guideDayAsked = mutableSetOf<String>()
+
+    /**
+     * The view the home screen asked for explicitly, waiting to be applied
+     * (S9-04-04).
+     *
+     * A field and not straight reads of [LiveState]: a request can land while the
+     * source is still being opened, and the remembered view finishing later must
+     * not undo it. [open] reads it first and clears it last, so the door the
+     * viewer pressed always wins the open it triggered — and only that one.
+     */
+    private var requestedEntry: DirectView? = null
 
     /**
      * The channels of the chosen category, paginated straight out of SQLite.
@@ -101,7 +147,7 @@ class LiveViewModel @Inject constructor(
      * the phone re-reads the first page and jumps the user back to the top.
      */
     val channels: Flow<PagingData<Channel>> = _state
-        .map { ChannelQuery(it.sourceId, it.filter, it.favorites, it.recent) }
+        .map { ChannelQuery(it.sourceId, it.filter, it.search, it.favorites, it.recent) }
         .distinctUntilChanged()
         .flatMapLatest { query -> channelsFor(query) }
         .cachedIn(viewModelScope)
@@ -118,6 +164,12 @@ class LiveViewModel @Inject constructor(
      */
     private fun channelsFor(query: ChannelQuery): Flow<PagingData<Channel>> = when {
         query.sourceId == null -> flowOf(PagingData.empty())
+
+        // A name search is its own listing, over the cache (S9-04-02). The chip
+        // the user picked stays lit and is what the two views keep between them
+        // (GD-01); the local search is asked of the repository so that it still
+        // answers offline.
+        query.search.isNotBlank() -> catalogue.search(query.sourceId, query.search)
 
         query.filter is CatalogueFilter.Group -> flowOf(
             PagingData.from(
@@ -143,6 +195,96 @@ class LiveViewModel @Inject constructor(
     init {
         observeActiveSource()
         observeFavorites()
+        viewModelScope.launch {
+            guide.onAir.collect { onAir -> _state.update { it.copy(onAir = onAir) } }
+        }
+        // The same grouped windows, kept whole for the Guide's "En ce moment"
+        // list (S9-04-05): the tracker holds current *and* next, and this screen
+        // only derived the current one before.
+        viewModelScope.launch {
+            guide.programmes.collect { programmes ->
+                _state.update { it.copy(guideProgrammes = programmes) }
+            }
+        }
+    }
+
+    /**
+     * The channels of the page on display, from the television's grid.
+     *
+     * A page, not the visible cards: the screen rounds what is visible to a
+     * page of [EPG_PAGE_SIZE], so that scrolling within a page costs nothing
+     * and scrolling into the next costs one request. The tracker holds what it
+     * has already asked for; repeating a page is free.
+     */
+    fun onChannelsVisible(channelIds: List<String>) {
+        val sourceId = _state.value.sourceId ?: return
+        if (channelIds.isEmpty()) return
+        guide.show(sourceId, channelIds)
+    }
+
+    /**
+     * The channels of the page the Guide's "En ce moment" list is showing
+     * (S9-04-05). One grouped request for the page's new channels, none for a
+     * page already held, and never one from a card: the list reports its page,
+     * and the tracker decides what is missing.
+     */
+    fun onGuideVisible(channelIds: List<String>) {
+        val sourceId = _state.value.sourceId ?: return
+        if (channelIds.isEmpty()) return
+        guide.show(sourceId, channelIds)
+    }
+
+    /**
+     * The channels of the page the television's hour grid is drawing, for the
+     * day it is showing (S9-05-03).
+     *
+     * The grid reads a **whole day**, not the `[now, now + 3 h)` window the
+     * "En ce moment" list holds, so this is its own read: one grouped request
+     * for the page's channels over that day `[from, to)`, none for a page and
+     * day already held. The repository answers cache first, then the server
+     * (S7-02), and both emissions land here — the cache draws at once, the
+     * server redraws.
+     *
+     * An answer for a day or a source the screen has left is dropped, which is
+     * GD-03: a programme of the old source must never be drawn under the new
+     * one.
+     */
+    fun onDayVisible(day: EpgDay, channelIds: List<String>) {
+        val sourceId = _state.value.sourceId ?: return
+        if (channelIds.isEmpty()) return
+
+        if (_state.value.guideDay.day != day) {
+            guideDayAsked.clear()
+            _state.update { it.copy(guideDay = GuideDay(day = day)) }
+        }
+
+        val missing = channelIds.distinct().filterNot { it in guideDayAsked }
+        if (missing.isEmpty()) return
+        guideDayAsked += missing
+
+        viewModelScope.launch {
+            epg.window(sourceId, missing, day.from, day.to).collect { cached ->
+                _state.update { state ->
+                    if (state.sourceId != sourceId || state.guideDay.day != day) {
+                        return@update state
+                    }
+                    state.copy(
+                        guideDay = state.guideDay.copy(
+                            programmes = state.guideDay.programmes + cached.value.channels
+                                .associate { it.channelId to it.programmes },
+                            answered = state.guideDay.answered +
+                                cached.value.channels.map { it.channelId },
+                            // `configured` is the source's, not the day's: it is
+                            // false when there is no guide at all, and then the
+                            // grid draws nothing (S7-03). The cache may not know
+                            // it yet; the server's answer carries it.
+                            configured = cached.value.importStatus?.configured
+                                ?: state.guideDay.configured,
+                        ),
+                    )
+                }
+            }
+        }
     }
 
     /**
@@ -185,7 +327,39 @@ class LiveViewModel @Inject constructor(
         val sourceId = source.sourceId
         val cached = if (sourceId == null) 0 else catalogue.cachedChannelCount(sourceId)
 
-        _state.update { it.browsing(source, cachedItems = cached) }
+        // A real source change drops the guide at once, cancelling an answer
+        // that is still in flight: a programme of the old source landing under
+        // the new one is the GD-03 failure (S9-04-05). A mere status change of
+        // the same source keeps what the Guide holds.
+        val changed = sourceId != _state.value.sourceId
+        if (changed) {
+            guide.clear()
+            guideDayAsked.clear()
+        }
+
+        // The new source's remembered view is read before the state is built, so
+        // the screen opens straight on it instead of drawing Chaînes and flipping
+        // a frame later (GD-02). Search and filter are not read back: they belong
+        // to the session, not to the source.
+        //
+        // An explicit entry (S9-04-04) is read first and beats the memory: the
+        // viewer pressed "All channels" or "TV guide", and a source left on the
+        // other view would otherwise ignore them. It is cleared at the end of this
+        // open — a plain return to Direct, later, respects the memory again.
+        val requested = requestedEntry
+        val remembered = when {
+            requested != null -> requested
+            changed && sourceId != null -> directViews.viewFor(sourceId)
+            else -> null
+        }
+
+        _state.update { current ->
+            val next = current.browsing(source, cachedItems = cached, rememberedView = remembered)
+            // A door pressed while the source was still opening survives the
+            // answer that arrives after it (S9-04-04).
+            requestedEntry?.let(next::explicitEntry) ?: next
+        }
+        requestedEntry = null
 
         // No grid: nothing was ever ingested and nothing is cached. An empty
         // channel list would read as "this source has no channels", which is a
@@ -266,6 +440,50 @@ class LiveViewModel @Inject constructor(
             filter = categoryId?.let(CatalogueFilter::Category) ?: CatalogueFilter.All,
         )
     }
+
+    /**
+     * The view the user switched to (S9-04-02).
+     *
+     * The state moves first — a switch has to answer the thumb, not the disk —
+     * and the source's own memory is written beside it. A screen with no source
+     * yet has nothing to remember for.
+     */
+    fun onDirectViewSelected(view: DirectView) {
+        if (view == _state.value.view) return
+        val sourceId = _state.value.sourceId
+        _state.update { it.copy(view = view) }
+        if (sourceId != null) viewModelScope.launch { directViews.remember(sourceId, view) }
+    }
+
+    /**
+     * The home screen's explicit entry into one of the two views (S9-04-04).
+     *
+     * "All channels" and "TV guide" name a view, not just Direct: the first opens
+     * Chaînes with a blank search and the Toutes filter, the second opens Guide.
+     * An explicit entry therefore **beats** what the source remembers — otherwise
+     * a second press would do nothing on a source left on the other view — and it
+     * resets the session state the viewer did not ask to keep.
+     *
+     * The memory is still written, and it is still the inter-session truth:
+     * an explicit entry primes it, it does not bypass it (GD-02). [requestedEntry]
+     * carries the request across the open so that neither ordering of this call
+     * and [open] can lose it.
+     */
+    fun onExplicitEntry(view: DirectView) {
+        requestedEntry = view
+        val sourceId = _state.value.sourceId
+        _state.update { it.explicitEntry(view) }
+        if (sourceId != null) viewModelScope.launch { directViews.remember(sourceId, view) }
+    }
+
+    /**
+     * The name search, shared by Chaînes and Guide and kept across the switch
+     * (GD-01). Blank is the source's own listing.
+     */
+    fun onSearchChanged(query: String) = _state.update { it.copy(search = query) }
+
+    /** "Effacer" on the empty search state: the query goes, the filter stays. */
+    fun onSearchCleared() = _state.update { it.copy(search = "") }
 
     /**
      * Filters the grid to one favourite group (S4-06).
@@ -464,6 +682,7 @@ sealed interface CatalogueFilter {
 private data class ChannelQuery(
     val sourceId: String?,
     val filter: CatalogueFilter,
+    val search: String,
     val favorites: List<FavoriteChannel>,
     val recent: List<Channel>,
 )
@@ -518,6 +737,19 @@ data class LiveState(
     val origin: DataOrigin = DataOrigin.Cache,
     /** Which shelf the grid is showing: everything, one category, or one group. */
     val filter: CatalogueFilter = CatalogueFilter.All,
+
+    /**
+     * Which of the two Direct views is on screen (S9-04-02). This is the session
+     * value; the between-sessions memory is the repository's, keyed by source.
+     */
+    val view: DirectView = DirectView.Default,
+
+    /**
+     * The name search, shared by Chaînes and Guide for as long as the source is
+     * open (GD-01). Blank and absent are the same thing — the source's listing.
+     * It is **never** persisted: only [view] survives a session (GD-02).
+     */
+    val search: String = "",
     val refreshing: Boolean = false,
     val refreshFailed: Boolean = false,
 
@@ -562,7 +794,46 @@ data class LiveState(
 
     /** The last favourite write that failed. Offline is the ordinary case here. */
     val favoriteError: LumoError? = null,
+
+    /**
+     * The programme on air per channel id, for the pages the grid has shown
+     * (S7-04). Absent for a channel with nothing on, and the card then draws
+     * nothing under the name — no placeholder, no "unavailable" (S7-03).
+     */
+    val onAir: Map<String, EpgProgramme> = emptyMap(),
+
+    /**
+     * The programme windows the Guide has read, per channel id (S9-04-05).
+     *
+     * The same grouped pages that fill [onAir], kept whole so that the Guide can
+     * show the programme after the current one. Absent for a channel with no
+     * guide — no `tvg_id`, no guide on the source, not loaded — and the Guide
+     * row then draws no programme line at all (S7-03, S9-04).
+     */
+    val guideProgrammes: Map<String, List<EpgProgramme>> = emptyMap(),
+
+    /**
+     * The day the television's hour grid is showing, and the answers of its
+     * grouped reads (S9-05-03). Separate from [guideProgrammes], which is the
+     * short `[now, now + 3 h)` window the "En ce moment" list reads: the grid
+     * needs the whole displayed day, and mixing the two would draw a card's
+     * programme outside its day.
+     */
+    val guideDay: GuideDay = GuideDay(),
 ) {
+
+    /**
+     * This state as an explicit entry asked for it (S9-04-04).
+     *
+     * The two doors closing the home Live rail name a view: "All channels" opens
+     * Chaînes, "TV guide" opens Guide. Somebody who asked for one did not ask to
+     * keep the query or the category that was narrowing the list, so both go.
+     * GD-01 shares them *between the two views* while a source is open; an
+     * explicit entry is the one moment they are reset, because it is the one
+     * moment the viewer said which view they want to see.
+     */
+    fun explicitEntry(view: DirectView): LiveState =
+        copy(view = view, search = "", filter = CatalogueFilter.All)
 
     /**
      * This screen, pointed at [source] (US-018).
@@ -584,7 +855,11 @@ data class LiveState(
      * What survives is what belongs to the account: the groups, the hearts Room
      * holds, a favourite write still in flight and its outcome.
      */
-    fun browsing(source: CatalogueSource, cachedItems: Int = 0): LiveState {
+    fun browsing(
+        source: CatalogueSource,
+        cachedItems: Int = 0,
+        rememberedView: DirectView? = null,
+    ): LiveState {
         val step = when (source.face(cachedItems)) {
             CatalogueFace.Loading -> LiveStep.Loading
             CatalogueFace.NoSource -> LiveStep.NoSource
@@ -597,12 +872,19 @@ data class LiveState(
 
         if (source.sourceId == sourceId) return copy(step = step)
 
+        // The guide goes with the source too: `onAir` and `guideProgrammes`
+        // reset on the next page shown, and a programme of the old source under
+        // a new card in between is the GD-03 failure.
         return LiveState(
             step = step,
             sourceId = source.sourceId,
             // The active source's, written by its own collector: whichever of the
             // two runs first, the notice on screen is never the old source's.
             notice = notice,
+            // The view the new source was left on, or Chaînes for one this device
+            // has not opened before (GD-02). Search is not carried over: the
+            // fresh state's blank is the point of the reset (GD-03).
+            view = rememberedView ?: DirectView.Default,
             groups = groups,
             favoritedChannelIds = favoritedChannelIds,
             pendingFavorites = pendingFavorites,
@@ -638,6 +920,16 @@ data class LiveState(
         favorites.filter { it.channel.id == channelId }.map { it.groupId }.toSet()
 
     /**
+     * "En ce moment" and "Ensuite" for one channel of the Guide, at [now]
+     * (S9-04-05).
+     *
+     * Pure, over [guideProgrammes] and the clock: both null when the guide has
+     * nothing for this channel, and its row is then the channel's name alone.
+     */
+    fun nowAndNext(channelId: String, now: Instant): NowAndNext =
+        currentAndNext(guideProgrammes[channelId].orEmpty(), now)
+
+    /**
      * After removing this channel from this group, is it still starred elsewhere?
      *
      * What the heart should show while the removal is in flight. A channel filed
@@ -648,3 +940,22 @@ data class LiveState(
     fun stillFavoritedWithout(channelId: String, groupId: String): Boolean =
         favorites.any { it.channel.id == channelId && it.groupId != groupId }
 }
+
+/**
+ * A search that returned nothing, as opposed to one still loading (S9-04-02).
+ *
+ * A Paging list reports `itemCount == 0` either way, and the two must not be told
+ * apart by guesswork: the first gets a sentence and two ways out, the second gets
+ * nothing at all until the answer arrives.
+ */
+internal fun LiveState.searchFoundNothing(itemCount: Int, loading: Boolean): Boolean =
+    search.isNotBlank() && itemCount == 0 && !loading
+
+/**
+ * How many channels one guide request covers on the television's grid.
+ *
+ * Six rows of four: three screens of a two-row grid, so that a viewer stepping
+ * down the catalogue costs one request every three screens and not one per row.
+ * Well under the contract's cap of 100.
+ */
+const val EPG_PAGE_SIZE: Int = 24

@@ -9,6 +9,7 @@ import com.squareup.moshi.Json
 import tv.lumo.android.network.generated.model.CategoryList
 import tv.lumo.android.network.generated.model.ChannelPage
 import tv.lumo.android.network.generated.model.ContentType
+import tv.lumo.android.network.generated.model.EpgGrid
 import tv.lumo.android.network.generated.model.EpgProgrammeList
 import tv.lumo.android.network.generated.model.EpisodePage
 import tv.lumo.android.network.generated.model.EpisodePlaybackInfo
@@ -24,16 +25,16 @@ interface CatalogApi {
     /**
      * GET channels/{id}/epg
      * Programme guide for one channel over a time range
-     * Programmes are matched on the channel&#39;s &#x60;tvg_id&#x60; within its source. Retention is a sliding window from D-1 to D+3; a range outside it returns an empty list rather than an error.  A channel with no &#x60;tvg_id&#x60;, or a source with no EPG URL, returns an empty list. 
+     * Programmes are matched on the channel&#39;s &#x60;tvg_id&#x60; within its source. Retention is a sliding window from D-1 to D+3; a range outside it returns an empty list rather than an error.  A channel with no &#x60;tvg_id&#x60;, or a source with no EPG URL, returns an empty list. The &#x60;epg&#x60; field says which of the two it is, and how old the stored guide may be: it is the same &#x60;EpgImportStatus&#x60; the grouped read &#x60;GET /sources/{id}/epg&#x60; carries, so a day view and a grid apply one rule. It is **additive** — a client written before it existed keeps working by ignoring it.  **The duration must be strictly positive.** &#x60;to &#x3D;&#x3D; from&#x60; is refused, and always was; the earlier wording (\&quot;&#x60;to&#x60; before &#x60;from&#x60;\&quot;) did not say so. The ceiling is 96 hours, which is the four days it was.  Like every catalogue read, this answers in whatever &#x60;status&#x60; the source is in. A guide ingested before is served during a re-synchronisation and after a failed one; &#x60;epg&#x60; is what tells the client how much to trust it. Nothing here contacts the provider. 
      * Responses:
      *  - 200: Programmes overlapping the range, ordered by `starts_at`.
-     *  - 400: The range is invalid — `to` before `from`, or wider than four days (`VALIDATION_FAILED`). 
+     *  - 400: The range is invalid — `to` not strictly after `from`, or wider than 96 hours (`VALIDATION_FAILED`). 
      *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
      *  - 404: No such channel on a source owned by the caller (`CHANNEL_NOT_FOUND`).
      *
      * @param id Resource identifier.
-     * @param from Inclusive lower bound. Defaults to now. (optional)
-     * @param to Exclusive upper bound. Defaults to &#x60;from&#x60; + 24 h. At most 4 days after &#x60;from&#x60;. (optional)
+     * @param from Inclusive lower bound, RFC 3339 with an offset. Defaults to the server&#39;s clock, read once for the whole request.  (optional)
+     * @param to Exclusive upper bound. Defaults to &#x60;from&#x60; + 24 h. Must satisfy &#x60;0 &lt; to - from &lt;&#x3D; 96 h&#x60;.  (optional)
      * @return [EpgProgrammeList]
      */
     @GET("channels/{id}/epg")
@@ -86,6 +87,26 @@ interface CatalogApi {
      */
     @GET("series/{id}")
     suspend fun getSeries(@Path("id") id: java.util.UUID): Response<SeriesDetail>
+
+    /**
+     * GET sources/{id}/epg
+     * Programme guide for a batch of channels of one source, in one call
+     * The grid&#39;s read (US-16, lot C1). One request loads the programmes of up to a hundred channels of one source over one window, from the guide this server has already stored. **Nothing here contacts the provider**; a retry re-reads the stored guide, and refreshing the source is the existing &#x60;POST /sources/{id}/sync&#x60;.  **One entry per requested channel, in the order requested**, including the channels with nothing to show. There is no &#x60;size&#x60; and no pagination on the channels: a grid that received ninety rows for a hundred requested would have no way to know which ten were dropped. Each entry&#39;s programmes are those overlapping the window — &#x60;ends_at &gt; from&#x60; and &#x60;starts_at &lt; to&#x60;, so a programme that started before &#x60;from&#x60; and is still running is included with its full times — ordered by &#x60;starts_at&#x60; then &#x60;id&#x60;, a total order a client can merge on.  **Two channels sharing a &#x60;tvg_id&#x60; each get their entry.** The same programme then appears under both, and counts once per appearance towards the ceiling below. A client must not collapse a row of the grid in the name of de-duplicating programme ids.  **The answer is complete or it is an error.** Two independent ceilings are checked before a &#x60;200&#x60; is sent: 5 000 programme occurrences, and 4 MiB (4 194 304 bytes) of uncompressed UTF-8 JSON, envelope included. Past either, the answer is &#x60;422 EPG_WINDOW_TOO_LARGE&#x60; and **no programme is returned** — never a truncated list under a &#x60;200&#x60;. The client then asks again for fewer channels or a narrower window; how it splits is its own bounded rule (C1, D2). Both ceilings are those of 0.2.0 and are revised by a contract change, not by configuration.  **&#x60;epg&#x60; says how much to trust what came back.** It describes the last import of the guide into this server — not the age of the provider&#39;s listings, which nobody can know. See &#x60;EpgImportStatus&#x60;.  Like &#x60;GET /channels/{id}/epg&#x60;, this answers in whatever &#x60;status&#x60; the source is in, and it changes nothing about playback rights. 
+     * Responses:
+     *  - 200: The complete answer for the batch: one entry per requested channel, in the order requested, plus the import status of the guide. 
+     *  - 400: `channelIds` is empty, has a duplicate or a malformed identifier, or holds more than 100; or the window is not strictly positive or is wider than 96 hours (`VALIDATION_FAILED`). Nothing is read. 
+     *  - 401: Missing, malformed or expired access token (`UNAUTHENTICATED`, `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes once and replays the request. 
+     *  - 404: Two codes, checked in this order:  - `SOURCE_NOT_FOUND` — no such source on this account. Absent and   owned by someone else are the same answer, so the operation   cannot be used to probe for source ids; - `CHANNEL_NOT_FOUND` — at least one identifier in `channelIds` is   not a channel of this source. The whole batch is refused and the   answer does not say which identifier failed, for the same reason. 
+     *  - 422: The batch over this window exceeds one of the two ceilings — 5 000 programme occurrences or 4 MiB of JSON (`EPG_WINDOW_TOO_LARGE`). **No programme is returned**, so a client never mistakes a partial grid for a complete one. Ask again for fewer channels or a narrower window. Both ceilings were measured before being fixed (docs/releases/0.2.0/s9-00-epg-bench.md): fifty channels over three hours fits several times over; a hundred channels over four days does not, and is meant to be split. 
+     *
+     * @param id Resource identifier.
+     * @param channelIds The channels to read, and only these. Repeatable: &#x60;?channelIds&#x3D;…&amp;channelIds&#x3D;…&#x60; — the same form as &#x60;ids&#x60; on the listings, which all three generated clients already know how to send.  Between 1 and 100 **distinct** identifiers. An empty list, a duplicate, a malformed identifier or more than 100 is &#x60;400 VALIDATION_FAILED&#x60;, with nothing read.  Every identifier must name a channel of **this** source. One that does not — absent, deleted by the last re-synchronisation, or on another source, even one of the same account — refuses the whole batch with &#x60;404 CHANNEL_NOT_FOUND&#x60; and says nothing about which one it was. Unlike &#x60;ids&#x60; on the listings, an unknown identifier is not silently absent here: a missing row in a grid is a hole a client would have to explain, and a lookup that answered for some identifiers and not others would let a caller probe for channel ids. 
+     * @param from Inclusive lower bound, RFC 3339 with an offset. Defaults to the server&#39;s clock, read once for the whole request. Echoed back as &#x60;EpgGrid.from&#x60;.  (optional)
+     * @param to Exclusive upper bound. Defaults to &#x60;from&#x60; + 24 h. Must satisfy &#x60;0 &lt; to - from &lt;&#x3D; 96 h&#x60;; anything else is &#x60;400 VALIDATION_FAILED&#x60;. Echoed back as &#x60;EpgGrid.to&#x60;.  (optional)
+     * @return [EpgGrid]
+     */
+    @GET("sources/{id}/epg")
+    suspend fun getSourceEpg(@Path("id") id: java.util.UUID, @Query("channelIds") channelIds: @JvmSuppressWildcards kotlin.collections.List<java.util.UUID>, @Query("from") from: java.time.OffsetDateTime? = null, @Query("to") to: java.time.OffsetDateTime? = null): Response<EpgGrid>
 
     /**
      * GET vod/{id}

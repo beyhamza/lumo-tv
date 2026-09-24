@@ -16,24 +16,30 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -44,9 +50,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import coil3.compose.SubcomposeAsyncImage
+import java.time.Instant
+import kotlinx.coroutines.launch
+import tv.lumo.android.core.data.DirectView
 import tv.lumo.android.core.data.EmptyGrid
 import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.data.SourceNotice
@@ -101,18 +111,42 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
  * target: the mock-up wins on looks, not on taking a gesture away. A long press
  * on the whole card opens the group picker too. The refresh button sits beside
  * the search button because the list has one and the mock-up simply did not draw
- * it; and the search button says `[mock]` when tapped, because the screen behind
- * it is still a placeholder (see `MobileDestinations`).
+ * it.
+ *
+ * <h2>Two views, one screen (S9-04-02)</h2>
+ *
+ * A pill pair switches this screen between **Chaînes** and **Guide** without
+ * leaving the destination. The filter strip and the name search sit above both,
+ * so the two views genuinely share them: picking a category and stepping into
+ * the Guide keeps the category, and a search typed in one is there in the other
+ * (GD-01). Which view a source opens on is remembered by the repository, per
+ * device and per source; a change of source drops the search and the filter and
+ * opens the new source's own view (GD-02, GD-03). A search that finds nothing
+ * says so and offers the two ways out the design names.
  */
 @Composable
 fun LiveMobileScreen(
     onPlay: (channelId: String, name: String?) -> Unit,
     onOpenSources: () -> Unit,
     modifier: Modifier = Modifier,
+    requestedView: DirectView? = null,
+    onRequestHandled: () -> Unit = {},
     viewModel: LiveViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val channels = viewModel.channels.collectAsLazyPagingItems()
+
+    // The home screen's explicit entry (S9-04-04): "All channels" or "TV guide"
+    // asked for a view, and it beats what the source remembers for this open. The
+    // request is consumed here so that the effect can fire again for the *same*
+    // view on a later press — `requestedView` goes back to null in between, which
+    // is what a `LaunchedEffect` keyed on the value alone would not give us.
+    LaunchedEffect(requestedView) {
+        if (requestedView != null) {
+            viewModel.onExplicitEntry(requestedView)
+            onRequestHandled()
+        }
+    }
 
     // A refresh on display has to move, and to go away when it ends (US-024).
     PollWhile(
@@ -175,7 +209,19 @@ fun LiveMobileScreen(
             )
 
             LiveStep.Browsing -> {
-                Header(state = state, onRefresh = viewModel::refresh)
+                val guideList = rememberLazyListState()
+                val scope = rememberCoroutineScope()
+                var now by remember { mutableStateOf(Instant.now()) }
+                var searchOpen by remember { mutableStateOf(false) }
+
+                DirectHeader(
+                    state = state,
+                    searchOpen = searchOpen || state.search.isNotEmpty(),
+                    onSearchOpen = { searchOpen = it },
+                    onSelectView = viewModel::onDirectViewSelected,
+                    onSearchChanged = viewModel::onSearchChanged,
+                    onRefresh = viewModel::refresh,
+                )
 
                 // Over the list and never instead of it: the catalogue stays
                 // browsable while the source refreshes and after a failed attempt.
@@ -198,10 +244,12 @@ fun LiveMobileScreen(
                     )
                 }
 
-                Categories(
+                Filters(
                     categories = state.categories,
-                    selectedId = state.selectedCategoryId,
-                    onSelect = viewModel::onCategorySelected,
+                    groups = state.groupsWithChannels,
+                    filter = state.filter,
+                    onSelectCategory = viewModel::onCategorySelected,
+                    onSelectGroup = viewModel::onGroupSelected,
                 )
 
                 // A favourite write needs the network, and nothing is queued for
@@ -220,44 +268,80 @@ fun LiveMobileScreen(
                     )
                 }
 
-                // A list that failed to load is not an empty list (US-024).
-                if (
-                    state.filter == CatalogueFilter.All &&
-                    emptyGridOf(channels.itemCount, state.refreshing, state.refreshFailed) ==
-                    EmptyGrid.Unavailable
-                ) {
-                    LumoStateMessage(
-                        title = stringResource(DataR.string.core_data_catalogue_unavailable_title),
-                        body = stringResource(DataR.string.core_data_catalogue_unavailable_body),
-                        actionLabel = stringResource(DataR.string.core_data_catalogue_retry),
-                        onAction = viewModel::refresh,
+                val nothingFound = state.searchFoundNothing(
+                    itemCount = channels.itemCount,
+                    loading = channels.loadState.refresh is LoadState.Loading,
+                )
+
+                when {
+                    // A search that found nothing is not an empty catalogue: say
+                    // which it is, and give the two ways out the design names —
+                    // clear the query, or widen the filter to Toutes (S9-04-02).
+                    nothingFound -> EmptySearch(
+                        query = state.search,
+                        onClear = viewModel::onSearchCleared,
+                        onAll = { viewModel.onCategorySelected(null) },
                     )
-                } else LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        horizontal = LumoSpacing.lg,
-                        vertical = LumoSpacing.md,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
-                ) {
-                    items(
-                        count = channels.itemCount,
-                        key = channels.itemKey { it.id },
-                    ) { index ->
-                        // Null is a placeholder Paging has not loaded yet. It is
-                        // drawn as a row of the right height so the scrollbar
-                        // keeps its size on a fifteen-thousand-channel list.
-                        val channel = channels[index]
-                        ChannelRow(
-                            channel = channel,
-                            categoryName = channel?.categoryId?.let { id ->
-                                state.categories.firstOrNull { it.id == id }?.name
-                            },
-                            favorited = channel != null && state.isFavorited(channel.id),
-                            onPlay = onPlay,
-                            onFavorite = viewModel::onFavoriteClicked,
-                            onFavoriteLongPress = viewModel::onFavoriteLongPressed,
-                        )
+
+                    // "En ce moment", one line per channel of the filtered result,
+                    // current then next (S9-04-05). The list reports its page and
+                    // the tracker asks once for what it does not hold — never one
+                    // request per card.
+                    state.view == DirectView.Guide -> GuideNowList(
+                        state = state,
+                        channels = channels,
+                        now = now,
+                        onNow = {
+                            now = Instant.now()
+                            scope.launch { guideList.scrollToItem(0) }
+                        },
+                        onPlay = onPlay,
+                        onPageVisible = viewModel::onGuideVisible,
+                        listState = guideList,
+                    )
+
+                    else -> {
+                        // A list that failed to load is not an empty list (US-024).
+                        if (
+                            state.filter == CatalogueFilter.All &&
+                            emptyGridOf(channels.itemCount, state.refreshing, state.refreshFailed) ==
+                            EmptyGrid.Unavailable
+                        ) {
+                            LumoStateMessage(
+                                title = stringResource(DataR.string.core_data_catalogue_unavailable_title),
+                                body = stringResource(DataR.string.core_data_catalogue_unavailable_body),
+                                actionLabel = stringResource(DataR.string.core_data_catalogue_retry),
+                                onAction = viewModel::refresh,
+                            )
+                        } else LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                horizontal = LumoSpacing.lg,
+                                vertical = LumoSpacing.md,
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+                        ) {
+                            items(
+                                count = channels.itemCount,
+                                key = channels.itemKey { it.id },
+                            ) { index ->
+                                // Null is a placeholder Paging has not loaded yet.
+                                // It is drawn as a row of the right height so the
+                                // scrollbar keeps its size on a fifteen-thousand-
+                                // channel list.
+                                val channel = channels[index]
+                                ChannelRow(
+                                    channel = channel,
+                                    categoryName = channel?.categoryId?.let { id ->
+                                        state.categories.firstOrNull { it.id == id }?.name
+                                    },
+                                    favorited = channel != null && state.isFavorited(channel.id),
+                                    onPlay = onPlay,
+                                    onFavorite = viewModel::onFavoriteClicked,
+                                    onFavoriteLongPress = viewModel::onFavoriteLongPressed,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -287,79 +371,172 @@ fun LiveMobileScreen(
 }
 
 /**
- * The heading, with the two round buttons on its right.
+ * The Direct header (S9-04-02): the Chaînes/Guide switch, the two round buttons,
+ * the name search and the two discreet notices.
  *
- * The search button leads nowhere yet and says so on tap: a notice under the
- * heading, dismissed by tapping it, rather than a snackbar that needs a scaffold
- * this screen does not own.
+ * The switch is two pills rather than a Material tab row — there are exactly two
+ * views, and the phone mock-up draws them side by side. The search opens under
+ * the buttons and stays open while it holds text, so a rotation does not hide a
+ * query the user is still reading.
  */
 @Composable
-private fun Header(state: LiveState, onRefresh: () -> Unit) {
-    var searchNotice by remember { mutableStateOf(false) }
+private fun DirectHeader(
+    state: LiveState,
+    searchOpen: Boolean,
+    onSearchOpen: (Boolean) -> Unit,
+    onSelectView: (DirectView) -> Unit,
+    onSearchChanged: (String) -> Unit,
+    onRefresh: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = LumoSpacing.lg, vertical = LumoSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
+                CategoryChip(
+                    label = stringResource(R.string.feature_live_view_channels),
+                    selected = state.view == DirectView.Channels,
+                    onClick = { onSelectView(DirectView.Channels) },
+                )
+                CategoryChip(
+                    label = stringResource(R.string.feature_live_view_guide),
+                    selected = state.view == DirectView.Guide,
+                    onClick = { onSelectView(DirectView.Guide) },
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (state.refreshing) {
+                    Box(modifier = Modifier.size(ROUND_BUTTON), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(LumoSpacing.md),
+                        )
+                    }
+                } else {
+                    RoundButton(
+                        glyph = stringResource(R.string.feature_live_glyph_refresh),
+                        description = stringResource(R.string.feature_live_refresh),
+                        onClick = onRefresh,
+                    )
+                }
+
+                RoundButton(
+                    glyph = stringResource(R.string.feature_live_glyph_search),
+                    description = stringResource(R.string.feature_live_search),
+                    onClick = { onSearchOpen(!searchOpen) },
+                )
+            }
+        }
+
+        if (searchOpen) {
+            SearchField(
+                value = state.search,
+                onValueChange = onSearchChanged,
+                onClear = { onSearchChanged("") },
+            )
+        }
+
+        // Discreet, and only when it is true: the muted label rather than a
+        // banner, because serving the cache is what this screen does well.
+        if (state.origin == DataOrigin.Cache) {
+            Notice(
+                text = stringResource(R.string.feature_live_offline),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        if (state.refreshFailed) {
+            Notice(
+                text = stringResource(R.string.feature_live_refresh_failed),
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
+}
+
+/**
+ * The name search (S9-04-02). It filters the list by channel name and leaves the
+ * active filter chip alone (GD-01); it is asked of the local cache, so it still
+ * answers with no network.
+ */
+@Composable
+private fun SearchField(value: String, onValueChange: (String) -> Unit, onClear: () -> Unit) {
+    val description = stringResource(R.string.feature_live_search)
+    val clearDescription = stringResource(R.string.feature_live_search_clear)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = LumoSpacing.lg, vertical = LumoSpacing.md),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
     ) {
-        Text(
-            text = stringResource(R.string.feature_live_channels_heading),
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (state.refreshing) {
-                Box(modifier = Modifier.size(ROUND_BUTTON), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(LumoSpacing.md),
-                    )
-                }
-            } else {
-                RoundButton(
-                    glyph = stringResource(R.string.feature_live_glyph_refresh),
-                    description = stringResource(R.string.feature_live_refresh),
-                    onClick = onRefresh,
+        Box(modifier = Modifier.weight(1f)) {
+            if (value.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.feature_live_search_hint),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = description },
+            )
+        }
 
-            RoundButton(
-                glyph = stringResource(R.string.feature_live_glyph_search),
-                description = stringResource(R.string.feature_live_search),
-                onClick = { searchNotice = true },
+        if (value.isNotEmpty()) {
+            Text(
+                text = stringResource(R.string.feature_live_glyph_clear),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable(onClick = onClear)
+                    .padding(LumoSpacing.xs)
+                    .semantics { contentDescription = clearDescription },
             )
         }
     }
+}
 
-    // Discreet, and only when it is true: the muted label rather than a
-    // banner, because serving the cache is what this screen does well.
-    if (state.origin == DataOrigin.Cache) {
-        Notice(
-            text = stringResource(R.string.feature_live_offline),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-
-    if (state.refreshFailed) {
-        Notice(
-            text = stringResource(R.string.feature_live_refresh_failed),
-            color = MaterialTheme.colorScheme.error,
-        )
-    }
-
-    if (searchNotice) {
-        Notice(
-            text = stringResource(R.string.feature_live_search_mock),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            onClick = { searchNotice = false },
-        )
-    }
+/**
+ * A search that found nothing (S9-04-02).
+ *
+ * The two ways out are the design's: clear the query, or widen the filter back to
+ * Toutes — one of the two is what narrowed the list to nothing.
+ */
+@Composable
+private fun EmptySearch(query: String, onClear: () -> Unit, onAll: () -> Unit) {
+    LumoStateMessage(
+        title = stringResource(R.string.feature_live_search_empty_title),
+        body = stringResource(R.string.feature_live_search_empty_body, query),
+        actionLabel = stringResource(R.string.feature_live_search_clear),
+        onAction = onClear,
+        secondaryActionLabel = stringResource(R.string.feature_live_all_categories),
+        onSecondaryAction = onAll,
+    )
 }
 
 @Composable
@@ -371,7 +548,7 @@ private fun Notice(text: String, color: androidx.compose.ui.graphics.Color, onCl
         modifier = Modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = LumoSpacing.lg, vertical = LumoSpacing.xs),
+            .padding(vertical = LumoSpacing.xs),
     )
 }
 
@@ -396,18 +573,22 @@ private fun RoundButton(glyph: String, description: String, onClick: () -> Unit)
 }
 
 /**
- * The categories, with how many channels each holds.
+ * The shared filters: Toutes, the account's groups that hold something, then the
+ * source's categories (S9-04-02).
  *
  * A horizontal row rather than a side list: a phone is narrow, the names are
  * long, and the first thing someone does here is scan them. "All" comes first and
  * is what the screen opens on — a catalogue that opens on somebody's first
- * category is a catalogue that hides the rest.
+ * category is a catalogue that hides the rest. The same strip is drawn above both
+ * views, so the filter is genuinely shared and not re-picked on each switch.
  */
 @Composable
-private fun Categories(
+private fun Filters(
     categories: List<Category>,
-    selectedId: String?,
-    onSelect: (String?) -> Unit,
+    groups: List<FavoriteGroup>,
+    filter: CatalogueFilter,
+    onSelectCategory: (String?) -> Unit,
+    onSelectGroup: (String) -> Unit,
 ) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = LumoSpacing.lg),
@@ -417,9 +598,19 @@ private fun Categories(
         item {
             CategoryChip(
                 label = stringResource(R.string.feature_live_all_categories),
-                selected = selectedId == null,
-                onClick = { onSelect(null) },
+                selected = filter is CatalogueFilter.All,
+                onClick = { onSelectCategory(null) },
             )
+        }
+        items(groups, key = { "group-" + it.id }) { group ->
+            CategoryChip(
+                label = group.displayName(),
+                selected = (filter as? CatalogueFilter.Group)?.id == group.id,
+                onClick = { onSelectGroup(group.id) },
+            )
+        }
+        if (groups.isNotEmpty()) {
+            item { Spacer(modifier = Modifier.size(LumoSpacing.lg)) }
         }
         items(categories, key = { it.id }) { category ->
             CategoryChip(
@@ -428,8 +619,8 @@ private fun Categories(
                 label = category.channelCount
                     ?.let { stringResource(R.string.feature_live_category_count, category.name, it) }
                     ?: category.name,
-                selected = selectedId == category.id,
-                onClick = { onSelect(category.id) },
+                selected = (filter as? CatalogueFilter.Category)?.id == category.id,
+                onClick = { onSelectCategory(category.id) },
             )
         }
     }

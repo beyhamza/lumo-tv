@@ -9,6 +9,7 @@
 
     <string name="feature_home_see_all_favorites">Voir tout</string>
     <string name="feature_home_all_channels">Toutes les chaînes</string>
+    <string name="feature_home_tv_guide">Guide TV</string>
 
     <string name="feature_home_details">Voir la fiche</string>
     <string name="feature_home_details_of">Fiche de %1$s</string>

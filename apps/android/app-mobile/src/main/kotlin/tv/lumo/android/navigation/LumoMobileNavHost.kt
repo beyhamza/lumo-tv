@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.navigation
 import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.data.AppStart
+import tv.lumo.android.core.data.DirectView
 import tv.lumo.android.feature.auth.AuthDestination
 import tv.lumo.android.feature.auth.SignUpDestination
 import tv.lumo.android.feature.auth.navigation.authMobileScreen
@@ -18,6 +19,7 @@ import tv.lumo.android.feature.home.navigation.HomeActions
 import tv.lumo.android.feature.home.navigation.homeMobileScreen
 import tv.lumo.android.feature.live.LiveDestination
 import tv.lumo.android.feature.live.PlayerDestination
+import tv.lumo.android.feature.live.navigation.KEY_REQUESTED_VIEW
 import tv.lumo.android.feature.live.navigation.liveMobileScreen
 import tv.lumo.android.feature.live.navigation.livePlayerMobileScreen
 import tv.lumo.android.feature.onboarding.navigation.onboardingMobileScreen
@@ -109,6 +111,17 @@ fun LumoMobileNavHost(
 
         // What a signed-in user lands on (US-017). Every way out of it leads into
         // another feature, so every one of them is a wire held here.
+        //
+        // The home Live rail closes with two explicit doors (S9-04-04). They move
+        // to Direct and then leave the view they named on the entry's own saved
+        // state, which the screen reads as a one-shot: a door pressed while Direct
+        // is already open still wins, and the request never replays on a return.
+        val openLiveExplicit = { view: DirectView ->
+            navController.switchTopLevelTo(LiveDestination)
+            navController.currentBackStackEntry
+                ?.savedStateHandle
+                ?.set(KEY_REQUESTED_VIEW, view.name)
+        }
         homeMobileScreen(
             actions = HomeActions(
                 onResumeFilm = { filmId, sourceId, title, atMs ->
@@ -129,6 +142,8 @@ fun LumoMobileNavHost(
                 // would make the bar and the back stack disagree about where one is.
                 onOpenLibrary = { navController.switchTopLevelTo(FavoritesDestination) },
                 onOpenLive = { navController.switchTopLevelTo(LiveDestination) },
+                onOpenLiveChannels = { openLiveExplicit(DirectView.Channels) },
+                onOpenLiveGuide = { openLiveExplicit(DirectView.Guide) },
                 onOpenFilms = { navController.switchTopLevelTo(VodDestination) },
                 onOpenSeriesCatalogue = { navController.switchTopLevelTo(SeriesDestination) },
                 onAddSource = { navController.switchTopLevelTo(SourceDestination) },

@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="feature_live_tv_now">En ce moment : %1$s</string>
+    <string name="feature_live_tv_on_air">%1$s · Fin à %2$s</string>
     <string name="feature_live_tv_next_program">Ensuite : %1$s</string>
-    <string name="feature_live_tv_preview">aperçu — %1$s</string>
-    <string name="feature_live_tv_grid_hints">OK : regarder · ← : catégories</string>
+    <string name="feature_live_tv_grid_hints">OK : regarder · ← : catégories · ↑ : recherche et vues</string>
 
     <string name="feature_live_tv_live_badge">DIRECT</string>
     <string name="feature_live_tv_pause">Pause</string>

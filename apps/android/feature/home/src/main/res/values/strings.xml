@@ -18,6 +18,11 @@
     <!-- Where a capped rail leads: the library and its groups, the channel catalogue. -->
     <string name="feature_home_see_all_favorites">See all</string>
     <string name="feature_home_all_channels">All channels</string>
+    <!--
+      S9-04-04. The Live rail closes with two explicit ways into Direct: "All
+      channels" opens Chaînes, this one opens the Guide on what is on now.
+    -->
+    <string name="feature_home_tv_guide">TV guide</string>
 
     <!--
       A card of "Continue watching" resumes when pressed. This is the other thing

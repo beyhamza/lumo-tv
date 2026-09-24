@@ -19,20 +19,19 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
 /**
  * What the mock-ups draw and the product cannot yet feed, said out loud.
  *
- * Two flavours, one look: a dashed violet outline, monospaced, and a text that
- * starts with `[mock]` so it is found by a search and never mistaken for a
- * value. It is deliberately not styled like an error — nothing is broken — and
- * not like a hint — it will go away.
+ * One look: a dashed violet outline, monospaced, and a text that starts with
+ * `[mock]` so it is found by a search and never mistaken for a value. It is
+ * deliberately not styled like an error — nothing is broken — and not like a
+ * hint — it will go away.
  *
  * The badge is shared by both applications: the whole point is that the same
- * words appear wherever the same gap exists.
+ * words appear wherever the same gap exists. There used to be a second flavour,
+ * `[mock] missing data`, for the programme guide; it left with S9-03, when the
+ * guide arrived — and where the guide has nothing, the screens now show nothing
+ * at all rather than a badge (S7-03).
  *
  * @param scale the television reads at 1.75 ×; the phone at 1.
  */
-@Composable
-fun LumoMockMissingData(modifier: Modifier = Modifier, scale: Float = 1f) =
-    LumoMockBadge(stringResource(R.string.lumo_mock_missing_data), modifier, scale)
-
 @Composable
 fun LumoMockNotImplemented(modifier: Modifier = Modifier, scale: Float = 1f) =
     LumoMockBadge(stringResource(R.string.lumo_mock_not_implemented), modifier, scale)

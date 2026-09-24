@@ -1,6 +1,7 @@
 package tv.lumo.android.feature.live
 
 import com.google.common.truth.Truth.assertThat
+import java.time.Instant
 import org.junit.Test
 import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoError
@@ -8,6 +9,7 @@ import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
+import tv.lumo.android.core.data.model.EpgProgramme
 import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
 
@@ -32,6 +34,16 @@ class LiveSourceSwitchTest {
         isAdult = false,
     )
 
+    // What is on: a programme of source A, which must not survive under B's cards.
+    private val programme = EpgProgramme(
+        id = "p1",
+        startsAt = Instant.EPOCH,
+        endsAt = Instant.EPOCH.plusSeconds(3600),
+        title = "Programme 01",
+        description = null,
+        category = null,
+    )
+
     private val browsingA = LiveState(
         step = LiveStep.Browsing,
         sourceId = "source-a",
@@ -46,6 +58,17 @@ class LiveSourceSwitchTest {
         pendingFavorites = mapOf("c9" to true),
         sheetChannel = channel,
         favoriteError = LumoError.UnknownCode("SOMETHING"),
+        onAir = mapOf("c1" to programme),
+        // The Guide's "En ce moment" windows carry the same programme, and they
+        // too must not survive under B (S9-04-05, GD-03).
+        guideProgrammes = mapOf("c1" to listOf(programme)),
+        // The television hour grid's day window as well (S9-05-03): a programme
+        // of source A drawn under B's rows is the same GD-03 failure.
+        guideDay = GuideDay(
+            programmes = mapOf("c1" to listOf(programme)),
+            answered = setOf("c1"),
+            configured = true,
+        ),
     )
 
     @Test
@@ -63,6 +86,9 @@ class LiveSourceSwitchTest {
         assertThat(next.favorites).isEmpty()
         assertThat(next.recent).isEmpty()
         assertThat(next.sheetChannel).isNull()
+        assertThat(next.onAir).isEmpty()
+        assertThat(next.guideProgrammes).isEmpty()
+        assertThat(next.guideDay).isEqualTo(GuideDay())
     }
 
     @Test

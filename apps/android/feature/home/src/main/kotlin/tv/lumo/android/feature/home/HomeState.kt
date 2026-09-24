@@ -6,6 +6,7 @@ import tv.lumo.android.core.data.aggregatedFavorites
 import tv.lumo.android.core.data.channelsOfSource
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.ContinueItem
+import tv.lumo.android.core.data.model.EpgProgramme
 import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
 import tv.lumo.android.core.data.model.HOME_RAIL_SIZE
@@ -138,6 +139,12 @@ data class HomeState(
     val continueLoaded: Boolean = false,
     val favoritesLoaded: Boolean = false,
     val recentLoaded: Boolean = false,
+    /**
+     * The programme on air per channel id of the Live rail (US-16, S9-03), from
+     * one request for the rail. Absent for a channel with nothing on, and the
+     * card then draws no line for it — no placeholder, no "unavailable".
+     */
+    val onAir: Map<String, EpgProgramme> = emptyMap(),
 ) {
 
     /**
@@ -159,6 +166,11 @@ data class HomeState(
             val watched = recent.channelsOfSource(sourceId).take(HOME_RAIL_SIZE)
             if (watched.isNotEmpty()) add(HomeSection.Live(watched))
         }
+
+    /** The channel ids of the Live rail, in rail order — what the guide is asked for. */
+    val liveChannelIds: List<String>
+        get() = sections.filterIsInstance<HomeSection.Live>().firstOrNull()
+            ?.channels?.map { it.id }.orEmpty()
 
     /** Every read has answered for the source on screen. */
     val settled: Boolean
@@ -197,6 +209,9 @@ data class HomeState(
                 notice = source.notice,
                 continueWatching = emptyList(),
                 continueLoaded = false,
+                // The old source's guide under the new source's cards would be
+                // the GD-03 failure; the tracker answers again for the new one.
+                onAir = emptyMap(),
             )
         }
 }

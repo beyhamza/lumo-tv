@@ -219,20 +219,6 @@ public class CatalogReadRepository {
                 .optional();
     }
 
-    /** Confirms a channel belongs to the caller, without loading its stream URL. */
-    public Optional<String> findChannelTvgId(UUID channelId, UUID userId) {
-        return jdbc.sql("""
-                SELECT COALESCE(ch.tvg_id, '') AS tvg_id
-                  FROM channel ch
-                  JOIN source s ON s.id = ch.source_id
-                 WHERE ch.id = :channelId AND s.user_id = :userId
-                """)
-                .param("channelId", channelId)
-                .param("userId", userId)
-                .query(String.class)
-                .optional();
-    }
-
     /**
      * Programmes for one channel over a range.
      *
@@ -251,25 +237,127 @@ public class CatalogReadRepository {
                    AND s.user_id = :userId
                    AND p.ends_at > :from
                    AND p.starts_at < :to
-                 ORDER BY p.starts_at
+                 ORDER BY p.starts_at, p.id
                 """)
                 .param("channelId", channelId)
                 .param("userId", userId)
                 .param("from", from)
                 .param("to", to)
-                .query((rs, n) -> {
-                    EpgProgramme programme = new EpgProgramme(
-                            rs.getObject("id", UUID.class),
-                            rs.getObject("source_id", UUID.class),
-                            rs.getString("tvg_id"),
-                            rs.getObject("starts_at", OffsetDateTime.class),
-                            rs.getObject("ends_at", OffsetDateTime.class),
-                            rs.getString("title"));
-                    programme.setDescription(rs.getString("description"));
-                    programme.setCategory(rs.getString("category"));
-                    return programme;
-                })
+                .query(CatalogReadRepository::mapProgramme)
                 .list();
+    }
+
+    // ---- grouped guide (US-16, lot C1) --------------------------------------
+
+    /**
+     * The {@code tvg_id} of each requested channel of one source, for its owner.
+     *
+     * <p>One query does two jobs. It is the <b>membership check</b> of the
+     * grouped read — an identifier that is not a channel of <em>this</em> source
+     * is simply absent from the map, and the caller refuses the whole batch on
+     * the first absence — and it is the mapping read, since the same row carries
+     * the {@code tvg_id}. Two queries would have read the same rows twice.
+     *
+     * <p>Filtered on {@code ch.source_id} as well as on the owner, and that is
+     * the point rather than a redundancy: a channel of <em>another</em> source
+     * of the same account passes the owner test and must still be refused
+     * (C1-04). The guide is keyed by {@code (source_id, tvg_id)}; a channel read
+     * across sources would be attributed programmes from a guide that is not
+     * its own.
+     *
+     * @return {@code tvg_id} by channel id, null where the channel carries none;
+     *         a requested id that is not a channel of this source has no entry
+     */
+    public Map<UUID, String> findChannelTvgIds(UUID sourceId, UUID userId, List<UUID> ids) {
+        record Mapping(UUID channelId, String tvgId) {
+        }
+        List<Mapping> rows = jdbc.sql("""
+                SELECT ch.id, ch.tvg_id
+                  FROM channel ch
+                  JOIN source s ON s.id = ch.source_id
+                 WHERE ch.source_id = :sourceId
+                   AND s.user_id = :userId
+                   AND ch.id = ANY(string_to_array(:ids, ',')::uuid[])
+                """)
+                .param("sourceId", sourceId)
+                .param("userId", userId)
+                .param("ids", idArray(ids))
+                .query((rs, n) -> new Mapping(rs.getObject("id", UUID.class), rs.getString("tvg_id")))
+                .list();
+        // A HashMap would do for the lookup; LinkedHashMap keeps the result
+        // readable in a debugger, and null values — a channel with no tvg_id —
+        // are legal in both, which Map.of and Map.entry would refuse.
+        Map<UUID, String> result = new LinkedHashMap<>();
+        for (Mapping row : rows) {
+            result.put(row.channelId(), row.tvgId());
+        }
+        return result;
+    }
+
+    /**
+     * Programmes of one source for a set of {@code tvg_id}s over a window, in
+     * one query, bounded.
+     *
+     * <p>Rows rather than occurrences: a {@code tvg_id} shared by several
+     * channels of the batch is read once here and placed under each of them by
+     * the caller. The overlap predicate is {@link #findProgrammes}'s — a
+     * programme still running at {@code from} is what "on now" means — and the
+     * order is {@code starts_at} then {@code id}, a total order the contract
+     * promises so a client can merge two answers deterministically.
+     *
+     * <p><b>{@code LIMIT :limit} is the occurrence ceiling's early exit.</b> The
+     * caller passes cap + 1. Every row returned is at least one occurrence,
+     * so cap + 1 rows already prove the batch is over the ceiling, and the
+     * query stops reading there instead of materialising a hundred channels of
+     * four days to count them afterwards.
+     *
+     * <p>Scoped to the owner in the same statement, like every read here, even
+     * though the caller has already resolved the source: the multi-tenant rule
+     * is a property of each query, not of the sequence that reaches it.
+     */
+    public List<EpgProgramme> findProgrammesByTvgIds(UUID sourceId, UUID userId,
+                                                     List<String> tvgIds, OffsetDateTime from,
+                                                     OffsetDateTime to, int limit) {
+        if (tvgIds.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.sql("""
+                SELECT p.id, p.source_id, p.tvg_id, p.starts_at, p.ends_at,
+                       p.title, p.description, p.category
+                  FROM epg_programme p
+                  JOIN source s ON s.id = p.source_id
+                 WHERE p.source_id = :sourceId
+                   AND s.user_id = :userId
+                   AND p.tvg_id = ANY(:tvgIds)
+                   AND p.ends_at > :from
+                   AND p.starts_at < :to
+                 ORDER BY p.starts_at, p.id
+                 LIMIT :limit
+                """)
+                .param("sourceId", sourceId)
+                .param("userId", userId)
+                // A real text[] bound as one value, not the comma-joined form used
+                // for uuids above: a tvg_id is free text from somebody's playlist
+                // and may contain a comma.
+                .param("tvgIds", tvgIds.toArray(String[]::new))
+                .param("from", from)
+                .param("to", to)
+                .param("limit", limit)
+                .query(CatalogReadRepository::mapProgramme)
+                .list();
+    }
+
+    static EpgProgramme mapProgramme(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        EpgProgramme programme = new EpgProgramme(
+                rs.getObject("id", UUID.class),
+                rs.getObject("source_id", UUID.class),
+                rs.getString("tvg_id"),
+                rs.getObject("starts_at", OffsetDateTime.class),
+                rs.getObject("ends_at", OffsetDateTime.class),
+                rs.getString("title"));
+        programme.setDescription(rs.getString("description"));
+        programme.setCategory(rs.getString("category"));
+        return programme;
     }
 
     // ---- films --------------------------------------------------------------

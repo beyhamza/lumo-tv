@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="lumo_mock_missing_data">[mock] données manquantes</string>
     <string name="lumo_mock_not_implemented">[mock] écran non implémenté</string>
 </resources>
