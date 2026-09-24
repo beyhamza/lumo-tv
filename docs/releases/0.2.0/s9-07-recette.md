@@ -57,8 +57,8 @@ n'existe aujourd'hui ; chaque ligne nomme le propriétaire pressenti.
 |---|---|---|---|---|
 | I-1 | XMLTV de banc à **dates relatives**, servi par `nginx`, avec `tvg-id` identiques à `playlist.m3u`/`mixed.m3u` | Aucune session avec guide n'est reproductible sans lui ; un fichier committé expirerait | `apps/web/e2e/bench/entrypoint.sh` (génération) + `nginx.conf` (`location = /guide.xml`) | Dev / infra |
 | I-2 | Variantes `guide-partial.xml`, `guide-empty.xml`, `guide-broken.xml`, `guide-stale.xml`, `guide-big.xml` | GD-06/GD-10/GD-11 et la preuve de volume | même endroit | Dev / infra |
-| I-3 | Horloge contrôlable côté **web SSR** | `channels/page.tsx:327` lit `new Date()` au rendu serveur : `page.clock` de Playwright ne l'atteint pas | helper `now()` remplaçant `new Date()`, surcharge `LUMO_NOW` (RFC 3339) active seulement si posée | Dev |
-| I-4 | Compteur d'appels `/sources/{id}/epg` côté **API** pour le web | L'appel EPG du web part du serveur Next (`server-only`), donc invisible à `page.on("request")` | `logging.level.org.springframework.web.servlet.FrameworkServlet=DEBUG` en dev, puis `docker logs lumo-api` ; sinon filtre dev dédié | Dev / infra |
+| I-3 | Horloge contrôlable côté **web SSR** | Le `new Date()` du rendu serveur de `channels/page.tsx` (il alimente `epgDayWindow`, puis le `loadEpgWindow` de la vue Guide) n'est pas atteint par le `page.clock` de Playwright. `loadEpgWindow` a un **second** appelant serveur : `src/lib/home/load-home-rails.ts` (défaut `now = new Date()`), donc patcher la seule page Guide laisserait « En ce moment » sur l'horloge réelle | Helper `apps/web/src/lib/epg/clock.ts` — **pas** `now.ts`, déjà pris par S9-03 (`currentAndNext`/`onAirByChannel`, + `now.test.ts`). Surcharge `LUMO_NOW` (RFC 3339) active seulement si posée, **centralisée** et lue par les **deux** appelants serveur de `loadEpgWindow` : `channels/page.tsx` **et** `src/lib/home/load-home-rails.ts` | Dev |
+| I-4 | Compteur d'appels `/sources/{id}/epg` côté **API** pour le web | L'appel EPG du web part du serveur Next (`server-only`), donc invisible à `page.on("request")` | Logger `org.springframework.web.servlet.FrameworkServlet` en DEBUG **en préservant la casse** : la variable d'env `LOGGING_LEVEL_…_FRAMEWORKSERVLET` est relâchée en minuscules par le relaxed binding de Spring Boot et ne cible donc **pas** un logger sensible à la casse. Chemin sûr : `SPRING_APPLICATION_JSON` ou profil yaml avec la clé quotée `logging.level."org.springframework.web.servlet.FrameworkServlet": DEBUG` ; sinon filtre dev dédié (aucun n'existe aujourd'hui). Puis `docker logs lumo-api`. **À confirmer d'un run** — non démontré | Dev / infra |
 | I-5 | Échec EPG à la demande en gardant les données affichées (GD-10 web) | Le web SSR ne peut pas « garder la grille + erreur » sans une panne partielle injectable | proxy/flag dev faisant échouer `/epg` en `503` | Dev / infra |
 | I-6 | Playlist 100 chaînes + XMLTV 100 chaînes alignés | Preuve de volume (S9-04-05 / S9-05-02) | `playlist-100.m3u` + `guide-big.xml` | Dev / infra |
 
@@ -75,14 +75,17 @@ Tant que I-1 et I-3 ne sont pas faits, GD-01 à GD-14 restent **non joués**, pa
   XMLTV est régénéré à chaque `up`, comme l'`oversized.m3u` du banc. Aucune date
   absolue committée.
 - **Identifiants fixes** : `tvg-id="bench.1"` … `bench.4`, plus une chaîne sans
-  `tvg-id` (`bench.5`). Les noms et les groupes sont ceux de `playlist.m3u` :
+  `tvg-id` (Chaîne 05). Les noms et les groupes sont ceux de `playlist.m3u` :
   « Chaîne 01 FHD » (Généralistes), « Chaîne 02 » (Généralistes), « Chaîne 03 HD »
   (Sport), « Chaîne 04 4K » (Sport), « Chaîne 05 ».
 - **Durations utiles** : 15, 30, 45 et 120 min. **Aucun logo, aucune description
   réelle** ; une description absente et une description de 8 192 caractères dans
   le jeu « volume ».
 - Le calendrier est celui de `EpgBenchFixtures` (S9-00) : J−1 → J+3, généré autour
-  de `T`.
+  de `T`. **Réutiliser son calendrier, pas ses identifiants** : `EpgBenchFixtures`
+  génère des `tvg-id="epg-bench-N"` qui ne rattachent aucune chaîne du banc ; les
+  ids XMLTV du banc sont ceux de `playlist.m3u` (`bench.1`…`bench.4`, Chaîne 05
+  sans id).
 
 ### 2.2 Jeu A — grille canonique (GD-04/05/06)
 
@@ -250,7 +253,8 @@ Statut initial : **non joué**.
 2. **Attendu** : horaires et sélection basés sur des **instants**, pas sur des
    heures locales ; deux heures locales identiques à la fin du changement d'heure
    désignent deux instants distincts ; une journée sans données ne promet rien.
-3. **Écart connu** : le web épingle `Europe/Paris` (`i18n/request.ts:27`) ; le
+3. **Écart connu** : le web épingle `Europe/Paris` (constante `timeZone` de
+   `src/i18n/request.ts`) ; le
    « fuseau de l'appareil » n'est vrai qu'Android pour 0.2.0. À jouer et à noter
    tel quel, sans le maquiller.
 
@@ -281,8 +285,13 @@ preuves, l'automatique d'abord.
 
 ### 5.2 Écran réel — web
 
-1. Poser `LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_FRAMEWORKSERVLET=DEBUG`
-   sur `lumo-api` (I-4), recréer le conteneur.
+1. Activer le logger `FrameworkServlet` en DEBUG **en préservant la casse** (I-4) :
+   la variable d'env `LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_FRAMEWORKSERVLET`
+   est relâchée en minuscules par Spring Boot et ne vise donc pas le logger
+   `org.springframework.web.servlet.FrameworkServlet`, qui est sensible à la
+   casse. Chemin sûr : `SPRING_APPLICATION_JSON` ou profil yaml avec la clé
+   quotée `logging.level."org.springframework.web.servlet.FrameworkServlet": DEBUG`.
+   Recréer le conteneur.
 2. Vider les logs, charger la vue Guide, puis compter :
    ```bash
    docker logs lumo-api 2>&1 | grep -cE 'GET "/sources/[0-9a-f-]+/epg'
@@ -315,10 +324,15 @@ ne doit pas multiplier les appels.
 ### 6.1 FR/EN
 
 Chaque cas GD se rejoue en **français et en anglais**. Vérifier : boutons nommés
-(*Regarder en direct* / *Watch live*, *Maintenant* / *Now*, *Réessayer* / *Retry*,
-*Voir les chaînes* / *See channels*), aucun français résiduel dans l'interface
-anglaise, formats d'heure conformes à la locale, aucun texte essentiel tronqué à
-320 px de large.
+(*Maintenant* / *Now* — `directNowButton` ; *Réessayer* / *Try again* —
+`sourceRetry`, **pas** « Retry » ; *Voir les chaînes* / *See channels* —
+`sourceOpenCatalogue`), aucun français résiduel dans l'interface anglaise, formats
+d'heure conformes à la locale, aucun texte essentiel tronqué à 320 px de large.
+*Regarder en direct* / *Watch live* **n'existe pas encore** dans
+`src/messages/{fr,en}.json` : S9-06 doit créer la clé, et cette annexe s'alignera
+sur le libellé livré. Le créneau vide d'une grille chargée utilise
+`directGuideEmptySlot` (*Aucun programme disponible sur ce créneau* / *No
+programme available in this slot*), posé par S9-05-02.
 
 ### 6.2 Clavier web
 
