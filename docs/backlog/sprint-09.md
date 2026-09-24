@@ -1,7 +1,9 @@
 # Sprint 9 — Direct et guide sur les trois surfaces
 
 Statut : en réalisation. C1 gelé en S9-01, contrat et serveur livrés en S9-02 ; S9-00 et
-S9-03 en recette, S9-04 cadré et en cours, S9-05 à S9-07 à venir. Taille relative : XL.
+S9-03 en recette ; S9-04 livré et **En recette** sur les trois surfaces (01→07 approuvées) ;
+S9-05 et S9-06 **découpées et prêtes** (Todo), S9-05-01 déjà `Done` (Android + Web) ;
+S9-07 préparée (protocole écrit, non exécuté). Taille relative : XL.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 Première [proposition d’écrans](../design/0.2.0/direct-guide.md) préparée le
@@ -59,10 +61,16 @@ Mis à jour le 24 septembre 2026. Une case cochée signifie recetté, pas seulem
   « Dernier import du guide » ; typecheck, lint, 250 tests, build verts. Reste : recette
   à l'écran (hauteur des cartes TV à 140 dp, détection de la page visible, barre du
   lecteur), migration Room non testée faute de harnais, fuseau web = `Europe/Paris`
-- [ ] S9-04 — **en cours** : cadrage ci-dessous, implémentation Android et web
-- [ ] S9-05 — grilles et journée
-- [ ] S9-06 — fiche programme
-- [ ] S9-07 — recette
+- [ ] S9-04 — **En recette** : 01→07 approuvées par le Tech Lead (Android mobile/TV,
+  web), story passée `En recette` dans Plane le 24 septembre 2026 ; reste la recette
+  réelle à l'écran (S9-07)
+- [ ] S9-05 — **Todo / prête** : découpage arrêté (01→04) ; **S9-05-01 `Done`** (fonctions
+  pures de jour et de fuseau, Android `555e03d` + Web `ab97891`) ; 02 web, 03 TV, 04 mobile
+  attendent leur tour, 03 ne démarre pas avant la revue de 02
+- [ ] S9-06 — **Todo / prête** : découpage arrêté (01→04), non commencée
+- [ ] S9-07 — **Backlog** : protocole écrit par QA
+  (`docs/releases/0.2.0/s9-07-recette.md`, `be2a89a`), **non exécuté** ; le harnais
+  S9-07-03 doit être livré avant toute session de recette
 
 ## Cadrage S9-03 — arrêté le 24 septembre 2026
 
@@ -117,7 +125,7 @@ d'exécution. Réalisation : **@Dev**. Recette : **@QA**.
 | S9-04-04 | Android `feature:home` + apps | Entrées accueil : *Toutes les chaînes* → Chaînes (sans recherche, Toutes) ; *Guide TV* → Guide/Maintenant | `feature/home/…/HomeNavigation.kt`, `HomeMobileScreen.kt`, `HomeTvScreen.kt`, `HomeState.kt`, `HomeViewModel.kt`, `app-mobile/…/navigation/LumoMobileNavHost.kt`, `app-tv/…/navigation/LumoTvNavHost.kt` | Les accès explicites priment sur la vue mémorisée ; GD-02 |
 | S9-04-05 | Android `feature:live` | Vue Guide « En ce moment » (servira les trois surfaces) : une ligne par chaîne du résultat filtré, en cours + suivant, **une requête groupée par page**, bouton Maintenant en haut | `feature/live/…/GuideNowList.kt` (nouveau), `LiveViewModel.kt` (consomme `EpgRepository` de S9-03) | Le nombre d'appels EPG ne dépend pas du nombre de cartes (preuve réseau) ; rien affiché quand il n'y a rien ; une réponse de l'ancienne source est ignorée (GD-03) |
 | S9-04-06 | Web | Destination Direct à deux vues : **réutiliser la route existante** `/app/sources/[id]/channels` (une vue = `?view=channels\|guide`), pas de route dupliquée ; colonne de catégories, recherche par nom conservant le filtre, état dans l'URL, mémoire de vue par cookie | `src/app/[locale]/app/sources/[id]/channels/page.tsx` (à transformer), `src/components/app/DirectViews.tsx` (nouveau), `src/lib/direct/view-memory.ts` (nouveau), `src/messages/{fr,en}.json` | GD-01/02/03 web ; tout filtre est un lien et toute recherche un GET, la page fonctionne sans JS, et les URLs de S8 restent valides (les anciens liens ouvrent Chaînes) |
-| S9-04-07 | Web | Vue Guide « En ce moment » et lien accueil *Guide TV* → Guide/Maintenant | `src/components/app/GuideNowList.tsx` (nouveau), `src/app/[locale]/app/page.tsx`, `src/lib/home/load-home-rails.ts`, `src/messages/{fr,en}.json` | Le lien prioritaire ouvre Guide sur Maintenant sans filtre ; la ligne « programme en cours » de S9-03 reste, aucune requête par carte |
+| S9-04-07 | Web | Entrées d'accueil **explicites** : *Guide TV* → `?view=guide`, *Toutes les chaînes* → `?view=channels` (la vue Guide « En ce moment » est livrée avec S9-04-06, dans `DirectViews.tsx`) ; le rail Live porte les deux liens | `src/app/[locale]/app/page.tsx`, `src/components/app/ChannelRail.tsx` (prop `more` à plusieurs liens), `src/messages/{fr,en}.json` | Le lien *Guide TV* ouvre Guide/Maintenant sans filtre et prime la mémoire ; *Toutes les chaînes* ouvre Chaînes et prime la mémoire ; aucune requête par carte |
 
 ### S9-05 — grilles, journée et navigation temporelle
 
@@ -143,7 +151,7 @@ d'exécution. Réalisation : **@Dev**. Recette : **@QA**.
 |---|---|---|---|---|
 | S9-07-01 | Toutes | Protocole de recette GD-01→GD-14 : horloge contrôlable, fixtures à identifiants stables, preuve réseau du volume borné (une requête groupée par écran, jamais par carte), démonstration d'un changement de programme | `docs/releases/0.2.0/s9-07-recette.md` | Chaque cas GD a son pas-à-pas et son résultat attendu ; la preuve réseau montre un nombre d'appels indépendant du nombre de cartes |
 | S9-07-02 | TV + web | Recette FR/EN, clavier web, D-pad réel, fuseau et changement d'heure (GD-12/14) | même rapport, annexe | Actions nommées, focus visible, aucun piège ni texte tronqué essentiel |
-| S9-07-03 | Banc + infra | **Harnais de recette** : XMLTV de banc à dates relatives et variantes (I-1, I-2), horloge `LUMO_NOW` du web SSR (I-3), compteur d'appels `/epg` et panne partielle (I-4, I-5), playlist/XMLTV 100 chaînes (I-6) | `apps/web/e2e/bench/**`, helper `now()` et `src/lib/epg/now.ts` (remplace `new Date()` de `channels/page.tsx:327`), profil Compose de banc | Le protocole S9-07 s'exécute sans attente réelle ni source réelle : horloge surchargée, 100 chaînes, échec EPG injectable ; la preuve réseau compte les appels API |
+| S9-07-03 | Banc + infra | **Harnais de recette** : XMLTV de banc à dates relatives et variantes (I-1, I-2), horloge `LUMO_NOW` du web SSR (I-3), compteur d'appels `/epg` et panne partielle (I-4, I-5), playlist/XMLTV 100 chaînes (I-6) | `apps/web/e2e/bench/**`, helper `apps/web/src/lib/epg/clock.ts` (remplace le `new Date()` du rendu serveur de `channels/page.tsx` **et** de `src/lib/home/load-home-rails.ts`), profil Compose de banc | Le protocole S9-07 s'exécute sans attente réelle ni source réelle : horloge surchargée, 100 chaînes, échec EPG injectable ; la preuve réseau compte les appels API |
 
 > S9-04 est déjà `In Progress` ; S9-05 et S9-06 passent en `Todo` (découpées et prêtes) ;
 > S9-07 reste en `Backlog` : la recette dépend de S9-04 à S9-06, et son harnais
@@ -167,13 +175,28 @@ d'exécution. Réalisation : **@Dev**. Recette : **@QA**.
 > deux, l'écart est accepté. Ordre d'exécution validé pour le reste de S9-04 :
 > 05 → 02 → 03 → 04 → 06 → 07 (05 fournit la liste « En ce moment » dont 02 et 03
 > dépendent).
+>
+> **Revue S9-04-06 — approuvée** le 24 septembre 2026 (branche
+> `feat/S9-04-06-web-two-views`, commit `630fe7b`). Sécurité : cookie `httpOnly`,
+> `SameSite=Lax`, `secure` selon l'environnement, nom dérivé d'un UUID vérifié,
+> valeur validée `channels|guide` (une valeur forgée reste l'une des deux vues et
+> rien d'autre) ; ADR : aucune (réutilise la route existante et le patron du cookie
+> de source active). Tests rejoués indépendamment par le Tech Lead : `pnpm test` →
+> 26 fichiers, 266 tests, 0 échec ; `pnpm typecheck` vert. Une seule `loadEpgWindow`
+> par rendu sert les deux vues : le Guide n'ajoute aucune requête. Le `?view=`
+> explicite prime la mémoire, une URL S8 sans `?view=` garde Chaînes. **Arbitrage** :
+> la liste « En ce moment » web livrée par 06 reste dans `DirectViews.tsx` (un seul
+> consommateur) ; S9-04-07 ne porte plus que les entrées d'accueil explicites et la
+> prop `more` multi-liens de `ChannelRail`. Non vérifié : rendu SSR réel à travers le
+> proxy, clavier web, comportement du cookie sous navigation → recette S9-07.
 
 ## Démo et sortie
 
 Preuve du 24 septembre : huit tests EPG, build API complet vert (319 tests) et
 24 tests C1 après S9-02. Fixtures relatives à l’horloge et neuf mesures de volume,
-plus descriptions longues. S9-00 et S9-03 sont en recette ; S9-04 reste à réaliser
-sur les trois surfaces, puis S9-05 et S9-06, avant la recette S9-07.
+plus descriptions longues. S9-00, S9-03 et S9-04 sont en recette ; S9-05 et S9-06 sont
+découpées et prêtes à réaliser, puis viendra la recette S9-07. Le découpage du sprint 9
+est terminé : la réalisation est confiée au Tech Lead, qui briefe @Dev tâche par tâche.
 
 Complément du 20 septembre : [interactions et cas GD-01 à GD-14](../design/0.2.0/guide-interactions.md)
 pour S9-00 et S9-04 à S9-07. Les règles de navigation Q5 sont précisées ; C1 est

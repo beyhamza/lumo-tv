@@ -69,8 +69,12 @@ export function ChannelRail({
    * Where the whole of it lives — the library for favourites, the catalogue for
    * recent channels. Beside the heading rather than after the last card: a link
    * at the end of a scroller is a link only the people who scrolled ever see.
+   *
+   * A list since S9-04-07: the Live rail closes on two entries — *Toutes les
+   * chaînes* and *Guide TV* — while the Favourites rail still has its one. The
+   * order is the reading order, left to right.
    */
-  more?: { href: string; label: string };
+  more?: readonly { href: string; label: string }[];
 }) {
   if (channels.length === 0) return null;
 
@@ -92,15 +96,20 @@ export function ChannelRail({
 
   return (
     <section className={prominent ? "mt-10" : "mt-6"}>
-      {more ? (
+      {more && more.length > 0 ? (
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           {heading}
-          <a
-            href={more.href}
-            className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
-          >
-            {more.label}
-          </a>
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            {more.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
         </div>
       ) : (
         heading

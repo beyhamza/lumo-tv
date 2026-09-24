@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import {
   getFormatter,
@@ -17,6 +18,8 @@ import {
   groupLabel,
 } from "@/components/app/FavoriteGroups";
 import { ChannelPlayer } from "@/components/app/ChannelPlayer";
+import { DirectViews } from "@/components/app/DirectViews";
+import { EpgGrid } from "@/components/app/EpgGrid";
 import { SourceNotice } from "@/components/app/SourceNotice";
 import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
@@ -26,6 +29,8 @@ import { errorMessage } from "@/lib/api/error-message";
 import type { Category, Channel, FavoriteGroup } from "@/lib/api/types";
 import { attempt, outcomeOf } from "@/lib/catalogue/attempt";
 import { cataloguePageState } from "@/lib/catalogue/page-state";
+import { explicitView, resolveDirectView, storedDirectView, type DirectView } from "@/lib/direct/view-memory";
+import { DAYS_BEFORE, epgDayWindow } from "@/lib/epg/day-window";
 import { clockTime } from "@/lib/epg/format";
 import { epgFreshness } from "@/lib/epg/freshness";
 import { NOW_WINDOW_MS, loadEpgWindow, type EpgWindow } from "@/lib/epg/load-epg-window";
@@ -107,7 +112,19 @@ import { sourceCondition } from "@/lib/sources/source-condition";
  * fresh guide, an unknown one, or a source with no guide at all say nothing:
  * "imported three hours ago" on every visit is noise, and "no guide" under a
  * catalogue somebody came to browse is a sentence about a feature they did not
- * ask for. The grid is S9-05; this page draws no cell.
+ * ask for.
+ *
+ * <h2>The Guide view draws the time grid (S9-05-02)</h2>
+ *
+ * The Guide is now the hour grid of {@link EpgGrid}: channels as rows, hours as
+ * columns, five day tabs (J−1→J+3) and **Maintenant**. It reads **one** grouped
+ * window — the displayed day — with a single `loadEpgWindow` call, so the number
+ * of `/epg` requests never follows the number of channels. Times are printed in
+ * the zone next-intl is configured with, and every position and comparison is a
+ * fraction of the day's two instants, never a local hour (GD-12). A slot with
+ * no programme says « Aucun programme disponible sur ce créneau »; a read that
+ * did not answer, or a source with no guide configured at all, draws nothing
+ * (S7-03).
  */
 export async function generateMetadata({
   params,
@@ -150,6 +167,16 @@ export default async function ChannelsPage({
   const { locale, id } = await params;
   const query = await searchParams;
   setRequestLocale(locale);
+
+  // Which of Direct's two views opens (S9-04-06): an explicit `?view=` primes the
+  // per-source memory cookie the proxy wrote before this render, and the memory
+  // primes the default (GD-02). A bare `/channels` — an S8 link, the Explore bar
+  // — passes no view and therefore opens what this browser last used.
+  const cookieStore = await cookies();
+  const directView = resolveDirectView(
+    storedDirectView((name) => cookieStore.get(name)?.value, id),
+    explicitView(single(query.view)),
+  );
 
   const session = await requireSession();
   const t = await getTranslations("App");
@@ -323,8 +350,25 @@ export default async function ChannelsPage({
     .slice(0, ID_LOOKUP_MAX);
 
   // One clock for the render: what is "on now" is decided at this instant, and
-  // the guide's age is measured from it.
+  // the guide's age is measured from it. The same instant and the zone next-intl
+  // is configured with give the Guide's five days (S9-05-01b), so the grid and
+  // the "on now" lines never disagree about which day is which.
+  const timeZone = await getTimeZone();
   const now = new Date();
+  const days = epgDayWindow(now, timeZone);
+  const today = days[DAYS_BEFORE];
+  // `?day=` is a calendar day of the window; anything else — absent, a stale
+  // bookmark, another day entirely — opens on today. A day outside J−1→J+3 is
+  // not a day this screen promised to have.
+  const activeDay = days.find((day) => day.date === single(query.day)) ?? today;
+
+  // The Guide reads the whole day it draws; the Chaînes view keeps the short
+  // "on now" window its rows use. Either way it is **one** grouped request for
+  // the screen, never one per channel (S9-03, S9-05-02).
+  const guideWindow =
+    directView === "guide"
+      ? { from: activeDay.from, to: activeDay.to }
+      : { from: now, to: new Date(now.getTime() + NOW_WINDOW_MS) };
 
   const [resolved, guide] = await Promise.all([
     missing.length > 0
@@ -334,16 +378,17 @@ export default async function ChannelsPage({
           }),
         )
       : undefined,
-    // The page's channels over the next three hours, in one request (S9-03).
-    // Only the listing's: the rails' cards are not asked for, so that a rail
-    // does not show a programme under the three channels that happen to be on
-    // this page and nothing under the nine that are not. Never throws.
+    // The page's channels over the displayed day (Guide) or the next three
+    // hours (Chaînes), in one request (S9-03, S9-05-02). Only the listing's: the
+    // rails' cards are not asked for, so that a rail does not show a programme
+    // under the three channels that happen to be on this page and nothing under
+    // the nine that are not. Never throws.
     loadEpgWindow(
       token,
       id,
       listed.map((channel) => channel.id),
-      now,
-      new Date(now.getTime() + NOW_WINDOW_MS),
+      guideWindow.from,
+      guideWindow.to,
     ),
   ]);
   // An identifier the last re-synchronisation dropped is simply not in the
@@ -362,6 +407,7 @@ export default async function ChannelsPage({
   // and player included. Built from the same values the links are built from, so
   // the two cannot drift apart.
   const returnTo = `/app/sources/${id}/channels${queryString({
+    view: directView,
     categoryId,
     q: search,
     page: page > 0 ? String(page) : undefined,
@@ -376,12 +422,44 @@ export default async function ChannelsPage({
     hrefFor(
       locale as Locale,
       `/app/sources/${id}/channels${queryString({
+        view: directView,
         categoryId,
         q: search,
         page: page > 0 ? String(page) : undefined,
         play: channelId,
       })}`,
     );
+
+  // Day navigation in the Guide (S9-05-02). The same URL with `?day=`, keeping
+  // the view, the filter, the search and the page like every other link here —
+  // moving in time must not lose what the person was looking at (GD-01).
+  const guideDayHref = (day: string) =>
+    hrefFor(
+      locale as Locale,
+      `/app/sources/${id}/channels${queryString({
+        view: "guide",
+        categoryId,
+        q: search,
+        page: page > 0 ? String(page) : undefined,
+        play: playing,
+        group: activeGroup?.id,
+        day,
+      })}`,
+    );
+  // The grid's way back out to the channel list (GD-06), keeping the same
+  // filter and search — the Guide is one presentation of this catalogue, not a
+  // separate screen.
+  const channelsViewHref = hrefFor(
+    locale as Locale,
+    `/app/sources/${id}/channels${queryString({
+      view: "channels",
+      categoryId,
+      q: search,
+      page: page > 0 ? String(page) : undefined,
+      play: playing,
+      group: activeGroup?.id,
+    })}`,
+  );
 
   return (
     <div>
@@ -423,6 +501,24 @@ export default async function ChannelsPage({
         seriesLabel={t("seriesTitle")}
       />
 
+      {/* The two views of Direct (S9-04-06). Links, not buttons: this zone works
+          without JavaScript, and the view is a URL like every other state here. */}
+      <DirectViews
+        locale={locale as Locale}
+        sourceId={id}
+        active={directView}
+        query={{
+          categoryId,
+          q: search,
+          page,
+          group: activeGroup?.id,
+          play: playing,
+        }}
+        label={t("directViewsLabel")}
+        channelsLabel={t("directViewChannels")}
+        guideLabel={t("directViewGuide")}
+      />
+
       {/* Above the catalogue, not instead of it (C4). Renders nothing for a
           source that is simply ready. */}
       {source.data ? (
@@ -445,6 +541,7 @@ export default async function ChannelsPage({
           hrefFor(
             locale as Locale,
             `/app/sources/${id}/channels${queryString({
+              view: directView,
               categoryId,
               q: search,
               group: groupId,
@@ -494,6 +591,9 @@ export default async function ChannelsPage({
           other control on this page does too. `page` is deliberately absent:
           a new search starts at the first page. */}
       <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
+        {/* The view survives a search: a GET that dropped it would send the
+            person back to Chaînes on the next submit (GD-01). */}
+        <input type="hidden" name="view" value={directView} />
         {categoryId ? (
           <input type="hidden" name="categoryId" value={categoryId} />
         ) : null}
@@ -530,6 +630,7 @@ export default async function ChannelsPage({
           activeId={categoryId}
           sourceId={id}
           locale={locale as Locale}
+          view={directView}
           search={search}
           allLabel={t("catalogueAllCategories")}
         />
@@ -565,6 +666,28 @@ export default async function ChannelsPage({
                 {search ? t("catalogueNoResultsHint") : t("catalogueEmptyHint")}
               </p>
             </div>
+          ) : directView === "guide" ? (
+            <EpgGrid
+              window={guide}
+              channels={listed}
+              days={days}
+              activeDate={activeDay.date}
+              todayDate={today.date}
+              timeZone={timeZone}
+              locale={locale as Locale}
+              labels={{
+                grid: t("directGuideTitle"),
+                days: t("directGuideDays"),
+                today: t("directDayToday"),
+                nowButton: t("directNowButton"),
+                emptySlot: t("directGuideEmptySlot"),
+                seeChannels: t("sourceOpenCatalogue"),
+              }}
+              dayHref={guideDayHref}
+              nowHref={guideDayHref(today.date)}
+              channelsHref={channelsViewHref}
+              playHref={playHref}
+            />
           ) : (
             <ul aria-label={t("catalogueTitle")} className="space-y-2">
               {listed.map((channel) => (
@@ -595,6 +718,7 @@ export default async function ChannelsPage({
               totalPages={totalPages}
               sourceId={id}
               locale={locale as Locale}
+              view={directView}
               categoryId={categoryId}
               search={search}
               previousLabel={t("cataloguePrevious")}
@@ -639,6 +763,7 @@ function CategoryList({
   activeId,
   sourceId,
   locale,
+  view,
   search,
   allLabel,
 }: {
@@ -652,13 +777,15 @@ function CategoryList({
   activeId?: string;
   sourceId: string;
   locale: Locale;
+  /** Kept in every link, so a category does not drop the open view (GD-01). */
+  view: DirectView;
   search?: string;
   allLabel: string;
 }) {
   const link = (categoryId?: string) =>
     hrefFor(
       locale,
-      `/app/sources/${sourceId}/channels${queryString({ categoryId, q: search })}`,
+      `/app/sources/${sourceId}/channels${queryString({ view, categoryId, q: search })}`,
     );
 
   return (
@@ -1001,6 +1128,7 @@ function Pagination({
   totalPages,
   sourceId,
   locale,
+  view,
   categoryId,
   search,
   previousLabel,
@@ -1011,6 +1139,7 @@ function Pagination({
   totalPages: number;
   sourceId: string;
   locale: Locale;
+  view: DirectView;
   categoryId?: string;
   search?: string;
   previousLabel: string;
@@ -1021,6 +1150,7 @@ function Pagination({
     hrefFor(
       locale,
       `/app/sources/${sourceId}/channels${queryString({
+        view,
         categoryId,
         q: search,
         page: target > 0 ? String(target) : undefined,
