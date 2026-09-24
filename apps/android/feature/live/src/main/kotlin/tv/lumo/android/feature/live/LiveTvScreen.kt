@@ -22,16 +22,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -58,10 +55,13 @@ import androidx.paging.compose.itemKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.DirectView
 import tv.lumo.android.core.data.EmptyGrid
+import tv.lumo.android.core.data.EpgDay
+import tv.lumo.android.core.data.EpgDayWindow
 import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.emptyGridOf
@@ -110,18 +110,19 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
  * keeps the category and the query (GD-01); a change of source drops both and
  * opens the new source on the view it was left on (GD-02, GD-03), which is the
  * shared [tv.lumo.android.core.data.repository.DirectViewRepository]'s job and
- * not this screen's. The Guide draws [GuideNowList], the shared "En ce moment"
- * list (S9-04-05).
+ * not this screen's. The Guide draws [GuideGridTv], the hour grid with the
+ * reference-hour D-pad rule (S9-05-03).
  *
- * <h2>What is on, under each card and in the guide</h2>
+ * <h2>What is on, under each card and in the grid</h2>
  *
  * The guide arrived with C1. Each card carries the title of the programme on
- * air, and the Guide list says it with its progress and the next programme. Both
- * come from **one request per page**: the screen watches which indices are
- * visible, rounds them to a page of [EPG_PAGE_SIZE] with [epgPageIds] — the same
- * function the Guide uses — and hands the page's channel ids to the view model,
- * which asks once for what it does not hold. Never a request per card — that is
- * the trap S7-04 names.
+ * air; the Guide's hour grid reads its **displayed day** whole, one grouped
+ * window per page of channels. Both come from **one request per page**: the
+ * screen watches which indices are visible, rounds them to a page of
+ * [EPG_PAGE_SIZE] with [epgPageIds] — the same function the Guide uses — and
+ * hands the page's channel ids to the view model, which asks once for what it
+ * does not hold. Never a request per card, and never per cell — that is the trap
+ * S7-04 names.
  *
  * Where the guide has nothing — no `tvg_id`, no guide on the source, not loaded
  * — a card shows its name and number and **nothing else**: no placeholder, no
@@ -234,7 +235,7 @@ fun LiveTvScreen(
                 state = state,
                 channels = channels,
                 onChannelsVisible = viewModel::onChannelsVisible,
-                onGuideVisible = viewModel::onGuideVisible,
+                onDayVisible = viewModel::onDayVisible,
                 onOpenSources = onOpenSources,
                 onRetry = viewModel::refresh,
                 onRefreshSource = viewModel::refreshSource,
@@ -276,7 +277,7 @@ private fun Browsing(
     state: LiveState,
     channels: LazyPagingItems<Channel>,
     onChannelsVisible: (List<String>) -> Unit,
-    onGuideVisible: (List<String>) -> Unit,
+    onDayVisible: (EpgDay, List<String>) -> Unit,
     onOpenSources: () -> Unit,
     onRetry: () -> Unit,
     onRefreshSource: () -> Unit,
@@ -293,11 +294,12 @@ private fun Browsing(
 ) {
     val focusTarget = remember { FocusRequester() }
     val gridState = rememberLazyGridState()
-    val guideList = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     var focusIndex by remember { mutableIntStateOf(0) }
     var focusSettled by remember { mutableStateOf(false) }
     var now by remember { mutableStateOf(Instant.now()) }
+    // The day tab the Guide is on. Null means "today", which Maintenant resets
+    // to; the five days themselves are derived from the clock below.
+    var selectedDay by remember { mutableStateOf<LocalDate?>(null) }
 
     // Coming back from the player (US-10): the channel that was being watched,
     // not the head of the grid. A return owns the focus, so the arrival pass
@@ -463,22 +465,32 @@ private fun Browsing(
                         onAll = { onSelectCategory(null) },
                     )
 
-                    // "En ce moment", one line per channel of the filtered result,
-                    // current then next (S9-04-05). The list reports its page and
-                    // the tracker asks once for what it does not hold — never one
-                    // request per card.
-                    state.view == DirectView.Guide -> TvGuideTheme {
-                        GuideNowList(
+                    // The hour grid (S9-05-03): channels as rows, hours as
+                    // columns, five day tabs J−1→J+3 and Maintenant. It reports
+                    // its page for the day it draws, and the view model asks
+                    // once for what it does not hold — never one request per
+                    // cell.
+                    state.view == DirectView.Guide -> {
+                        val zone = remember { ZoneId.systemDefault() }
+                        val days = remember(now, zone) { EpgDayWindow.around(now, zone) }
+                        val today = days[EpgDayWindow.DAYS_BEFORE.toInt()]
+                        val activeDay = days.firstOrNull { it.date == selectedDay } ?: today
+
+                        GuideGridTv(
                             state = state,
                             channels = channels,
+                            days = days,
+                            activeDay = activeDay,
+                            today = today.date,
                             now = now,
                             onNow = {
                                 now = Instant.now()
-                                scope.launch { guideList.scrollToItem(0) }
+                                selectedDay = null
                             },
+                            onSelectDay = { selectedDay = it.date },
                             onPlay = onPlay,
-                            onPageVisible = onGuideVisible,
-                            listState = guideList,
+                            onDayVisible = onDayVisible,
+                            onSeeChannels = { onSelectView(DirectView.Channels) },
                         )
                     }
 
@@ -633,34 +645,6 @@ private fun TvEmptySearch(query: String, onClear: () -> Unit, onAll: () -> Unit)
         onAction = onClear,
         secondaryActionLabel = stringResource(R.string.feature_live_all_categories),
         onSecondaryAction = onAll,
-    )
-}
-
-/**
- * [GuideNowList] is written against `androidx.compose.material3`, like the phone
- * screen it was drawn for, while a television composes under
- * `androidx.tv.material3` (docs/architecture.md §3). The two are separate
- * composition locals, so without this the shared list would fall back to the
- * phone library's default light scheme in the middle of a dark screen.
- *
- * This is the smallest adapter that makes the sharing real: the same list, given
- * the television palette. It is deliberately local to this screen rather than a
- * rewrite of `GuideNowList`, whose mobile colours are not this task's to change.
- */
-@Composable
-private fun TvGuideTheme(content: @Composable () -> Unit) {
-    androidx.compose.material3.MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = LumoColors.OnDark,
-            onPrimary = LumoColors.Ink,
-            background = LumoColors.Ink,
-            onBackground = LumoColors.OnDark,
-            surface = LumoColors.Surface,
-            onSurface = LumoColors.OnDark,
-            surfaceVariant = LumoColors.SurfaceRaised,
-            onSurfaceVariant = LumoColors.OnDarkMuted,
-        ),
-        content = content,
     )
 }
 

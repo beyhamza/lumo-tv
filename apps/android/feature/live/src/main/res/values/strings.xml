@@ -108,4 +108,13 @@
     <string name="feature_live_guide_now_label">On now</string>
     <string name="feature_live_guide_next">Next</string>
     <string name="feature_live_guide_programme">%1$s · %2$s · %3$s</string>
+
+    <!--
+      The Guide's hour grid (S9-05-03): the day tabs (J−1→J+3), the way back to
+      the channel list, and the one sentence a slot is allowed when the guide has
+      nothing (S7-03, guide-interactions.md).
+    -->
+    <string name="feature_live_guide_see_channels">See channels</string>
+    <string name="feature_live_guide_today">Today</string>
+    <string name="feature_live_guide_empty_slot">No programme available in this slot</string>
 </resources>

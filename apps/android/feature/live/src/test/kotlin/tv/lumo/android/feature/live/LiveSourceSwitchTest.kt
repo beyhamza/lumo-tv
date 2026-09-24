@@ -62,6 +62,13 @@ class LiveSourceSwitchTest {
         // The Guide's "En ce moment" windows carry the same programme, and they
         // too must not survive under B (S9-04-05, GD-03).
         guideProgrammes = mapOf("c1" to listOf(programme)),
+        // The television hour grid's day window as well (S9-05-03): a programme
+        // of source A drawn under B's rows is the same GD-03 failure.
+        guideDay = GuideDay(
+            programmes = mapOf("c1" to listOf(programme)),
+            answered = setOf("c1"),
+            configured = true,
+        ),
     )
 
     @Test
@@ -81,6 +88,7 @@ class LiveSourceSwitchTest {
         assertThat(next.sheetChannel).isNull()
         assertThat(next.onAir).isEmpty()
         assertThat(next.guideProgrammes).isEmpty()
+        assertThat(next.guideDay).isEqualTo(GuideDay())
     }
 
     @Test

@@ -25,6 +25,7 @@ import tv.lumo.android.core.data.ActiveSourceState
 import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.DirectView
+import tv.lumo.android.core.data.EpgDay
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.NowAndNext
@@ -108,7 +109,7 @@ class LiveViewModel @Inject constructor(
     private val activeSource: ActiveSourceRepository,
     private val favorites: FavoriteRepository,
     private val recents: RecentChannelRepository,
-    epg: EpgRepository,
+    private val epg: EpgRepository,
     private val directViews: DirectViewRepository,
     clock: Clock,
 ) : ViewModel() {
@@ -117,6 +118,16 @@ class LiveViewModel @Inject constructor(
     val state: StateFlow<LiveState> = _state
 
     private val guide = OnAirTracker(epg, clock, viewModelScope)
+
+    /**
+     * The channel ids the current day's grid has already asked for (S9-05-03).
+     *
+     * The grid reports the page of channels it draws for the day on display; the
+     * ones already asked for are not asked again, so the number of `/epg` calls
+     * does not depend on the number of cells. Cleared with the day and with the
+     * source, for the same reason [OnAirTracker] clears.
+     */
+    private val guideDayAsked = mutableSetOf<String>()
 
     /**
      * The view the home screen asked for explicitly, waiting to be applied
@@ -224,6 +235,59 @@ class LiveViewModel @Inject constructor(
     }
 
     /**
+     * The channels of the page the television's hour grid is drawing, for the
+     * day it is showing (S9-05-03).
+     *
+     * The grid reads a **whole day**, not the `[now, now + 3 h)` window the
+     * "En ce moment" list holds, so this is its own read: one grouped request
+     * for the page's channels over that day `[from, to)`, none for a page and
+     * day already held. The repository answers cache first, then the server
+     * (S7-02), and both emissions land here — the cache draws at once, the
+     * server redraws.
+     *
+     * An answer for a day or a source the screen has left is dropped, which is
+     * GD-03: a programme of the old source must never be drawn under the new
+     * one.
+     */
+    fun onDayVisible(day: EpgDay, channelIds: List<String>) {
+        val sourceId = _state.value.sourceId ?: return
+        if (channelIds.isEmpty()) return
+
+        if (_state.value.guideDay.day != day) {
+            guideDayAsked.clear()
+            _state.update { it.copy(guideDay = GuideDay(day = day)) }
+        }
+
+        val missing = channelIds.distinct().filterNot { it in guideDayAsked }
+        if (missing.isEmpty()) return
+        guideDayAsked += missing
+
+        viewModelScope.launch {
+            epg.window(sourceId, missing, day.from, day.to).collect { cached ->
+                _state.update { state ->
+                    if (state.sourceId != sourceId || state.guideDay.day != day) {
+                        return@update state
+                    }
+                    state.copy(
+                        guideDay = state.guideDay.copy(
+                            programmes = state.guideDay.programmes + cached.value.channels
+                                .associate { it.channelId to it.programmes },
+                            answered = state.guideDay.answered +
+                                cached.value.channels.map { it.channelId },
+                            // `configured` is the source's, not the day's: it is
+                            // false when there is no guide at all, and then the
+                            // grid draws nothing (S7-03). The cache may not know
+                            // it yet; the server's answer carries it.
+                            configured = cached.value.importStatus?.configured
+                                ?: state.guideDay.configured,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    /**
      * Follows the active source for as long as the screen lives.
      *
      * `collectLatest`, and it is what makes a switch clean: the category observer
@@ -268,7 +332,10 @@ class LiveViewModel @Inject constructor(
         // the new one is the GD-03 failure (S9-04-05). A mere status change of
         // the same source keeps what the Guide holds.
         val changed = sourceId != _state.value.sourceId
-        if (changed) guide.clear()
+        if (changed) {
+            guide.clear()
+            guideDayAsked.clear()
+        }
 
         // The new source's remembered view is read before the state is built, so
         // the screen opens straight on it instead of drawing Chaînes and flipping
@@ -744,6 +811,15 @@ data class LiveState(
      * row then draws no programme line at all (S7-03, S9-04).
      */
     val guideProgrammes: Map<String, List<EpgProgramme>> = emptyMap(),
+
+    /**
+     * The day the television's hour grid is showing, and the answers of its
+     * grouped reads (S9-05-03). Separate from [guideProgrammes], which is the
+     * short `[now, now + 3 h)` window the "En ce moment" list reads: the grid
+     * needs the whole displayed day, and mixing the two would draw a card's
+     * programme outside its day.
+     */
+    val guideDay: GuideDay = GuideDay(),
 ) {
 
     /**
