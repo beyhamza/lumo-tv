@@ -100,6 +100,53 @@ La grille horaire, la journée mobile et la fiche restent à S9-05 et S9-06 ; la
 | Accueil | *Toutes les chaînes* ouvre Chaînes sans recherche et sur Toutes ; **Guide TV** (nouveau lien, US-020) ouvre Guide sur Maintenant, sans recherche et sur Toutes ; ces accès priment sur la vue mémorisée | — |
 | TV | La bande de puces devient une colonne ; carte de focus à mettre à jour ; « Repris » **conservé** en attendant un arbitrage (non cité dans les filtres validés, mais livré en S4-08) | Focus de la grille horaire : S9-05 |
 
+## Découpage des tâches — arrêté le 24 septembre 2026
+
+Chaque tâche est une PR, une seule plateforme, sur la branche `feat/US-16-grouped-epg`
+ou une branche `feat/S9-04-xx-…` qui en repart. Les sous-issues Plane portent le
+même `external_id` (`S9-04-01`…) et sont rattachées à l'item `S9-04`. Ordre = ordre
+d'exécution. Réalisation : **@Dev**. Recette : **@QA**.
+
+### S9-04 — destination Direct à deux vues Chaînes/Guide
+
+| ID | Plateforme | Contenu et module | Fichiers | Critère d'acceptation |
+|---|---|---|---|---|
+| S9-04-01 | Android `core:data` | Mémoire de vue Direct : dernière vue par appareil **et** par source ; recherche et filtre partagés en session, seuls la vue survit entre sessions | `core/data/…/internal/DirectViewStore.kt` (nouveau, DataStore, sur le modèle d'`ActiveSourceStore.kt`), `…/repository/DirectViewRepository.kt`, `…/di/DirectViewModule.kt`, `core/data/src/test/…/DirectViewStoreTest.kt` | Rouvrir l'appli retrouve la vue de la source ; changer de source efface recherche/filtre et rend la vue mémorisée de la nouvelle source ; la recherche n'est **pas** persistée (GD-02, GD-03) |
+| S9-04-02 | Android mobile `feature:live` | Bascule Chaînes/Guide, filtres Toutes/Favoris/catégories partagés, recherche par nom qui **conserve le filtre**, état sans résultat | `feature/live/…/LiveMobileScreen.kt`, `LiveViewModel.kt`, `LiveDestination.kt`, `app-mobile/src/main/res/values{,-fr}/strings.xml` | Chaînes→Guide garde texte et filtre et arrive sur Maintenant (GD-01) ; sans résultat, proposer Effacer et Toutes ; rien d'affiché sans guide (pas de texte inventé) |
+| S9-04-03 | Android TV `feature:live` | Colonne de catégories défilante à gauche, cartes à droite, focus D-pad, bascule de vue | `feature/live/…/LiveTvScreen.kt`, `LiveViewModel.kt`, fichier de focus TV | La colonne reste atteignable quand la recherche est vide ; « Repris » conservé ; aucun focus sur élément masqué ou squelette |
+| S9-04-04 | Android `feature:home` + apps | Entrées accueil : *Toutes les chaînes* → Chaînes (sans recherche, Toutes) ; *Guide TV* → Guide/Maintenant | `feature/home/…/HomeNavigation.kt`, `HomeMobileScreen.kt`, `HomeTvScreen.kt`, `HomeState.kt`, `HomeViewModel.kt`, `app-mobile/…/navigation/LumoMobileNavHost.kt`, `app-tv/…/navigation/LumoTvNavHost.kt` | Les accès explicites priment sur la vue mémorisée ; GD-02 |
+| S9-04-05 | Android `feature:live` | Vue Guide « En ce moment » (servira les trois surfaces) : une ligne par chaîne du résultat filtré, en cours + suivant, **une requête groupée par page**, bouton Maintenant en haut | `feature/live/…/GuideNowList.kt` (nouveau), `LiveViewModel.kt` (consomme `EpgRepository` de S9-03) | Le nombre d'appels EPG ne dépend pas du nombre de cartes (preuve réseau) ; rien affiché quand il n'y a rien ; une réponse de l'ancienne source est ignorée (GD-03) |
+| S9-04-06 | Web | Destination Direct à deux vues : **réutiliser la route existante** `/app/sources/[id]/channels` (une vue = `?view=channels\|guide`), pas de route dupliquée ; colonne de catégories, recherche par nom conservant le filtre, état dans l'URL, mémoire de vue par cookie | `src/app/[locale]/app/sources/[id]/channels/page.tsx` (à transformer), `src/components/app/DirectViews.tsx` (nouveau), `src/lib/direct/view-memory.ts` (nouveau), `src/messages/{fr,en}.json` | GD-01/02/03 web ; tout filtre est un lien et toute recherche un GET, la page fonctionne sans JS, et les URLs de S8 restent valides (les anciens liens ouvrent Chaînes) |
+| S9-04-07 | Web | Vue Guide « En ce moment » et lien accueil *Guide TV* → Guide/Maintenant | `src/components/app/GuideNowList.tsx` (nouveau), `src/app/[locale]/app/page.tsx`, `src/lib/home/load-home-rails.ts`, `src/messages/{fr,en}.json` | Le lien prioritaire ouvre Guide sur Maintenant sans filtre ; la ligne « programme en cours » de S9-03 reste, aucune requête par carte |
+
+### S9-05 — grilles, journée et navigation temporelle
+
+| ID | Plateforme | Contenu et module | Fichiers | Critère d'acceptation |
+|---|---|---|---|---|
+| S9-05-01 | Android + Web (logique pure) | Fenêtre de jours J−1→J+3, fuseau de l'appareil, passage de minuit et changements d'heure ; **fonctions pures** partagées | `core/data/…/EpgDayWindow.kt` (nouveau) + `core/data/src/test/…/EpgDayWindowTest.kt` ; `src/lib/epg/day-window.ts` (nouveau) + `src/lib/epg/day-window.test.ts` | Les comparaisons portent sur des instants, pas des heures locales (GD-12) ; une journée sans données n'est jamais promise |
+| S9-05-02 | Web | Grille horaire : chaînes en lignes, horaires en colonnes, navigation dans le temps, bouton Maintenant, créneau vide | `src/components/app/EpgGrid.tsx` (nouveau), page `sources/[id]/channels` (vue Guide) | GD-05/06 web ; une requête groupée par jour affiché ; créneau vide → « Aucun programme disponible sur ce créneau » |
+| S9-05-03 | Android TV | Grille horaire et navigation D-pad à **heure de référence** conservée entre lignes | `feature/live/…/GuideGridTv.kt` (nouveau), `feature/live/…/GuideFocus.kt` (nouveau), `LiveTvScreen.kt` | GD-04/05/06 : durée différente sans dérive, pas de saut de chaîne sur une lacune, pas de boucle aux bords |
+| S9-05-04 | Android mobile | Liste En ce moment → journée d'une chaîne, retour par niveau, navigation temporelle et Maintenant | `feature/live/…/GuideDayMobile.kt` (nouveau), `LiveMobileScreen.kt`, `LiveViewModel.kt` | GD-13 : Retour ramène à la liste En ce moment en conservant la position |
+
+### S9-06 — fiche programme et états
+
+| ID | Plateforme | Contenu et module | Fichiers | Critère d'acceptation |
+|---|---|---|---|---|
+| S9-06-01 | Android | Fiche programme (panneau latéral TV, bas mobile) ; actions courant/futur/passé ; temps qui passe | `feature/live/…/ProgrammeSheet.kt` (nouveau), `LiveViewModel.kt`, `LiveTvScreen.kt`, `LiveMobileScreen.kt` | GD-07/08 : à la fin, l'action disparaît, le focus va à Fermer, le titre ne change pas ; un futur devenu courant gagne l'action sans voler le focus, état revérifié à l'activation |
+| S9-06-02 | Android | Retour à la case après fiche/lecteur, ancre de focus, repli déterministe si la case disparaît | `feature/live/…/GuideFocus.kt`, `LiveViewModel.kt` | GD-09/13 : recherche, filtre, créneau et ancre restaurés ; repli même chaîne/même heure sinon suivante puis précédente |
+| S9-06-03 | Android | États : absence, ancienneté, erreur avec données ; Réessayer et Voir les chaînes ; message neutre | `feature/live/…/GuideStates.kt` (nouveau), `LiveViewModel.kt` (réutilise `EpgFreshness` de S9-03) | GD-10/11 : erreur initiale et erreur avec données distinctes ; les données et le focus survivent ; aucune cause inventée pour une liste vide |
+| S9-06-04 | Web | Fiche programme et états équivalents | `src/components/app/ProgrammeSheet.tsx` (nouveau), page `sources/[id]/channels`, `src/messages/{fr,en}.json` | GD-07/08/10/11 web ; description et logo absents restent neutres |
+
+### S9-07 — recette (préparée pour le QA, exécutée après S9-04 à S9-06)
+
+| ID | Plateforme | Contenu | Livrable | Critère d'acceptation |
+|---|---|---|---|---|
+| S9-07-01 | Toutes | Protocole de recette GD-01→GD-14 : horloge contrôlable, fixtures à identifiants stables, preuve réseau du volume borné (une requête groupée par écran, jamais par carte), démonstration d'un changement de programme | `docs/releases/0.2.0/s9-07-recette.md` | Chaque cas GD a son pas-à-pas et son résultat attendu ; la preuve réseau montre un nombre d'appels indépendant du nombre de cartes |
+| S9-07-02 | TV + web | Recette FR/EN, clavier web, D-pad réel, fuseau et changement d'heure (GD-12/14) | même rapport, annexe | Actions nommées, focus visible, aucun piège ni texte tronqué essentiel |
+
+> S9-04 est déjà `In Progress` ; S9-05 et S9-06 passent en `Todo` (découpées et prêtes) ;
+> S9-07 reste en `Backlog` : la recette dépend de S9-04 à S9-06.
+
 ## Démo et sortie
 
 Preuve du 24 septembre : huit tests EPG, build API complet vert (319 tests) et
