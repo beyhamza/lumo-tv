@@ -27,9 +27,11 @@ import tv.lumo.android.feature.home.HomeTvScreen
  * position comes from the card: a player never resumes on its own, and these two
  * are the places where somebody chose to.
  *
- * [onOpenLive] serves two controls that lead to the same place — "All channels"
- * under the Live rail and "Live" in the invitation to explore — so that they cannot
- * come to lead to two.
+ * [onOpenLive] is the plain way into Direct — the "Live" door of the invitation
+ * to explore — and respects the view the source was left on. The two doors that
+ * close the Live rail name a **view** instead: [onOpenLiveChannels] opens Chaînes
+ * and [onOpenLiveGuide] opens the Guide, each beating what the source remembers
+ * for that entry (S9-04-04, GD-02).
  */
 data class HomeActions(
     val onResumeFilm: (filmId: String, sourceId: String, title: String, atMs: Long) -> Unit,
@@ -39,6 +41,10 @@ data class HomeActions(
     val onPlayChannel: (channelId: String, name: String?) -> Unit,
     val onOpenLibrary: () -> Unit,
     val onOpenLive: () -> Unit,
+    /** The Live rail's *Toutes les chaînes*, opening Chaînes (S9-04-04). */
+    val onOpenLiveChannels: () -> Unit,
+    /** The Live rail's *Guide TV*, opening Guide on what is on now (S9-04-04). */
+    val onOpenLiveGuide: () -> Unit,
     val onOpenFilms: () -> Unit,
     val onOpenSeriesCatalogue: () -> Unit,
     /** The phone's add-source flow. The television has none and never calls it. */

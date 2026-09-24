@@ -119,6 +119,17 @@ class LiveViewModel @Inject constructor(
     private val guide = OnAirTracker(epg, clock, viewModelScope)
 
     /**
+     * The view the home screen asked for explicitly, waiting to be applied
+     * (S9-04-04).
+     *
+     * A field and not straight reads of [LiveState]: a request can land while the
+     * source is still being opened, and the remembered view finishing later must
+     * not undo it. [open] reads it first and clears it last, so the door the
+     * viewer pressed always wins the open it triggered — and only that one.
+     */
+    private var requestedEntry: DirectView? = null
+
+    /**
      * The channels of the chosen category, paginated straight out of SQLite.
      *
      * `cachedIn` keeps the loaded windows across a rotation; without it, turning
@@ -263,13 +274,25 @@ class LiveViewModel @Inject constructor(
         // the screen opens straight on it instead of drawing Chaînes and flipping
         // a frame later (GD-02). Search and filter are not read back: they belong
         // to the session, not to the source.
-        val remembered = if (changed && sourceId != null) {
-            directViews.viewFor(sourceId)
-        } else {
-            null
+        //
+        // An explicit entry (S9-04-04) is read first and beats the memory: the
+        // viewer pressed "All channels" or "TV guide", and a source left on the
+        // other view would otherwise ignore them. It is cleared at the end of this
+        // open — a plain return to Direct, later, respects the memory again.
+        val requested = requestedEntry
+        val remembered = when {
+            requested != null -> requested
+            changed && sourceId != null -> directViews.viewFor(sourceId)
+            else -> null
         }
 
-        _state.update { it.browsing(source, cachedItems = cached, rememberedView = remembered) }
+        _state.update { current ->
+            val next = current.browsing(source, cachedItems = cached, rememberedView = remembered)
+            // A door pressed while the source was still opening survives the
+            // answer that arrives after it (S9-04-04).
+            requestedEntry?.let(next::explicitEntry) ?: next
+        }
+        requestedEntry = null
 
         // No grid: nothing was ever ingested and nothing is cached. An empty
         // channel list would read as "this source has no channels", which is a
@@ -362,6 +385,27 @@ class LiveViewModel @Inject constructor(
         if (view == _state.value.view) return
         val sourceId = _state.value.sourceId
         _state.update { it.copy(view = view) }
+        if (sourceId != null) viewModelScope.launch { directViews.remember(sourceId, view) }
+    }
+
+    /**
+     * The home screen's explicit entry into one of the two views (S9-04-04).
+     *
+     * "All channels" and "TV guide" name a view, not just Direct: the first opens
+     * Chaînes with a blank search and the Toutes filter, the second opens Guide.
+     * An explicit entry therefore **beats** what the source remembers — otherwise
+     * a second press would do nothing on a source left on the other view — and it
+     * resets the session state the viewer did not ask to keep.
+     *
+     * The memory is still written, and it is still the inter-session truth:
+     * an explicit entry primes it, it does not bypass it (GD-02). [requestedEntry]
+     * carries the request across the open so that neither ordering of this call
+     * and [open] can lose it.
+     */
+    fun onExplicitEntry(view: DirectView) {
+        requestedEntry = view
+        val sourceId = _state.value.sourceId
+        _state.update { it.explicitEntry(view) }
         if (sourceId != null) viewModelScope.launch { directViews.remember(sourceId, view) }
     }
 
@@ -701,6 +745,19 @@ data class LiveState(
      */
     val guideProgrammes: Map<String, List<EpgProgramme>> = emptyMap(),
 ) {
+
+    /**
+     * This state as an explicit entry asked for it (S9-04-04).
+     *
+     * The two doors closing the home Live rail name a view: "All channels" opens
+     * Chaînes, "TV guide" opens Guide. Somebody who asked for one did not ask to
+     * keep the query or the category that was narrowing the list, so both go.
+     * GD-01 shares them *between the two views* while a source is open; an
+     * explicit entry is the one moment they are reset, because it is the one
+     * moment the viewer said which view they want to see.
+     */
+    fun explicitEntry(view: DirectView): LiveState =
+        copy(view = view, search = "", filter = CatalogueFilter.All)
 
     /**
      * This screen, pointed at [source] (US-018).

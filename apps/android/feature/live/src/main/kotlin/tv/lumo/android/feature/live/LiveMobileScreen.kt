@@ -29,6 +29,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -128,10 +129,24 @@ fun LiveMobileScreen(
     onPlay: (channelId: String, name: String?) -> Unit,
     onOpenSources: () -> Unit,
     modifier: Modifier = Modifier,
+    requestedView: DirectView? = null,
+    onRequestHandled: () -> Unit = {},
     viewModel: LiveViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val channels = viewModel.channels.collectAsLazyPagingItems()
+
+    // The home screen's explicit entry (S9-04-04): "All channels" or "TV guide"
+    // asked for a view, and it beats what the source remembers for this open. The
+    // request is consumed here so that the effect can fire again for the *same*
+    // view on a later press — `requestedView` goes back to null in between, which
+    // is what a `LaunchedEffect` keyed on the value alone would not give us.
+    LaunchedEffect(requestedView) {
+        if (requestedView != null) {
+            viewModel.onExplicitEntry(requestedView)
+            onRequestHandled()
+        }
+    }
 
     // A refresh on display has to move, and to go away when it ends (US-024).
     PollWhile(

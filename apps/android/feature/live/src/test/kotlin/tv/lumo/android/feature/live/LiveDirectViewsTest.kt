@@ -6,7 +6,16 @@ import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.DirectView
 
 /**
- * The two views of Direct on the phone (S9-04-02).
+ * The two views of Direct on the phone (S9-04-02), and the explicit way in from
+ * the home rail (S9-04-04).
+ *
+ * <h2>An explicit entry is not a remembered one</h2>
+ *
+ * "All channels" and "TV guide" name a view; a plain return to Direct respects
+ * what the source remembers. The explicit door therefore overwrites the memory
+ * for the open it triggered — and resets the query and the filter, because the
+ * viewer named a view and not the session around it. What is `DirectViewStore`'s
+ * is the write; what is this file's is what the state does with the request.
  *
  * <h2>What this screen owns, and what it does not</h2>
  *
@@ -53,6 +62,60 @@ class LiveDirectViewsTest {
         assertThat(next.view).isEqualTo(DirectView.Channels)
         // The default is a named value and not a coincidence (GD-02).
         assertThat(DirectView.Default).isEqualTo(DirectView.Channels)
+    }
+
+    // ---- the explicit entry from home (S9-04-04) ---------------------------
+
+    @Test
+    fun `an explicit entry overwrites the remembered view and resets the session`() {
+        // The source was left on Guide, with a query and a category narrowing it.
+        val next = browsing.explicitEntry(DirectView.Channels)
+
+        // "All channels" asked for Chaînes, and a source remembered on Guide must
+        // not ignore it — that is the whole point of the explicit door.
+        assertThat(next.view).isEqualTo(DirectView.Channels)
+        // The viewer asked for a view, not to keep a query or a filter they did
+        // not name (S9-04-04).
+        assertThat(next.search).isEmpty()
+        assertThat(next.filter).isEqualTo(CatalogueFilter.All)
+    }
+
+    @Test
+    fun `an explicit entry into the other view is the mirror case`() {
+        val channelsState = LiveState(
+            step = LiveStep.Browsing,
+            sourceId = "source-a",
+            filter = CatalogueFilter.Recent,
+            search = "arte",
+            view = DirectView.Channels,
+        )
+
+        val next = channelsState.explicitEntry(DirectView.Guide)
+
+        assertThat(next.view).isEqualTo(DirectView.Guide)
+        assertThat(next.search).isEmpty()
+        assertThat(next.filter).isEqualTo(CatalogueFilter.All)
+    }
+
+    @Test
+    fun `what the explicit entry does not own is left alone`() {
+        val next = browsing.explicitEntry(DirectView.Channels)
+
+        // It names a view and clears the session state around it; the source on
+        // screen and the categories it carries are not its business.
+        assertThat(next.sourceId).isEqualTo(browsing.sourceId)
+        assertThat(next.step).isEqualTo(browsing.step)
+    }
+
+    @Test
+    fun `the view travels as a name and comes back as itself`() {
+        // The navigation writes `view.name` into the Live entry's saved state and
+        // the screen reads it back through `fromStored` (S9-04-04). A mapping that
+        // lost a value would drop the viewer on the default instead.
+        DirectView.entries.forEach { view ->
+            assertThat(DirectView.fromStored(view.name)).isEqualTo(view)
+        }
+        assertThat(DirectView.fromStored(null)).isEqualTo(DirectView.Default)
     }
 
     // ---- what a source change drops (GD-03) --------------------------------

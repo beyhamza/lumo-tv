@@ -1,9 +1,12 @@
 package tv.lumo.android.feature.live.navigation
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import tv.lumo.android.core.data.DirectView
 import tv.lumo.android.feature.live.LiveDestination
 import tv.lumo.android.feature.live.LiveMobileScreen
 import tv.lumo.android.feature.live.LiveTvScreen
@@ -26,8 +29,20 @@ fun NavGraphBuilder.liveMobileScreen(
     onPlay: (channelId: String, name: String?) -> Unit,
     onOpenSources: () -> Unit,
 ) {
-    composable(route = LiveDestination.route) {
-        LiveMobileScreen(onPlay = onPlay, onOpenSources = onOpenSources)
+    composable(route = LiveDestination.route) { entry ->
+        val handle = entry.savedStateHandle
+        // The home screen's explicit entry, written just after it navigated here
+        // (S9-04-04). Read as a state flow so that a door pressed while Direct is
+        // already open is seen too; removed the moment it is handled, so that
+        // leaving and coming back — or a restored back stack — does not replay it.
+        val requested by handle.getStateFlow<String?>(KEY_REQUESTED_VIEW, null).collectAsState()
+
+        LiveMobileScreen(
+            onPlay = onPlay,
+            onOpenSources = onOpenSources,
+            requestedView = requested?.let(DirectView::fromStored),
+            onRequestHandled = { handle.remove<String>(KEY_REQUESTED_VIEW) },
+        )
     }
 }
 
@@ -69,6 +84,7 @@ fun NavGraphBuilder.liveTvScreen(
         // are different back stack entries, and this is the channel that
         // Navigation itself provides for exactly this.
         val handle = entry.savedStateHandle
+        val requested by handle.getStateFlow<String?>(KEY_REQUESTED_VIEW, null).collectAsState()
 
         LiveTvScreen(
             onPlay = onPlay,
@@ -77,6 +93,11 @@ fun NavGraphBuilder.liveTvScreen(
             // Cleared once used, so that leaving and coming back to this tab
             // later does not re-focus a channel from a previous visit.
             onReturnHandled = { handle.remove<String>(KEY_RETURNED_CHANNEL) },
+            // The home screen's explicit entry, handled the same one-shot way
+            // (S9-04-04): "All channels" and "TV guide" name a view, and the
+            // request is gone as soon as the screen has acted on it.
+            requestedView = requested?.let(DirectView::fromStored),
+            onRequestHandled = { handle.remove<String>(KEY_REQUESTED_VIEW) },
         )
     }
 }
@@ -89,6 +110,24 @@ fun NavGraphBuilder.liveTvScreen(
  * misspelled once.
  */
 const val KEY_RETURNED_CHANNEL: String = "returnedChannelId"
+
+/**
+ * Where the home screen's explicit entry leaves the view it asked for (S9-04-04).
+ *
+ * "All channels" and "TV guide" do not just open Direct: they name one of its two
+ * views. The request travels in the Live entry's own saved-state handle — not in
+ * the route — because [tv.lumo.android.feature.live.LiveDestination.route] is
+ * navigated to generically by both shells' `switchTopLevelTo` and is the phone's
+ * Explore section start destination; a `{view}` placeholder there is not a
+ * concrete route and would break each of those. The handle is written after the
+ * navigation, read as a state flow and removed on handling, so it wins over a
+ * restored entry and never replays.
+ *
+ * Public because the applications write it and this module reads it, and a string
+ * literal spelled out twice in several modules is one that will be misspelled
+ * once.
+ */
+const val KEY_REQUESTED_VIEW: String = "requestedDirectView"
 
 /**
  * The television's player (US-10).

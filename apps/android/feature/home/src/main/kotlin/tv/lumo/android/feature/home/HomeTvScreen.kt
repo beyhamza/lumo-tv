@@ -255,7 +255,9 @@ private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit
                     is HomeSection.Live -> ChannelRail(
                         title = stringResource(R.string.feature_home_live),
                         action = stringResource(R.string.feature_home_all_channels),
-                        onAction = actions.onOpenLive,
+                        onAction = actions.onOpenLiveChannels,
+                        secondaryAction = stringResource(R.string.feature_home_tv_guide),
+                        onSecondaryAction = actions.onOpenLiveGuide,
                         channels = section.channels,
                         keyOf = ::recentKey,
                         onPlay = actions.onPlayChannel,
@@ -475,6 +477,10 @@ private fun BoxScope.PositionBar(fraction: Float?) {
  * costs nothing to somebody who is not looking for it — and the nav rail's own
  * entries lead to the same two places in fewer presses, so nobody *has* to travel
  * twelve cards to reach it.
+ *
+ * The Live rail closes with **two** such tiles, in the order *All channels* then
+ * *Guide TV* (S9-04-04): two explicit ways into Direct's two views, where the
+ * favourites rail keeps its single "See all".
  */
 @Composable
 private fun ChannelRail(
@@ -485,6 +491,8 @@ private fun ChannelRail(
     keyOf: (channelId: String) -> String,
     onPlay: (channelId: String, name: String?) -> Unit,
     cards: HomeCardFocus,
+    secondaryAction: String? = null,
+    onSecondaryAction: (() -> Unit)? = null,
     onAir: Map<String, EpgProgramme> = emptyMap(),
 ) {
     val listState = rememberLazyListState()
@@ -508,6 +516,11 @@ private fun ChannelRail(
                 )
             }
             item(key = "action") { ActionTile(label = action, onClick = onAction) }
+            if (secondaryAction != null && onSecondaryAction != null) {
+                item(key = "action-secondary") {
+                    ActionTile(label = secondaryAction, onClick = onSecondaryAction)
+                }
+            }
         }
     }
 }

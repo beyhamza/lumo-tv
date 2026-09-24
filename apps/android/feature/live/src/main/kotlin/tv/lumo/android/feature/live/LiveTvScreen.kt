@@ -144,10 +144,23 @@ fun LiveTvScreen(
     modifier: Modifier = Modifier,
     returnedChannelId: String? = null,
     onReturnHandled: () -> Unit = {},
+    requestedView: DirectView? = null,
+    onRequestHandled: () -> Unit = {},
     viewModel: LiveViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val channels = viewModel.channels.collectAsLazyPagingItems()
+
+    // The home screen's explicit entry (S9-04-04): "All channels" or "TV guide"
+    // asked for a view, and it beats what the source remembers for this open. The
+    // request is consumed here so that the effect can fire again for the *same*
+    // view on a later press — `requestedView` goes back to null in between.
+    LaunchedEffect(requestedView) {
+        if (requestedView != null) {
+            viewModel.onExplicitEntry(requestedView)
+            onRequestHandled()
+        }
+    }
 
     // A refresh on display has to move, and to go away when it ends (US-024).
     PollWhile(

@@ -76,8 +76,9 @@ import tv.lumo.android.feature.home.navigation.HomeActions
  * <h2>What is deliberately not here</h2>
  *
  * "Remove from Continue" (sprint 12, and it needs a contract the API does not have
- * yet) and the way into the TV guide (S9-04). Neither is drawn disabled: a
- * control that does nothing is one somebody presses to find out.
+ * yet) is not drawn disabled: a control that does nothing is one somebody presses
+ * to find out. The way into the TV guide, which used to be on this list, is now
+ * the Live rail's second closing action (S9-04-04).
  *
  * <h2>What is on, under the Live cards (US-16, S9-03)</h2>
  *
@@ -203,7 +204,9 @@ private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit
                     is HomeSection.Live -> ChannelRail(
                         title = stringResource(R.string.feature_home_live),
                         action = stringResource(R.string.feature_home_all_channels),
-                        onAction = actions.onOpenLive,
+                        onAction = actions.onOpenLiveChannels,
+                        secondaryAction = stringResource(R.string.feature_home_tv_guide),
+                        onSecondaryAction = actions.onOpenLiveGuide,
                         channels = section.channels,
                         onPlay = actions.onPlayChannel,
                         onAir = state.onAir,
@@ -357,7 +360,9 @@ private fun BoxScope.PositionBar(fraction: Float?) {
  * One composable for both because they are the same thing to the thumb — a channel
  * that plays when pressed — and differ only in where their trailing action leads.
  * That action is in the header, at the end of the title's line, so it is reachable
- * without scrolling a rail of twelve to its far end.
+ * without scrolling a rail of twelve to its far end. The Live rail has two, in the
+ * order *Toutes les chaînes* then *Guide TV* (S9-04-04): two explicit ways into
+ * Direct's two views, where the favourites rail has its single "See all".
  */
 @Composable
 private fun ChannelRail(
@@ -366,11 +371,21 @@ private fun ChannelRail(
     onAction: () -> Unit,
     channels: List<Channel>,
     onPlay: (channelId: String, name: String?) -> Unit,
+    secondaryAction: String? = null,
+    onSecondaryAction: (() -> Unit)? = null,
     onAir: Map<String, EpgProgramme> = emptyMap(),
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
         RailHeader(title = title) {
-            TextButton(onClick = onAction) { Text(action) }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onAction) { Text(action) }
+                if (secondaryAction != null && onSecondaryAction != null) {
+                    TextButton(onClick = onSecondaryAction) { Text(secondaryAction) }
+                }
+            }
         }
 
         LazyRow(

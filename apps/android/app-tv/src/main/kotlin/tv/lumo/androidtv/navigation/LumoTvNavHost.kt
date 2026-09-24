@@ -8,6 +8,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.data.AppStart
+import tv.lumo.android.core.data.DirectView
 import tv.lumo.android.feature.auth.AuthDestination
 import tv.lumo.android.feature.auth.navigation.authTvScreen
 import tv.lumo.android.feature.favorites.FavoritesTvDestination
@@ -17,6 +18,7 @@ import tv.lumo.android.feature.home.navigation.HomeActions
 import tv.lumo.android.feature.home.navigation.homeTvScreen
 import tv.lumo.android.feature.live.LiveDestination
 import tv.lumo.android.feature.live.PlayerDestination
+import tv.lumo.android.feature.live.navigation.KEY_REQUESTED_VIEW
 import tv.lumo.android.feature.live.navigation.KEY_RETURNED_CHANNEL
 import tv.lumo.android.feature.live.navigation.livePlayerTvScreen
 import tv.lumo.android.feature.live.navigation.liveTvScreen
@@ -86,6 +88,17 @@ fun LumoTvNavHost(
 
         // What a signed-in set lands on (US-017). Every way out of it leads into
         // another feature, so every one of them is a wire held here.
+        //
+        // The home Live rail closes with two explicit doors (S9-04-04). They move
+        // to Direct and then leave the view they named on the entry's own saved
+        // state, which the screen reads as a one-shot: a door pressed while Direct
+        // is already open still wins, and the request never replays on a return.
+        val openLiveExplicit = { view: DirectView ->
+            navController.switchTopLevelTo(LiveDestination)
+            navController.currentBackStackEntry
+                ?.savedStateHandle
+                ?.set(KEY_REQUESTED_VIEW, view.name)
+        }
         homeTvScreen(
             actions = HomeActions(
                 onResumeFilm = { filmId, sourceId, title, atMs ->
@@ -110,6 +123,8 @@ fun LumoTvNavHost(
                 // walk through a screen the rail says one never left.
                 onOpenLibrary = { navController.switchTopLevelTo(FavoritesTvDestination) },
                 onOpenLive = { navController.switchTopLevelTo(LiveDestination) },
+                onOpenLiveChannels = { openLiveExplicit(DirectView.Channels) },
+                onOpenLiveGuide = { openLiveExplicit(DirectView.Guide) },
                 onOpenFilms = { navController.switchTopLevelTo(VodDestination) },
                 onOpenSeriesCatalogue = { navController.switchTopLevelTo(SeriesDestination) },
                 // A television never adds a source, and its home screen never
