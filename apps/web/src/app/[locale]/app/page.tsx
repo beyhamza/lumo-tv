@@ -6,6 +6,7 @@ import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import type { EpgProgramme } from "@/lib/api/types";
+import { type DirectView, directViewHref } from "@/lib/direct/view-memory";
 import { clockTime } from "@/lib/epg/format";
 import { loadHomeRails, type HomeRails } from "@/lib/home/load-home-rails";
 import { requireSession } from "@/lib/session/session";
@@ -44,8 +45,13 @@ import { sourceCondition } from "@/lib/sources/source-condition";
  * The programme on air and when it ends, under each card of the two channel
  * rails, from **one** grouped request made by the loader alongside the name
  * lookup. A channel with nothing on — no guide on this source, no `tvg_id`, a
- * guide that could not be read — shows its name and nothing else. No "TV
- * guide" link yet (S9-04), and no grid (S9-05).
+ * guide that could not be read — shows its name and nothing else.
+ *
+ * The Live rail also closes on two **explicit** entries (S9-04-07): *Toutes les
+ * chaînes* and *Guide TV*. Each is a link carrying `?view=`, so it primes the
+ * remembered view instead of following it (GD-02), and each opens the source
+ * with no filter and no search. They are the whole extent of the guide here: no
+ * grid yet (S9-05).
  *
  * <h2>What is deliberately absent</h2>
  *
@@ -140,6 +146,13 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
     // source page, which has the player. Selecting a card plays (US-020).
     hrefFor(locale, `${channelsHref}?play=${channelId}`);
 
+  // The two explicit doors of the Live rail (S9-04-07): each carries its view in
+  // the URL so the proxy primes the per-source memory before the target renders,
+  // and each opens the unfiltered catalogue — `directViewHref` sets `view` and
+  // nothing else. A bare S8 link to the catalogue still respects the memory.
+  const directEntryHref = (view: DirectView) =>
+    hrefFor(locale, directViewHref(view, { sourceId: source.id }));
+
   return (
     <div>
       {/* Only while there is nothing else to look at. A first import ends with
@@ -171,10 +184,12 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
             channels={rails.favorites}
             playHref={playHref}
             onAir={onAir}
-            more={{
-              href: hrefFor(locale, "/app/favorites"),
-              label: t("catalogueFavoritesSeeAll"),
-            }}
+            more={[
+              {
+                href: hrefFor(locale, "/app/favorites"),
+                label: t("catalogueFavoritesSeeAll"),
+              },
+            ]}
           />
           <ChannelRail
             prominent
@@ -182,7 +197,10 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
             channels={rails.recents}
             playHref={playHref}
             onAir={onAir}
-            more={{ href: hrefFor(locale, channelsHref), label: t("homeAllChannels") }}
+            more={[
+              { href: directEntryHref("channels"), label: t("homeAllChannels") },
+              { href: directEntryHref("guide"), label: t("homeGuideTv") },
+            ]}
           />
         </>
       ) : null}
