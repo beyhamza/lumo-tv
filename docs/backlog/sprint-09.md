@@ -117,7 +117,7 @@ d'exécution. Réalisation : **@Dev**. Recette : **@QA**.
 | S9-04-04 | Android `feature:home` + apps | Entrées accueil : *Toutes les chaînes* → Chaînes (sans recherche, Toutes) ; *Guide TV* → Guide/Maintenant | `feature/home/…/HomeNavigation.kt`, `HomeMobileScreen.kt`, `HomeTvScreen.kt`, `HomeState.kt`, `HomeViewModel.kt`, `app-mobile/…/navigation/LumoMobileNavHost.kt`, `app-tv/…/navigation/LumoTvNavHost.kt` | Les accès explicites priment sur la vue mémorisée ; GD-02 |
 | S9-04-05 | Android `feature:live` | Vue Guide « En ce moment » (servira les trois surfaces) : une ligne par chaîne du résultat filtré, en cours + suivant, **une requête groupée par page**, bouton Maintenant en haut | `feature/live/…/GuideNowList.kt` (nouveau), `LiveViewModel.kt` (consomme `EpgRepository` de S9-03) | Le nombre d'appels EPG ne dépend pas du nombre de cartes (preuve réseau) ; rien affiché quand il n'y a rien ; une réponse de l'ancienne source est ignorée (GD-03) |
 | S9-04-06 | Web | Destination Direct à deux vues : **réutiliser la route existante** `/app/sources/[id]/channels` (une vue = `?view=channels\|guide`), pas de route dupliquée ; colonne de catégories, recherche par nom conservant le filtre, état dans l'URL, mémoire de vue par cookie | `src/app/[locale]/app/sources/[id]/channels/page.tsx` (à transformer), `src/components/app/DirectViews.tsx` (nouveau), `src/lib/direct/view-memory.ts` (nouveau), `src/messages/{fr,en}.json` | GD-01/02/03 web ; tout filtre est un lien et toute recherche un GET, la page fonctionne sans JS, et les URLs de S8 restent valides (les anciens liens ouvrent Chaînes) |
-| S9-04-07 | Web | Vue Guide « En ce moment » et lien accueil *Guide TV* → Guide/Maintenant | `src/components/app/GuideNowList.tsx` (nouveau), `src/app/[locale]/app/page.tsx`, `src/lib/home/load-home-rails.ts`, `src/messages/{fr,en}.json` | Le lien prioritaire ouvre Guide sur Maintenant sans filtre ; la ligne « programme en cours » de S9-03 reste, aucune requête par carte |
+| S9-04-07 | Web | Entrées d'accueil **explicites** : *Guide TV* → `?view=guide`, *Toutes les chaînes* → `?view=channels` (la vue Guide « En ce moment » est livrée avec S9-04-06, dans `DirectViews.tsx`) ; le rail Live porte les deux liens | `src/app/[locale]/app/page.tsx`, `src/components/app/ChannelRail.tsx` (prop `more` à plusieurs liens), `src/messages/{fr,en}.json` | Le lien *Guide TV* ouvre Guide/Maintenant sans filtre et prime la mémoire ; *Toutes les chaînes* ouvre Chaînes et prime la mémoire ; aucune requête par carte |
 
 ### S9-05 — grilles, journée et navigation temporelle
 
@@ -167,6 +167,20 @@ d'exécution. Réalisation : **@Dev**. Recette : **@QA**.
 > deux, l'écart est accepté. Ordre d'exécution validé pour le reste de S9-04 :
 > 05 → 02 → 03 → 04 → 06 → 07 (05 fournit la liste « En ce moment » dont 02 et 03
 > dépendent).
+>
+> **Revue S9-04-06 — approuvée** le 24 septembre 2026 (branche
+> `feat/S9-04-06-web-two-views`, commit `630fe7b`). Sécurité : cookie `httpOnly`,
+> `SameSite=Lax`, `secure` selon l'environnement, nom dérivé d'un UUID vérifié,
+> valeur validée `channels|guide` (une valeur forgée reste l'une des deux vues et
+> rien d'autre) ; ADR : aucune (réutilise la route existante et le patron du cookie
+> de source active). Tests rejoués indépendamment par le Tech Lead : `pnpm test` →
+> 26 fichiers, 266 tests, 0 échec ; `pnpm typecheck` vert. Une seule `loadEpgWindow`
+> par rendu sert les deux vues : le Guide n'ajoute aucune requête. Le `?view=`
+> explicite prime la mémoire, une URL S8 sans `?view=` garde Chaînes. **Arbitrage** :
+> la liste « En ce moment » web livrée par 06 reste dans `DirectViews.tsx` (un seul
+> consommateur) ; S9-04-07 ne porte plus que les entrées d'accueil explicites et la
+> prop `more` multi-liens de `ChannelRail`. Non vérifié : rendu SSR réel à travers le
+> proxy, clavier web, comportement du cookie sous navigation → recette S9-07.
 
 ## Démo et sortie
 
