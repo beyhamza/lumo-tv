@@ -2,8 +2,9 @@
 
 Statut : en réalisation. C1 gelé en S9-01, contrat et serveur livrés en S9-02 ; S9-00 et
 S9-03 en recette ; S9-04 livré et **En recette** sur les trois surfaces (01→07 approuvées) ;
-S9-05 et S9-06 **découpées et prêtes** (Todo), S9-05-01 déjà `Done` (Android + Web) ;
-S9-07 préparée (protocole écrit, non exécuté). Taille relative : XL.
+S9-05 **en cours** (01/02/03 `Done`, 04 mobile à faire) ; S9-06 découpée et prête (Todo) ;
+S9-07 préparée (protocole écrit, non exécuté). Aucun item n'est déclaré terminé tant que
+la recette réelle (DoD commune) n'est pas jouée. Taille relative : XL.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 Première [proposition d’écrans](../design/0.2.0/direct-guide.md) préparée le
@@ -64,9 +65,11 @@ Mis à jour le 24 septembre 2026. Une case cochée signifie recetté, pas seulem
 - [ ] S9-04 — **En recette** : 01→07 approuvées par le Tech Lead (Android mobile/TV,
   web), story passée `En recette` dans Plane le 24 septembre 2026 ; reste la recette
   réelle à l'écran (S9-07)
-- [ ] S9-05 — **Todo / prête** : découpage arrêté (01→04) ; **S9-05-01 `Done`** (fonctions
-  pures de jour et de fuseau, Android `555e03d` + Web `ab97891`) ; 02 web, 03 TV, 04 mobile
-  attendent leur tour, 03 ne démarre pas avant la revue de 02
+- [ ] S9-05 — **En cours** : découpage arrêté (01→04) ; **S9-05-01 `Done`** (fonctions
+  pures de jour et de fuseau, Android `555e03d` + Web `ab97891`), **S9-05-02 `Done`**
+  (grille web, `910dd13`) et **S9-05-03 `Done`** (grille TV + D-pad, `b1cf500`), les trois
+  approuvées par le Tech Lead et mergées dans `main` (`7173b5b`) ; reste **S9-05-04**
+  (mobile), pas encore commencée
 - [ ] S9-06 — **Todo / prête** : découpage arrêté (01→04), non commencée
 - [ ] S9-07 — **Backlog** : protocole écrit par QA
   (`docs/releases/0.2.0/s9-07-recette.md`, `be2a89a`), **non exécuté** ; le harnais
@@ -194,8 +197,9 @@ d'exécution. Réalisation : **@Dev**. Recette : **@QA**.
 
 Preuve du 24 septembre : huit tests EPG, build API complet vert (319 tests) et
 24 tests C1 après S9-02. Fixtures relatives à l’horloge et neuf mesures de volume,
-plus descriptions longues. S9-00, S9-03 et S9-04 sont en recette ; S9-05 et S9-06 sont
-découpées et prêtes à réaliser, puis viendra la recette S9-07. Le découpage du sprint 9
+plus descriptions longues. S9-00, S9-03 et S9-04 sont en recette ; S9-05 est en cours
+(01/02/03 livrées et approuvées), S9-06 est découpée et prête à réaliser, puis viendra la
+recette S9-07. Le découpage du sprint 9
 est terminé : la réalisation est confiée au Tech Lead, qui briefe @Dev tâche par tâche.
 
 Complément du 20 septembre : [interactions et cas GD-01 à GD-14](../design/0.2.0/guide-interactions.md)
