@@ -1,11 +1,12 @@
 # Sprint 9 — Direct et guide sur les trois surfaces
 
-Statut : préparation technique en cours ; banc S9-00 livré, en recette. Taille relative : XL.
+Statut : en réalisation. C1 gelé en S9-01, contrat et serveur livrés en S9-02 ; S9-00 et
+S9-03 en recette, S9-04 cadré et en cours, S9-05 à S9-07 à venir. Taille relative : XL.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 Première [proposition d’écrans](../design/0.2.0/direct-guide.md) préparée le
 19 septembre 2026 ; présentation générale retenue en conversation, réalisation
-non commencée et recette réelle à effectuer.
+commencée (S9-00 à S9-04) et recette réelle à effectuer.
 
 ## Objectif
 
@@ -101,14 +102,16 @@ La grille horaire, la journée mobile et la fiche restent à S9-05 et S9-06 ; la
 
 ## Démo et sortie
 
-Preuve du 24 septembre : huit tests EPG, build API complet vert (295 tests).
-Fixtures relatives à l’horloge et neuf mesures de volume, plus descriptions longues.
-S9-00 est en recette ; S9-01 doit figer le contrat, S9-02 et les écrans restent à réaliser.
+Preuve du 24 septembre : huit tests EPG, build API complet vert (319 tests) et
+24 tests C1 après S9-02. Fixtures relatives à l’horloge et neuf mesures de volume,
+plus descriptions longues. S9-00 et S9-03 sont en recette ; S9-04 reste à réaliser
+sur les trois surfaces, puis S9-05 et S9-06, avant la recette S9-07.
 
 Complément du 20 septembre : [interactions et cas GD-01 à GD-14](../design/0.2.0/guide-interactions.md)
-pour S9-00 et S9-04 à S9-07. Les règles de navigation Q5 sont précisées ; la
-fraîcheur et la lecture groupée restent soumises à C1. Le schéma de focus complète
-les écrans S9-E01 à S9-E05 ; aucune recette applicative n’est déclarée exécutée.
+pour S9-00 et S9-04 à S9-07. Les règles de navigation Q5 sont précisées ; C1 est
+gelé en S9-01 (plafonds et seuil de 24 h, §8) et la lecture groupée est livrée en
+S9-02. Le schéma de focus complète les écrans S9-E01 à S9-E05 ; aucune recette
+applicative n’est déclarée exécutée.
 
 Changer de filtre entre Chaînes et Guide ; naviguer d'hier à J+3 selon les données,
 revenir à Maintenant, ouvrir un programme courant et lancer le direct, revenir à
