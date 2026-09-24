@@ -2,5 +2,10 @@
 <resources>
     <string name="feature_live_channels_heading">Chaînes</string>
     <string name="feature_live_search">Rechercher</string>
-    <string name="feature_live_search_mock">[mock] écran non implémenté</string>
+    <string name="feature_live_view_channels">Chaînes</string>
+    <string name="feature_live_view_guide">Guide</string>
+    <string name="feature_live_search_hint">Rechercher une chaîne</string>
+    <string name="feature_live_search_clear">Effacer</string>
+    <string name="feature_live_search_empty_title">Aucune chaîne trouvée</string>
+    <string name="feature_live_search_empty_body">Aucun résultat pour « %1$s ».</string>
 </resources>

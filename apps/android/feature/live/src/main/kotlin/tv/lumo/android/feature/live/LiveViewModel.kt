@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.ActiveSourceState
 import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
+import tv.lumo.android.core.data.DirectView
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.NowAndNext
@@ -44,6 +45,7 @@ import tv.lumo.android.core.data.notice
 import tv.lumo.android.core.data.ofSource
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.CatalogueRepository
+import tv.lumo.android.core.data.repository.DirectViewRepository
 import tv.lumo.android.core.data.repository.EpgRepository
 import tv.lumo.android.core.data.repository.FavoriteRepository
 import tv.lumo.android.core.data.repository.RecentChannelRepository
@@ -107,6 +109,7 @@ class LiveViewModel @Inject constructor(
     private val favorites: FavoriteRepository,
     private val recents: RecentChannelRepository,
     epg: EpgRepository,
+    private val directViews: DirectViewRepository,
     clock: Clock,
 ) : ViewModel() {
 
@@ -122,7 +125,7 @@ class LiveViewModel @Inject constructor(
      * the phone re-reads the first page and jumps the user back to the top.
      */
     val channels: Flow<PagingData<Channel>> = _state
-        .map { ChannelQuery(it.sourceId, it.filter, it.favorites, it.recent) }
+        .map { ChannelQuery(it.sourceId, it.filter, it.search, it.favorites, it.recent) }
         .distinctUntilChanged()
         .flatMapLatest { query -> channelsFor(query) }
         .cachedIn(viewModelScope)
@@ -139,6 +142,12 @@ class LiveViewModel @Inject constructor(
      */
     private fun channelsFor(query: ChannelQuery): Flow<PagingData<Channel>> = when {
         query.sourceId == null -> flowOf(PagingData.empty())
+
+        // A name search is its own listing, over the cache (S9-04-02). The chip
+        // the user picked stays lit and is what the two views keep between them
+        // (GD-01); the local search is asked of the repository so that it still
+        // answers offline.
+        query.search.isNotBlank() -> catalogue.search(query.sourceId, query.search)
 
         query.filter is CatalogueFilter.Group -> flowOf(
             PagingData.from(
@@ -247,9 +256,20 @@ class LiveViewModel @Inject constructor(
         // that is still in flight: a programme of the old source landing under
         // the new one is the GD-03 failure (S9-04-05). A mere status change of
         // the same source keeps what the Guide holds.
-        if (sourceId != _state.value.sourceId) guide.clear()
+        val changed = sourceId != _state.value.sourceId
+        if (changed) guide.clear()
 
-        _state.update { it.browsing(source, cachedItems = cached) }
+        // The new source's remembered view is read before the state is built, so
+        // the screen opens straight on it instead of drawing Chaînes and flipping
+        // a frame later (GD-02). Search and filter are not read back: they belong
+        // to the session, not to the source.
+        val remembered = if (changed && sourceId != null) {
+            directViews.viewFor(sourceId)
+        } else {
+            null
+        }
+
+        _state.update { it.browsing(source, cachedItems = cached, rememberedView = remembered) }
 
         // No grid: nothing was ever ingested and nothing is cached. An empty
         // channel list would read as "this source has no channels", which is a
@@ -330,6 +350,29 @@ class LiveViewModel @Inject constructor(
             filter = categoryId?.let(CatalogueFilter::Category) ?: CatalogueFilter.All,
         )
     }
+
+    /**
+     * The view the user switched to (S9-04-02).
+     *
+     * The state moves first — a switch has to answer the thumb, not the disk —
+     * and the source's own memory is written beside it. A screen with no source
+     * yet has nothing to remember for.
+     */
+    fun onDirectViewSelected(view: DirectView) {
+        if (view == _state.value.view) return
+        val sourceId = _state.value.sourceId
+        _state.update { it.copy(view = view) }
+        if (sourceId != null) viewModelScope.launch { directViews.remember(sourceId, view) }
+    }
+
+    /**
+     * The name search, shared by Chaînes and Guide and kept across the switch
+     * (GD-01). Blank is the source's own listing.
+     */
+    fun onSearchChanged(query: String) = _state.update { it.copy(search = query) }
+
+    /** "Effacer" on the empty search state: the query goes, the filter stays. */
+    fun onSearchCleared() = _state.update { it.copy(search = "") }
 
     /**
      * Filters the grid to one favourite group (S4-06).
@@ -528,6 +571,7 @@ sealed interface CatalogueFilter {
 private data class ChannelQuery(
     val sourceId: String?,
     val filter: CatalogueFilter,
+    val search: String,
     val favorites: List<FavoriteChannel>,
     val recent: List<Channel>,
 )
@@ -582,6 +626,19 @@ data class LiveState(
     val origin: DataOrigin = DataOrigin.Cache,
     /** Which shelf the grid is showing: everything, one category, or one group. */
     val filter: CatalogueFilter = CatalogueFilter.All,
+
+    /**
+     * Which of the two Direct views is on screen (S9-04-02). This is the session
+     * value; the between-sessions memory is the repository's, keyed by source.
+     */
+    val view: DirectView = DirectView.Default,
+
+    /**
+     * The name search, shared by Chaînes and Guide for as long as the source is
+     * open (GD-01). Blank and absent are the same thing — the source's listing.
+     * It is **never** persisted: only [view] survives a session (GD-02).
+     */
+    val search: String = "",
     val refreshing: Boolean = false,
     val refreshFailed: Boolean = false,
 
@@ -665,7 +722,11 @@ data class LiveState(
      * What survives is what belongs to the account: the groups, the hearts Room
      * holds, a favourite write still in flight and its outcome.
      */
-    fun browsing(source: CatalogueSource, cachedItems: Int = 0): LiveState {
+    fun browsing(
+        source: CatalogueSource,
+        cachedItems: Int = 0,
+        rememberedView: DirectView? = null,
+    ): LiveState {
         val step = when (source.face(cachedItems)) {
             CatalogueFace.Loading -> LiveStep.Loading
             CatalogueFace.NoSource -> LiveStep.NoSource
@@ -687,6 +748,10 @@ data class LiveState(
             // The active source's, written by its own collector: whichever of the
             // two runs first, the notice on screen is never the old source's.
             notice = notice,
+            // The view the new source was left on, or Chaînes for one this device
+            // has not opened before (GD-02). Search is not carried over: the
+            // fresh state's blank is the point of the reset (GD-03).
+            view = rememberedView ?: DirectView.Default,
             groups = groups,
             favoritedChannelIds = favoritedChannelIds,
             pendingFavorites = pendingFavorites,
@@ -742,6 +807,16 @@ data class LiveState(
     fun stillFavoritedWithout(channelId: String, groupId: String): Boolean =
         favorites.any { it.channel.id == channelId && it.groupId != groupId }
 }
+
+/**
+ * A search that returned nothing, as opposed to one still loading (S9-04-02).
+ *
+ * A Paging list reports `itemCount == 0` either way, and the two must not be told
+ * apart by guesswork: the first gets a sentence and two ways out, the second gets
+ * nothing at all until the answer arrives.
+ */
+internal fun LiveState.searchFoundNothing(itemCount: Int, loading: Boolean): Boolean =
+    search.isNotBlank() && itemCount == 0 && !loading
 
 /**
  * How many channels one guide request covers on the television's grid.
