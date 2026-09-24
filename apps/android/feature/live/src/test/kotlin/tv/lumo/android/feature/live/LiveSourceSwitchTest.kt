@@ -59,6 +59,9 @@ class LiveSourceSwitchTest {
         sheetChannel = channel,
         favoriteError = LumoError.UnknownCode("SOMETHING"),
         onAir = mapOf("c1" to programme),
+        // The Guide's "En ce moment" windows carry the same programme, and they
+        // too must not survive under B (S9-04-05, GD-03).
+        guideProgrammes = mapOf("c1" to listOf(programme)),
     )
 
     @Test
@@ -77,6 +80,7 @@ class LiveSourceSwitchTest {
         assertThat(next.recent).isEmpty()
         assertThat(next.sheetChannel).isNull()
         assertThat(next.onAir).isEmpty()
+        assertThat(next.guideProgrammes).isEmpty()
     }
 
     @Test

@@ -6,6 +6,7 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
+import java.time.Instant
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
@@ -25,10 +26,12 @@ import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.NowAndNext
 import tv.lumo.android.core.data.OnAirTracker
 import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.asCatalogueSource
 import tv.lumo.android.core.data.channelsOfSource
+import tv.lumo.android.core.data.currentAndNext
 import tv.lumo.android.core.data.face
 import tv.lumo.android.core.data.model.Cached
 import tv.lumo.android.core.data.model.Category
@@ -164,6 +167,14 @@ class LiveViewModel @Inject constructor(
         viewModelScope.launch {
             guide.onAir.collect { onAir -> _state.update { it.copy(onAir = onAir) } }
         }
+        // The same grouped windows, kept whole for the Guide's "En ce moment"
+        // list (S9-04-05): the tracker holds current *and* next, and this screen
+        // only derived the current one before.
+        viewModelScope.launch {
+            guide.programmes.collect { programmes ->
+                _state.update { it.copy(guideProgrammes = programmes) }
+            }
+        }
     }
 
     /**
@@ -175,6 +186,18 @@ class LiveViewModel @Inject constructor(
      * has already asked for; repeating a page is free.
      */
     fun onChannelsVisible(channelIds: List<String>) {
+        val sourceId = _state.value.sourceId ?: return
+        if (channelIds.isEmpty()) return
+        guide.show(sourceId, channelIds)
+    }
+
+    /**
+     * The channels of the page the Guide's "En ce moment" list is showing
+     * (S9-04-05). One grouped request for the page's new channels, none for a
+     * page already held, and never one from a card: the list reports its page,
+     * and the tracker decides what is missing.
+     */
+    fun onGuideVisible(channelIds: List<String>) {
         val sourceId = _state.value.sourceId ?: return
         if (channelIds.isEmpty()) return
         guide.show(sourceId, channelIds)
@@ -219,6 +242,12 @@ class LiveViewModel @Inject constructor(
     private suspend fun open(source: CatalogueSource) {
         val sourceId = source.sourceId
         val cached = if (sourceId == null) 0 else catalogue.cachedChannelCount(sourceId)
+
+        // A real source change drops the guide at once, cancelling an answer
+        // that is still in flight: a programme of the old source landing under
+        // the new one is the GD-03 failure (S9-04-05). A mere status change of
+        // the same source keeps what the Guide holds.
+        if (sourceId != _state.value.sourceId) guide.clear()
 
         _state.update { it.browsing(source, cachedItems = cached) }
 
@@ -604,6 +633,16 @@ data class LiveState(
      * nothing under the name — no placeholder, no "unavailable" (S7-03).
      */
     val onAir: Map<String, EpgProgramme> = emptyMap(),
+
+    /**
+     * The programme windows the Guide has read, per channel id (S9-04-05).
+     *
+     * The same grouped pages that fill [onAir], kept whole so that the Guide can
+     * show the programme after the current one. Absent for a channel with no
+     * guide — no `tvg_id`, no guide on the source, not loaded — and the Guide
+     * row then draws no programme line at all (S7-03, S9-04).
+     */
+    val guideProgrammes: Map<String, List<EpgProgramme>> = emptyMap(),
 ) {
 
     /**
@@ -639,9 +678,9 @@ data class LiveState(
 
         if (source.sourceId == sourceId) return copy(step = step)
 
-        // `onAir` goes with the source: the tracker resets on the next page
-        // shown, and a programme of the old source under a new card in between
-        // is the GD-03 failure.
+        // The guide goes with the source too: `onAir` and `guideProgrammes`
+        // reset on the next page shown, and a programme of the old source under
+        // a new card in between is the GD-03 failure.
         return LiveState(
             step = step,
             sourceId = source.sourceId,
@@ -681,6 +720,16 @@ data class LiveState(
     /** The groups this channel is filed in, by id. */
     fun groupsOf(channelId: String): Set<String> =
         favorites.filter { it.channel.id == channelId }.map { it.groupId }.toSet()
+
+    /**
+     * "En ce moment" and "Ensuite" for one channel of the Guide, at [now]
+     * (S9-04-05).
+     *
+     * Pure, over [guideProgrammes] and the clock: both null when the guide has
+     * nothing for this channel, and its row is then the channel's name alone.
+     */
+    fun nowAndNext(channelId: String, now: Instant): NowAndNext =
+        currentAndNext(guideProgrammes[channelId].orEmpty(), now)
 
     /**
      * After removing this channel from this group, is it still starred elsewhere?
