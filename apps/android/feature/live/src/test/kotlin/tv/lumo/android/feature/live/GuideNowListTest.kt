@@ -13,7 +13,7 @@ import tv.lumo.android.core.data.model.EpgProgramme
  * The grouped request itself — one per page, never per card, and the dropping
  * of an answer for a source that has changed — is `OnAirTracker`'s, held by
  * `OnAirTrackerTest` in `core:data`. What this screen owns is *which* ids form
- * a page ([guidePageIds]) and what it draws from the windows it holds against a
+ * a page ([epgPageIds]) and what it draws from the windows it holds against a
  * clock ([LiveState.nowAndNext]): the current programme *and* the next one, or
  * nothing at all when the guide has none.
  *
@@ -86,7 +86,7 @@ class GuideNowListTest {
 
     @Test
     fun `a page of visible cards is one page of channel ids`() {
-        val ids = guidePageIds(visible = listOf(0, 1, 2), itemCount = 100) { "c$it" }
+        val ids = epgPageIds(visible = listOf(0, 1, 2), itemCount = 100) { "c$it" }
 
         assertThat(ids).hasSize(EPG_PAGE_SIZE)
         assertThat(ids.first()).isEqualTo("c0")
@@ -95,21 +95,21 @@ class GuideNowListTest {
 
     @Test
     fun `a scroll within one page asks for no new page`() {
-        val first = guidePageIds(visible = listOf(0, 1, 2), itemCount = 100) { "c$it" }
-        val scrolled = guidePageIds(visible = listOf(1, 2, 3), itemCount = 100) { "c$it" }
+        val first = epgPageIds(visible = listOf(0, 1, 2), itemCount = 100) { "c$it" }
+        val scrolled = epgPageIds(visible = listOf(1, 2, 3), itemCount = 100) { "c$it" }
 
         assertThat(scrolled).isEqualTo(first)
     }
 
     @Test
     fun `nothing visible asks for nothing`() {
-        assertThat(guidePageIds(visible = emptyList(), itemCount = 100) { "c$it" }).isEmpty()
-        assertThat(guidePageIds(visible = listOf(0), itemCount = 0) { "c$it" }).isEmpty()
+        assertThat(epgPageIds(visible = emptyList(), itemCount = 100) { "c$it" }).isEmpty()
+        assertThat(epgPageIds(visible = listOf(0), itemCount = 0) { "c$it" }).isEmpty()
     }
 
     @Test
     fun `the last page is clamped to the channels that exist`() {
-        val ids = guidePageIds(visible = listOf(85), itemCount = 90) { "c$it" }
+        val ids = epgPageIds(visible = listOf(85), itemCount = 90) { "c$it" }
 
         assertThat(ids).hasSize(18)
         assertThat(ids.first()).isEqualTo("c72")

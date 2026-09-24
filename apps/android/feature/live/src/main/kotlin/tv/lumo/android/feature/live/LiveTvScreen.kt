@@ -11,23 +11,27 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -36,9 +40,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,15 +51,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import coil3.compose.SubcomposeAsyncImage
-import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+import tv.lumo.android.core.data.DirectView
 import tv.lumo.android.core.data.EmptyGrid
 import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.data.SourceNotice
@@ -80,18 +86,42 @@ import tv.lumo.android.core.designsystem.tv.lumoTvFocus
 import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
 
 /**
- * `TV3 — Grille de chaînes`: a preview panel on the left that follows the
- * focus, a four-column grid on the right, the category chips above it and one
- * line of key hints at the bottom.
+ * Direct on a television (US-16, S9-03): a scrolling column of categories on the
+ * left, the channel grid on the right, one line of key hints at the bottom.
  *
- * <h2>What is on, under each card and in the panel (US-16, S7-04 by S9-03)</h2>
+ * <h2>The band became a column (S9-04-03)</h2>
+ *
+ * The filters used to be a strip above the grid. The 19 September review put
+ * them in a **scrolling column** at the left of the cards, on web and on
+ * television, and that is the layout here: `Toutes`, `Repris`, the favourite
+ * groups that hold something, then the source's categories. The column is
+ * outside the content area, so **it is there even when the search finds
+ * nothing** — an empty result swaps the grid for a sentence and two ways out,
+ * and never removes the shelf somebody might want next.
+ *
+ * `Repris` stays second, where S4-08 put it: it is what somebody turning the
+ * television on reaches for most often, and the one shelf they did not have to
+ * build.
+ *
+ * <h2>Two views, one screen (S9-04), one set of filters</h2>
+ *
+ * The `Chaînes`/`Guide` pills sit in the header, and the search field above the
+ * content is shared by both, exactly as on the phone. Stepping into the Guide
+ * keeps the category and the query (GD-01); a change of source drops both and
+ * opens the new source on the view it was left on (GD-02, GD-03), which is the
+ * shared [tv.lumo.android.core.data.repository.DirectViewRepository]'s job and
+ * not this screen's. The Guide draws [GuideNowList], the shared "En ce moment"
+ * list (S9-04-05).
+ *
+ * <h2>What is on, under each card and in the guide</h2>
  *
  * The guide arrived with C1. Each card carries the title of the programme on
- * air, the panel says it with its progress, and both come from **one request
- * per page** of the grid: the screen watches which indices are visible, rounds
- * them to a page of [EPG_PAGE_SIZE] and hands the page's channel ids to the
- * view model, which asks once for what it does not hold. Never a request per
- * card — that is the trap S7-04 names.
+ * air, and the Guide list says it with its progress and the next programme. Both
+ * come from **one request per page**: the screen watches which indices are
+ * visible, rounds them to a page of [EPG_PAGE_SIZE] with [epgPageIds] — the same
+ * function the Guide uses — and hands the page's channel ids to the view model,
+ * which asks once for what it does not hold. Never a request per card — that is
+ * the trap S7-04 names.
  *
  * Where the guide has nothing — no `tvg_id`, no guide on the source, not loaded
  * — a card shows its name and number and **nothing else**: no placeholder, no
@@ -101,9 +131,11 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
  * <h2>Focus</h2>
  *
  * Arrival lands on the first channel, a return from the player on the channel
- * that was being watched (US-10). `LEFT` from the first column reaches the rail;
- * `UP` from the first row reaches the chips. The preview follows whichever card
- * has the focus, and never takes it: it is a mirror, not a control.
+ * that was being watched (US-10). **A skeleton is never a target**: Paging draws
+ * a window it has not loaded yet at the size of a card, and [arrivalFocusIndex]
+ * skips it rather than stopping the remote on a dead end (S9-04-03). `LEFT` from
+ * the grid reaches the category column and, beyond it, the rail; `UP` from the
+ * first row reaches the search field and the view pills.
  */
 @Composable
 fun LiveTvScreen(
@@ -189,9 +221,13 @@ fun LiveTvScreen(
                 state = state,
                 channels = channels,
                 onChannelsVisible = viewModel::onChannelsVisible,
+                onGuideVisible = viewModel::onGuideVisible,
                 onOpenSources = onOpenSources,
                 onRetry = viewModel::refresh,
                 onRefreshSource = viewModel::refreshSource,
+                onSelectView = viewModel::onDirectViewSelected,
+                onSearchChanged = viewModel::onSearchChanged,
+                onSearchCleared = viewModel::onSearchCleared,
                 onSelectCategory = viewModel::onCategorySelected,
                 onSelectGroup = viewModel::onGroupSelected,
                 onSelectRecent = viewModel::onRecentSelected,
@@ -227,9 +263,13 @@ private fun Browsing(
     state: LiveState,
     channels: LazyPagingItems<Channel>,
     onChannelsVisible: (List<String>) -> Unit,
+    onGuideVisible: (List<String>) -> Unit,
     onOpenSources: () -> Unit,
     onRetry: () -> Unit,
     onRefreshSource: () -> Unit,
+    onSelectView: (DirectView) -> Unit,
+    onSearchChanged: (String) -> Unit,
+    onSearchCleared: () -> Unit,
     onSelectCategory: (String?) -> Unit,
     onSelectGroup: (String) -> Unit,
     onSelectRecent: () -> Unit,
@@ -240,11 +280,15 @@ private fun Browsing(
 ) {
     val focusTarget = remember { FocusRequester() }
     val gridState = rememberLazyGridState()
+    val guideList = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     var focusIndex by remember { mutableIntStateOf(0) }
-    // The channel the panel describes: whichever card holds the focus, and the
-    // first one before any card has had it.
-    var previewed by remember { mutableStateOf<Channel?>(null) }
+    var focusSettled by remember { mutableStateOf(false) }
+    var now by remember { mutableStateOf(Instant.now()) }
 
+    // Coming back from the player (US-10): the channel that was being watched,
+    // not the head of the grid. A return owns the focus, so the arrival pass
+    // below stands down and does not move it.
     LaunchedEffect(returnedChannelId, channels.itemCount) {
         val target = returnedChannelId ?: return@LaunchedEffect
         val index = channels.itemSnapshotList.items.indexOfFirst { it.id == target }
@@ -252,29 +296,49 @@ private fun Browsing(
         if (index < 0) return@LaunchedEffect
 
         focusIndex = index
+        focusSettled = true
         gridState.scrollToItem(index)
         onReturnHandled()
     }
 
-    LaunchedEffect(focusIndex, channels.itemCount) {
-        if (channels.itemCount == 0) return@LaunchedEffect
-        runCatching { focusTarget.requestFocus() }
+    // Arrival focus, and the rule that a skeleton never takes it (S9-04-03).
+    // Read from the Paging snapshot so it re-runs when a page actually loads in,
+    // it settles once and then leaves the grid to the viewer.
+    LaunchedEffect(channels, returnedChannelId) {
+        if (returnedChannelId != null) return@LaunchedEffect
+        snapshotFlow {
+            arrivalFocusIndex(
+                count = channels.itemCount,
+                isLoaded = { index -> channels.itemSnapshotList.getOrNull(index) != null },
+                current = 0,
+            )
+        }
+            .distinctUntilChanged()
+            .collect { index -> if (!focusSettled) focusIndex = index }
     }
 
-    LaunchedEffect(channels.itemCount, state.filter) {
-        if (previewed == null || channels.itemSnapshotList.items.none { it.id == previewed?.id }) {
-            previewed = channels.itemSnapshotList.items.firstOrNull()
+    LaunchedEffect(focusIndex, channels.itemCount, state.view) {
+        if (channels.itemCount == 0) return@LaunchedEffect
+        if (channels.itemSnapshotList.getOrNull(focusIndex) == null) return@LaunchedEffect
+        if (runCatching { focusTarget.requestFocus() }.getOrDefault(false)) {
+            focusSettled = true
         }
     }
 
     // The page on display, for the guide. Read from the grid's layout and from
     // Paging's snapshot — both are state, so this re-runs when a page loads in
     // or the grid scrolls, and `distinctUntilChanged` keeps a scroll within a
-    // page from asking anything.
+    // page from asking anything. One grouped request per page, never per card.
     LaunchedEffect(gridState, channels) {
-        snapshotFlow { visiblePageIds(gridState.layoutInfo.visibleItemsInfo.map { it.index }, channels) }
+        snapshotFlow {
+            epgPageIds(
+                visible = gridState.layoutInfo.visibleItemsInfo.map { it.index },
+                itemCount = channels.itemCount,
+                idAt = { index -> channels.itemSnapshotList.getOrNull(index)?.id },
+            )
+        }
             .distinctUntilChanged()
-            .collect { ids -> onChannelsVisible(ids) }
+            .collect(onChannelsVisible)
     }
 
     Column(
@@ -291,6 +355,7 @@ private fun Browsing(
                 style = MaterialTheme.typography.displayMedium,
                 color = LumoColors.OnDark,
             )
+            ViewToggle(view = state.view, onSelectView = onSelectView)
             if (state.origin == DataOrigin.Cache) {
                 Text(
                     text = stringResource(R.string.feature_live_offline),
@@ -302,8 +367,8 @@ private fun Browsing(
             // In the header line, compact: the grid below has the height of two
             // rows of cards, and a notice of its own height would push the second
             // off the panel. A refresh is text; a failure adds the one stop this
-            // line has — "My sources", reached by `UP` from the filters — and an
-            // outage two, "try again" then "change source", on the same line.
+            // line has — "My sources", reached by `UP` from the search field — and
+            // an outage two, "try again" then "change source", on the same line.
             state.notice?.let { notice ->
                 val wording = notice.wording()
                 LumoTvSourceNotice(
@@ -343,60 +408,96 @@ private fun Browsing(
                 .weight(1f),
             horizontalArrangement = Arrangement.spacedBy(LumoSpacing.xl),
         ) {
-            Preview(
-                channel = previewed,
-                onAir = previewed?.let { state.onAir[it.id] },
-                categoryName = previewed?.categoryId?.let { id ->
-                    state.categories.firstOrNull { it.id == id }?.name
-                },
-                // Three parts in ten, as the canvas divides its width — a fixed
-                // width would be right on one panel and wrong on every other.
-                modifier = Modifier.weight(PREVIEW_SHARE),
+            // The column is a sibling of the content, so a search that finds
+            // nothing takes the grid away and leaves the shelf in place: it stays
+            // reachable, which is the whole point of the move (S9-04-03).
+            FiltersColumn(
+                groups = state.groupsWithChannels,
+                categories = state.categories,
+                filter = state.filter,
+                hasRecent = state.recent.isNotEmpty(),
+                onSelectCategory = onSelectCategory,
+                onSelectGroup = onSelectGroup,
+                onSelectRecent = onSelectRecent,
+                modifier = Modifier
+                    .width(FILTER_COLUMN_WIDTH)
+                    .fillMaxHeight(),
             )
 
             Column(
-                modifier = Modifier.weight(1f - PREVIEW_SHARE),
+                modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
             ) {
-                Filters(
-                    groups = state.groupsWithChannels,
-                    categories = state.categories,
-                    filter = state.filter,
-                    hasRecent = state.recent.isNotEmpty(),
-                    onSelectCategory = onSelectCategory,
-                    onSelectGroup = onSelectGroup,
-                    onSelectRecent = onSelectRecent,
+                TvSearchField(
+                    value = state.search,
+                    onValueChange = onSearchChanged,
+                    onClear = onSearchCleared,
                 )
 
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(GRID_COLUMNS),
-                    horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
-                    verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
-                    state = gridState,
-                    contentPadding = PaddingValues(LumoSpacing.sm),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    items(
-                        count = channels.itemCount,
-                        key = channels.itemKey { it.id },
-                    ) { index ->
-                        val channel = channels[index]
-                        ChannelCard(
-                            channel = channel,
-                            onAir = channel?.let { state.onAir[it.id] },
-                            favorited = channel != null && state.isFavorited(channel.id),
-                            onPlay = onPlay,
-                            onFavorite = onFavorite,
-                            onFocused = { previewed = it },
-                            // One requester, moved to whichever card is the target:
-                            // the first on arrival, the one just watched on the way
-                            // back.
-                            modifier = if (index == focusIndex) {
-                                Modifier.focusRequester(focusTarget)
-                            } else {
-                                Modifier
+                val nothingFound = state.searchFoundNothing(
+                    itemCount = channels.itemCount,
+                    loading = channels.loadState.refresh is LoadState.Loading,
+                )
+
+                when {
+                    // A search that found nothing is not an empty catalogue: say
+                    // which it is, and give the two ways out the design names —
+                    // clear the query, or widen the filter to Toutes. The category
+                    // column on the left is still there to be reached.
+                    nothingFound -> TvEmptySearch(
+                        query = state.search,
+                        onClear = onSearchCleared,
+                        onAll = { onSelectCategory(null) },
+                    )
+
+                    // "En ce moment", one line per channel of the filtered result,
+                    // current then next (S9-04-05). The list reports its page and
+                    // the tracker asks once for what it does not hold — never one
+                    // request per card.
+                    state.view == DirectView.Guide -> TvGuideTheme {
+                        GuideNowList(
+                            state = state,
+                            channels = channels,
+                            now = now,
+                            onNow = {
+                                now = Instant.now()
+                                scope.launch { guideList.scrollToItem(0) }
                             },
+                            onPlay = onPlay,
+                            onPageVisible = onGuideVisible,
+                            listState = guideList,
                         )
+                    }
+
+                    else -> LazyVerticalGrid(
+                        columns = GridCells.Fixed(GRID_COLUMNS),
+                        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+                        state = gridState,
+                        contentPadding = PaddingValues(LumoSpacing.sm),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        items(
+                            count = channels.itemCount,
+                            key = channels.itemKey { it.id },
+                        ) { index ->
+                            val channel = channels[index]
+                            ChannelCard(
+                                channel = channel,
+                                onAir = channel?.let { state.onAir[it.id] },
+                                favorited = channel != null && state.isFavorited(channel.id),
+                                onPlay = onPlay,
+                                onFavorite = onFavorite,
+                                // One requester, moved to whichever card is the
+                                // target: the first on arrival, the one just watched
+                                // on the way back.
+                                modifier = if (index == focusIndex) {
+                                    Modifier.focusRequester(focusTarget)
+                                } else {
+                                    Modifier
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -411,112 +512,157 @@ private fun Browsing(
 }
 
 /**
- * The left panel of the canvas: a picture of the channel, its name, what is on,
- * and how far along.
- *
- * The picture is the logo, since a television has no still of a live stream.
- * The programme is the guide's, when it has one; the progress is computed once
- * per focused card against the clock, not ticked — a panel that follows the
- * D-pad is redrawn often enough as it is.
+ * The `Chaînes`/`Guide` pills (S9-04). Two values, so two pills and not a tab
+ * row: the phone draws the same pair, and a single vocabulary across surfaces is
+ * what lets the shared search and filter mean the same thing on each of them.
  */
 @Composable
-private fun Preview(
-    channel: Channel?,
-    onAir: EpgProgramme?,
-    categoryName: String?,
+private fun ViewToggle(view: DirectView, onSelectView: (DirectView) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
+        CategoryChip(
+            label = stringResource(R.string.feature_live_view_channels),
+            selected = view == DirectView.Channels,
+            onClick = { onSelectView(DirectView.Channels) },
+        )
+        CategoryChip(
+            label = stringResource(R.string.feature_live_view_guide),
+            selected = view == DirectView.Guide,
+            onClick = { onSelectView(DirectView.Guide) },
+        )
+    }
+}
+
+/**
+ * The name search (S9-04), shared by Chaînes and Guide and kept across the
+ * switch (GD-01). It filters by channel name over the local cache — it answers
+ * offline — and it leaves the active filter chip alone.
+ *
+ * A single-line field focused from the D-pad; the centre key opens the
+ * television's own keyboard. Up and down leave the field for the view pills and
+ * the content, because a single line has no vertical cursor to move.
+ */
+@Composable
+private fun TvSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onClear: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(16f / 9f)
-                .clip(LumoTvShapes.medium)
-                .background(LumoColors.SurfaceRaised),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (channel?.logoUrl != null) {
-                SubcomposeAsyncImage(
-                    model = channel.logoUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    loading = { PreviewCaption(channel) },
-                    error = { PreviewCaption(channel) },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(LumoSpacing.xl),
-                )
-            } else {
-                PreviewCaption(channel)
-            }
-        }
+    val description = stringResource(R.string.feature_live_search)
+    val clearDescription = stringResource(R.string.feature_live_search_clear)
+    var focused by remember { mutableStateOf(false) }
 
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .lumoTvFocus(focused, shape = LumoTvShapes.pill)
+            .clip(LumoTvShapes.pill)
+            .background(LumoColors.Surface)
+            .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+    ) {
         Text(
-            text = channel?.name.orEmpty(),
+            text = stringResource(R.string.feature_live_glyph_search),
             style = MaterialTheme.typography.titleLarge,
-            color = LumoColors.OnDark,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+            color = LumoColors.OnDarkMuted,
         )
 
-        // « En ce moment : Journal du soir » — only when the guide has it.
-        // Nothing otherwise, not even the label: an empty "Now:" would be the
-        // reserved space S7-03 rules out.
-        onAir?.let { programme ->
-            Text(
-                text = stringResource(R.string.feature_live_tv_now, programme.title),
-                style = MaterialTheme.typography.bodyLarge,
-                color = LumoColors.OnDark,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+        Box(modifier = Modifier.weight(1f)) {
+            if (value.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.feature_live_search_hint),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = LumoColors.OnDarkMuted,
+                )
+            }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = LumoColors.OnDark),
+                cursorBrush = SolidColor(LumoColors.Accent),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focused = it.isFocused }
+                    .semantics { contentDescription = description },
             )
         }
 
-        // « Généralistes · HD » — the category and the quality are real.
-        Text(
-            text = listOfNotNull(categoryName, channel?.quality).joinToString(" · "),
-            style = MaterialTheme.typography.labelLarge,
-            color = LumoColors.OnDarkMuted,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-
-        // How far along the programme is, as of the moment the card took the
-        // focus. The track stays at zero when there is no programme to measure.
-        val fraction = remember(onAir) { onAir?.elapsedFraction(Instant.now()) ?: 0f }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .clip(LumoTvShapes.pill)
-                .background(LumoColors.SurfaceRaised),
-        ) {
-            Box(
+        if (value.isNotEmpty()) {
+            Text(
+                text = stringResource(R.string.feature_live_glyph_clear),
+                style = MaterialTheme.typography.titleLarge,
+                color = LumoColors.OnDarkMuted,
                 modifier = Modifier
-                    .fillMaxWidth(fraction = fraction)
-                    .height(6.dp)
-                    .background(Brush.horizontalGradient(listOf(LumoColors.Accent, LumoColors.AccentViolet))),
+                    .clip(LumoTvShapes.pill)
+                    .clickable(onClick = onClear)
+                    .padding(LumoSpacing.xs)
+                    .semantics { contentDescription = clearDescription },
             )
         }
     }
 }
 
+/**
+ * A search that found nothing (S9-04), versus one still loading.
+ *
+ * The same two ways out as the phone: clear the query, or widen the filter back
+ * to Toutes. The category column beside this message is untouched, so the shelf
+ * that narrowed the result is still one `LEFT` away.
+ */
 @Composable
-private fun PreviewCaption(channel: Channel?) {
-    Text(
-        text = stringResource(R.string.feature_live_tv_preview, channel?.name.orEmpty()),
-        style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
-        color = LumoColors.OnDarkMuted,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.padding(LumoSpacing.md),
+private fun TvEmptySearch(query: String, onClear: () -> Unit, onAll: () -> Unit) {
+    LumoTvStateMessage(
+        title = stringResource(R.string.feature_live_search_empty_title),
+        body = stringResource(R.string.feature_live_search_empty_body, query),
+        actionLabel = stringResource(R.string.feature_live_search_clear),
+        onAction = onClear,
+        secondaryActionLabel = stringResource(R.string.feature_live_all_categories),
+        onSecondaryAction = onAll,
     )
 }
 
+/**
+ * [GuideNowList] is written against `androidx.compose.material3`, like the phone
+ * screen it was drawn for, while a television composes under
+ * `androidx.tv.material3` (docs/architecture.md §3). The two are separate
+ * composition locals, so without this the shared list would fall back to the
+ * phone library's default light scheme in the middle of a dark screen.
+ *
+ * This is the smallest adapter that makes the sharing real: the same list, given
+ * the television palette. It is deliberately local to this screen rather than a
+ * rewrite of `GuideNowList`, whose mobile colours are not this task's to change.
+ */
 @Composable
-private fun Filters(
+private fun TvGuideTheme(content: @Composable () -> Unit) {
+    androidx.compose.material3.MaterialTheme(
+        colorScheme = darkColorScheme(
+            primary = LumoColors.OnDark,
+            onPrimary = LumoColors.Ink,
+            background = LumoColors.Ink,
+            onBackground = LumoColors.OnDark,
+            surface = LumoColors.Surface,
+            onSurface = LumoColors.OnDark,
+            surfaceVariant = LumoColors.SurfaceRaised,
+            onSurfaceVariant = LumoColors.OnDarkMuted,
+        ),
+        content = content,
+    )
+}
+
+/**
+ * The scrolling category column (S9-04-03).
+ *
+ * `Toutes` first and the state the screen opens on, then `Repris` in second
+ * position — only when something was watched, and never a chip that filters
+ * onto nothing — then the account's groups that hold something, then the
+ * source's categories. It is the phone's strip laid vertically; a column rather
+ * than a strip because a television has the height for one and the width for
+ * four readable cards, and the two do not fit side by side any other way.
+ */
+@Composable
+private fun FiltersColumn(
     groups: List<FavoriteGroup>,
     categories: List<Category>,
     filter: CatalogueFilter,
@@ -524,24 +670,28 @@ private fun Filters(
     onSelectCategory: (String?) -> Unit,
     onSelectGroup: (String) -> Unit,
     onSelectRecent: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
         contentPadding = PaddingValues(LumoSpacing.xs),
     ) {
-        item {
+        item(key = "all") {
             CategoryChip(
                 label = stringResource(R.string.feature_live_all_categories),
                 selected = filter is CatalogueFilter.All,
                 onClick = { onSelectCategory(null) },
+                modifier = Modifier.fillMaxWidth(),
             )
         }
         if (hasRecent) {
-            item {
+            item(key = "recent") {
                 CategoryChip(
                     label = stringResource(R.string.feature_live_recent),
                     selected = filter is CatalogueFilter.Recent,
                     onClick = onSelectRecent,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
@@ -550,10 +700,13 @@ private fun Filters(
                 label = group.displayName(),
                 selected = (filter as? CatalogueFilter.Group)?.id == group.id,
                 onClick = { onSelectGroup(group.id) },
+                modifier = Modifier.fillMaxWidth(),
             )
         }
-        if (groups.isNotEmpty()) {
-            item { Spacer(modifier = Modifier.size(LumoSpacing.lg)) }
+        // The two blocks were separated by an interval and not a label on the
+        // strip; a column keeps the same, with a gap in place of a heading line.
+        if (groups.isNotEmpty() && categories.isNotEmpty()) {
+            item(key = "gap") { Spacer(modifier = Modifier.height(LumoSpacing.md)) }
         }
         items(categories, key = { "category-" + it.id }) { category ->
             CategoryChip(
@@ -562,6 +715,7 @@ private fun Filters(
                     ?: category.name,
                 selected = (filter as? CatalogueFilter.Category)?.id == category.id,
                 onClick = { onSelectCategory(category.id) },
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
@@ -573,7 +727,12 @@ private fun Filters(
  * a cyan fill.
  */
 @Composable
-private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun CategoryChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var focused by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -585,7 +744,9 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
             focused -> LumoColors.OnDark
             else -> LumoColors.OnDarkMuted
         },
-        modifier = Modifier
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
             .onFocusChanged { focused = it.isFocused }
             .lumoTvFocus(focused, shape = LumoTvShapes.pill)
             .clip(LumoTvShapes.pill)
@@ -606,6 +767,10 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
  * in a monospaced face, and the programme on air under that when the guide has
  * one (S7-04). The logo lives in the panel — at four columns a card is read by
  * its name, and a logo that small is a smudge.
+ *
+ * A null card is a window Paging has not loaded yet: drawn at full size so the
+ * grid keeps its shape, and **not focusable** — `combinedClickable` is disabled
+ * on it, so the D-pad never stops on a card with no channel behind it (S9-04-03).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -615,7 +780,6 @@ private fun ChannelCard(
     favorited: Boolean,
     onPlay: (channelId: String, name: String?) -> Unit,
     onFavorite: (Channel) -> Unit,
-    onFocused: (Channel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -625,10 +789,7 @@ private fun ChannelCard(
         modifier = modifier
             .fillMaxWidth()
             .height(CARD_HEIGHT)
-            .onFocusChanged {
-                focused = it.isFocused
-                if (it.isFocused && channel != null) onFocused(channel)
-            }
+            .onFocusChanged { focused = it.isFocused }
             .lumoTvFocus(focused)
             .clip(LumoTvShapes.medium)
             .background(if (focused) LumoColors.SurfaceRaised else LumoColors.Surface)
@@ -687,30 +848,6 @@ private fun ChannelCard(
     }
 }
 
-/**
- * The channel ids of the page(s) covering the visible indices, in grid order.
- *
- * Rounded to whole pages of [EPG_PAGE_SIZE] so that the set only changes when
- * the grid crosses a page boundary or a page's rows load in — never on a
- * scroll of one row. Placeholders (rows Paging has not loaded) contribute
- * nothing and are asked for when they do.
- */
-private fun visiblePageIds(visible: List<Int>, channels: LazyPagingItems<Channel>): List<String> {
-    if (visible.isEmpty()) return emptyList()
-    val first = (visible.min() / EPG_PAGE_SIZE) * EPG_PAGE_SIZE
-    val last = minOf((visible.max() / EPG_PAGE_SIZE + 1) * EPG_PAGE_SIZE, channels.itemCount)
-    val snapshot = channels.itemSnapshotList
-    return (first until last).mapNotNull { index -> snapshot.getOrNull(index)?.id }
-}
-
-/** How far into the programme [now] is, clamped to `0..1`. */
-private fun EpgProgramme.elapsedFraction(now: Instant): Float {
-    val length = Duration.between(startsAt, endsAt).toMillis()
-    if (length <= 0) return 0f
-    val elapsed = Duration.between(startsAt, now).toMillis()
-    return (elapsed.toFloat() / length).coerceIn(0f, 1f)
-}
-
 @Composable
 private fun Message(title: String, body: String) {
     Column(
@@ -742,5 +879,12 @@ private const val GRID_COLUMNS = 4
 /** Two lines of name, the number, and one line of programme (S7-04). Two rows still fit a 1080p panel. */
 private val CARD_HEIGHT = 140.dp
 
-/** The preview panel's share of the content width, as on the canvas. */
-private const val PREVIEW_SHARE = 0.30f
+/**
+ * The category column's width.
+ *
+ * Wide enough for a category name and its count at three metres, narrow enough
+ * to leave the grid its four readable columns beside the rail — the arithmetic
+ * the screen's documentation lays out. It is a fixed width and not a share:
+ * a category name does not grow with the panel.
+ */
+private val FILTER_COLUMN_WIDTH = 200.dp

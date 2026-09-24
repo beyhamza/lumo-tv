@@ -84,7 +84,7 @@ fun GuideNowList(
         // asking anything (S9-04-05).
         LaunchedEffect(listState, channels) {
             snapshotFlow {
-                guidePageIds(
+                epgPageIds(
                     visible = listState.layoutInfo.visibleItemsInfo.map { it.index },
                     itemCount = channels.itemCount,
                     idAt = { index -> channels.itemSnapshotList.getOrNull(index)?.id },
@@ -225,14 +225,20 @@ private fun ProgrammeLine(
 }
 
 /**
- * The page of channel ids a set of visible indices covers, rounded like the
- * television grid's own pages.
+ * The page of channel ids a set of visible indices covers.
+ *
+ * **One function for both surfaces** (S9-04-03): the Guide's "En ce moment"
+ * list and the television's channel grid round what is visible to the same page
+ * of [EPG_PAGE_SIZE], so that the grouped request they make against the guide is
+ * bounded the same way and a scroll within a page costs nothing on either. It
+ * lived twice — `visiblePageIds` in `LiveTvScreen` and `guidePageIds` here — and
+ * the two were the same rule written twice.
  *
  * `visible` is empty when nothing is on screen — the list has not measured yet —
  * and no request is made for it. The last page is clamped to [itemCount] so a
  * half-filled page asks only for the channels that exist.
  */
-internal fun guidePageIds(
+internal fun epgPageIds(
     visible: List<Int>,
     itemCount: Int,
     idAt: (Int) -> String?,
