@@ -119,6 +119,19 @@
     <string name="feature_live_guide_empty_slot">No programme available in this slot</string>
 
     <!--
+      The Guide's data states (S9-06-03, GD-10/GD-11): a failed first load is
+      not an empty guide, a failed refresh keeps the grid and says so, and an old
+      or unfinished import dates itself.
+    -->
+    <string name="feature_live_guide_error_title">Guide unavailable</string>
+    <string name="feature_live_guide_error_body">The guide could not be loaded. Try again, or watch from the channel list.</string>
+    <string name="feature_live_guide_stale_title">Guide not updated</string>
+    <string name="feature_live_guide_stale_body">The grid below is what your device already holds.</string>
+    <string name="feature_live_guide_retry">Try again</string>
+    <string name="feature_live_guide_age">Guide last updated: %1$s</string>
+    <string name="feature_live_guide_age_incomplete">The last guide import did not finish.</string>
+
+    <!--
       The programme detail sheet (S9-06-01): the one action a current programme
       offers, and the way out every moment has.
     -->

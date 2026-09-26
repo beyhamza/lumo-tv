@@ -237,6 +237,7 @@ fun LiveTvScreen(
                 channels = channels,
                 onChannelsVisible = viewModel::onChannelsVisible,
                 onDayVisible = viewModel::onDayVisible,
+                onGuideRetry = viewModel::onGuideRetry,
                 onOpenSources = onOpenSources,
                 onRetry = viewModel::refresh,
                 onRefreshSource = viewModel::refreshSource,
@@ -282,6 +283,7 @@ private fun Browsing(
     channels: LazyPagingItems<Channel>,
     onChannelsVisible: (List<String>) -> Unit,
     onDayVisible: (EpgDay, List<String>) -> Unit,
+    onGuideRetry: () -> Unit,
     onOpenSources: () -> Unit,
     onRetry: () -> Unit,
     onRefreshSource: () -> Unit,
@@ -510,6 +512,7 @@ private fun Browsing(
                             onDayVisible = onDayVisible,
                             onAnchorChanged = onAnchorChanged,
                             onSeeChannels = { onSelectView(DirectView.Channels) },
+                            onRetryGuide = onGuideRetry,
                         )
                     }
 

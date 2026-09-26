@@ -61,6 +61,15 @@
     <string name="feature_live_guide_today">Aujourd\'hui</string>
     <string name="feature_live_guide_empty_slot">Aucun programme disponible sur ce créneau</string>
 
+    <!-- États du Guide (S9-06-03, GD-10/GD-11). -->
+    <string name="feature_live_guide_error_title">Guide indisponible</string>
+    <string name="feature_live_guide_error_body">Le guide n\'a pas pu être chargé. Réessayez, ou regardez depuis la liste des chaînes.</string>
+    <string name="feature_live_guide_stale_title">Guide non actualisé</string>
+    <string name="feature_live_guide_stale_body">La grille ci-dessous est celle déjà présente sur votre appareil.</string>
+    <string name="feature_live_guide_retry">Réessayer</string>
+    <string name="feature_live_guide_age">Dernière mise à jour du guide : %1$s</string>
+    <string name="feature_live_guide_age_incomplete">La dernière importation du guide ne s\'est pas terminée.</string>
+
     <!-- Fiche de programme (S9-06-01). -->
     <string name="feature_live_programme_watch">Regarder en direct</string>
     <string name="feature_live_programme_close">Fermer</string>

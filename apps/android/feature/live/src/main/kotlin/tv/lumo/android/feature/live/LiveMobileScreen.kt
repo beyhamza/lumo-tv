@@ -332,6 +332,8 @@ fun LiveMobileScreen(
                             },
                             onDayVisible = viewModel::onDayVisible,
                             onOpenProgramme = viewModel::onProgrammeOpened,
+                            onRetry = viewModel::onGuideRetry,
+                            onSeeChannels = { viewModel.onDirectViewSelected(DirectView.Channels) },
                             listState = dayList,
                         )
                     }
