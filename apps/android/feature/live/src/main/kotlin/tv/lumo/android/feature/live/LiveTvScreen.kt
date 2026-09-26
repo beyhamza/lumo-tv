@@ -564,6 +564,9 @@ private fun Browsing(
                 // GD-08: the moment is read again at the press, never trusted
                 // from the frame the action was drawn on.
                 if (watchAllowed(open.programme, Instant.now())) {
+                    // GD-09: playing leaves the sheet behind (review D2); the
+                    // return to the grid (focus, day, filter) is S9-06-02's.
+                    onProgrammeClosed()
                     onPlay(open.channelId, open.channelName)
                 }
             },

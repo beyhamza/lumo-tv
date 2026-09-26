@@ -434,6 +434,8 @@ fun LiveMobileScreen(
             onWatch = { open ->
                 // GD-08: the moment is read again at the press.
                 if (watchAllowed(open.programme, Instant.now())) {
+                    // GD-09: playback leaves the sheet behind (review D2).
+                    viewModel.onProgrammeClosed()
                     onPlay(open.channelId, open.channelName)
                 }
             },

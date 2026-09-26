@@ -118,6 +118,22 @@ fun watchAvailable(moment: ProgrammeMoment): Boolean = moment == ProgrammeMoment
 fun watchAllowed(programme: EpgProgramme, now: Instant): Boolean =
     watchAvailable(momentOf(programme, now))
 
+/**
+ * GD-08: where the television's focus arrives when the sheet opens.
+ *
+ * The action when the programme is current, Fermer otherwise — and the moment
+ * is read on the caller's clock, never a fresh [Instant.now] (review D3). When
+ * the programme is [ProgrammeMoment.Future] the sheet is information only, so
+ * the focus starts on Fermer and *stays* there when the programme becomes
+ * current: it gains the action without taking the focus.
+ */
+fun sheetArrivalFocus(programme: EpgProgramme, now: Instant): ProgrammeSheetFocus =
+    if (watchAvailable(momentOf(programme, now))) {
+        ProgrammeSheetFocus.Watch
+    } else {
+        ProgrammeSheetFocus.Close
+    }
+
 /** Where the television's focus sits inside the sheet. */
 enum class ProgrammeSheetFocus { Watch, Close }
 
@@ -168,29 +184,35 @@ internal fun ProgrammeSheetTv(
     val moment = momentOf(sheet.programme, now)
     val watchRequester = remember { FocusRequester() }
     val closeRequester = remember { FocusRequester() }
-    var watchFocused by remember(sheet.programme.id) { mutableStateOf(false) }
+    // The focus the viewer last put inside the panel. Only a node *gaining* the
+    // focus writes it, so a button leaving the composition (the action at the
+    // programme's end) cannot race this state: the pure rule below decides where
+    // the focus goes, and one effect moves it (GD-07; review D1/D4).
+    var focused by remember(sheet.programme.id) { mutableStateOf(ProgrammeSheetFocus.Close) }
 
     SheetEndTick(sheet.programme, now, onTimePassed)
 
-    // GD-07: the action is gone, the focus joins Fermer, the sheet stays open.
-    LaunchedEffect(moment, watchFocused) {
-        if (!watchAvailable(moment) && watchFocused) {
+    // GD-07: `sheetFocusAfter` is the single source of truth — the panel asks it
+    // where the focus goes, it does not re-implement the rule. A focus left on
+    // the action when the action disappears joins Fermer; the sheet stays open.
+    LaunchedEffect(moment) {
+        val target = sheetFocusAfter(moment, focused)
+        if (target != focused) {
             withFrameNanos { }
-            runCatching { closeRequester.requestFocus() }
+            focused = target
+            runCatching { requesterFor(target, watchRequester, closeRequester).requestFocus() }
         }
     }
 
-    // Arrival: the action when there is one, Fermer otherwise. Never the focus
-    // of the grid, which stays where the viewer left it (S9-06-02).
+    // Arrival: the action when there is one, Fermer otherwise, for the moment
+    // read on the sheet's own clock (`now`, GD-08; review D3), never a fresh
+    // `Instant.now()`. Never the focus of the grid, which stays where the viewer
+    // left it (S9-06-02).
     LaunchedEffect(sheet.programme.id) {
+        val arrival = sheetArrivalFocus(sheet.programme, now)
         withFrameNanos { }
-        runCatching {
-            if (watchAvailable(momentOf(sheet.programme, Instant.now()))) {
-                watchRequester.requestFocus()
-            } else {
-                closeRequester.requestFocus()
-            }
-        }
+        focused = arrival
+        runCatching { requesterFor(arrival, watchRequester, closeRequester).requestFocus() }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -253,13 +275,14 @@ internal fun ProgrammeSheetTv(
                 TvSheetButton(
                     label = stringResource(R.string.feature_live_programme_watch),
                     focusRequester = watchRequester,
-                    onFocused = { watchFocused = it },
+                    onFocused = { if (it) focused = ProgrammeSheetFocus.Watch },
                     onClick = { onWatch(sheet) },
                 )
             }
             TvSheetButton(
                 label = stringResource(R.string.feature_live_programme_close),
                 focusRequester = closeRequester,
+                onFocused = { if (it) focused = ProgrammeSheetFocus.Close },
                 onClick = onClose,
             )
         }
@@ -442,6 +465,13 @@ private fun TvSheetButton(
         )
     }
 }
+
+/** The requester of the panel entry the pure focus rule has just named. */
+private fun requesterFor(
+    target: ProgrammeSheetFocus,
+    watch: FocusRequester,
+    close: FocusRequester,
+): FocusRequester = if (target == ProgrammeSheetFocus.Watch) watch else close
 
 /** The panel's width on a television: a side sheet, not a full-width screen. */
 private val SHEET_PANEL_WIDTH = 360.dp

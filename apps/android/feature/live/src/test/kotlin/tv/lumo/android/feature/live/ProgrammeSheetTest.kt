@@ -82,6 +82,19 @@ class ProgrammeSheetTest {
         assertThat(watchAllowed(programme, at("2026-09-24T21:00:01Z"))).isFalse()
     }
 
+    @Test
+    fun `arrival focuses the action only for a current programme, on the injected clock`() {
+        // D3: the panel reads its own `now`, so this is deterministic. A future
+        // programme starts the focus on Fermer and keeps it there; a past one
+        // never offers the action at all.
+        assertThat(sheetArrivalFocus(programme, at("2026-09-24T19:30:00Z")))
+            .isEqualTo(ProgrammeSheetFocus.Close)
+        assertThat(sheetArrivalFocus(programme, at("2026-09-24T20:30:00Z")))
+            .isEqualTo(ProgrammeSheetFocus.Watch)
+        assertThat(sheetArrivalFocus(programme, at("2026-09-24T21:30:00Z")))
+            .isEqualTo(ProgrammeSheetFocus.Close)
+    }
+
     // ---- GD-07: the action disappears and the focus joins Fermer -----------
 
     @Test
