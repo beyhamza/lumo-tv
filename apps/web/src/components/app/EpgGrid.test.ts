@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { epgDayWindow } from "@/lib/epg/day-window";
-import { HOUR_MS, dayBlocks, dayLabel, hourMarks, type GridBlock } from "./EpgGrid";
+import {
+  HOUR_COLUMN_PX,
+  HOUR_MS,
+  NAME_COLUMN_PX,
+  dayBlocks,
+  dayLabel,
+  gridWidth,
+  hourMarks,
+  type GridBlock,
+} from "./EpgGrid";
 
 /**
  * The grid's pure layout (S9-05-02, GD-05/06/GD-12).
@@ -62,6 +71,38 @@ describe("hourMarks", () => {
         if (index > 0) expect(mark.getTime() - marks[index - 1].getTime()).toBe(HOUR_MS);
       });
     }
+  });
+});
+
+/**
+ * The grid's width (S9-05-02).
+ *
+ * The defect this pins was invisible in a diff: a fixed minimum of `48rem`
+ * across a 24-hour day gave every hour ~32 px, so the hour labels overlapped
+ * and titles were cut to one or two characters. The day must be as wide as its
+ * hours need — 128 px each — and no narrower.
+ */
+describe("gridWidth", () => {
+  const from = new Date("2026-09-24T00:00:00+02:00");
+  const to = new Date("2026-09-25T00:00:00+02:00");
+
+  it("gives every hour of an ordinary day its own readable column", () => {
+    const width = gridWidth(from, to);
+
+    expect(width).toBe(NAME_COLUMN_PX + 24 * HOUR_COLUMN_PX);
+    expect((width - NAME_COLUMN_PX) / 24).toBe(HOUR_COLUMN_PX);
+  });
+
+  it("counts the hours the day really has, not a fixed 24", () => {
+    const spring = epgDayWindow(new Date("2026-03-29T12:00:00+02:00"), PARIS).find(
+      (day) => day.date === "2026-03-29",
+    )!;
+    const autumn = epgDayWindow(new Date("2026-10-25T12:00:00+01:00"), PARIS).find(
+      (day) => day.date === "2026-10-25",
+    )!;
+
+    expect(gridWidth(spring.from, spring.to)).toBe(NAME_COLUMN_PX + 23 * HOUR_COLUMN_PX);
+    expect(gridWidth(autumn.from, autumn.to)).toBe(NAME_COLUMN_PX + 25 * HOUR_COLUMN_PX);
   });
 });
 
