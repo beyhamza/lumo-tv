@@ -235,6 +235,30 @@ class LiveViewModel @Inject constructor(
     }
 
     /**
+     * Opens one channel's day in the mobile Guide (S9-05-04).
+     *
+     * A second level of the Guide rather than another destination: the list of
+     * what is on stays underneath, so Back walks out of the day and back into it
+     * where it was (GD-13). The day itself is read through [onDayVisible], the
+     * very call the television grid makes, so the phone and the television share
+     * the single grouped read per day.
+     */
+    fun onChannelDayOpened(channel: Channel) {
+        _state.update { it.copy(dayChannel = channel) }
+    }
+
+    /**
+     * GD-13: the way out of a channel's day, back to "En ce moment".
+     *
+     * The day's programmes are kept in state: they are keyed by channel and day,
+     * so reopening the same day asks for nothing and a different day clears them
+     * in [onDayVisible] as it always did.
+     */
+    fun onChannelDayClosed() {
+        _state.update { it.copy(dayChannel = null) }
+    }
+
+    /**
      * The channels of the page the television's hour grid is drawing, for the
      * day it is showing (S9-05-03).
      *
@@ -820,6 +844,13 @@ data class LiveState(
      * programme outside its day.
      */
     val guideDay: GuideDay = GuideDay(),
+
+    /**
+     * The channel whose day the **mobile** Guide has opened, or null for the
+     * "En ce moment" list (S9-05-04). A nested level, not another view: it is
+     * reset with the source, like everything else that belongs to it (GD-03).
+     */
+    val dayChannel: Channel? = null,
 ) {
 
     /**
