@@ -134,6 +134,7 @@ internal fun GuideGridTv(
     onSelectDay: (EpgDay) -> Unit,
     onOpenProgramme: (channelId: String, channelName: String?, programme: EpgProgramme) -> Unit,
     onDayVisible: (EpgDay, List<String>) -> Unit,
+    onAnchorChanged: (GuideAnchor?) -> Unit,
     onSeeChannels: () -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
@@ -156,7 +157,13 @@ internal fun GuideGridTv(
     }
 
     val initialReference = if (now >= activeDay.from && now < activeDay.to) now else activeDay.from
-    var selection by remember(activeDay) { mutableStateOf<GuideSelection?>(null) }
+    // The cell the view model kept from the last visit, so a return from the
+    // player lands where the viewer left instead of at the head of the grid
+    // (GD-09). Null on a first entry, or when the remembered day is not this one.
+    val remembered = state.guideAnchor
+    var selection by remember(activeDay) {
+        mutableStateOf(resolveReturnSelection(remembered, rows, activeDay, now))
+    }
     val focusRequester = remember { FocusRequester() }
 
     // The page on display, for the day being shown: one grouped read per page,
@@ -181,7 +188,9 @@ internal fun GuideGridTv(
     LaunchedEffect(activeDay, rows) {
         val current = selection
         if (current == null || current.rowIndex !in rows.indices) {
-            selection = entrySelection(rows, activeDay, now)
+            // A return re-resolves the remembered cell against the refreshed
+            // guide; a first entry and a new day still place Maintenant.
+            selection = resolveReturnSelection(remembered, rows, activeDay, now)
         }
     }
 
@@ -191,6 +200,16 @@ internal fun GuideGridTv(
     // nowhere else, so keying on it alone never fires on a page append.
     LaunchedEffect(now) {
         selection = entrySelection(rows, activeDay, now)
+    }
+
+    // The anchor follows the placement: the first landing and every deliberate
+    // move are what a later return restores. The channel id lives on the row the
+    // cell sits on, not in the cell, and a null selection (no rows) leaves the
+    // previous anchor untouched rather than forgetting it.
+    LaunchedEffect(selection, rows) {
+        val current = selection ?: return@LaunchedEffect
+        val channelId = rows.getOrNull(current.rowIndex)?.channelId ?: return@LaunchedEffect
+        onAnchorChanged(current.anchorOn(channelId))
     }
 
     // The selected cell is the only focusable node, so every move has to put the

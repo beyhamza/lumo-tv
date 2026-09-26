@@ -276,6 +276,20 @@ class LiveViewModel @Inject constructor(
     fun onProgrammeClosed() = _state.update { it.copy(programmeSheet = null) }
 
     /**
+     * The cell the viewer left the Guide on, remembered so that a return from the
+     * player lands there instead of at the head of the grid (GD-09).
+     *
+     * The screen's `remember` does not survive the trip to the player — the Live
+     * destination stays on the back stack, its view model does not leave — so the
+     * anchor belongs to the source's session, like the view and the search. It is
+     * dropped with the source in [LiveState.browsing] and kept across a mere
+     * status change. Null means no place yet: the first entry, or a new day.
+     */
+    fun onGuideAnchorChanged(anchor: GuideAnchor?) {
+        _state.update { it.copy(guideAnchor = anchor) }
+    }
+
+    /**
      * The channels of the page the television's hour grid is drawing, for the
      * day it is showing (S9-05-03).
      *
@@ -875,6 +889,14 @@ data class LiveState(
      * change and kept across a mere status change.
      */
     val programmeSheet: ProgrammeSheet? = null,
+
+    /**
+     * The cell the television guide was left on, for a return from the player
+     * (S9-06-02, GD-09). Null before the first placement and after a source
+     * change; the grid re-resolves it against the refreshed guide
+     * ([resolveReturnSelection]) rather than trusting it as it was.
+     */
+    val guideAnchor: GuideAnchor? = null,
 ) {
 
     /**

@@ -250,6 +250,7 @@ fun LiveTvScreen(
                 onPlay = onPlay,
                 onProgrammeOpened = viewModel::onProgrammeOpened,
                 onProgrammeClosed = viewModel::onProgrammeClosed,
+                onAnchorChanged = viewModel::onGuideAnchorChanged,
                 returnedChannelId = returnedChannelId,
                 onReturnHandled = onReturnHandled,
             )
@@ -294,6 +295,7 @@ private fun Browsing(
     onPlay: (channelId: String, name: String?) -> Unit,
     onProgrammeOpened: (channelId: String, channelName: String?, programme: EpgProgramme) -> Unit,
     onProgrammeClosed: () -> Unit,
+    onAnchorChanged: (GuideAnchor?) -> Unit,
     returnedChannelId: String?,
     onReturnHandled: () -> Unit,
 ) {
@@ -506,6 +508,7 @@ private fun Browsing(
                             onSelectDay = { selectedDay = it.date },
                             onOpenProgramme = onProgrammeOpened,
                             onDayVisible = onDayVisible,
+                            onAnchorChanged = onAnchorChanged,
                             onSeeChannels = { onSelectView(DirectView.Channels) },
                         )
                     }
