@@ -1,0 +1,11 @@
+# S9-05-04 — GD-03 — changement de source pendant qu'une journée est ouverte
+# Source A = c6463eab... (Banc à froid mobile, 5 chaînes)
+# Source B = eab0282d... (Banc QA secondaire, 30 chaînes)
+# logcat vidé juste avant le passage A -> B.
+
+### Source ids /epg observés APRÈS le passage à B :
+      2 sources/eab0282d
+
+### Attendu : aucune requête portant l'id de A (c6463eab) après le switch.
+### État écran : la journée de A (Chaîne 02, Sun 27) est fermée ; « On now »
+###               est la liste de B (30 chaînes).

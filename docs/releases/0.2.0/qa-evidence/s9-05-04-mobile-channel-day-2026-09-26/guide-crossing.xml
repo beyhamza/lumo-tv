@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tv generator-info-name="lumo-qa">
+  <channel id="bench.1"><display-name lang="fr">Chaîne 01</display-name></channel>
+  <channel id="bench.2"><display-name lang="fr">Chaîne 02</display-name></channel>
+  <channel id="bench.3"><display-name lang="fr">Chaîne 03</display-name></channel>
+  <channel id="bench.4"><display-name lang="fr">Chaîne 04</display-name></channel>
+  <channel id="bench.5"><display-name lang="fr">Chaîne 05</display-name></channel>
+  <programme start="20260926110000 +0000" stop="20260926113000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi -4</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926113000 +0000" stop="20260926120000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi -3</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926120000 +0000" stop="20260926123000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi -2</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926123000 +0000" stop="20260926130000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi -1</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926130000 +0000" stop="20260926133000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +0</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926133000 +0000" stop="20260926140000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +1</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926140000 +0000" stop="20260926143000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +2</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926143000 +0000" stop="20260926150000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +3</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926150000 +0000" stop="20260926153000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +4</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926153000 +0000" stop="20260926160000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +5</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926160000 +0000" stop="20260926163000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +6</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926163000 +0000" stop="20260926170000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +7</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926170000 +0000" stop="20260926173000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +8</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926173000 +0000" stop="20260926180000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +9</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926180000 +0000" stop="20260926183000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +10</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926183000 +0000" stop="20260926190000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +11</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926190000 +0000" stop="20260926193000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +12</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926193000 +0000" stop="20260926200000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +13</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926200000 +0000" stop="20260926203000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +14</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260926203000 +0000" stop="20260926210000 +0000" channel="bench.1">
+    <title lang="fr">Journal de midi +15</title>
+    <desc lang="fr">Édition d'information en continu, titres et météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="20260927130000 +0000" stop="20260927133000 +0000" channel="bench.1">
+    <title lang="fr">Matinale 0</title>
+    <desc lang="fr">Réveil et revue de presse.</desc>
+    <category lang="fr">Magazine</category>
+  </programme>
+  <programme start="20260927133000 +0000" stop="20260927140000 +0000" channel="bench.1">
+    <title lang="fr">Matinale 1</title>
+    <desc lang="fr">Réveil et revue de presse.</desc>
+    <category lang="fr">Magazine</category>
+  </programme>
+  <programme start="20260927140000 +0000" stop="20260927143000 +0000" channel="bench.1">
+    <title lang="fr">Matinale 2</title>
+    <desc lang="fr">Réveil et revue de presse.</desc>
+    <category lang="fr">Magazine</category>
+  </programme>
+  <programme start="20260927143000 +0000" stop="20260927150000 +0000" channel="bench.1">
+    <title lang="fr">Matinale 3</title>
+    <desc lang="fr">Réveil et revue de presse.</desc>
+    <category lang="fr">Magazine</category>
+  </programme>
+  <programme start="20260926233000 +0000" stop="20260927003000 +0000" channel="bench.1">
+    <title lang="fr">Nuit à cheval</title>
+    <desc lang="fr">Programme a cheval sur minuit (23:30 -&gt; 00:30), pour verifier le decoupage de journee.</desc>
+    <category lang="fr">Nuit</category>
+  </programme>
+  <programme start="20260926120000 +0000" stop="20260926130000 +0000" channel="bench.2">
+    <title lang="fr">Documentaire — océans</title>
+    <desc lang="fr">Longue description pour vérifier la troncature et le repli. Longue description pour vérifier la troncature et le repli. Longue description pour vérifier la troncature et le repli. Longue description pour vérifier la troncature et le repli. Longue description pour vérifier la troncature et le repli. Longue description pour vérifier la troncature et le repli. </desc>
+    <category lang="fr">Documentaire</category>
+  </programme>
+  <programme start="20260926130000 +0000" stop="20260926140000 +0000" channel="bench.2">
+    <title lang="fr">Débat — énergie</title>
+    <desc lang="fr">Table ronde.</desc>
+    <category lang="fr">Débat</category>
+  </programme>
+  <programme start="20260926150000 +0000" stop="20260926160000 +0000" channel="bench.2">
+    <title lang="fr">Série — atelier</title>
+    <desc lang="fr">Fiction.</desc>
+    <category lang="fr">Série</category>
+  </programme>
+  <programme start="20260926160000 +0000" stop="20260926170000 +0000" channel="bench.2">
+    <title lang="fr">Série — atelier (suite)</title>
+    <desc lang="fr">Fiction.</desc>
+    <category lang="fr">Série</category>
+  </programme>
+  <programme start="20260926170000 +0000" stop="20260926190000 +0000" channel="bench.2">
+    <title lang="fr">Film du soir</title>
+    <desc lang="fr">Long métrage.</desc>
+    <category lang="fr">Film</category>
+  </programme>
+  <programme start="20260926110000 +0000" stop="20260926114500 +0000" channel="bench.3">
+    <title lang="fr">Chrono 1 (45 min)</title>
+    <desc lang="fr">Durée variable pour la grille TV.</desc>
+    <category lang="fr">Sport</category>
+  </programme>
+  <programme start="20260926114500 +0000" stop="20260926123000 +0000" channel="bench.3">
+    <title lang="fr">Chrono 2 (45 min)</title>
+    <desc lang="fr">Durée variable pour la grille TV.</desc>
+    <category lang="fr">Sport</category>
+  </programme>
+  <programme start="20260926123000 +0000" stop="20260926143000 +0000" channel="bench.3">
+    <title lang="fr">Chrono 3 (120 min)</title>
+    <desc lang="fr">Durée variable pour la grille TV.</desc>
+    <category lang="fr">Sport</category>
+  </programme>
+  <programme start="20260926143000 +0000" stop="20260926151500 +0000" channel="bench.3">
+    <title lang="fr">Chrono 4 (45 min)</title>
+    <desc lang="fr">Durée variable pour la grille TV.</desc>
+    <category lang="fr">Sport</category>
+  </programme>
+  <programme start="20260926151500 +0000" stop="20260926171500 +0000" channel="bench.3">
+    <title lang="fr">Chrono 5 (120 min)</title>
+    <desc lang="fr">Durée variable pour la grille TV.</desc>
+    <category lang="fr">Sport</category>
+  </programme>
+  <programme start="20260926171500 +0000" stop="20260926180000 +0000" channel="bench.3">
+    <title lang="fr">Chrono 6 (45 min)</title>
+    <desc lang="fr">Durée variable pour la grille TV.</desc>
+    <category lang="fr">Sport</category>
+  </programme>
+  <programme start="20260926180000 +0000" stop="20260926200000 +0000" channel="bench.3">
+    <title lang="fr">Chrono 7 (120 min)</title>
+    <desc lang="fr">Durée variable pour la grille TV.</desc>
+    <category lang="fr">Sport</category>
+  </programme>
+  <programme start="20260926124000 +0000" stop="20260926134000 +0000" channel="bench.4">
+    <title lang="fr">Direct — stade</title>
+    <desc lang="fr">Rencontre en direct.</desc>
+    <category lang="fr">Sport</category>
+  </programme>
+  <programme start="20260926134000 +0000" stop="20260926142000 +0000" channel="bench.4">
+    <title lang="fr">Analyse</title>
+    <desc lang="fr">Après-match.</desc>
+    <category lang="fr">Sport</category>
+  </programme>
+  <programme start="20260926142000 +0000" stop="20260926162000 +0000" channel="bench.4">
+    <title lang="fr">Autre direct</title>
+    <desc lang="fr">Suite.</desc>
+    <category lang="fr">Sport</category>
+  </programme>
+  <programme start="20260926123000 +0000" stop="20260926143000 +0000" channel="bench.5">
+    <title lang="fr">Programme orphelin</title>
+    <desc lang="fr">Ne doit rien afficher : pas de tvg-id côté chaîne.</desc>
+    <category lang="fr">Divers</category>
+  </programme>
+</tv>
