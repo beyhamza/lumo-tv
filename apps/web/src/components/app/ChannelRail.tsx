@@ -16,11 +16,19 @@ import { cn } from "@/lib/utils";
  * reaches every card because they are links in a list. The zone-wide rule that
  * these screens work without JavaScript is not suspended for decoration.
  *
- * <h2>An empty rail is no rail</h2>
+ * <h2>An empty rail is no rail — unless it carries doors</h2>
  *
  * Nothing starred yet, or nothing watched yet on this source, renders nothing —
  * no heading, no reserved space (US-017). An empty strip with a heading above it
  * is a promise that something belongs there.
+ *
+ * The Live rail is the exception, and it is deliberate: its two entries
+ * *Toutes les chaînes* and *Guide TV* are the home page's explicit ways into
+ * the catalogue and the guide (S9-04-07), and they must be there **before** any
+ * history exists. A cold account has no recent channel, so the rail draws its
+ * heading and its two doors and no card and no scroller. The Favourites rail
+ * does not opt in: "Voir tous les favoris" over an empty list is a cul-de-sac,
+ * where the Live doors open on real content.
  *
  * <h2>Selecting a card plays</h2>
  *
@@ -47,6 +55,7 @@ export function ChannelRail({
   prominent = false,
   more,
   onAir,
+  keepEntriesWhenEmpty = false,
 }: {
   title: string;
   channels: Channel[];
@@ -75,8 +84,16 @@ export function ChannelRail({
    * order is the reading order, left to right.
    */
   more?: readonly { href: string; label: string }[];
+  /**
+   * Whether the entries above stay when there is no card. Only the Live rail
+   * says yes (S9-04-07): the two doors must exist on a cold account, before any
+   * card can. An opt-in rather than a rule, because the same `more` on the
+   * Favourites rail is exactly the dead end US-017 keeps off the page.
+   */
+  keepEntriesWhenEmpty?: boolean;
 }) {
-  if (channels.length === 0) return null;
+  const parts = railParts(channels.length, more?.length ?? 0, keepEntriesWhenEmpty === true);
+  if (parts === null) return null;
 
   // Whether any card of this rail has a programme to show. Decided once for
   // the rail rather than per card, so that the cards keep one width.
@@ -96,7 +113,7 @@ export function ChannelRail({
 
   return (
     <section className={prominent ? "mt-10" : "mt-6"}>
-      {more && more.length > 0 ? (
+      {parts.entries && more ? (
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           {heading}
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -114,46 +131,70 @@ export function ChannelRail({
       ) : (
         heading
       )}
-      <ul
-        aria-label={title}
-        className={cn("flex gap-3 overflow-x-auto pb-2", prominent ? "mt-3" : "mt-2")}
-      >
-        {channels.map((channel) => {
-          const airing = onAir?.get(channel.id);
-          return (
-            <li key={channel.id} className="shrink-0">
-              <a
-                href={playHref(channel.id)}
-                className={cn(
-                  "border-border hover:bg-secondary/60 flex h-full items-center gap-2 rounded-xl border px-3 py-2",
-                  // Wider once the rail carries programme titles: under a logo
-                  // and a gap, ten rems leave six for text, which cuts most
-                  // titles at their third word. A rail with no guide keeps the
-                  // width it has always had.
-                  guided ? "w-52" : "w-40",
-                )}
-              >
-                <ChannelLogo channel={channel} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{channel.name}</span>
-                  {airing ? (
-                    <>
-                      <span className="text-muted-foreground block truncate text-xs">
-                        {airing.title}
-                      </span>
-                      <span className="text-muted-foreground/80 block truncate text-[11px] tabular-nums">
-                        {airing.until}
-                      </span>
-                    </>
-                  ) : null}
-                </span>
-              </a>
-            </li>
-          );
-        })}
-      </ul>
+      {parts.cards ? (
+        <ul
+          aria-label={title}
+          className={cn("flex gap-3 overflow-x-auto pb-2", prominent ? "mt-3" : "mt-2")}
+        >
+          {channels.map((channel) => {
+            const airing = onAir?.get(channel.id);
+            return (
+              <li key={channel.id} className="shrink-0">
+                <a
+                  href={playHref(channel.id)}
+                  className={cn(
+                    "border-border hover:bg-secondary/60 flex h-full items-center gap-2 rounded-xl border px-3 py-2",
+                    // Wider once the rail carries programme titles: under a logo
+                    // and a gap, ten rems leave six for text, which cuts most
+                    // titles at their third word. A rail with no guide keeps the
+                    // width it has always had.
+                    guided ? "w-52" : "w-40",
+                  )}
+                >
+                  <ChannelLogo channel={channel} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{channel.name}</span>
+                    {airing ? (
+                      <>
+                        <span className="text-muted-foreground block truncate text-xs">
+                          {airing.title}
+                        </span>
+                        <span className="text-muted-foreground/80 block truncate text-[11px] tabular-nums">
+                          {airing.until}
+                        </span>
+                      </>
+                    ) : null}
+                  </span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
     </section>
   );
+}
+
+/**
+ * Which parts of a rail are drawn, and whether it is drawn at all.
+ *
+ * Null is "no rail": no heading, no space, the US-017 rule. A rail with cards
+ * always draws them; its entries ride along when there are any. A rail with no
+ * card draws only when its caller kept the entries on purpose and there are
+ * entries to keep — the Live rail's two doors on a cold account (S9-04-07).
+ *
+ * Extracted from the render so the rule can be tested without a DOM: the web
+ * unit suite runs in Node with no React rendering (vitest.config.mts), and the
+ * one thing worth pinning here is precisely which rail survives being empty.
+ */
+export function railParts(
+  channelCount: number,
+  entryCount: number,
+  keepEntriesWhenEmpty: boolean,
+): { cards: boolean; entries: boolean } | null {
+  if (channelCount > 0) return { cards: true, entries: entryCount > 0 };
+  if (keepEntriesWhenEmpty && entryCount > 0) return { cards: false, entries: true };
+  return null;
 }
 
 /** The two lines a card draws under a channel's name when something is on. */

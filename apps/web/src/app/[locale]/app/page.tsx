@@ -25,6 +25,9 @@ import { sourceCondition } from "@/lib/sources/source-condition";
  * A rail with nothing in it is **not rendered**: no heading, no reserved space.
  * The rails own that rule themselves (`ContinueRail`, `ChannelRail`), so this
  * page lists the three unconditionally and cannot forget it for one of them.
+ * The one deliberate exception is the Live rail: its two explicit doors
+ * (S9-04-07) survive an empty rail, because a source with no history yet is
+ * exactly when they are needed.
  *
  * <h2>Every state is a sentence and a way forward, never three empty rows</h2>
  *
@@ -197,6 +200,9 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
             channels={rails.recents}
             playHref={playHref}
             onAir={onAir}
+            // A cold account has no recent channel, and the two doors must
+            // still be there (S9-04-07): the rail keeps its entries with no card.
+            keepEntriesWhenEmpty
             more={[
               { href: directEntryHref("channels"), label: t("homeAllChannels") },
               { href: directEntryHref("guide"), label: t("homeGuideTv") },
