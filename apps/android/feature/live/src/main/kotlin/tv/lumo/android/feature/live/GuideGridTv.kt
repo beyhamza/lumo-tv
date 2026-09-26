@@ -597,8 +597,12 @@ private fun RowScope.GuideCell(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                val timeLabel = gridCellTimeLabel(
+                    startLabel = formatTimeOfDay(block.startsAt),
+                    endLabel = formatTimeOfDay(block.endsAt),
+                )
                 Text(
-                    text = formatTimeOfDay(block.startsAt) + " – " + formatTimeOfDay(block.endsAt),
+                    text = timeLabel,
                     style = MaterialTheme.typography.labelLarge,
                     color = LumoColors.OnDarkMuted,
                     maxLines = 1,
@@ -608,6 +612,20 @@ private fun RowScope.GuideCell(
         }
     }
 }
+
+/**
+ * The time line of a guide cell, from the two labels a programme has: the
+ * **start alone**, never the range.
+ *
+ * The cell's end is already carried by the next cell, and the full range belongs
+ * to the S9-06 detail sheet (`docs/design/0.2.0/direct-guide.md`). Rendering the
+ * range here is what made a 12-hour clock's `12:00 PM – 12:30 PM` overflow the
+ * ~200 dp content box and lose its tail (#215); the start alone does not depend
+ * on the 12 h / 24 h setting at all. Pure and free of Compose so the shape is a
+ * plain unit test. `endLabel` is taken on purpose: the decision to drop it is
+ * pinned by a test rather than by a missing parameter.
+ */
+internal fun gridCellTimeLabel(startLabel: String, endLabel: String): String = startLabel
 
 /** A day's tab: "Aujourd'hui" for today, a short date otherwise. */
 @Composable
