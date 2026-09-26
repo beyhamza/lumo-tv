@@ -33,6 +33,7 @@ import { explicitView, resolveDirectView, storedDirectView, type DirectView } fr
 import { DAYS_BEFORE, epgDayWindow } from "@/lib/epg/day-window";
 import { clockTime } from "@/lib/epg/format";
 import { epgFreshness } from "@/lib/epg/freshness";
+import { epgNow } from "@/lib/epg/clock";
 import { NOW_WINDOW_MS, loadEpgWindow, type EpgWindow } from "@/lib/epg/load-epg-window";
 import { onAirByChannel } from "@/lib/epg/now";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -354,7 +355,10 @@ export default async function ChannelsPage({
   // is configured with give the Guide's five days (S9-05-01b), so the grid and
   // the "on now" lines never disagree about which day is which.
   const timeZone = await getTimeZone();
-  const now = new Date();
+  // The render's clock: LUMO_NOW when a qualification session pinned it (I-3),
+  // the real clock otherwise. `load-home-rails` reads the same helper, so the
+  // Guide and the home rails cannot disagree about which programme is on.
+  const now = epgNow();
   const days = epgDayWindow(now, timeZone);
   const today = days[DAYS_BEFORE];
   // `?day=` is a calendar day of the window; anything else — absent, a stale
