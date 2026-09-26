@@ -2,6 +2,7 @@ package tv.lumo.android.feature.live
 
 import java.time.Duration
 import java.time.Instant
+import tv.lumo.android.core.data.DirectView
 import tv.lumo.android.core.data.EpgDay
 import tv.lumo.android.core.data.model.EpgProgramme
 
@@ -266,6 +267,97 @@ internal fun guideWindow(
     val start = maxOf(day.from, minOf(reference, latestStart))
     return GuideWindow(start, start.plus(span))
 }
+
+/**
+ * The visible window the grid can afford, from the width its hour columns get.
+ *
+ * The design asks the television grid for **two hours** (`direct-guide.md`
+ * S9-E02), and asks it to "se réorganiser pour rester lisible" at small widths.
+ * So the window is not a constant: it is what fits while keeping a **half-hour
+ * cell** readable — the smallest thing the grid draws, and the one
+ * BUG-S9-05-03-01 caught cut to "…".
+ *
+ * The floor is therefore on the half hour and not the hour. A 200 dp hour (the
+ * earlier, wrong floor) let a 30-minute cell fall to ~100 dp on the 1080p panel
+ * and clip its title and its times. Two hours are shown once two readable
+ * half-hours fit per hour — `4 × [MIN_HALF_HOUR_WIDTH_DP]` of columns — one
+ * below, never zero, so a narrow grid still draws a column instead of nothing,
+ * and never more than the target, so a wide screen does not drift back to the
+ * three-hour window.
+ *
+ * Pure, like the rest of this file: the composable measures the hour columns
+ * once and passes their width, the test passes numbers.
+ */
+internal fun guideVisibleWindow(hourColumnsWidthDp: Int): Duration {
+    val hoursThatFit = hourColumnsWidthDp / (2 * MIN_HALF_HOUR_WIDTH_DP)
+    return when {
+        hoursThatFit >= GUIDE_TARGET_HOURS -> GUIDE_TARGET_WINDOW
+        hoursThatFit < 1 -> GUIDE_MIN_WINDOW
+        else -> Duration.ofHours(hoursThatFit.toLong())
+    }
+}
+
+/**
+ * The width a **half-hour** cell needs to stay readable at three metres: room
+ * for a title and the two times under it once the cell's own padding is out
+ * (BUG-S9-05-03-01).
+ */
+internal const val MIN_HALF_HOUR_WIDTH_DP: Int = 144
+
+/** The window the design asks for: two hours (direct-guide.md S9-E02). */
+internal val GUIDE_TARGET_WINDOW: Duration = Duration.ofHours(2)
+
+/** Never fewer than one hour, so a narrow grid still draws a column. */
+internal val GUIDE_MIN_WINDOW: Duration = Duration.ofHours(1)
+
+private const val GUIDE_TARGET_HOURS: Int = 2
+
+/**
+ * Whether the channel-filter column is drawn beside [view].
+ *
+ * The filter column is part of the **channel list** (S9-04-03) and stays there
+ * — the layout above the grid keeps it. On the Guide it is not composed, and
+ * that is the whole fix of BUG-S9-05-03-01: on the 1080p panel the screen has
+ * 644 dp, and the filter column ([FILTER_COLUMN_WIDTH_DP]) plus its gutter
+ * ([LIVE_COLUMN_GUTTER_DP]) and the name column ([GRID_NAME_WIDTH_DP]) left the
+ * hour columns 212 dp — a 106 dp half-hour, clipped to "Jour…". GD-06 asks for
+ * the day tabs, the exits and the gap cells, not the filter column, so the
+ * Guide drops it; the filter itself stays in state (GD-01), only unshown on the
+ * grid.
+ */
+internal fun guideFiltersColumnVisible(view: DirectView): Boolean =
+    view != DirectView.Guide
+
+/**
+ * The width the Guide's hour columns get, from the width the screen is given.
+ *
+ * A budget, so a test can hold the panel's **real** numbers instead of the
+ * 432 dp a previous test assumed: the screen's own [screenWidthDp], the filter
+ * column and its gutter when it is drawn, and the name column the hours start
+ * after. The result is what decides readability, and the grid does not trust
+ * this arithmetic — it measures its hour Row and calls [guideVisibleWindow] on
+ * the measurement — but keeping the budget pure is what lets a test fail on the
+ * width the panel actually has.
+ */
+internal fun guideHourColumnsWidthDp(
+    screenWidthDp: Int,
+    filtersVisible: Boolean,
+    nameColumnDp: Int = GRID_NAME_WIDTH_DP,
+    filterColumnDp: Int = FILTER_COLUMN_WIDTH_DP,
+    columnGutterDp: Int = LIVE_COLUMN_GUTTER_DP,
+): Int {
+    val filters = if (filtersVisible) filterColumnDp + columnGutterDp else 0
+    return (screenWidthDp - filters - nameColumnDp).coerceAtLeast(0)
+}
+
+/** The guide's channel-name column, `GRID_NAME_WIDTH` in GuideGridTv. */
+internal const val GRID_NAME_WIDTH_DP: Int = 200
+
+/** The channel-list filter column, `FILTER_COLUMN_WIDTH` in LiveTvScreen. */
+internal const val FILTER_COLUMN_WIDTH_DP: Int = 200
+
+/** The gutter between the filter column and the grid, `LumoSpacing.xl`. */
+internal const val LIVE_COLUMN_GUTTER_DP: Int = 32
 
 /**
  * The block of [blocks] that covers [instant], clamped to the ends.

@@ -3,6 +3,7 @@ package tv.lumo.android.feature.live
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,7 +42,9 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,7 +53,6 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -154,16 +157,6 @@ internal fun GuideGridTv(
 
     val initialReference = if (now >= activeDay.from && now < activeDay.to) now else activeDay.from
     var selection by remember(activeDay) { mutableStateOf<GuideSelection?>(null) }
-    var window by remember(activeDay) {
-        mutableStateOf(
-            guideWindow(
-                previous = GuideWindow(activeDay.from, activeDay.from),
-                reference = initialReference,
-                day = activeDay,
-                visible = GUIDE_VISIBLE_WINDOW,
-            ),
-        )
-    }
     val focusRequester = remember { FocusRequester() }
 
     // The page on display, for the day being shown: one grouped read per page,
@@ -212,13 +205,6 @@ internal fun GuideGridTv(
         listState.scrollToItem(row)
         withFrameNanos { }
         focusRequester.requestFocusAfterRecompose()
-    }
-
-    // The window follows the reference only when it must.
-    LaunchedEffect(selection?.reference, activeDay) {
-        val reference = selection?.reference ?: return@LaunchedEffect
-        val next = guideWindow(window, reference, activeDay, GUIDE_VISIBLE_WINDOW)
-        if (next != window) window = next
     }
 
     fun handleKey(event: KeyEvent): Boolean {
@@ -277,8 +263,39 @@ internal fun GuideGridTv(
         if (guideDay.configured == false) return@Column
 
         Box(modifier = Modifier.fillMaxSize().onPreviewKeyEvent(::handleKey)) {
+            // The visible window is what fits when a **half-hour** cell stays
+            // readable, and the width that matters is the one the hour columns
+            // actually get. It is measured on their own Row — not assumed to be
+            // the panel minus the name column — so a change to either can never
+            // silently widen the window past what is drawn (BUG-S9-05-03-01).
+            var hourColumnsWidthDp by remember { mutableStateOf(0) }
+            val visible = remember(hourColumnsWidthDp) {
+                guideVisibleWindow(hourColumnsWidthDp)
+            }
+            var window by remember(activeDay, visible) {
+                mutableStateOf(
+                    guideWindow(
+                        previous = GuideWindow(activeDay.from, activeDay.from),
+                        reference = initialReference,
+                        day = activeDay,
+                        visible = visible,
+                    ),
+                )
+            }
+
+            // The window follows the reference only when it must.
+            LaunchedEffect(selection?.reference, activeDay, visible) {
+                val reference = selection?.reference ?: return@LaunchedEffect
+                val next = guideWindow(window, reference, activeDay, visible)
+                if (next != window) window = next
+            }
+
             Column(modifier = Modifier.fillMaxSize()) {
-                HourHeaderRow(day = activeDay, window = window)
+                HourHeaderRow(
+                    day = activeDay,
+                    window = window,
+                    onHourColumnsWidth = { hourColumnsWidthDp = it },
+                )
 
                 LazyColumn(
                     state = listState,
@@ -309,6 +326,11 @@ internal fun GuideGridTv(
 /**
  * Day tabs, **Maintenant**, and the way out to the channel list (GD-06).
  *
+ * Two lines, since BUG-S9-05-03-02: five day tabs and the two exits sharing one
+ * weighted row left the tabs the width of a single pill, so only one of the five
+ * was ever drawn. The tabs now get the whole width, and the exits sit under
+ * them.
+ *
  * Both exits are in the header rather than at the end of a row: a television
  * should not have to scroll a day to reach "Voir les chaînes", and the tabs are
  * where somebody looks for another day.
@@ -322,15 +344,18 @@ private fun GuideGridHeader(
     onNow: () -> Unit,
     onSeeChannels: () -> Unit,
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = LumoSpacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
     ) {
+        // The tabs on their own line. Scrollable so a day window with more tabs
+        // than a narrow panel can show never makes the last ones unreachable.
         Row(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -343,17 +368,23 @@ private fun GuideGridHeader(
             }
         }
 
-        GuideChip(
-            label = stringResource(R.string.feature_live_guide_now),
-            selected = false,
-            primary = true,
-            onClick = onNow,
-        )
-        GuideChip(
-            label = stringResource(R.string.feature_live_guide_see_channels),
-            selected = false,
-            onClick = onSeeChannels,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            GuideChip(
+                label = stringResource(R.string.feature_live_guide_now),
+                selected = false,
+                primary = true,
+                onClick = onNow,
+            )
+            GuideChip(
+                label = stringResource(R.string.feature_live_guide_see_channels),
+                selected = false,
+                onClick = onSeeChannels,
+            )
+        }
     }
 }
 
@@ -371,7 +402,14 @@ private fun GuideChip(
     Text(
         text = label,
         style = MaterialTheme.typography.labelLarge,
-        color = if (selected || primary) LumoColors.OnDark else LumoColors.OnDarkMuted,
+        color = when {
+            // Selected background is OnDark, so the ink has to come from the
+            // dark side: OnDark on OnDark is white on white and the tab reads as
+            // a blank pill (BUG-S9-05-03-02).
+            selected -> LumoColors.Surface
+            primary -> LumoColors.OnDark
+            else -> LumoColors.OnDarkMuted
+        },
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier
@@ -392,8 +430,13 @@ private fun GuideChip(
 
 /** The hour labels, over the same window and the same fractional columns. */
 @Composable
-private fun HourHeaderRow(day: EpgDay, window: GuideWindow) {
+private fun HourHeaderRow(
+    day: EpgDay,
+    window: GuideWindow,
+    onHourColumnsWidth: (Int) -> Unit,
+) {
     val marks = remember(day) { hourMarks(day.from, day.to) }
+    val density = LocalDensity.current
 
     Row(
         modifier = Modifier
@@ -402,7 +445,14 @@ private fun HourHeaderRow(day: EpgDay, window: GuideWindow) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Spacer(modifier = Modifier.width(GRID_NAME_WIDTH))
-        Row(modifier = Modifier.weight(1f).fillMaxHeight()) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .onSizeChanged { size ->
+                    onHourColumnsWidth(with(density) { size.width.toDp() }.value.toInt())
+                },
+        ) {
             marks.zipWithNext().forEach { (from, to) ->
                 val start = maxOf(from, window.from)
                 val end = minOf(to, window.to)
@@ -547,8 +597,12 @@ private fun RowScope.GuideCell(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                val timeLabel = gridCellTimeLabel(
+                    startLabel = formatTimeOfDay(block.startsAt),
+                    endLabel = formatTimeOfDay(block.endsAt),
+                )
                 Text(
-                    text = formatTimeOfDay(block.startsAt) + " – " + formatTimeOfDay(block.endsAt),
+                    text = timeLabel,
                     style = MaterialTheme.typography.labelLarge,
                     color = LumoColors.OnDarkMuted,
                     maxLines = 1,
@@ -558,6 +612,20 @@ private fun RowScope.GuideCell(
         }
     }
 }
+
+/**
+ * The time line of a guide cell, from the two labels a programme has: the
+ * **start alone**, never the range.
+ *
+ * The cell's end is already carried by the next cell, and the full range belongs
+ * to the S9-06 detail sheet (`docs/design/0.2.0/direct-guide.md`). Rendering the
+ * range here is what made a 12-hour clock's `12:00 PM – 12:30 PM` overflow the
+ * ~200 dp content box and lose its tail (#215); the start alone does not depend
+ * on the 12 h / 24 h setting at all. Pure and free of Compose so the shape is a
+ * plain unit test. `endLabel` is taken on purpose: the decision to drop it is
+ * pinned by a test rather than by a missing parameter.
+ */
+internal fun gridCellTimeLabel(startLabel: String, endLabel: String): String = startLabel
 
 /** A day's tab: "Aujourd'hui" for today, a short date otherwise. */
 @Composable
@@ -589,11 +657,8 @@ private fun GuideWindow.fraction(end: Instant, start: Instant): Float {
 
 // ---- constants -------------------------------------------------------------
 
-/** Hours on screen at once. Three readable columns at three metres. */
-private val GUIDE_VISIBLE_WINDOW: Duration = Duration.ofHours(3)
-
 /** The channel-name column: wide enough for a name, narrow enough to read at 1080p. */
-private val GRID_NAME_WIDTH = 200.dp
+private val GRID_NAME_WIDTH = GRID_NAME_WIDTH_DP.dp
 
 /** The hour-label line. */
 private val GRID_HEADER_HEIGHT = 28.dp

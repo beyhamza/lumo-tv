@@ -6,8 +6,10 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import org.junit.Test
+import tv.lumo.android.core.data.DirectView
 import tv.lumo.android.core.data.EpgDay
 import tv.lumo.android.core.data.model.EpgProgramme
+import tv.lumo.android.core.designsystem.theme.LUMO_TV_OVERSCAN_FRACTION
 
 /**
  * The television guide grid's hour-of-reference rule (US-16, S9-05-03,
@@ -286,6 +288,67 @@ class GuideFocusTest {
 
         assertThat(window.from).isEqualTo(twentyThreeHourDay.from)
         assertThat(window.to).isEqualTo(twentyThreeHourDay.to)
+    }
+
+    // ---- the window the panel affords (BUG-S9-05-03-01) --------------------
+
+    @Test
+    fun `two hours fit from four readable half-hours per hour`() {
+        assertThat(guideVisibleWindow(4 * MIN_HALF_HOUR_WIDTH_DP)).isEqualTo(Duration.ofHours(2))
+        assertThat(guideVisibleWindow(1200)).isEqualTo(Duration.ofHours(2))
+    }
+
+    @Test
+    fun `a panel narrower than two readable hours gets one, never none`() {
+        // One readable pair of half-hours fits, two do not: the grid shows a
+        // single legible hour instead of two cut to "…".
+        assertThat(guideVisibleWindow(4 * MIN_HALF_HOUR_WIDTH_DP - 1))
+            .isEqualTo(Duration.ofHours(1))
+        assertThat(guideVisibleWindow(432)).isEqualTo(Duration.ofHours(1))
+        assertThat(guideVisibleWindow(200)).isEqualTo(Duration.ofHours(1))
+        // Even a grid too narrow for a full hour shows one, not zero: a column
+        // with something in it beats an empty grid.
+        assertThat(guideVisibleWindow(120)).isEqualTo(Duration.ofHours(1))
+        assertThat(guideVisibleWindow(0)).isEqualTo(Duration.ofHours(1))
+    }
+
+    @Test
+    fun `the Guide recovers the hours the channel filter column starves`() {
+        // Emulator Television_1080p: 1920x1080 at density 320, so 960x540 dp.
+        // 5% overscan on each side (LUMO_TV_OVERSCAN_FRACTION) and the 220 dp
+        // navigation rail leave the screen 644 dp — the width the recette
+        // measured on the panel (grid 824 px = 412 dp with the filter column
+        // drawn, which is 412 - 200 name = 212 dp of hours).
+        val panelDp = 960
+        val overscanDp = (panelDp * LUMO_TV_OVERSCAN_FRACTION).toInt()
+        val screenDp = panelDp - 2 * overscanDp - 220
+        assertThat(screenDp).isEqualTo(644)
+
+        // The Guide does not draw the filter column; the channel list does.
+        val filtersVisible = guideFiltersColumnVisible(DirectView.Guide)
+        assertThat(filtersVisible).isFalse()
+
+        val hourAreaDp = guideHourColumnsWidthDp(screenDp, filtersVisible)
+
+        // Two readable half-hours need 2 x MIN_HALF_HOUR_WIDTH_DP = 288 dp.
+        // With the filter column drawn the hours got 212 dp, a 106 dp
+        // half-hour, and the cell clipped its title and times to "Jour…"
+        // (BUG-S9-05-03-01).
+        assertThat(hourAreaDp).isAtLeast(2 * MIN_HALF_HOUR_WIDTH_DP)
+        assertThat(guideVisibleWindow(hourAreaDp)).isEqualTo(Duration.ofHours(1))
+        val halfHours = guideVisibleWindow(hourAreaDp).toMinutes() / 30f
+        assertThat(hourAreaDp / halfHours).isAtLeast(MIN_HALF_HOUR_WIDTH_DP.toFloat())
+    }
+
+    @Test
+    fun `the channel list keeps its filter column`() {
+        // S9-04-03 is intact: only the Guide drops the column.
+        assertThat(guideFiltersColumnVisible(DirectView.Channels)).isTrue()
+    }
+
+    @Test
+    fun `the window never exceeds the two hours the design asks for`() {
+        assertThat(guideVisibleWindow(10_000)).isEqualTo(Duration.ofHours(2))
     }
 
     // ---- blocks ------------------------------------------------------------
