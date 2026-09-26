@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="0" errors="0" skipped="0" time="8.248" timestamp="2026-09-26T16:43:03" hostname="localhost">
+  <testsuite name="tv.lumo.android.feature.live.ProgrammeSheetTvFocusTest" tests="4" failures="0" errors="0" skipped="0" time="6.057" timestamp="2026-09-26T16:43:03" hostname="localhost">
+    <properties>
+      <property name="device" value="Television_1080p(AVD) - 16" />
+      <property name="flavor" value="" />
+      <property name="project" value=":feature:live" />
+    </properties>
+    <testcase name="whenTheFocusSystemClearsTheFocus_thePanelReclaimsIt" classname="tv.lumo.android.feature.live.ProgrammeSheetTvFocusTest" time="2.392" />
+    <testcase name="whenTheActionDisappears_theFocusJoinsClose" classname="tv.lumo.android.feature.live.ProgrammeSheetTvFocusTest" time="0.906" />
+    <testcase name="theFocusCannotEscapeThePanel" classname="tv.lumo.android.feature.live.ProgrammeSheetTvFocusTest" time="1.731" />
+    <testcase name="afterTheActionDisappears_theFocusStaysOnClose" classname="tv.lumo.android.feature.live.ProgrammeSheetTvFocusTest" time="1.028" />
+  </testsuite>
+</testsuites>
