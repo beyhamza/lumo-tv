@@ -1,0 +1,241 @@
+Starting a Gradle Daemon, 1 incompatible and 1 stopped Daemons could not be reused, use --status for details
+Calculating task graph as no cached configuration is available for tasks: :feature:live:testDebugUnitTest
+Type-safe project accessors is an incubating feature.
+> Task :build-logic:convention:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :build-logic:convention:pluginDescriptors
+> Task :build-logic:convention:processResources
+> Task :build-logic:convention:compileKotlin
+> Task :build-logic:convention:compileJava NO-SOURCE
+> Task :build-logic:convention:classes
+> Task :build-logic:convention:jar
+> Task :core:network:preBuild UP-TO-DATE
+> Task :core:database:preBuild UP-TO-DATE
+> Task :core:auth:generateDebugAssets UP-TO-DATE
+> Task :core:auth:preBuild UP-TO-DATE
+> Task :core:data:preBuild UP-TO-DATE
+> Task :core:network:preDebugBuild UP-TO-DATE
+> Task :core:player:preBuild UP-TO-DATE
+> Task :core:common:preBuild UP-TO-DATE
+> Task :core:common:generateDebugAssets UP-TO-DATE
+> Task :core:data:preDebugBuild UP-TO-DATE
+> Task :feature:live:preBuild UP-TO-DATE
+> Task :core:designsystem:preBuild UP-TO-DATE
+> Task :feature:live:preDebugBuild UP-TO-DATE
+> Task :core:designsystem:preDebugBuild UP-TO-DATE
+> Task :core:data:generateDebugAssets UP-TO-DATE
+> Task :core:auth:preDebugBuild UP-TO-DATE
+> Task :core:database:preDebugBuild UP-TO-DATE
+> Task :core:database:generateDebugAssets UP-TO-DATE
+> Task :core:common:preDebugBuild UP-TO-DATE
+> Task :feature:live:generateDebugResources
+> Task :core:data:processDebugNavigationResources
+> Task :core:database:processDebugNavigationResources
+> Task :core:auth:generateDebugResources
+> Task :core:network:generateDebugResources
+> Task :core:data:generateDebugResources
+> Task :core:database:generateDebugResources
+> Task :core:auth:processDebugNavigationResources
+> Task :core:common:generateDebugResources
+> Task :core:common:processDebugNavigationResources
+> Task :core:network:processDebugNavigationResources
+> Task :core:auth:javaPreCompileDebug
+> Task :core:network:javaPreCompileDebug
+> Task :core:common:javaPreCompileDebug
+> Task :core:designsystem:processDebugNavigationResources
+> Task :core:database:javaPreCompileDebug
+> Task :core:network:generateDebugBuildConfig
+> Task :core:player:preDebugBuild UP-TO-DATE
+> Task :core:data:javaPreCompileDebug
+> Task :core:designsystem:generateDebugResources
+> Task :core:designsystem:javaPreCompileDebug
+> Task :feature:live:processDebugNavigationResources
+> Task :core:player:generateDebugResources
+> Task :core:player:processDebugNavigationResources
+> Task :feature:live:javaPreCompileDebug
+> Task :core:player:javaPreCompileDebug
+> Task :core:common:mergeDebugAssets
+> Task :core:data:mergeDebugAssets
+> Task :core:auth:mergeDebugAssets
+> Task :core:network:generateDebugAssets UP-TO-DATE
+> Task :core:player:packageDebugResources
+> Task :core:auth:packageDebugResources
+> Task :core:common:packageDebugResources
+> Task :core:designsystem:generateDebugAssets UP-TO-DATE
+> Task :core:database:packageDebugResources
+> Task :core:database:mergeDebugAssets
+> Task :core:player:generateDebugAssets UP-TO-DATE
+> Task :core:network:mergeDebugAssets
+> Task :feature:live:generateDebugUnitTestAssets UP-TO-DATE
+> Task :feature:live:generateDebugAssets UP-TO-DATE
+> Task :core:network:packageDebugResources
+> Task :core:designsystem:packageDebugResources
+> Task :core:designsystem:mergeDebugAssets
+> Task :feature:live:packageDebugResources
+> Task :feature:live:preDebugUnitTestBuild UP-TO-DATE
+> Task :feature:live:mergeDebugAssets
+> Task :core:player:mergeDebugAssets
+> Task :core:data:packageDebugResources
+> Task :core:auth:mapDebugSourceSetPaths
+> Task :core:common:mapDebugSourceSetPaths
+> Task :core:auth:compileDebugLibraryResources
+> Task :core:common:compileDebugLibraryResources
+> Task :core:data:mapDebugSourceSetPaths
+> Task :core:database:mapDebugSourceSetPaths
+> Task :core:database:compileDebugLibraryResources
+> Task :core:data:compileDebugLibraryResources
+> Task :core:network:mapDebugSourceSetPaths
+> Task :core:designsystem:mapDebugSourceSetPaths
+> Task :core:designsystem:compileDebugLibraryResources
+> Task :core:player:mapDebugSourceSetPaths
+> Task :core:player:compileDebugLibraryResources
+> Task :core:network:compileDebugLibraryResources
+> Task :core:auth:writeDebugAarMetadata
+> Task :core:common:writeDebugAarMetadata
+> Task :core:data:writeDebugAarMetadata
+> Task :core:database:writeDebugAarMetadata
+> Task :core:designsystem:writeDebugAarMetadata
+> Task :core:network:writeDebugAarMetadata
+> Task :feature:live:writeDebugAarMetadata
+> Task :core:player:writeDebugAarMetadata
+> Task :feature:live:mapDebugSourceSetPaths
+> Task :feature:live:compileDebugLibraryResources
+> Task :feature:live:mapDebugUnitTestSourceSetPaths
+> Task :feature:live:mergeDebugUnitTestAssets
+> Task :core:auth:extractDeepLinksDebug
+> Task :feature:live:generateDebugUnitTestResources
+> Task :feature:live:checkDebugUnitTestAarMetadata
+> Task :core:common:extractDeepLinksDebug
+> Task :core:common:processDebugManifest
+> Task :core:auth:processDebugManifest
+> Task :core:data:extractDeepLinksDebug
+> Task :core:database:extractDeepLinksDebug
+> Task :core:data:processDebugManifest
+> Task :core:designsystem:extractDeepLinksDebug
+> Task :core:database:processDebugManifest
+> Task :core:network:extractDeepLinksDebug
+> Task :core:designsystem:processDebugManifest
+> Task :core:player:extractDeepLinksDebug
+> Task :core:network:processDebugManifest
+> Task :feature:live:extractDeepLinksDebug
+> Task :core:player:processDebugManifest
+> Task :feature:live:processDebugManifest
+> Task :feature:live:javaPreCompileDebugUnitTest
+> Task :feature:live:mergeDebugUnitTestManifest
+> Task :feature:live:processDebugUnitTestManifest
+> Task :core:player:parseDebugLocalResources
+> Task :core:auth:parseDebugLocalResources
+> Task :core:common:parseDebugLocalResources
+> Task :core:database:parseDebugLocalResources
+> Task :core:network:parseDebugLocalResources
+> Task :core:designsystem:parseDebugLocalResources
+> Task :feature:live:parseDebugLocalResources
+> Task :core:auth:generateDebugRFile
+> Task :core:database:generateDebugRFile
+> Task :core:data:parseDebugLocalResources
+> Task :core:designsystem:generateDebugRFile
+> Task :core:common:generateDebugRFile
+> Task :core:network:generateDebugRFile
+> Task :core:player:generateDebugRFile
+> Task :core:data:generateDebugRFile
+> Task :feature:live:generateDebugRFile
+> Task :feature:live:mergeDebugUnitTestResources
+
+> Task :core:network:openApiGenerate
+No application/json content media type found in response. Response examples can currently only be generated for application/json media type.
+
+> Task :feature:live:processDebugUnitTestResources
+> Task :feature:live:packageDebugUnitTestForUnitTest
+> Task :feature:live:generateDebugUnitTestConfig
+
+> Task :core:network:openApiGenerate
+################################################################################
+# Thanks for using OpenAPI Generator.                                          #
+# Please consider donation to help us maintain this project 🙏                 #
+# https://opencollective.com/openapi_generator/donate                          #
+#                                                                              #
+# This generator's contributed by Jim Schubert (https://github.com/jimschubert)#
+# Please support his work directly via https://patreon.com/jimschubert 🙏      #
+################################################################################
+Successfully generated code to C:\dev\lumo-tv-qa9060203\apps\android\core\network\build\generated\openapi
+
+> Task :core:network:syncGeneratedApiClient
+> Task :core:common:kspDebugKotlin
+> Task :core:common:compileDebugKotlin
+> Task :core:common:processDebugJavaRes
+> Task :core:common:compileDebugJavaWithJavac
+> Task :core:common:transformDebugClassesWithAsm
+> Task :core:common:bundleLibRuntimeToJarDebug
+> Task :core:common:bundleLibCompileToJarDebug
+> Task :core:auth:kspDebugKotlin
+> Task :core:designsystem:compileDebugKotlin
+> Task :core:designsystem:compileDebugJavaWithJavac NO-SOURCE
+> Task :core:designsystem:processDebugJavaRes
+> Task :core:designsystem:bundleLibRuntimeToJarDebug
+> Task :core:designsystem:bundleLibCompileToJarDebug
+> Task :core:auth:compileDebugKotlin
+> Task :core:auth:processDebugJavaRes
+> Task :core:auth:compileDebugJavaWithJavac
+> Task :core:auth:transformDebugClassesWithAsm
+> Task :core:auth:bundleLibRuntimeToJarDebug
+> Task :core:auth:bundleLibCompileToJarDebug
+> Task :core:player:kspDebugKotlin
+> Task :core:player:compileDebugKotlin
+> Task :core:player:processDebugJavaRes
+> Task :core:player:compileDebugJavaWithJavac
+> Task :core:player:transformDebugClassesWithAsm
+> Task :core:player:bundleLibRuntimeToJarDebug
+> Task :core:player:bundleLibCompileToJarDebug
+> Task :core:database:kspDebugKotlin
+> Task :core:network:kspDebugKotlin
+> Task :core:network:compileDebugKotlin
+> Task :core:network:processDebugJavaRes
+> Task :core:database:compileDebugKotlin
+> Task :core:database:processDebugJavaRes
+> Task :core:network:compileDebugJavaWithJavac
+> Task :core:database:compileDebugJavaWithJavac
+> Task :core:database:copyRoomSchemas NO-SOURCE
+> Task :core:network:transformDebugClassesWithAsm
+> Task :core:network:bundleLibRuntimeToJarDebug
+> Task :core:network:bundleLibCompileToJarDebug
+> Task :core:database:transformDebugClassesWithAsm
+> Task :core:database:bundleLibCompileToJarDebug
+> Task :core:database:bundleLibRuntimeToJarDebug
+> Task :core:data:kspDebugKotlin
+
+> Task :core:data:compileDebugKotlin
+w: file:///C:/dev/lumo-tv-qa9060203/apps/android/core/data/src/main/kotlin/tv/lumo/android/core/data/EpgFreshness.kt:93:17 'when' is exhaustive so 'else' is redundant here.
+w: file:///C:/dev/lumo-tv-qa9060203/apps/android/core/data/src/main/kotlin/tv/lumo/android/core/data/internal/ConnectivityMonitor.kt:63:50 Unnecessary safe call on a non-null receiver of type 'ConnectivityManager'.
+
+> Task :core:data:processDebugJavaRes
+> Task :core:data:compileDebugJavaWithJavac
+> Task :core:data:transformDebugClassesWithAsm
+> Task :core:data:bundleLibCompileToJarDebug
+> Task :core:data:bundleLibRuntimeToJarDebug
+> Task :feature:live:kspDebugKotlin
+> Task :feature:live:compileDebugKotlin
+> Task :feature:live:processDebugJavaRes
+> Task :feature:live:compileDebugJavaWithJavac
+> Task :feature:live:transformDebugClassesWithAsm
+> Task :feature:live:bundleLibCompileToJarDebug
+> Task :feature:live:bundleLibRuntimeToJarDebug
+> Task :feature:live:kspDebugUnitTestKotlin
+> Task :feature:live:compileDebugUnitTestKotlin
+> Task :feature:live:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :feature:live:hiltCollectClassesDebugUnitTest
+> Task :feature:live:processDebugUnitTestJavaRes
+> Task :feature:live:hiltAggregateDepsDebugUnitTest
+> Task :feature:live:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :feature:live:transformDebugUnitTestClassesWithAsm
+> Task :feature:live:testDebugUnitTest
+
+[Incubating] Problems report is available at: file:///C:/dev/lumo-tv-qa9060203/apps/android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.7.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 44s
+173 actionable tasks: 173 executed
+Configuration cache entry stored.

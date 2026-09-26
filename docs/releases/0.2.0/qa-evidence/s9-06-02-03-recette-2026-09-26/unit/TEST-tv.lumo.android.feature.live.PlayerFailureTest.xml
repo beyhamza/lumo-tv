@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tv.lumo.android.feature.live.PlayerFailureTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-09-26T16:54:35.856Z" hostname="PC-HAMZA" time="0.002">
+  <properties/>
+  <testcase name="a channel dropped by the last sync is named as such" classname="tv.lumo.android.feature.live.PlayerFailureTest" time="0.001"/>
+  <testcase name="a stream that cannot be decoded is not offered a retry" classname="tv.lumo.android.feature.live.PlayerFailureTest" time="0.0"/>
+  <testcase name="the four refusals that share a 409 are four different sentences" classname="tv.lumo.android.feature.live.PlayerFailureTest" time="0.001"/>
+  <testcase name="a refused stream carries the user's own ceiling when the panel gave one" classname="tv.lumo.android.feature.live.PlayerFailureTest" time="0.0"/>
+  <testcase name="a code newer than this build degrades rather than crashing" classname="tv.lumo.android.feature.live.PlayerFailureTest" time="0.0"/>
+  <testcase name="no network is its own case, and is the one worth retrying unchanged" classname="tv.lumo.android.feature.live.PlayerFailureTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tv.lumo.android.feature.live.ProgrammeSheetTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-09-26T16:54:35.862Z" hostname="PC-HAMZA" time="0.005">
+  <properties/>
+  <testcase name="a focus on the action joins Fermer when the programme ends" classname="tv.lumo.android.feature.live.ProgrammeSheetTest" time="0.002"/>
+  <testcase name="a programme is current from its start inclusive to its end exclusive" classname="tv.lumo.android.feature.live.ProgrammeSheetTest" time="0.0"/>
+  <testcase name="arrival focuses the action only for a current programme, on the injected clock" classname="tv.lumo.android.feature.live.ProgrammeSheetTest" time="0.0"/>
+  <testcase name="only a current programme offers the watch action" classname="tv.lumo.android.feature.live.ProgrammeSheetTest" time="0.0"/>
+  <testcase name="a future programme that starts gains the action without taking the focus" classname="tv.lumo.android.feature.live.ProgrammeSheetTest" time="0.0"/>
+  <testcase name="changing source closes the sheet" classname="tv.lumo.android.feature.live.ProgrammeSheetTest" time="0.001"/>
+  <testcase name="a mere status change of the same source keeps the sheet" classname="tv.lumo.android.feature.live.ProgrammeSheetTest" time="0.001"/>
+  <testcase name="the action is read again at the end, so a sheet left open cannot play" classname="tv.lumo.android.feature.live.ProgrammeSheetTest" time="0.0"/>
+  <testcase name="the focus stays on the action while the programme is current" classname="tv.lumo.android.feature.live.ProgrammeSheetTest" time="0.0"/>
+  <testcase name="a focus already on Fermer is never moved" classname="tv.lumo.android.feature.live.ProgrammeSheetTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

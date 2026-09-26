@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tv.lumo.android.feature.live.GuideNowListTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-09-26T16:54:35.817Z" hostname="PC-HAMZA" time="0.007">
+  <properties/>
+  <testcase name="the last programme of the window has a current one and no next" classname="tv.lumo.android.feature.live.GuideNowListTest" time="0.002"/>
+  <testcase name="nothing visible asks for nothing" classname="tv.lumo.android.feature.live.GuideNowListTest" time="0.002"/>
+  <testcase name="a channel shows its current programme and the one after it" classname="tv.lumo.android.feature.live.GuideNowListTest" time="0.0"/>
+  <testcase name="a scroll within one page asks for no new page" classname="tv.lumo.android.feature.live.GuideNowListTest" time="0.002"/>
+  <testcase name="the last page is clamped to the channels that exist" classname="tv.lumo.android.feature.live.GuideNowListTest" time="0.0"/>
+  <testcase name="a gap in the guide has a next programme and no current one" classname="tv.lumo.android.feature.live.GuideNowListTest" time="0.0"/>
+  <testcase name="a channel with no guide draws no programme line" classname="tv.lumo.android.feature.live.GuideNowListTest" time="0.001"/>
+  <testcase name="a page of visible cards is one page of channel ids" classname="tv.lumo.android.feature.live.GuideNowListTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

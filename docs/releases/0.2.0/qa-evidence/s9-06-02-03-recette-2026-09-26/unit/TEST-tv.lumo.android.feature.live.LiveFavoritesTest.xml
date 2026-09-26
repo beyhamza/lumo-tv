@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tv.lumo.android.feature.live.LiveFavoritesTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-09-26T16:54:35.847Z" hostname="PC-HAMZA" time="0.001">
+  <properties/>
+  <testcase name="an empty group gets no chip" classname="tv.lumo.android.feature.live.LiveFavoritesTest" time="0.0"/>
+  <testcase name="taking a channel out of one group leaves it starred when it is in another" classname="tv.lumo.android.feature.live.LiveFavoritesTest" time="0.0"/>
+  <testcase name="a settled heart falls back to the cache, which is why the entry is dropped" classname="tv.lumo.android.feature.live.LiveFavoritesTest" time="0.0"/>
+  <testcase name="the groups a channel is in are its own, not the list's" classname="tv.lumo.android.feature.live.LiveFavoritesTest" time="0.0"/>
+  <testcase name="taking a channel out of its only group empties the heart" classname="tv.lumo.android.feature.live.LiveFavoritesTest" time="0.0"/>
+  <testcase name="one filter at a time, so no screen has to decide which of two wins" classname="tv.lumo.android.feature.live.LiveFavoritesTest" time="0.001"/>
+  <testcase name="an optimistic entry wins over what the cache says, in both directions" classname="tv.lumo.android.feature.live.LiveFavoritesTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
