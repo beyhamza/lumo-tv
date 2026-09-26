@@ -640,7 +640,7 @@ private fun GuideWindow.fraction(end: Instant, start: Instant): Float {
 // ---- constants -------------------------------------------------------------
 
 /** The channel-name column: wide enough for a name, narrow enough to read at 1080p. */
-private val GRID_NAME_WIDTH = 200.dp
+private val GRID_NAME_WIDTH = GRID_NAME_WIDTH_DP.dp
 
 /** The hour-label line. */
 private val GRID_HEADER_HEIGHT = 28.dp

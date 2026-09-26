@@ -421,23 +421,30 @@ private fun Browsing(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.xl),
+            horizontalArrangement = Arrangement.spacedBy(LIVE_COLUMN_GUTTER_DP.dp),
         ) {
             // The column is a sibling of the content, so a search that finds
             // nothing takes the grid away and leaves the shelf in place: it stays
             // reachable, which is the whole point of the move (S9-04-03).
-            FiltersColumn(
-                groups = state.groupsWithChannels,
-                categories = state.categories,
-                filter = state.filter,
-                hasRecent = state.recent.isNotEmpty(),
-                onSelectCategory = onSelectCategory,
-                onSelectGroup = onSelectGroup,
-                onSelectRecent = onSelectRecent,
-                modifier = Modifier
-                    .width(FILTER_COLUMN_WIDTH)
-                    .fillMaxHeight(),
-            )
+            //
+            // The Guide does not draw it. The column and its gutter are what
+            // left the hour columns 212 dp on the 1080p panel, a half-hour
+            // clipped to "Jour…" (BUG-S9-05-03-01); the filter itself stays in
+            // state, so leaving the Guide and coming back changes nothing.
+            if (guideFiltersColumnVisible(state.view)) {
+                FiltersColumn(
+                    groups = state.groupsWithChannels,
+                    categories = state.categories,
+                    filter = state.filter,
+                    hasRecent = state.recent.isNotEmpty(),
+                    onSelectCategory = onSelectCategory,
+                    onSelectGroup = onSelectGroup,
+                    onSelectRecent = onSelectRecent,
+                    modifier = Modifier
+                        .width(FILTER_COLUMN_WIDTH)
+                        .fillMaxHeight(),
+                )
+            }
 
             Column(
                 modifier = Modifier.weight(1f),
@@ -884,4 +891,4 @@ private val CARD_HEIGHT = 140.dp
  * the screen's documentation lays out. It is a fixed width and not a share:
  * a category name does not grow with the panel.
  */
-private val FILTER_COLUMN_WIDTH = 200.dp
+private val FILTER_COLUMN_WIDTH = FILTER_COLUMN_WIDTH_DP.dp

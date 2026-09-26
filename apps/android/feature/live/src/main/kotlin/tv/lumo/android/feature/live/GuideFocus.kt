@@ -2,6 +2,7 @@ package tv.lumo.android.feature.live
 
 import java.time.Duration
 import java.time.Instant
+import tv.lumo.android.core.data.DirectView
 import tv.lumo.android.core.data.EpgDay
 import tv.lumo.android.core.data.model.EpgProgramme
 
@@ -310,6 +311,53 @@ internal val GUIDE_TARGET_WINDOW: Duration = Duration.ofHours(2)
 internal val GUIDE_MIN_WINDOW: Duration = Duration.ofHours(1)
 
 private const val GUIDE_TARGET_HOURS: Int = 2
+
+/**
+ * Whether the channel-filter column is drawn beside [view].
+ *
+ * The filter column is part of the **channel list** (S9-04-03) and stays there
+ * — the layout above the grid keeps it. On the Guide it is not composed, and
+ * that is the whole fix of BUG-S9-05-03-01: on the 1080p panel the screen has
+ * 644 dp, and the filter column ([FILTER_COLUMN_WIDTH_DP]) plus its gutter
+ * ([LIVE_COLUMN_GUTTER_DP]) and the name column ([GRID_NAME_WIDTH_DP]) left the
+ * hour columns 212 dp — a 106 dp half-hour, clipped to "Jour…". GD-06 asks for
+ * the day tabs, the exits and the gap cells, not the filter column, so the
+ * Guide drops it; the filter itself stays in state (GD-01), only unshown on the
+ * grid.
+ */
+internal fun guideFiltersColumnVisible(view: DirectView): Boolean =
+    view != DirectView.Guide
+
+/**
+ * The width the Guide's hour columns get, from the width the screen is given.
+ *
+ * A budget, so a test can hold the panel's **real** numbers instead of the
+ * 432 dp a previous test assumed: the screen's own [screenWidthDp], the filter
+ * column and its gutter when it is drawn, and the name column the hours start
+ * after. The result is what decides readability, and the grid does not trust
+ * this arithmetic — it measures its hour Row and calls [guideVisibleWindow] on
+ * the measurement — but keeping the budget pure is what lets a test fail on the
+ * width the panel actually has.
+ */
+internal fun guideHourColumnsWidthDp(
+    screenWidthDp: Int,
+    filtersVisible: Boolean,
+    nameColumnDp: Int = GRID_NAME_WIDTH_DP,
+    filterColumnDp: Int = FILTER_COLUMN_WIDTH_DP,
+    columnGutterDp: Int = LIVE_COLUMN_GUTTER_DP,
+): Int {
+    val filters = if (filtersVisible) filterColumnDp + columnGutterDp else 0
+    return (screenWidthDp - filters - nameColumnDp).coerceAtLeast(0)
+}
+
+/** The guide's channel-name column, `GRID_NAME_WIDTH` in GuideGridTv. */
+internal const val GRID_NAME_WIDTH_DP: Int = 200
+
+/** The channel-list filter column, `FILTER_COLUMN_WIDTH` in LiveTvScreen. */
+internal const val FILTER_COLUMN_WIDTH_DP: Int = 200
+
+/** The gutter between the filter column and the grid, `LumoSpacing.xl`. */
+internal const val LIVE_COLUMN_GUTTER_DP: Int = 32
 
 /**
  * The block of [blocks] that covers [instant], clamped to the ends.
