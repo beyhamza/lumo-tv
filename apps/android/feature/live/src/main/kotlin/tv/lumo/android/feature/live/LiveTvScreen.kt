@@ -1,5 +1,6 @@
 package tv.lumo.android.feature.live
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -247,6 +248,8 @@ fun LiveTvScreen(
                 onSelectRecent = viewModel::onRecentSelected,
                 onFavorite = viewModel::onFavoriteLongPressed,
                 onPlay = onPlay,
+                onProgrammeOpened = viewModel::onProgrammeOpened,
+                onProgrammeClosed = viewModel::onProgrammeClosed,
                 returnedChannelId = returnedChannelId,
                 onReturnHandled = onReturnHandled,
             )
@@ -289,6 +292,8 @@ private fun Browsing(
     onSelectRecent: () -> Unit,
     onFavorite: (Channel) -> Unit,
     onPlay: (channelId: String, name: String?) -> Unit,
+    onProgrammeOpened: (channelId: String, channelName: String?, programme: EpgProgramme) -> Unit,
+    onProgrammeClosed: () -> Unit,
     returnedChannelId: String?,
     onReturnHandled: () -> Unit,
 ) {
@@ -300,6 +305,10 @@ private fun Browsing(
     // The day tab the Guide is on. Null means "today", which Maintenant resets
     // to; the five days themselves are derived from the clock below.
     var selectedDay by remember { mutableStateOf<LocalDate?>(null) }
+
+    // The sheet is a modal panel over the guide: Back closes it before it leaves
+    // the Direct destination, exactly like Fermer (S9-06-01).
+    BackHandler(enabled = state.programmeSheet != null) { onProgrammeClosed() }
 
     // Coming back from the player (US-10): the channel that was being watched,
     // not the head of the grid. A return owns the focus, so the arrival pass
@@ -495,7 +504,7 @@ private fun Browsing(
                                 selectedDay = null
                             },
                             onSelectDay = { selectedDay = it.date },
-                            onPlay = onPlay,
+                            onOpenProgramme = onProgrammeOpened,
                             onDayVisible = onDayVisible,
                             onSeeChannels = { onSelectView(DirectView.Channels) },
                         )
@@ -539,6 +548,26 @@ private fun Browsing(
             text = stringResource(R.string.feature_live_tv_grid_hints),
             style = MaterialTheme.typography.labelLarge,
             color = LumoColors.OnDarkMuted,
+        )
+    }
+
+    // The programme sheet (S9-06-01) rides over the guide as a side panel, so
+    // the grid stays drawn behind it and Fermer restores the selected cell
+    // (S9-06-02 restores the focus itself). `now` is the screen's clock: the
+    // panel asks for it to be read again at the programme's end (GD-07).
+    state.programmeSheet?.let { sheet ->
+        ProgrammeSheetTv(
+            sheet = sheet,
+            now = now,
+            onClose = onProgrammeClosed,
+            onWatch = { open ->
+                // GD-08: the moment is read again at the press, never trusted
+                // from the frame the action was drawn on.
+                if (watchAllowed(open.programme, Instant.now())) {
+                    onPlay(open.channelId, open.channelName)
+                }
+            },
+            onTimePassed = { now = Instant.now() },
         )
     }
 }

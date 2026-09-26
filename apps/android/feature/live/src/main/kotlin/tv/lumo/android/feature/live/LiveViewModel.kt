@@ -259,6 +259,23 @@ class LiveViewModel @Inject constructor(
     }
 
     /**
+     * A programme selected in the Guide opens its detail sheet (S9-06-01).
+     *
+     * The Guide's selection goes through information first; the Chaînes view
+     * keeps its immediate playback (`direct-guide.md`, "Fiche de programme").
+     * The sheet belongs to the source: a source change builds a fresh [LiveState]
+     * in [LiveState.browsing], so it closes without a second rule.
+     */
+    fun onProgrammeOpened(channelId: String, channelName: String?, programme: EpgProgramme) {
+        _state.update {
+            it.copy(programmeSheet = ProgrammeSheet(channelId, channelName, programme))
+        }
+    }
+
+    /** Fermer, Back, or a tap outside the panel: the sheet goes, the guide stays. */
+    fun onProgrammeClosed() = _state.update { it.copy(programmeSheet = null) }
+
+    /**
      * The channels of the page the television's hour grid is drawing, for the
      * day it is showing (S9-05-03).
      *
@@ -851,6 +868,13 @@ data class LiveState(
      * reset with the source, like everything else that belongs to it (GD-03).
      */
     val dayChannel: Channel? = null,
+
+    /**
+     * The programme whose detail sheet is open, or null (S9-06-01). Part of the
+     * source's session, like [dayChannel]: it is dropped by [browsing] on a source
+     * change and kept across a mere status change.
+     */
+    val programmeSheet: ProgrammeSheet? = null,
 ) {
 
     /**
