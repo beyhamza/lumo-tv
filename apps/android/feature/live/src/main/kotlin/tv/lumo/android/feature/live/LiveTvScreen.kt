@@ -463,11 +463,18 @@ private fun Browsing(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
             ) {
-                TvSearchField(
-                    value = state.search,
-                    onValueChange = onSearchChanged,
-                    onClear = onSearchCleared,
-                )
+                // The Guide's initial error is a full screen of its own (GD-10):
+                // the shell gives it the search field's band too, so title, body
+                // and both actions fit (BUG-S9-06-03-01). The rule is read from
+                // LiveState.guideState(), the same one the grid uses, rather than
+                // rewritten here.
+                if (state.view != DirectView.Guide || state.guideState() != GuideState.InitialError) {
+                    TvSearchField(
+                        value = state.search,
+                        onValueChange = onSearchChanged,
+                        onClear = onSearchCleared,
+                    )
+                }
 
                 val nothingFound = state.searchFoundNothing(
                     itemCount = channels.itemCount,

@@ -161,6 +161,22 @@ internal fun guideStateOf(
 }
 
 /**
+ * The Guide's state for a whole screen's state (S9-06-03).
+ *
+ * [guideStateOf] is the rule; this is the one adapter that feeds it the fields
+ * [LiveState] already holds. Both the television grid and the shell that wraps
+ * it (which hides the search field on an initial error) read it, so the rule is
+ * written once rather than re-derived at each call site — the D1 lesson of
+ * S9-06-01.
+ */
+internal fun LiveState.guideState(): GuideState = guideStateOf(
+    configured = guideDay.configured,
+    status = guideDay.status,
+    answered = guideDay.answered,
+    programmes = guideDay.programmes,
+)
+
+/**
  * Whether one channel row is an **answer** the grid may draw, empty included.
  *
  * A row with programmes is drawable as soon as the cache hands them over; a row

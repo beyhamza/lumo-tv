@@ -283,23 +283,25 @@ internal fun GuideGridTv(
         }
     }
 
-    val guideState = guideStateOf(
-        configured = guideDay.configured,
-        status = guideDay.status,
-        answered = guideDay.answered,
-        programmes = guideDay.programmes,
-    )
+    val guideState = state.guideState()
     val guideAge = guideAgeOf(guideDay.status)
 
     Column(modifier = modifier.fillMaxSize()) {
-        GuideGridHeader(
-            days = days,
-            activeDay = activeDay,
-            today = today,
-            onSelectDay = onSelectDay,
-            onNow = onNow,
-            onSeeChannels = onSeeChannels,
-        )
+        // The day-tab header belongs to a guide there is something to navigate.
+        // An initial error is a screen of its own (GD-10): its two rows are what
+        // left the message ~105 dp on the 1080p panel, less than the message's own
+        // padding, so nothing was drawn (BUG-S9-06-03-01). The message carries both
+        // ways out, so the tabs are not needed here.
+        if (guideState != GuideState.InitialError) {
+            GuideGridHeader(
+                days = days,
+                activeDay = activeDay,
+                today = today,
+                onSelectDay = onSelectDay,
+                onNow = onNow,
+                onSeeChannels = onSeeChannels,
+            )
+        }
 
         // No guide configured: nothing to draw (S7-03). The header above stays,
         // so the exits and the day tabs remain reachable.
@@ -331,6 +333,10 @@ internal fun GuideGridTv(
                 onAction = onRetryGuide,
                 secondaryActionLabel = stringResource(R.string.feature_live_guide_see_channels),
                 onSecondaryAction = onSeeChannels,
+                // The leftover band under the header, explicitly: the message is
+                // centred in what is left rather than measured against the whole
+                // column and clipped (BUG-S9-06-03-01).
+                modifier = Modifier.weight(1f),
             )
             return@Column
         }

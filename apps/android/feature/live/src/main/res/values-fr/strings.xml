@@ -63,7 +63,7 @@
 
     <!-- États du Guide (S9-06-03, GD-10/GD-11). -->
     <string name="feature_live_guide_error_title">Guide indisponible</string>
-    <string name="feature_live_guide_error_body">Le guide n\'a pas pu être chargé. Réessayez, ou regardez depuis la liste des chaînes.</string>
+    <string name="feature_live_guide_error_body">Le guide n\'a pas pu être chargé.</string>
     <string name="feature_live_guide_stale_title">Guide non actualisé</string>
     <string name="feature_live_guide_stale_body">La grille ci-dessous est celle déjà présente sur votre appareil.</string>
     <string name="feature_live_guide_retry">Réessayer</string>

@@ -124,7 +124,7 @@
       or unfinished import dates itself.
     -->
     <string name="feature_live_guide_error_title">Guide unavailable</string>
-    <string name="feature_live_guide_error_body">The guide could not be loaded. Try again, or watch from the channel list.</string>
+    <string name="feature_live_guide_error_body">The guide could not be loaded.</string>
     <string name="feature_live_guide_stale_title">Guide not updated</string>
     <string name="feature_live_guide_stale_body">The grid below is what your device already holds.</string>
     <string name="feature_live_guide_retry">Try again</string>

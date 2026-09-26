@@ -4,9 +4,18 @@ plugins {
 
 android {
     namespace = "tv.lumo.android.feature.live"
+
+    defaultConfig {
+        // The instrumented proof for the Guide's states (BUG-S9-06-03-01)
+        // renders the screen in a bare ComponentActivity; the runner comes from
+        // the compose test stack the convention plugin already wires.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
 }
 
 dependencies {
+    androidTestImplementation(libs.androidx.test.ext.junit)
+
     implementation(projects.core.data)
     // The player itself stays behind LumoPlayer; this module composes its surface
     // and never imports androidx.media3 (docs/architecture.md §3).
