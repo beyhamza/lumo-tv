@@ -79,14 +79,19 @@ Mis à jour le 26 septembre 2026. Une case cochée signifie recetté, pas seulem
   dans `main`** (PR #3 et #4). **Décision PO du 26 septembre :
   S9-05-04 reste dans le périmètre de S9-05** — la journée mobile est livrée, la story
   ne part en recette de sortie qu'en recette intersurfaces (S9-07).
-- [ ] S9-06 — **In Progress** : découpage arrêté (01→04) ; réalisation `01 → 02 → 03`
-  en série (Android, `LiveViewModel.kt`) puis `04` (web) après `S9-07-03` I-3, un PR à la
-  fois ; cycle S9 ouvert le 26/09
+- [ ] S9-06 — **In Progress** : découpage arrêté (01→04) ; **S9-06-01 `Done`**
+  (`feat/S9-06-01-programme-sheet` @ `f2d738f`, base `967faeb`, approuvé Tech Lead,
+  Plane `Done`). **S9-06-02 = prochain lot** (branche `feat/S9-06-02-guide-return-anchor`
+  depuis `f2d738f`, **pas** `967faeb` : la série 01→02→03 touche le même
+  `LiveViewModel.kt`), puis `03` (même série), puis `04` (web) **gelée** jusqu'au
+  merge d'`I-3` ; un PR à la fois ; cycle S9 ouvert le 26/09
 - [ ] S9-07 — **Todo** : protocole écrit par QA
-  (`docs/releases/0.2.0/s9-07-recette.md`, `be2a89a`), **non exécuté** ; le harnais
-  S9-07-03 (code) est sélectionné dans le cycle et doit être livré avant toute session
-  de recette ; deux collisions connues : `LiveViewModel.kt` (S9-06-01→03) et
-  `channels/page.tsx` (S9-07-03 I-3 avant S9-06-04)
+  (`docs/releases/0.2.0/s9-07-recette.md`, `be2a89a`), **non exécuté** ; **S9-07-03
+  `Done`** (harnais : `feat/S9-07-03-bench-harness` @ `1afa234`, base `967faeb`,
+  approuvé Tech Lead, Plane `Done`) — I-1→I-5 livrés, preuve live logger
+  `DispatcherServlet` + grep `/v1`, deux fichiers `guide.xml` / `guide-transition.xml` ;
+  corrections de recette reportées dans le rapport le 26/09. Recette `S9-07-01`/`02`
+  reste à exécuter une fois S9-06 clos
 
 ## Cadrage S9-03 — arrêté le 24 septembre 2026
 
