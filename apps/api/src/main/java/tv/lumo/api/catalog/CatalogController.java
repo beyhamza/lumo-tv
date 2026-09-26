@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import tv.lumo.api.auth.CurrentUser;
+import tv.lumo.api.epg.EpgFaultInjection;
 import tv.lumo.api.generated.api.CatalogApi;
 import tv.lumo.api.generated.model.Category;
 import tv.lumo.api.generated.model.CategoryList;
@@ -48,14 +49,17 @@ public class CatalogController implements CatalogApi {
     private final VodPlotSource plots;
     private final SeriesTreeSource trees;
     private final EpgReadService epg;
+    private final EpgFaultInjection epgFault;
 
     public CatalogController(CatalogReadRepository catalog, SourceRepository sources,
-                             VodPlotSource plots, SeriesTreeSource trees, EpgReadService epg) {
+                             VodPlotSource plots, SeriesTreeSource trees, EpgReadService epg,
+                             EpgFaultInjection epgFault) {
         this.catalog = catalog;
         this.sources = sources;
         this.plots = plots;
         this.trees = trees;
         this.epg = epg;
+        this.epgFault = epgFault;
     }
 
     @Override
@@ -351,6 +355,7 @@ public class CatalogController implements CatalogApi {
      */
     @Override
     public ResponseEntity<EpgProgrammeList> getChannelEpg(UUID id, OffsetDateTime from, OffsetDateTime to) {
+        epgFault.check();
         UUID userId = CurrentUser.requireUserId();
         EpgReadService.Window window = EpgReadService.resolveWindow(from, to);
         return ResponseEntity.ok(epg.readChannel(id, userId, window));
@@ -373,6 +378,7 @@ public class CatalogController implements CatalogApi {
     @Override
     public ResponseEntity<EpgGrid> getSourceEpg(UUID id, List<UUID> channelIds,
                                                 OffsetDateTime from, OffsetDateTime to) {
+        epgFault.check();
         UUID userId = CurrentUser.requireUserId();
         List<UUID> batch = EpgReadService.requireBatch(channelIds);
         EpgReadService.Window window = EpgReadService.resolveWindow(from, to);
