@@ -47,6 +47,32 @@ import type { EpgWindow } from "@/lib/epg/load-epg-window";
 /** One hour, in milliseconds. The one granularity a label column needs. */
 export const HOUR_MS = 60 * 60 * 1000;
 
+/**
+ * The width of one hour column, in pixels.
+ *
+ * 128 px is about eight characters of a 30-minute title — enough for a name or
+ * an hour, where a fixed `48rem` across 24 hours left ~32 px per hour and cut
+ * both to a glyph or two (S9-05-02). The day is as wide as its hours need and
+ * the row scrolls; the grid never squeezes the hours back down to fit.
+ */
+export const HOUR_COLUMN_PX = 128;
+
+/** The channel-name column, matching the `w-40` it is drawn with. */
+export const NAME_COLUMN_PX = 160;
+
+/**
+ * The inner grid's width: the name column plus every hour of the day.
+ *
+ * Every hour the day actually has, not a fixed 24: a spring-forward day draws
+ * 23 columns and a fall-back day 25, exactly as {@link hourMarks} steps them,
+ * so a column keeps its width on those days. An hour is never narrower than
+ * {@link HOUR_COLUMN_PX}; the horizontal scroll absorbs the rest.
+ */
+export function gridWidth(from: Date, to: Date): number {
+  const hours = Math.max(1, Math.ceil((to.getTime() - from.getTime()) / HOUR_MS));
+  return NAME_COLUMN_PX + hours * HOUR_COLUMN_PX;
+}
+
 /** The minimum a block needs; `EpgProgramme` satisfies it. */
 type Timed = Pick<EpgProgramme, "id" | "title" | "starts_at" | "ends_at">;
 
@@ -283,9 +309,16 @@ export function EpgGrid({
       </div>
 
       <div className="mt-4 overflow-x-auto">
-        <div className="min-w-[48rem]" role="table" aria-label={labels.grid}>
+        {/* As wide as its hours need, never narrower: at 128 px an hour a
+            30-minute block keeps enough room for a title and its two times
+            (S9-05-02). Narrower viewports scroll this, they do not compress it. */}
+        <div
+          role="table"
+          aria-label={labels.grid}
+          style={{ minWidth: gridWidth(active.from, active.to) }}
+        >
           <div className="flex" role="row">
-            <div className="w-40 shrink-0" role="presentation" />
+            <div className="shrink-0" role="presentation" style={{ width: NAME_COLUMN_PX }} />
             <div className="border-border relative h-6 flex-1 border-b" role="presentation">
               {marks.slice(0, -1).map((mark) => (
                 <span
@@ -301,7 +334,11 @@ export function EpgGrid({
 
           {channels.map((channel) => (
             <div key={channel.id} className="border-border flex border-b" role="row">
-              <div className="w-40 shrink-0 py-2 pr-3" role="rowheader">
+              <div
+                className="shrink-0 py-2 pr-3"
+                role="rowheader"
+                style={{ width: NAME_COLUMN_PX }}
+              >
                 {/* A link, like a channel row of the Chaînes view: choosing a
                     channel plays it. The programme sheet is S9-06. */}
                 <a
