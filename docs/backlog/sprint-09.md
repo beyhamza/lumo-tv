@@ -3,7 +3,7 @@
 Statut : en réalisation. C1 gelé en S9-01, contrat et serveur livrés en S9-02 ; S9-00 et
 S9-03 en recette ; S9-04 livré et **En recette** sur les trois surfaces (01→07 approuvées),
 correctifs des défauts #1 fusionnés ;
-S9-05 **En recette** (01→04 `Done`, journée mobile `f77930e` fusionnée via PR #5 ; correctifs #2/#3/#4 fusionnés) ; S9-06 découpée et prête (Todo) ;
+S9-05 **En recette** (01→04 `Done`, journée mobile `f77930e` fusionnée via PR #5 ; correctifs #2/#3/#4 fusionnés) ;
 S9-06 **en réalisation** (01→04) ; S9-07 passe **`Backlog` → `Todo`** (harnais `S9-07-03` à livrer avant la recette). Aucun item n'est déclaré terminé tant que
 la recette réelle (DoD commune) n'est pas jouée. Taille relative : XL.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
@@ -85,8 +85,8 @@ Mis à jour le 26 septembre 2026. Une case cochée signifie recetté, pas seulem
   **S9-06-02 `Done`** (`feat/S9-06-02-guide-return-anchor`, recette conforme par lecture
   et unitaires). **S9-06-03** : recette rendue (`qa/S9-06-02-03-recette` @ `4e20072`) mais
   un **défaut d'affichage TV** de l'« erreur initiale » du Guide a été confirmé
-  → `BUG-S9-06-03-01` (Todo, priorité haute), correctif attendu sur
-  `feat/S9-06-03-guide-states`. **S9-06-04** (web) : recette rendue
+  → `BUG-S9-06-03-01` (`In Progress`, priorité haute), correctif sur
+  `feat/S9-06-03-guide-states` (commit local `191e140`, non poussé). **S9-06-04** (web) : recette rendue
   (`qa/S9-06-04-web-recette` @ `f0be4fe`) — 01/02/03/04/05 (1<sup>re</sup> moitié)/06/08/09/10/12
   conformes, `QA-06-04-07` **retiré du périmètre web** et `QA-06-04-11` **non applicable
   au web** (natif Android/TV, voir Précision ci-dessous). Un PR à la fois ; cycle S9
@@ -100,13 +100,16 @@ Mis à jour le 26 septembre 2026. Une case cochée signifie recetté, pas seulem
 
 ### Reste à faire (état au 26 septembre 2026)
 
-1. **`BUG-S9-06-03-01` (TV, priorité haute)** — corriger le rendu de l'« erreur
-   initiale » du Guide sur `feat/S9-06-03-guide-states`, puis revue @Tech Lead et
-   re-recette @QA (titre + corps + les deux boutons peints). Le rework @Dev est à
-   **relancer** : la première assignation a expiré (`timed_out`). ⚠️ La copie de
-   travail de cette branche porte un **WIP non commité** (`LumoStateMessage.kt`,
-   `GuideGridTv.kt`, `feature/live/build.gradle.kts`) : ne pas repartir d'un checkout
-   propre qui l'écraserait sans le préserver.
+1. **`BUG-S9-06-03-01` (TV, priorité haute)** — rework @Dev **repris et conservé en
+   commit local `191e140`** sur `feat/S9-06-03-guide-states` (`LumoStateMessage.kt`,
+   `GuideGridTv.kt`, `feature/live/build.gradle.kts`, `GuideInitialErrorTvTest.kt`),
+   **non poussé** (rouge = pas de push). `:feature:live:testDebugUnitTest` = 119/0/0,
+   `lintDebug` exit 0. **Le rouge persiste et n'est plus un simple correctif** : titre
+   (131 px) et corps (139 px) se peignent, mais les **deux boutons sont écrasés à
+   18 px au lieu de 96 px** (zone du Guide ~179 dp vs ~230 dp de contenu).
+   L'invariant produit est tranché (voir « Précision produit » ci-dessous) ; le
+   **mécanisme de layout** reste au @Tech Lead. Puis revue @Tech Lead et re-recette
+   @QA (titre + corps + les deux boutons peints, capture TV 1080p).
 2. **S9-06-04 (web)** — recette close de notre côté ; l'état `Done` de la sous-issue
    reste posé par @Tech Lead. Story `S9-06` à passer quand TV est vert.
 3. **S9-07-01/02** — exécuter la recette intersurfaces, **gated** sur S9-06 vert ; le
@@ -116,8 +119,8 @@ Mis à jour le 26 septembre 2026. Une case cochée signifie recetté, pas seulem
    `feat/S9-06-02-guide-return-anchor`, `feat/S9-06-03-guide-states` (après le
    correctif), `feat/S9-06-04-web-programme-sheet`, `fix/S9-06-01-tv-sheet-focus`, et
    les branches de preuves QA.
-5. **S9-05** reste `In Progress` (journée mobile dans le périmètre) jusqu'à la recette
-   intersurfaces ; les correctifs #2/#3/#4 sont fusionnés.
+5. **S9-05** est `En recette` (01→04 `Done`, journée mobile dans le périmètre) jusqu'à
+   la recette intersurfaces ; les correctifs #2/#3/#4 sont fusionnés.
 
 ## Cadrage S9-03 — arrêté le 24 septembre 2026
 
@@ -186,6 +189,16 @@ appareil** et la fiche est liée à l'URL, jamais à la source active. L'attendu
 (et prouvé, `run4` de la recette) est que la fiche d'un appareil reste celle de **sa**
 source quand un autre appareil change la sienne. Aucun lot ouvert. Portée : S9-06-04 /
 `QA-06-04-11`, design GD-03 (`docs/design/0.2.0/guide-interactions.md`).
+
+**Rendu TV de l'erreur initiale (GD-10) — invariant produit.** L'état d'« erreur
+initiale » du Guide TV est un état **plein écran** : il porte le **titre**, une **courte
+ligne de corps** et **les deux actions `Réessayer` et `Voir les chaînes`**. Ces deux
+actions sont **obligatoires** : on ne sacrifie jamais une action pour tenir la hauteur ;
+si le budget manque, on **raccourcit la copie du corps** (une ligne), on n'allège pas le
+titre jusqu'à l'illisible et on ne retire aucun bouton. Comme il n'y a **pas de grille**
+dans cet état, la recherche, les filtres et les puces de jour de la grille n'en font pas
+partie. Le **mécanisme** de layout (hauteur/centrage/scroll) relève du @Tech Lead ; le
+@Dev ne réinterprète pas ce cadre. Portée : `BUG-S9-06-03-01`, design GD-10.
 
 ## Découpage des tâches — arrêté le 24 septembre 2026
 

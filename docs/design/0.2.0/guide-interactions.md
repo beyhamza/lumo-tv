@@ -123,6 +123,14 @@ date/journée sans données ne justifie aucune promesse de disponibilité.
 > sienne ; le reste de GD-03 (une réponse de l'ancienne source est ignorée) vaut sur
 > les trois surfaces. Décision PO du 26/09 ; voir `docs/backlog/DECISIONS-PRODUIT.md`.
 
+> **Précision du 26 septembre 2026 — GD-10 / rendu TV de l'erreur initiale.** Sur TV,
+> l'état d'« erreur initiale » du Guide est un état **plein écran** : titre, une **courte**
+> ligne de corps, et **les deux actions `Réessayer` et `Voir les chaînes`**. Les deux
+> actions sont **obligatoires** ; pour tenir la hauteur on raccourcit la copie du corps,
+> jamais on ne retire un bouton. Aucune chrome de grille (recherche, filtres, puces de
+> jour) dans cet état, puisqu'il n'y a pas de grille. Le mécanisme de layout est du
+> ressort du @Tech Lead. Portée : `BUG-S9-06-03-01`.
+
 Préparer une horloge contrôlable et des identifiants stables dans les fixtures.
 La validation navigateur d’un schéma ne remplace ni les tests applicatifs ni la
 recette TV réelle. Les dates de test sont relatives ; aucun flux n’est nécessaire
