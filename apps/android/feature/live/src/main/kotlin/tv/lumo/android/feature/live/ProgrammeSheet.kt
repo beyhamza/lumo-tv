@@ -2,6 +2,7 @@ package tv.lumo.android.feature.live
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
@@ -189,6 +191,16 @@ internal fun ProgrammeSheetTv(
     // programme's end) cannot race this state: the pure rule below decides where
     // the focus goes, and one effect moves it (GD-07; review D1/D4).
     var focused by remember(sheet.programme.id) { mutableStateOf(ProgrammeSheetFocus.Close) }
+    // Whether the focus is *actually* inside the panel right now. When the focused
+    // action leaves the composition the focus system clears the focus
+    // (`FocusTargetNode.onDetach`), sometimes a frame after the panel has asked
+    // for Fermer; the guardian effect below reads this to reclaim it, so the
+    // focus can never stay outside the modal (BUG-S9-06-01-01).
+    var focusInside by remember(sheet.programme.id) { mutableStateOf(false) }
+    // Whether the action was offered on the previous moment. It distinguishes the
+    // action *leaving* (GD-07) from a future programme *gaining* it (GD-08), which
+    // must not take the focus.
+    var actionOffered by remember(sheet.programme.id) { mutableStateOf(watchAvailable(moment)) }
 
     SheetEndTick(sheet.programme, now, onTimePassed)
 
@@ -196,12 +208,32 @@ internal fun ProgrammeSheetTv(
     // where the focus goes, it does not re-implement the rule. A focus left on
     // the action when the action disappears joins Fermer; the sheet stays open.
     LaunchedEffect(moment) {
+        val offered = watchAvailable(moment)
+        val actionLeft = actionOffered && !offered
+        actionOffered = offered
         val target = sheetFocusAfter(moment, focused)
-        if (target != focused) {
+        // Seat the focus on Fermer when the action disappears even if the state
+        // already reads Close: the node that just left may have taken the focus
+        // with it, and the browser's focus state is not proof it is still there
+        // (review D4, instrumented by BUG-S9-06-01-01).
+        if (actionLeft || target != focused) {
             withFrameNanos { }
             focused = target
             runCatching { requesterFor(target, watchRequester, closeRequester).requestFocus() }
         }
+    }
+
+    // The focus trap (GD-07, BUG-S9-06-01-01): while the sheet is open the focus
+    // belongs inside the panel. Whatever cleared it — the action leaving the
+    // composition, a node swap, the framework's deferred invalidation — this
+    // re-seats it on the pure rule's target, so it never falls through to the
+    // guide drawn behind the modal.
+    LaunchedEffect(focusInside, moment) {
+        if (focusInside) return@LaunchedEffect
+        val target = sheetFocusAfter(moment, focused)
+        withFrameNanos { }
+        focused = target
+        runCatching { requesterFor(target, watchRequester, closeRequester).requestFocus() }
     }
 
     // Arrival: the action when there is one, Fermer otherwise, for the moment
@@ -222,6 +254,10 @@ internal fun ProgrammeSheetTv(
             modifier = Modifier
                 .fillMaxSize()
                 .background(LumoColors.Ink.copy(alpha = 0.55f))
+                // A scrim is not a focus target: only the panel accepts keys while
+                // the sheet is open (focus trap, BUG-S9-06-01-01). A tap still
+                // closes, exactly like Fermer.
+                .focusProperties { canFocus = false }
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -234,6 +270,10 @@ internal fun ProgrammeSheetTv(
                 .fillMaxHeight()
                 .width(SHEET_PANEL_WIDTH)
                 .background(LumoColors.SurfaceRaised)
+                // The panel is one focus group, and the guardian watches its focus:
+                // a focus that leaves the group is a bug, not a navigation.
+                .onFocusChanged { focusInside = it.hasFocus }
+                .focusGroup()
                 .onPreviewKeyEvent { event -> sheetKey(event, watchAvailable(moment), watchRequester, closeRequester) }
                 .padding(LumoSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
