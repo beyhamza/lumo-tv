@@ -211,6 +211,19 @@ private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit
                         onPlay = actions.onPlayChannel,
                         onAir = state.onAir,
                     )
+
+                    // No card to carry them, but the two ways into Direct are
+                    // still there (S9-04-04): a rail head with its two actions
+                    // and nothing under it, rather than a missing rail.
+                    is HomeSection.LiveEntries -> ChannelRail(
+                        title = stringResource(R.string.feature_home_live),
+                        action = stringResource(R.string.feature_home_all_channels),
+                        onAction = actions.onOpenLiveChannels,
+                        secondaryAction = stringResource(R.string.feature_home_tv_guide),
+                        onSecondaryAction = actions.onOpenLiveGuide,
+                        channels = emptyList(),
+                        onPlay = actions.onPlayChannel,
+                    )
                 }
             }
         }
@@ -222,6 +235,7 @@ private val HomeSection.railKey: String
         is HomeSection.Continue -> "continue"
         is HomeSection.Favorites -> "favorites"
         is HomeSection.Live -> "live"
+        HomeSection.LiveEntries -> "live-entries"
     }
 
 // ---- the source, above the rails -------------------------------------------
@@ -525,6 +539,16 @@ private fun Blank(actions: HomeActions) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // The two explicit ways into Direct (S9-04-04). They are the acceptance
+        // of the cold home: a fresh account reaches the channels and the guide
+        // without depending on a rail that has no card yet — and they come
+        // before the catalogues because watching is what this screen is for.
+        Button(onClick = actions.onOpenLiveChannels, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.feature_home_all_channels))
+        }
+        OutlinedButton(onClick = actions.onOpenLiveGuide, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.feature_home_tv_guide))
+        }
         Button(onClick = actions.onOpenLive, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.feature_home_explore_live))
         }

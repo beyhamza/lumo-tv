@@ -58,6 +58,9 @@ internal fun focusKeysOf(sections: List<HomeSection>): List<String> = sections.f
         is HomeSection.Continue -> section.items.map { it.key }
         is HomeSection.Favorites -> section.channels.map { favoriteKey(it.channel.id) }
         is HomeSection.Live -> section.channels.map { recentKey(it.id) }
+        // No card of its own: the two header actions are not part of the card
+        // focus order (S9-04-04).
+        HomeSection.LiveEntries -> emptyList()
     }
 }
 
