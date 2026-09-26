@@ -264,6 +264,21 @@ private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit
                         cards = cards,
                         onAir = state.onAir,
                     )
+
+                    // No card to carry them, but the two ways into Direct are
+                    // still there (S9-04-04): the rail head with its two action
+                    // tiles and nothing before them.
+                    is HomeSection.LiveEntries -> ChannelRail(
+                        title = stringResource(R.string.feature_home_live),
+                        action = stringResource(R.string.feature_home_all_channels),
+                        onAction = actions.onOpenLiveChannels,
+                        secondaryAction = stringResource(R.string.feature_home_tv_guide),
+                        onSecondaryAction = actions.onOpenLiveGuide,
+                        channels = emptyList(),
+                        keyOf = ::recentKey,
+                        onPlay = actions.onPlayChannel,
+                        cards = cards,
+                    )
                 }
             }
         }
@@ -663,15 +678,33 @@ private fun Blank(actions: HomeActions) {
             style = MaterialTheme.typography.bodyLarge,
             color = LumoColors.OnDarkMuted,
         )
+        // The two explicit ways into Direct (S9-04-04), on their own line and
+        // with the focus on the first: a fresh account must reach the channels
+        // and the guide without depending on a rail that has no card. The three
+        // catalogue doors stay under them, on a second line so five buttons do
+        // not crowd one row.
         Row(
             modifier = Modifier.padding(top = LumoSpacing.sm, start = LumoSpacing.xs),
             horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
         ) {
             LumoTvButton(
-                text = stringResource(R.string.feature_home_explore_live),
-                onClick = actions.onOpenLive,
+                text = stringResource(R.string.feature_home_all_channels),
+                onClick = actions.onOpenLiveChannels,
                 primary = true,
                 focusRequester = first,
+            )
+            LumoTvButton(
+                text = stringResource(R.string.feature_home_tv_guide),
+                onClick = actions.onOpenLiveGuide,
+            )
+        }
+        Row(
+            modifier = Modifier.padding(start = LumoSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+        ) {
+            LumoTvButton(
+                text = stringResource(R.string.feature_home_explore_live),
+                onClick = actions.onOpenLive,
             )
             LumoTvButton(
                 text = stringResource(R.string.feature_home_explore_films),

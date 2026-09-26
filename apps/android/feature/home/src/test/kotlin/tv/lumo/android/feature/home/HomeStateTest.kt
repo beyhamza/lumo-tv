@@ -116,9 +116,28 @@ class HomeStateTest {
     fun `a source with no activity invites to explore, once every read has answered`() {
         val state = browsing()
 
-        assertThat(state.sections).isEmpty()
+        // The invitation, plus the two ways into Direct it now carries
+        // (S9-04-04) — and no content rail.
+        assertThat(state.sections).containsExactly(HomeSection.LiveEntries)
         assertThat(state.blank).isTrue()
         assertThat(state.waiting).isFalse()
+    }
+
+    @Test
+    fun `a fresh account still gets the two ways into Direct`() {
+        val state = browsing()
+
+        assertThat(state.sections.filterIsInstance<HomeSection.LiveEntries>()).hasSize(1)
+        assertThat(state.blank).isTrue()
+    }
+
+    @Test
+    fun `favourites without a watched channel still get the two ways into Direct`() {
+        val state = browsing(favorites = listOf(favorite("channel-a")))
+
+        assertThat(state.sections.filterIsInstance<HomeSection.Favorites>()).hasSize(1)
+        assertThat(state.sections.filterIsInstance<HomeSection.LiveEntries>()).hasSize(1)
+        assertThat(state.blank).isFalse()
     }
 
     @Test

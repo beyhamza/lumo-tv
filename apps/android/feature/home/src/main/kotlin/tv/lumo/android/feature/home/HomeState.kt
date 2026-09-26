@@ -109,6 +109,16 @@ sealed interface HomeSection {
 
     /** Recently watched channels. Comes with "All channels", the way into the catalogue. */
     data class Live(val channels: List<Channel>) : HomeSection
+
+    /**
+     * The two explicit ways into Direct — *Toutes les chaînes* and *Guide TV* —
+     * drawn when the Live rail has no card to carry them (S9-04-04).
+     *
+     * A section of its own rather than an empty [Live]: it holds no channel and
+     * no card, so it must not be counted when the screen decides whether an
+     * account has anything to show ([HomeState.blank]).
+     */
+    data object LiveEntries : HomeSection
 }
 
 /**
@@ -164,7 +174,16 @@ data class HomeState(
             if (starred.isNotEmpty()) add(HomeSection.Favorites(starred))
 
             val watched = recent.channelsOfSource(sourceId).take(HOME_RAIL_SIZE)
-            if (watched.isNotEmpty()) add(HomeSection.Live(watched))
+            if (watched.isNotEmpty()) {
+                add(HomeSection.Live(watched))
+            } else if (settled) {
+                // The two explicit ways into Direct do not depend on the rail
+                // (S9-04-04): a fresh account, or one with favourites and nothing
+                // watched, still gets *Toutes les chaînes* and *Guide TV*. Only
+                // once the reads have settled, so a first frame does not offer
+                // doors over a spinner.
+                add(HomeSection.LiveEntries)
+            }
         }
 
     /** The channel ids of the Live rail, in rail order — what the guide is asked for. */
@@ -180,11 +199,14 @@ data class HomeState(
      * A source, and nothing in any of the three sections.
      *
      * What replaces the rails is an invitation to explore with the three
-     * catalogues one press away — never three empty rows (US-017). False until
+     * catalogues one press away — never three empty rows (US-017) — and the two
+     * explicit ways into Direct, which [sections] carries as [HomeSection.LiveEntries]
+     * and the blank screen draws with the invitation (S9-04-04). False until
      * [settled], so the invitation is a conclusion and not a first frame.
      */
     val blank: Boolean
-        get() = step == HomeStep.Browsing && settled && sections.isEmpty()
+        get() = step == HomeStep.Browsing && settled &&
+            sections.all { it is HomeSection.LiveEntries }
 
     /** Still waiting for the first answers, with nothing to draw in the meantime. */
     val waiting: Boolean
