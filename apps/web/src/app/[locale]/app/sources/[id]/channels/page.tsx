@@ -635,7 +635,13 @@ export default async function ChannelsPage({
           allLabel={t("catalogueAllCategories")}
         />
 
-        <div>
+        {/* `min-w-0` on this grid item: a grid item defaults to `min-width: auto`,
+            which lets the 3 000 px-wide guide table stretch the column instead of
+            being bounded by it — the page then scrolls sideways and takes the day
+            tabs and "Maintenant" with it, so `.overflow-x-auto` never engages.
+            Bounding the item is what makes the grid's own horizontal scroll work
+            (BUG-S9-05-02-01). */}
+        <div className="min-w-0">
           {nowPlaying ? (
             <NextIntlClientProvider
               messages={{ App: messages.App, Errors: messages.Errors }}
