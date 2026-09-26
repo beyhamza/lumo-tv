@@ -105,6 +105,13 @@ date/journée sans données ne justifie aucune promesse de disponibilité.
 | GD-13 | Mobile : fiche → journée → En ce moment | Retour par niveau, position de liste conservée | S9-05/06 |
 | GD-14 | FR/EN, clavier web et D-pad réel | Actions nommées, focus visible, pas de piège ni texte tronqué essentiel | S9-07 |
 
+> **Précision du 26 septembre 2026 — GD-10 web.** La seconde moitié du cas (« erreur
+> **avec** données » : la grille et la position survivent à une lecture `/epg` en
+> échec) est un critère **natif Android/TV**. Le web est rendu côté serveur : il n'a
+> pas de grille précédente à conserver. Sur web, seul l'état d'**erreur initiale
+> distinct** (message neutre, jamais « guide vide », avec Réessayer et Voir les
+> chaînes) est exigé. Décision PO du 26/09 ; voir `docs/backlog/DECISIONS-PRODUIT.md`.
+
 Préparer une horloge contrôlable et des identifiants stables dans les fixtures.
 La validation navigateur d’un schéma ne remplace ni les tests applicatifs ni la
 recette TV réelle. Les dates de test sont relatives ; aucun flux n’est nécessaire
