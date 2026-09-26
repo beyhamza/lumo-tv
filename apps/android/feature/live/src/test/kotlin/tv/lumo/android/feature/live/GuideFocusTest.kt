@@ -291,20 +291,36 @@ class GuideFocusTest {
     // ---- the window the panel affords (BUG-S9-05-03-01) --------------------
 
     @Test
-    fun `two hours fit from four hundred dp of columns`() {
-        assertThat(guideVisibleWindow(400)).isEqualTo(Duration.ofHours(2))
+    fun `two hours fit from four readable half-hours per hour`() {
+        assertThat(guideVisibleWindow(4 * MIN_HALF_HOUR_WIDTH_DP)).isEqualTo(Duration.ofHours(2))
         assertThat(guideVisibleWindow(1200)).isEqualTo(Duration.ofHours(2))
     }
 
     @Test
     fun `a panel narrower than two readable hours gets one, never none`() {
-        // One 200 dp hour fits, two do not: the grid shows a single legible hour
-        // instead of three cut to "…".
-        assertThat(guideVisibleWindow(399)).isEqualTo(Duration.ofHours(1))
+        // One readable pair of half-hours fits, two do not: the grid shows a
+        // single legible hour instead of two cut to "…".
+        assertThat(guideVisibleWindow(4 * MIN_HALF_HOUR_WIDTH_DP - 1))
+            .isEqualTo(Duration.ofHours(1))
+        assertThat(guideVisibleWindow(432)).isEqualTo(Duration.ofHours(1))
         assertThat(guideVisibleWindow(200)).isEqualTo(Duration.ofHours(1))
         // Even a grid too narrow for a full hour shows one, not zero: a column
         // with something in it beats an empty grid.
         assertThat(guideVisibleWindow(120)).isEqualTo(Duration.ofHours(1))
+        assertThat(guideVisibleWindow(0)).isEqualTo(Duration.ofHours(1))
+    }
+
+    @Test
+    fun `a half hour stays readable at the 1080p panel width`() {
+        // The measured hour area at 1080p with the filter column is about
+        // 432 dp. Two hours there gave a 30-minute cell ~108 dp, which clipped
+        // the title and the times to "…" (BUG-S9-05-03-01); one hour leaves
+        // ~216 dp and the cell keeps both.
+        val hourAreaDp = 432f
+        val visible = guideVisibleWindow(hourAreaDp.toInt())
+        val halfHours = visible.toMinutes() / 30f
+
+        assertThat(hourAreaDp / halfHours).isAtLeast(MIN_HALF_HOUR_WIDTH_DP.toFloat())
     }
 
     @Test

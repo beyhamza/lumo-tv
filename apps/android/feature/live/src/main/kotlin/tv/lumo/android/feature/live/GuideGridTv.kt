@@ -7,7 +7,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -43,7 +42,9 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -261,14 +262,15 @@ internal fun GuideGridTv(
         // so the exits and the day tabs remain reachable.
         if (guideDay.configured == false) return@Column
 
-        BoxWithConstraints(modifier = Modifier.fillMaxSize().onPreviewKeyEvent(::handleKey)) {
-            // The one measurement the visible window needs: the columns left
-            // once the channel names have taken their fixed width. A wide panel
-            // affords the two hours the design asks for; a narrow one gets a
-            // single legible hour rather than three cut to "…"
-            // (BUG-S9-05-03-01).
-            val visible = remember(maxWidth) {
-                guideVisibleWindow((maxWidth - GRID_NAME_WIDTH).value.toInt())
+        Box(modifier = Modifier.fillMaxSize().onPreviewKeyEvent(::handleKey)) {
+            // The visible window is what fits when a **half-hour** cell stays
+            // readable, and the width that matters is the one the hour columns
+            // actually get. It is measured on their own Row — not assumed to be
+            // the panel minus the name column — so a change to either can never
+            // silently widen the window past what is drawn (BUG-S9-05-03-01).
+            var hourColumnsWidthDp by remember { mutableStateOf(0) }
+            val visible = remember(hourColumnsWidthDp) {
+                guideVisibleWindow(hourColumnsWidthDp)
             }
             var window by remember(activeDay, visible) {
                 mutableStateOf(
@@ -289,7 +291,11 @@ internal fun GuideGridTv(
             }
 
             Column(modifier = Modifier.fillMaxSize()) {
-                HourHeaderRow(day = activeDay, window = window)
+                HourHeaderRow(
+                    day = activeDay,
+                    window = window,
+                    onHourColumnsWidth = { hourColumnsWidthDp = it },
+                )
 
                 LazyColumn(
                     state = listState,
@@ -396,7 +402,14 @@ private fun GuideChip(
     Text(
         text = label,
         style = MaterialTheme.typography.labelLarge,
-        color = if (selected || primary) LumoColors.OnDark else LumoColors.OnDarkMuted,
+        color = when {
+            // Selected background is OnDark, so the ink has to come from the
+            // dark side: OnDark on OnDark is white on white and the tab reads as
+            // a blank pill (BUG-S9-05-03-02).
+            selected -> LumoColors.Surface
+            primary -> LumoColors.OnDark
+            else -> LumoColors.OnDarkMuted
+        },
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier
@@ -417,8 +430,13 @@ private fun GuideChip(
 
 /** The hour labels, over the same window and the same fractional columns. */
 @Composable
-private fun HourHeaderRow(day: EpgDay, window: GuideWindow) {
+private fun HourHeaderRow(
+    day: EpgDay,
+    window: GuideWindow,
+    onHourColumnsWidth: (Int) -> Unit,
+) {
     val marks = remember(day) { hourMarks(day.from, day.to) }
+    val density = LocalDensity.current
 
     Row(
         modifier = Modifier
@@ -427,7 +445,14 @@ private fun HourHeaderRow(day: EpgDay, window: GuideWindow) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Spacer(modifier = Modifier.width(GRID_NAME_WIDTH))
-        Row(modifier = Modifier.weight(1f).fillMaxHeight()) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .onSizeChanged { size ->
+                    onHourColumnsWidth(with(density) { size.width.toDp() }.value.toInt())
+                },
+        ) {
             marks.zipWithNext().forEach { (from, to) ->
                 val start = maxOf(from, window.from)
                 val end = minOf(to, window.to)

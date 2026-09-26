@@ -272,17 +272,23 @@ internal fun guideWindow(
  *
  * The design asks the television grid for **two hours** (`direct-guide.md`
  * S9-E02), and asks it to "se réorganiser pour rester lisible" at small widths.
- * So the window is not a constant: it is what fits when an hour column is worth
- * at least [MIN_HOUR_WIDTH_DP]. Two hours from 400 dp of columns, one below —
- * never zero, so a narrow grid still draws a column instead of nothing, and
- * never more than the target, so a wide screen does not drift back to the
- * three-hour window that cut every cell to "…" (BUG-S9-05-03-01).
+ * So the window is not a constant: it is what fits while keeping a **half-hour
+ * cell** readable — the smallest thing the grid draws, and the one
+ * BUG-S9-05-03-01 caught cut to "…".
  *
- * Pure, like the rest of this file: the composable measures once and passes the
- * width, the test passes numbers.
+ * The floor is therefore on the half hour and not the hour. A 200 dp hour (the
+ * earlier, wrong floor) let a 30-minute cell fall to ~100 dp on the 1080p panel
+ * and clip its title and its times. Two hours are shown once two readable
+ * half-hours fit per hour — `4 × [MIN_HALF_HOUR_WIDTH_DP]` of columns — one
+ * below, never zero, so a narrow grid still draws a column instead of nothing,
+ * and never more than the target, so a wide screen does not drift back to the
+ * three-hour window.
+ *
+ * Pure, like the rest of this file: the composable measures the hour columns
+ * once and passes their width, the test passes numbers.
  */
 internal fun guideVisibleWindow(hourColumnsWidthDp: Int): Duration {
-    val hoursThatFit = hourColumnsWidthDp / MIN_HOUR_WIDTH_DP
+    val hoursThatFit = hourColumnsWidthDp / (2 * MIN_HALF_HOUR_WIDTH_DP)
     return when {
         hoursThatFit >= GUIDE_TARGET_HOURS -> GUIDE_TARGET_WINDOW
         hoursThatFit < 1 -> GUIDE_MIN_WINDOW
@@ -290,8 +296,12 @@ internal fun guideVisibleWindow(hourColumnsWidthDp: Int): Duration {
     }
 }
 
-/** The width one hour column needs to stay readable at three metres. */
-internal const val MIN_HOUR_WIDTH_DP: Int = 200
+/**
+ * The width a **half-hour** cell needs to stay readable at three metres: room
+ * for a title and the two times under it once the cell's own padding is out
+ * (BUG-S9-05-03-01).
+ */
+internal const val MIN_HALF_HOUR_WIDTH_DP: Int = 144
 
 /** The window the design asks for: two hours (direct-guide.md S9-E02). */
 internal val GUIDE_TARGET_WINDOW: Duration = Duration.ofHours(2)
