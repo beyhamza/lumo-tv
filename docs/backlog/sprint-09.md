@@ -1,8 +1,9 @@
 # Sprint 9 — Direct et guide sur les trois surfaces
 
 Statut : en réalisation. C1 gelé en S9-01, contrat et serveur livrés en S9-02 ; S9-00 et
-S9-03 en recette ; S9-04 livré et **En recette** sur les trois surfaces (01→07 approuvées) ;
-S9-05 **en cours** (01/02/03 `Done`, 04 mobile à faire) ; S9-06 découpée et prête (Todo) ;
+S9-03 en recette ; S9-04 livré et **En recette** sur les trois surfaces (01→07 approuvées),
+correctifs des défauts #1 fusionnés ;
+S9-05 **en cours** (01/02/03 `Done` et correctifs #2/#3/#4 fusionnés, 04 mobile à faire) ; S9-06 découpée et prête (Todo) ;
 S9-07 préparée (protocole écrit, non exécuté). Aucun item n'est déclaré terminé tant que
 la recette réelle (DoD commune) n'est pas jouée. Taille relative : XL.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
@@ -41,7 +42,7 @@ réussi est distinct de la synchronisation du catalogue et de la récupération 
 
 ## Avancement
 
-Mis à jour le 24 septembre 2026. Une case cochée signifie recetté, pas seulement écrit.
+Mis à jour le 26 septembre 2026. Une case cochée signifie recetté, pas seulement écrit.
 
 - [ ] S9-00 — **en recette** : banc XMLTV livré, huit tests, rapport S9-00
 - [x] S9-01 — cadrage D1–D5 validé le 24 septembre ; **gel** des plafonds
@@ -64,12 +65,19 @@ Mis à jour le 24 septembre 2026. Une case cochée signifie recetté, pas seulem
   lecteur), migration Room non testée faute de harnais, fuseau web = `Europe/Paris`
 - [ ] S9-04 — **En recette** : 01→07 approuvées par le Tech Lead (Android mobile/TV,
   web), story passée `En recette` dans Plane le 24 septembre 2026 ; reste la recette
-  réelle à l'écran (S9-07)
+  réelle à l'écran (S9-07) ; accès à froid corrigés, revus et **fusionnés dans `main`** —
+  `BUG-S9-04-07-01` (#213, web) et `BUG-S9-04-04-01` (#217, Android mobile **et** TV),
+  PR #1 et #2
 - [ ] S9-05 — **En cours** : découpage arrêté (01→04) ; **S9-05-01 `Done`** (fonctions
   pures de jour et de fuseau, Android `555e03d` + Web `ab97891`), **S9-05-02 `Done`**
   (grille web, `910dd13`) et **S9-05-03 `Done`** (grille TV + D-pad, `b1cf500`), les trois
   approuvées par le Tech Lead et mergées dans `main` (`7173b5b`) ; reste **S9-05-04**
-  (mobile), pas encore commencée
+  (mobile), pas encore commencée ; `BUG-S9-05-02-01` (grille web) et
+  `BUG-S9-05-03-01` / `BUG-S9-05-03-02` (grille et en-tête TV) corrigés et **fusionnés
+  dans `main`** (PR #3 et #4). **Décision PO du 26 septembre :
+  S9-05-04 reste dans le périmètre de S9-05** — la story ne part pas en recette de
+  sortie sans la journée mobile. Les merges sont faits ; le Tech Lead brieffe @Dev sur
+  S9-05-04 sur le nouveau `main`
 - [ ] S9-06 — **Todo / prête** : découpage arrêté (01→04), non commencée
 - [ ] S9-07 — **Backlog** : protocole écrit par QA
   (`docs/releases/0.2.0/s9-07-recette.md`, `be2a89a`), **non exécuté** ; le harnais
@@ -110,6 +118,19 @@ La grille horaire, la journée mobile et la fiche restent à S9-05 et S9-06 ; la
 | Mémoire de session | Recherche et filtre partagés entre Chaînes et Guide, conservés à travers fiche et lecteur ; **changement de source** : recherche et filtre effacés, réponses en cours ignorées, vue mémorisée de la nouvelle source ; entre sessions, seule la vue est retenue | — |
 | Accueil | *Toutes les chaînes* ouvre Chaînes sans recherche et sur Toutes ; **Guide TV** (nouveau lien, US-020) ouvre Guide sur Maintenant, sans recherche et sur Toutes ; ces accès priment sur la vue mémorisée | — |
 | TV | La bande de puces devient une colonne ; carte de focus à mettre à jour ; « Repris » **conservé** en attendant un arbitrage (non cité dans les filtres validés, mais livré en S4-08) | Focus de la grille horaire : S9-05 |
+
+### Précision produit — 26 septembre 2026 (recette S9-07)
+
+L'accès « Toutes les chaînes » / « Guide TV » de l'accueil est un **accès aux
+catalogues disponibles** : il doit exister dès que la source est prête, **sans
+historique ni favori**. C'est déjà écrit dans les
+décisions 0.2.0 (« Source prête sans activité : accès aux catalogues disponibles et
+invitation à explorer », et ligne « Direct sur l'accueil ») et dans US-017. La règle
+« section vide : la masquer sans espace réservé » vaut pour le **rail**, pas pour les
+deux accès : un rail de récentes vide ne peut donc pas emporter « Toutes les chaînes »
+et « Guide TV ». Vaut pour **S9-04-07 (web)** et **S9-04-04 (Android mobile et TV)** ;
+les deux liens s'affichent indépendamment du contenu du rail. Le *comment* (liens
+conservés dans un rail vide, ou ligne d'accès autonome) est technique : @Tech Lead.
 
 ## Découpage des tâches — arrêté le 24 septembre 2026
 
@@ -155,6 +176,39 @@ d'exécution. Réalisation : **@Dev**. Recette : **@QA**.
 | S9-07-01 | Toutes | Protocole de recette GD-01→GD-14 : horloge contrôlable, fixtures à identifiants stables, preuve réseau du volume borné (une requête groupée par écran, jamais par carte), démonstration d'un changement de programme | `docs/releases/0.2.0/s9-07-recette.md` | Chaque cas GD a son pas-à-pas et son résultat attendu ; la preuve réseau montre un nombre d'appels indépendant du nombre de cartes |
 | S9-07-02 | TV + web | Recette FR/EN, clavier web, D-pad réel, fuseau et changement d'heure (GD-12/14) | même rapport, annexe | Actions nommées, focus visible, aucun piège ni texte tronqué essentiel |
 | S9-07-03 | Banc + infra | **Harnais de recette** : XMLTV de banc à dates relatives et variantes (I-1, I-2), horloge `LUMO_NOW` du web SSR (I-3), compteur d'appels `/epg` et panne partielle (I-4, I-5), playlist/XMLTV 100 chaînes (I-6) | `apps/web/e2e/bench/**`, helper `apps/web/src/lib/epg/clock.ts` (remplace le `new Date()` du rendu serveur de `channels/page.tsx` **et** de `src/lib/home/load-home-rails.ts`), profil Compose de banc | Le protocole S9-07 s'exécute sans attente réelle ni source réelle : horloge surchargée, 100 chaînes, échec EPG injectable ; la preuve réseau compte les appels API |
+
+### Défauts confirmés par la recette du 26 septembre 2026 (web + TV, EPG réel)
+
+Le dépôt reste la référence ; les correctifs de densité (#2/#3/#4) relèvent de
+l'arbitrage technique du @Tech Lead.
+
+| # | Constat recette | Story | Décision produit |
+|---|---|---|---|
+| 1 | Accueil à froid (source prête, aucun historique) : « Toutes les chaînes » / « Guide TV » absents, rail masqué car vide | S9-04-07 (web) ; S9-04-04 (Android mobile **et** TV) | **Bug** confirmé sur les **trois** surfaces : les deux accès sont exigés à froid (voir Précision ci-dessus). Corrigé (`BUG-S9-04-07-01`, `BUG-S9-04-04-01`), recettes QA conformes, **fusionné dans `main`** (PR #1 et #2). |
+| 2 | Grille web à 1440 px : heures qui se chevauchent, titres tronqués à 1–3 caractères | S9-05-02 | **Défaut** de lisibilité ; à corriger avec la densité. |
+| 3 | Grille TV 1080p : cellules ~50 px, titre **et** horaire réduits à « … » (donnée correcte au log) | S9-05-03 | **Défaut** confirmé : la donnée est là, le rendu ne l'affiche pas. Correction obligatoire avant recette de sortie. |
+| 4 | En-tête de jour TV : une seule pastille visible (Row ~192 px), les 5 jours écrasés par « Now » / « See channels » | S9-05-03 | **Défaut** confirmé, même sujet de densité que #3. |
+| 5 | Compteur « 1 chaînes » (pluriel) | hors S9 | Cosmétique, hors sprint ; à corriger au prochain passage i18n, pas d'issue dédiée. |
+
+**Suivi Plane (26 septembre 2026, PO).** Les défauts #1 à #4 sont créés comme work
+items `Backlog` rattachés à leur story, avec constat, critère d'acceptation et renvoi
+au rapport QA. Ne pas les recréer : un item existant se met à jour par `PATCH`.
+
+| Item Plane | Défaut | Story parente |
+|---|---|---|
+| `BUG-S9-04-07-01` (#213) | #1 accueil à froid (web) | S9-04 |
+| `BUG-S9-04-04-01` (#217) | #1 accueil à froid (Android mobile et TV) | S9-04 |
+| `BUG-S9-05-02-01` (#214) | #2 grille web 1440 px | S9-05 |
+| `BUG-S9-05-03-01` (#215) | #3 cellules TV en « … » | S9-05 |
+| `BUG-S9-05-03-02` (#216) | #4 en-tête de jour TV | S9-05 |
+
+Les cinq sont **corrigés, revus par le Tech Lead et fusionnés dans `main`** (test rouge
+d'abord, recettes QA conformes, preuves sous `docs/releases/0.2.0/qa-evidence/` :
+`PASS-2026-09-26.md`, `RECETTE-214-215-216-2026-09-26.md`, `qa215`, `qa215b`, `qa217`) et
+passés `Done` dans Plane. Les 4 branches ont été mergées par Hamza via les PR #1 à #4 ;
+`main` = `1d70871`. Rôle : le PO crée les items, le Tech Lead découpe et brieffe @Dev,
+le QA recette ; le PO ne briefe pas @Dev directement. Le test qui échoue accompagne le
+correctif.
 
 > S9-04 est déjà `In Progress` ; S9-05 et S9-06 passent en `Todo` (découpées et prêtes) ;
 > S9-07 reste en `Backlog` : la recette dépend de S9-04 à S9-06, et son harnais
