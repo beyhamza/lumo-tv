@@ -44,6 +44,20 @@ test.describe.serial("grille du guide — densité 1440 px (BUG-S9-05-02-01)", (
     await expect(page).toHaveURL(/view=guide/);
 
     // 3. La grille est là, et c'est bien elle qui porte le défilement.
+    //
+    // **Le banc ne sert pas encore d'XMLTV** (S9-07-03) : une source
+    // enregistrée depuis `playlist.m3u` n'a pas de guide configuré, et
+    // `EpgGrid` ne dessine alors rien (S7-03). L'assertion de mise en page n'a
+    // de sens qu'avec la grille ; tant que le harnais n'est pas là, le test est
+    // **sauté avec sa raison** plutôt que vert sur une page vide, et il
+    // s'activera de lui-même le jour où le banc servira un guide.
+    const grid = page.getByRole("table", { name: fr.App.directGuideTitle });
+    if ((await grid.count()) === 0) {
+      test.skip(true, "le banc ne sert pas d'XMLTV (S9-07-03) : la grille ne se dessine pas");
+    }
+    await expect(grid).toBeVisible();
+
+    // Le conteneur de défilement est celui de la grille.
     const scroller = page.locator(".overflow-x-auto").first();
     await expect(scroller).toBeVisible();
 
