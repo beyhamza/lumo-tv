@@ -117,4 +117,11 @@
     <string name="feature_live_guide_see_channels">See channels</string>
     <string name="feature_live_guide_today">Today</string>
     <string name="feature_live_guide_empty_slot">No programme available in this slot</string>
+
+    <!--
+      The programme detail sheet (S9-06-01): the one action a current programme
+      offers, and the way out every moment has.
+    -->
+    <string name="feature_live_programme_watch">Watch live</string>
+    <string name="feature_live_programme_close">Close</string>
 </resources>

@@ -132,7 +132,7 @@ internal fun GuideGridTv(
     now: Instant,
     onNow: () -> Unit,
     onSelectDay: (EpgDay) -> Unit,
-    onPlay: (channelId: String, name: String?) -> Unit,
+    onOpenProgramme: (channelId: String, channelName: String?, programme: EpgProgramme) -> Unit,
     onDayVisible: (EpgDay, List<String>) -> Unit,
     onSeeChannels: () -> Unit,
     modifier: Modifier = Modifier,
@@ -314,7 +314,7 @@ internal fun GuideGridTv(
                             window = window,
                             selected = selection?.takeIf { it.rowIndex == index },
                             focusRequester = focusRequester,
-                            onPlay = onPlay,
+                            onOpenProgramme = onOpenProgramme,
                         )
                     }
                 }
@@ -492,7 +492,7 @@ private fun GuideChannelRow(
     window: GuideWindow,
     selected: GuideSelection?,
     focusRequester: FocusRequester,
-    onPlay: (channelId: String, name: String?) -> Unit,
+    onOpenProgramme: (channelId: String, channelName: String?, programme: EpgProgramme) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -525,7 +525,7 @@ private fun GuideChannelRow(
                         weight = weight,
                         selected = selected?.blockIndex == index,
                         focusRequester = focusRequester,
-                        onPlay = onPlay,
+                        onOpen = { programme -> channel?.let { onOpenProgramme(it.id, it.name, programme) } },
                         modifier = Modifier.fillMaxHeight(),
                     )
                 }
@@ -550,7 +550,7 @@ private fun RowScope.GuideCell(
     weight: Float,
     selected: Boolean,
     focusRequester: FocusRequester,
-    onPlay: (channelId: String, name: String?) -> Unit,
+    onOpen: (EpgProgramme) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -571,7 +571,7 @@ private fun RowScope.GuideCell(
                     Modifier
                         .focusRequester(focusRequester)
                         .clickable(interactionSource = interactionSource, indication = null) {
-                            onPlay(block.programme.id, block.title)
+                            onOpen(block.programme)
                         }
                 } else {
                     Modifier.focusRequester(focusRequester).focusable()

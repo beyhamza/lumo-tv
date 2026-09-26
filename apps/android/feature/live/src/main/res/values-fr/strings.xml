@@ -60,4 +60,8 @@
     <string name="feature_live_guide_see_channels">Voir les chaînes</string>
     <string name="feature_live_guide_today">Aujourd\'hui</string>
     <string name="feature_live_guide_empty_slot">Aucun programme disponible sur ce créneau</string>
+
+    <!-- Fiche de programme (S9-06-01). -->
+    <string name="feature_live_programme_watch">Regarder en direct</string>
+    <string name="feature_live_programme_close">Fermer</string>
 </resources>

@@ -140,6 +140,12 @@ fun LiveMobileScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val channels = viewModel.channels.collectAsLazyPagingItems()
 
+    // The clock the programme sheet reads (S9-06-01). Kept here, beside the
+    // overlays, so the panel can be re-read when a programme ends without the
+    // Guide's own `now` being involved. Reset whenever a new programme opens.
+    var sheetNow by remember { mutableStateOf(Instant.now()) }
+    LaunchedEffect(state.programmeSheet?.programme?.id) { sheetNow = Instant.now() }
+
     // The home screen's explicit entry (S9-04-04): "All channels" or "TV guide"
     // asked for a view, and it beats what the source remembers for this open. The
     // request is consumed here so that the effect can fire again for the *same*
@@ -231,7 +237,7 @@ fun LiveMobileScreen(
                     viewModel.onChannelDayClosed()
                     selectedDay = null
                 }
-                BackHandler(enabled = state.guideChannelDayOpen()) { closeChannelDay() }
+                BackHandler(enabled = state.guideChannelDayOpen() && state.programmeSheet == null) { closeChannelDay() }
 
                 DirectHeader(
                     state = state,
@@ -325,6 +331,7 @@ fun LiveMobileScreen(
                                 selectedDay = null
                             },
                             onDayVisible = viewModel::onDayVisible,
+                            onOpenProgramme = viewModel::onProgrammeOpened,
                             listState = dayList,
                         )
                     }
@@ -413,6 +420,26 @@ fun LiveMobileScreen(
             },
             onCreate = { name -> viewModel.onGroupCreated(channel.id, name) },
             onDismiss = viewModel::onGroupSheetDismissed,
+        )
+    }
+
+    // The programme sheet (S9-06-01): a panel from the bottom, over the guide.
+    // Back closes it first (the handler below), then the guide's own level.
+    BackHandler(enabled = state.programmeSheet != null) { viewModel.onProgrammeClosed() }
+    state.programmeSheet?.let { sheet ->
+        ProgrammeSheetMobile(
+            sheet = sheet,
+            now = sheetNow,
+            onClose = viewModel::onProgrammeClosed,
+            onWatch = { open ->
+                // GD-08: the moment is read again at the press.
+                if (watchAllowed(open.programme, Instant.now())) {
+                    // GD-09: playback leaves the sheet behind (review D2).
+                    viewModel.onProgrammeClosed()
+                    onPlay(open.channelId, open.channelName)
+                }
+            },
+            onTimePassed = { sheetNow = Instant.now() },
         )
     }
 }

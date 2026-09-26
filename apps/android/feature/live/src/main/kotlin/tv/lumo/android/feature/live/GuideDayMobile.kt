@@ -143,6 +143,7 @@ internal fun GuideDayMobile(
     onSelectDay: (EpgDay) -> Unit,
     onNow: () -> Unit,
     onDayVisible: (EpgDay, List<String>) -> Unit,
+    onOpenProgramme: (channelId: String, channelName: String?, programme: EpgProgramme) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
 ) {
@@ -193,7 +194,13 @@ internal fun GuideDayMobile(
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
         ) {
             itemsIndexed(blocks, key = { _, block -> block.key }) { index, block ->
-                DayRow(block = block, current = index == nowIndex && !block.isEmpty)
+                DayRow(
+                    block = block,
+                    current = index == nowIndex && !block.isEmpty,
+                    onOpen = block.programme?.let { programme ->
+                        { onOpenProgramme(channel.id, channel.name, programme) }
+                    },
+                )
             }
         }
     }
@@ -295,11 +302,12 @@ private fun DayTabs(
  * product allows and is never marked "current".
  */
 @Composable
-private fun DayRow(block: GuideBlock, current: Boolean) {
+private fun DayRow(block: GuideBlock, current: Boolean, onOpen: (() -> Unit)?) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(LumoShapes.medium)
+            .clickable(enabled = onOpen != null) { onOpen?.invoke() }
             .background(
                 if (current) {
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
