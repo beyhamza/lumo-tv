@@ -203,8 +203,10 @@ au rapport QA. Ne pas les recréer : un item existant se met à jour par `PATCH`
 | `BUG-S9-05-03-02` (#216) | #4 en-tête de jour TV | S9-05 |
 
 Les cinq sont **corrigés, revus par le Tech Lead et fusionnés dans `main`** (test rouge
-d'abord, recettes QA conformes, preuves sous `docs/releases/0.2.0/qa-evidence/` :
-`PASS-2026-09-26.md`, `RECETTE-214-215-216-2026-09-26.md`, `qa215`, `qa215b`, `qa217`) et
+d'abord, recettes QA conformes, preuves versionnées sous `docs/releases/0.2.0/qa-evidence/`,
+un dossier par passage (`s9-07-passe-initiale-main-2026-09-26/`, `s9-04-07-cold-home-web-2026-09-26/`,
+`s9-04-04-cold-home-android-2026-09-26/`, `s9-04-04-217-cold-entries-android-2026-09-26/`,
+`s9-05-02-214-grid-web-2026-09-26/`, `s9-05-03-215-216-grid-tv-2026-09-26/`) et
 passés `Done` dans Plane. Les 4 branches ont été mergées par Hamza via les PR #1 à #4 ;
 `main` = `1d70871`. Rôle : le PO crée les items, le Tech Lead découpe et brieffe @Dev,
 le QA recette ; le PO ne briefe pas @Dev directement. Le test qui échoue accompagne le
