@@ -120,7 +120,36 @@ avant la recette, puis transformés en cas ci-dessus si besoin.
   `LaunchedEffect` qui veut rendre le focus à Fermer. Cas QA-06-01-04 à jouer en
   instrumenté pour lever le doute.
 
-## 6. Preuve attendue à la fin
+## 6. Cas S9-06-04 (web) — équivalents GD-07/08/10/11
+
+Mêmes critères produits, côté web (`ProgrammeSheet.tsx`, page
+`sources/[id]/channels`, `messages/{fr,en}.json`). Le plan est écrit maintenant ;
+**l'exécution attend le harnais** : sans **I-3** (horloge `LUMO_NOW` surchargeable,
+lue par les deux appelants serveur de `loadEpgWindow`) aucun cas temporel web
+n'est jugeable — le verdict serait « vert par déduction » ; sans **I-2**
+(variantes XMLTV) et **I-5** (panne injectable), GD-10/11 web ne sont pas
+reproductibles.
+
+| # | Critère | Précondition | Pas-à-pas | Attendu | Dépend |
+|---|---|---|---|---|---|
+| QA-06-04-01 | Fiche web, programme **courant** | Guide web ouvert sur un programme courant | Sélectionner la case | Fiche ouverte (titre, horaires, description si présente) + **Regarder en direct** visible et lançant la lecture | — |
+| QA-06-04-02 | Fiche web, programme **à venir** | Case future | Sélectionner | Informations seules, **aucun** bouton de lecture, Fermer présent | — |
+| QA-06-04-03 | Fiche web, programme **passé** | Case passée | Sélectionner | Informations seules, aucun replay, aucun bouton de lecture | — |
+| QA-06-04-04 | **GD-07 web** fin du programme | Fiche ouverte sous horloge contrôlée (`LUMO_NOW`) | Faire franchir `endsAt` | L'action disparaît **sans rechargement**, la fiche reste ouverte, le titre ne change pas ; aucun focus/clavier résiduel sur un bouton retiré | I-3 |
+| QA-06-04-05 | **GD-08 web** futur devenu courant | Fiche ouverte sur un futur, horloge contrôlée | Franchir `startsAt` | L'action apparaît sans rechargement et **sans voler le focus** ; l'activation relit l'instant (une fiche laissée après `endsAt` ne lance pas) | I-3 |
+| QA-06-04-06 | **GD-10 web** erreur initiale | Aucune donnée EPG, première requête en échec (panne injectée) | Ouvrir le Guide web | Message d'erreur **distinct** d'un guide vide, **Réessayer** ; aucun « guide vide » annoncé | I-5 |
+| QA-06-04-07 | **GD-10 web** erreur avec données | Grille web déjà rendue | Provoquer un échec de rafraîchissement | La grille et la position **survivent**, message distinct de l'erreur initiale, Réessayer | I-5 |
+| QA-06-04-08 | **GD-11 web** guide partiel | Variante `guide-partial.xml` | Ouvrir le Guide web | Créneaux sans données → « Aucun programme disponible sur ce créneau » ; aucun texte inventé | I-2 |
+| QA-06-04-09 | Description/logos absents (web) | Programme sans logo ni description | Ouvrir la fiche web | Nom lisible sans logo (repère neutre), pas de zone vide pour la description | — |
+| QA-06-04-10 | FR/EN (web) | Locale FR puis EN | Ouvrir fiche et états | Libellés traduits, **aucune clé brute** affichée | — |
+| QA-06-04-11 | Changement de source, fiche ouverte (web) | Fiche web ouverte | Changer la source active (autre appareil) | La fiche se ferme ; aucune fiche de l'ancienne source ne survit (GD-03) | — |
+| QA-06-04-12 | Clavier / accessibilité (web) | Fiche ouverte | Tab / Échap / Entrée | Échap ferme la fiche **d'abord** ; focus visible et non piégé sur un élément retiré ; navigation clavier complète | — |
+
+Preuve attendue : un passage `docs/releases/0.2.0/qa-evidence/s9-06-04-web-<date>/`
++ sa ligne dans `INDEX.md`, **une fois I-1/I-2/I-3/I-5 livrés** (le plan
+lui-même n'est pas un passage : il reste hors de `qa-evidence/`).
+
+## 7. Preuve attendue à la fin
 
 - Un cas par critère GD + les cas limites, chacun avec son verdict
   ✅ / ❌ (étapes de reproduction) / ⚠️.
