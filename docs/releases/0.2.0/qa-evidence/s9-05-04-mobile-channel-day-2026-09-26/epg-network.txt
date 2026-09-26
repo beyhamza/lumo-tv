@@ -1,0 +1,23 @@
+# S9-05-04 — critère réseau — source A « Banc à froid mobile » @ f77930e — Pixel_10 (API 37)
+#
+# Méthode  : adb logcat -s LumoHttp:D (OkHttp BASIC, NetworkModule.debugLogging).
+#            Chaque appel produit 1 ligne requête + 1 ligne réponse ; le compteur
+#            porte sur les lignes « GET .../epg? » (donc les appels réels).
+# Canal     : Chaîne 02, journée jamais ouverte avant ce test (volume neuf).
+# Compteur  : CUMULATIF depuis le vidage du log ; on lit le DELTA entre étapes.
+
+étape                                   compteur cumulé   delta
+entrée journée (Chaîne 02, aujourd'hui)      1               +1   <- 1 requête groupée (chaîne, jour)
+scroll dans la journée (3 swipes)            1               +0   <- 0 au scroll
+changement de jour (Sam 26 -> Dim 27)        2               +1   <- 1 par changement de jour
+
+# Deux seules requêtes distinctes sur tout le parcours :
+#   1 x channelIds=<Chaîne02> from=2026-09-26T00:00Z to=2026-09-27T00:00Z
+#   1 x channelIds=<Chaîne02> from=2026-09-27T00:00Z to=2026-09-28T00:00Z
+# Une 2e entrée dans une journée DÉJÀ détenue coûte 0 requête (constaté : après
+# retour puis réouverture de la même journée, compteur inchangé) — le volume est
+# borné par (chaîne, jour), pas par le nombre de programmes affichés.
+
+--- lignes GET /epg brutes (dédupliquées) ---
+GET http://127.0.0.1:8080/v1/sources/c6463eab-6ed3-4412-bd53-39e88093fbd2/epg?channelIds=77310794-ce7b-43fd-af41-a49d42b1832f&from=2026-09-26T00:00Z&to=2026-09-27T00:00Z
+GET http://127.0.0.1:8080/v1/sources/c6463eab-6ed3-4412-bd53-39e88093fbd2/epg?channelIds=77310794-ce7b-43fd-af41-a49d42b1832f&from=2026-09-27T00:00Z&to=2026-09-28T00:00Z
