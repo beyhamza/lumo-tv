@@ -3,8 +3,8 @@
 Statut : en réalisation. C1 gelé en S9-01, contrat et serveur livrés en S9-02 ; S9-00 et
 S9-03 en recette ; S9-04 livré et **En recette** sur les trois surfaces (01→07 approuvées),
 correctifs des défauts #1 fusionnés ;
-S9-05 **en cours** (01/02/03 `Done` et correctifs #2/#3/#4 fusionnés, 04 mobile à faire) ; S9-06 découpée et prête (Todo) ;
-S9-07 préparée (protocole écrit, non exécuté). Aucun item n'est déclaré terminé tant que
+S9-05 **En recette** (01→04 `Done`, journée mobile `f77930e` fusionnée via PR #5 ; correctifs #2/#3/#4 fusionnés) ; S9-06 découpée et prête (Todo) ;
+S9-06 **en réalisation** (01→04) ; S9-07 passe **`Backlog` → `Todo`** (harnais `S9-07-03` à livrer avant la recette). Aucun item n'est déclaré terminé tant que
 la recette réelle (DoD commune) n'est pas jouée. Taille relative : XL.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
@@ -68,20 +68,25 @@ Mis à jour le 26 septembre 2026. Une case cochée signifie recetté, pas seulem
   réelle à l'écran (S9-07) ; accès à froid corrigés, revus et **fusionnés dans `main`** —
   `BUG-S9-04-07-01` (#213, web) et `BUG-S9-04-04-01` (#217, Android mobile **et** TV),
   PR #1 et #2
-- [ ] S9-05 — **En cours** : découpage arrêté (01→04) ; **S9-05-01 `Done`** (fonctions
-  pures de jour et de fuseau, Android `555e03d` + Web `ab97891`), **S9-05-02 `Done`**
-  (grille web, `910dd13`) et **S9-05-03 `Done`** (grille TV + D-pad, `b1cf500`), les trois
-  approuvées par le Tech Lead et mergées dans `main` (`7173b5b`) ; reste **S9-05-04**
-  (mobile), pas encore commencée ; `BUG-S9-05-02-01` (grille web) et
+- [ ] S9-05 — **En recette** : découpage (01→04) **terminé**. **S9-05-01 `Done`**
+  (fonctions pures de jour et de fuseau, Android `555e03d` + Web `ab97891`),
+  **S9-05-02 `Done`** (grille web, `910dd13`), **S9-05-03 `Done`** (grille TV + D-pad,
+  `b1cf500`) et **S9-05-04 `Done`** (journée d'une chaîne mobile, `f77930e`, recette QA
+  7/7 versionnée sous `docs/releases/0.2.0/qa-evidence/s9-05-04-mobile-channel-day-2026-09-26/`),
+  les quatre approuvées par le Tech Lead et **fusionnées dans `main`** (`7173b5b` puis
+  PR #5 `c1496fc`) ; `BUG-S9-05-02-01` (grille web) et
   `BUG-S9-05-03-01` / `BUG-S9-05-03-02` (grille et en-tête TV) corrigés et **fusionnés
   dans `main`** (PR #3 et #4). **Décision PO du 26 septembre :
-  S9-05-04 reste dans le périmètre de S9-05** — la story ne part pas en recette de
-  sortie sans la journée mobile. Les merges sont faits ; le Tech Lead brieffe @Dev sur
-  S9-05-04 sur le nouveau `main`
-- [ ] S9-06 — **Todo / prête** : découpage arrêté (01→04), non commencée
-- [ ] S9-07 — **Backlog** : protocole écrit par QA
+  S9-05-04 reste dans le périmètre de S9-05** — la journée mobile est livrée, la story
+  ne part en recette de sortie qu'en recette intersurfaces (S9-07).
+- [ ] S9-06 — **In Progress** : découpage arrêté (01→04) ; réalisation `01 → 02 → 03`
+  en série (Android, `LiveViewModel.kt`) puis `04` (web) après `S9-07-03` I-3, un PR à la
+  fois ; cycle S9 ouvert le 26/09
+- [ ] S9-07 — **Todo** : protocole écrit par QA
   (`docs/releases/0.2.0/s9-07-recette.md`, `be2a89a`), **non exécuté** ; le harnais
-  S9-07-03 doit être livré avant toute session de recette
+  S9-07-03 (code) est sélectionné dans le cycle et doit être livré avant toute session
+  de recette ; deux collisions connues : `LiveViewModel.kt` (S9-06-01→03) et
+  `channels/page.tsx` (S9-07-03 I-3 avant S9-06-04)
 
 ## Cadrage S9-03 — arrêté le 24 septembre 2026
 
@@ -215,6 +220,14 @@ correctif.
 > S9-04 est déjà `In Progress` ; S9-05 et S9-06 passent en `Todo` (découpées et prêtes) ;
 > S9-07 reste en `Backlog` : la recette dépend de S9-04 à S9-06, et son harnais
 > S9-07-03 doit être livré avant toute session de recette.
+>
+> **Cycle S9 rouvert le 26 septembre 2026 — objectif validé par Hamza :** « Fermer S9 :
+> livrer S9-06 puis exécuter S9-07, pour clôturer le Guide sur les trois surfaces
+> (`US-16`, complément EPG d'`US-020`). » **S9-07 passe `Backlog` → `Todo`** : son lot
+> `S9-07-03` est du **code** (harnais de banc), sélectionnable et livrable maintenant ;
+> la recette `S9-07-01`/`02` reste bloquée jusqu'à sa livraison. Le harnais part **en
+> parallèle** de S9-06, pas après. S10 (recherche unifiée) n'est pas ouvert ce cycle.
+> Décision PO du 26/09 (voir `DECISIONS-PRODUIT.md`).
 >
 > **Revue (convention arrêtée le 24 septembre 2026).** Plane n'a pas d'état
 > `In Review` : états réels `Backlog`, `Todo`, `In Progress`, `En recette`,
