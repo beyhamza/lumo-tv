@@ -3,9 +3,11 @@ package tv.lumo.android.feature.live
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,7 +52,6 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -154,16 +156,6 @@ internal fun GuideGridTv(
 
     val initialReference = if (now >= activeDay.from && now < activeDay.to) now else activeDay.from
     var selection by remember(activeDay) { mutableStateOf<GuideSelection?>(null) }
-    var window by remember(activeDay) {
-        mutableStateOf(
-            guideWindow(
-                previous = GuideWindow(activeDay.from, activeDay.from),
-                reference = initialReference,
-                day = activeDay,
-                visible = GUIDE_VISIBLE_WINDOW,
-            ),
-        )
-    }
     val focusRequester = remember { FocusRequester() }
 
     // The page on display, for the day being shown: one grouped read per page,
@@ -212,13 +204,6 @@ internal fun GuideGridTv(
         listState.scrollToItem(row)
         withFrameNanos { }
         focusRequester.requestFocusAfterRecompose()
-    }
-
-    // The window follows the reference only when it must.
-    LaunchedEffect(selection?.reference, activeDay) {
-        val reference = selection?.reference ?: return@LaunchedEffect
-        val next = guideWindow(window, reference, activeDay, GUIDE_VISIBLE_WINDOW)
-        if (next != window) window = next
     }
 
     fun handleKey(event: KeyEvent): Boolean {
@@ -276,7 +261,33 @@ internal fun GuideGridTv(
         // so the exits and the day tabs remain reachable.
         if (guideDay.configured == false) return@Column
 
-        Box(modifier = Modifier.fillMaxSize().onPreviewKeyEvent(::handleKey)) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().onPreviewKeyEvent(::handleKey)) {
+            // The one measurement the visible window needs: the columns left
+            // once the channel names have taken their fixed width. A wide panel
+            // affords the two hours the design asks for; a narrow one gets a
+            // single legible hour rather than three cut to "…"
+            // (BUG-S9-05-03-01).
+            val visible = remember(maxWidth) {
+                guideVisibleWindow((maxWidth - GRID_NAME_WIDTH).value.toInt())
+            }
+            var window by remember(activeDay, visible) {
+                mutableStateOf(
+                    guideWindow(
+                        previous = GuideWindow(activeDay.from, activeDay.from),
+                        reference = initialReference,
+                        day = activeDay,
+                        visible = visible,
+                    ),
+                )
+            }
+
+            // The window follows the reference only when it must.
+            LaunchedEffect(selection?.reference, activeDay, visible) {
+                val reference = selection?.reference ?: return@LaunchedEffect
+                val next = guideWindow(window, reference, activeDay, visible)
+                if (next != window) window = next
+            }
+
             Column(modifier = Modifier.fillMaxSize()) {
                 HourHeaderRow(day = activeDay, window = window)
 
@@ -309,6 +320,11 @@ internal fun GuideGridTv(
 /**
  * Day tabs, **Maintenant**, and the way out to the channel list (GD-06).
  *
+ * Two lines, since BUG-S9-05-03-02: five day tabs and the two exits sharing one
+ * weighted row left the tabs the width of a single pill, so only one of the five
+ * was ever drawn. The tabs now get the whole width, and the exits sit under
+ * them.
+ *
  * Both exits are in the header rather than at the end of a row: a television
  * should not have to scroll a day to reach "Voir les chaînes", and the tabs are
  * where somebody looks for another day.
@@ -322,15 +338,18 @@ private fun GuideGridHeader(
     onNow: () -> Unit,
     onSeeChannels: () -> Unit,
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = LumoSpacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
     ) {
+        // The tabs on their own line. Scrollable so a day window with more tabs
+        // than a narrow panel can show never makes the last ones unreachable.
         Row(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -343,17 +362,23 @@ private fun GuideGridHeader(
             }
         }
 
-        GuideChip(
-            label = stringResource(R.string.feature_live_guide_now),
-            selected = false,
-            primary = true,
-            onClick = onNow,
-        )
-        GuideChip(
-            label = stringResource(R.string.feature_live_guide_see_channels),
-            selected = false,
-            onClick = onSeeChannels,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            GuideChip(
+                label = stringResource(R.string.feature_live_guide_now),
+                selected = false,
+                primary = true,
+                onClick = onNow,
+            )
+            GuideChip(
+                label = stringResource(R.string.feature_live_guide_see_channels),
+                selected = false,
+                onClick = onSeeChannels,
+            )
+        }
     }
 }
 
@@ -588,9 +613,6 @@ private fun GuideWindow.fraction(end: Instant, start: Instant): Float {
 }
 
 // ---- constants -------------------------------------------------------------
-
-/** Hours on screen at once. Three readable columns at three metres. */
-private val GUIDE_VISIBLE_WINDOW: Duration = Duration.ofHours(3)
 
 /** The channel-name column: wide enough for a name, narrow enough to read at 1080p. */
 private val GRID_NAME_WIDTH = 200.dp

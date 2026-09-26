@@ -288,6 +288,30 @@ class GuideFocusTest {
         assertThat(window.to).isEqualTo(twentyThreeHourDay.to)
     }
 
+    // ---- the window the panel affords (BUG-S9-05-03-01) --------------------
+
+    @Test
+    fun `two hours fit from four hundred dp of columns`() {
+        assertThat(guideVisibleWindow(400)).isEqualTo(Duration.ofHours(2))
+        assertThat(guideVisibleWindow(1200)).isEqualTo(Duration.ofHours(2))
+    }
+
+    @Test
+    fun `a panel narrower than two readable hours gets one, never none`() {
+        // One 200 dp hour fits, two do not: the grid shows a single legible hour
+        // instead of three cut to "…".
+        assertThat(guideVisibleWindow(399)).isEqualTo(Duration.ofHours(1))
+        assertThat(guideVisibleWindow(200)).isEqualTo(Duration.ofHours(1))
+        // Even a grid too narrow for a full hour shows one, not zero: a column
+        // with something in it beats an empty grid.
+        assertThat(guideVisibleWindow(120)).isEqualTo(Duration.ofHours(1))
+    }
+
+    @Test
+    fun `the window never exceeds the two hours the design asks for`() {
+        assertThat(guideVisibleWindow(10_000)).isEqualTo(Duration.ofHours(2))
+    }
+
     // ---- blocks ------------------------------------------------------------
 
     @Test

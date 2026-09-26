@@ -268,6 +268,40 @@ internal fun guideWindow(
 }
 
 /**
+ * The visible window the grid can afford, from the width its hour columns get.
+ *
+ * The design asks the television grid for **two hours** (`direct-guide.md`
+ * S9-E02), and asks it to "se réorganiser pour rester lisible" at small widths.
+ * So the window is not a constant: it is what fits when an hour column is worth
+ * at least [MIN_HOUR_WIDTH_DP]. Two hours from 400 dp of columns, one below —
+ * never zero, so a narrow grid still draws a column instead of nothing, and
+ * never more than the target, so a wide screen does not drift back to the
+ * three-hour window that cut every cell to "…" (BUG-S9-05-03-01).
+ *
+ * Pure, like the rest of this file: the composable measures once and passes the
+ * width, the test passes numbers.
+ */
+internal fun guideVisibleWindow(hourColumnsWidthDp: Int): Duration {
+    val hoursThatFit = hourColumnsWidthDp / MIN_HOUR_WIDTH_DP
+    return when {
+        hoursThatFit >= GUIDE_TARGET_HOURS -> GUIDE_TARGET_WINDOW
+        hoursThatFit < 1 -> GUIDE_MIN_WINDOW
+        else -> Duration.ofHours(hoursThatFit.toLong())
+    }
+}
+
+/** The width one hour column needs to stay readable at three metres. */
+internal const val MIN_HOUR_WIDTH_DP: Int = 200
+
+/** The window the design asks for: two hours (direct-guide.md S9-E02). */
+internal val GUIDE_TARGET_WINDOW: Duration = Duration.ofHours(2)
+
+/** Never fewer than one hour, so a narrow grid still draws a column. */
+internal val GUIDE_MIN_WINDOW: Duration = Duration.ofHours(1)
+
+private const val GUIDE_TARGET_HOURS: Int = 2
+
+/**
  * The block of [blocks] that covers [instant], clamped to the ends.
  *
  * The blocks tile the day, so a reference inside it always finds one. The clamp
