@@ -174,6 +174,12 @@ d'exécution. Réalisation : **@Dev**. Recette : **@QA**.
 | S9-06-03 | Android | États : absence, ancienneté, erreur avec données ; Réessayer et Voir les chaînes ; message neutre | `feature/live/…/GuideStates.kt` (nouveau), `LiveViewModel.kt` (réutilise `EpgFreshness` de S9-03) | GD-10/11 : erreur initiale et erreur avec données distinctes ; les données et le focus survivent ; aucune cause inventée pour une liste vide |
 | S9-06-04 | Web | Fiche programme et états équivalents | `src/components/app/ProgrammeSheet.tsx` (nouveau), page `sources/[id]/channels`, `src/messages/{fr,en}.json` | GD-07/08/10/11 web ; description et logo absents restent neutres |
 
+**Plan de test QA S9-06** : [s9-06-plan-de-test.md](../releases/0.2.0/s9-06-plan-de-test.md)
+(26 septembre 2026, **non exécuté**). Un cas par critère GD-07/08/09/10/11/13 +
+cas limites. L'exécution attend le harnais : Android pur/instrumenté est jouable
+dès maintenant, le web temps-dépendant est bloqué par S9-07-03 I-3 et les états
+GD-10/11 par I-1/I-2/I-5. Ouvertures relevées sur la branche S9-06-01 : voir §5.
+
 ### S9-07 — recette (préparée pour le QA, exécutée après S9-04 à S9-06)
 
 | ID | Plateforme | Contenu | Livrable | Critère d'acceptation |
