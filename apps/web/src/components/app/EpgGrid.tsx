@@ -27,15 +27,16 @@ import type { EpgWindow } from "@/lib/epg/load-epg-window";
  * are printed through {@link clockTime}, with the zone the caller passes in —
  * never `new Date()` resolved from the machine.
  *
- * <h2>An empty slot says so, an absent guide says nothing</h2>
+ * <h2>An empty slot says so, and a failure is named as a failure (S9-06, GD-10/11)</h2>
  *
  * A row with a gap, or with no programme at all over this day, renders
  * **« Aucun programme disponible sur ce créneau »** — the one sentence the
  * product puts in a slot, and it invents no cause for the emptiness
- * (guide-interactions.md). The whole grid renders **nothing** when the read
- * did not answer, or when the source has no guide configured at all
- * (`epg.configured` false): that absence is explained by S9-06, not turned
- * here into a wall of "nothing available" (S7-03).
+ * (guide-interactions.md). It is never used for a read that failed: a first
+ * read with no answer renders a **distinct** panel with **Réessayer** and
+ * **Voir les chaînes**, and a source with no guide configured says so in its
+ * own words. Calling either of those an empty guide would be the defect GD-10
+ * names.
  *
  * <h2>Links, because the zone runs without JavaScript</h2>
  *
@@ -222,6 +223,14 @@ export type EpgGridLabels = {
   emptySlot: string;
   /** The way out to the channel list. */
   seeChannels: string;
+  /** GD-10: a first read that did not answer — never "empty". */
+  error: string;
+  /** GD-10: the hint that separates a failure from an empty guide. */
+  errorHint: string;
+  /** GD-10: the control that asks the same day again. */
+  retry: string;
+  /** GD-10: a source with no guide configured at all. */
+  noGuide: string;
 };
 
 export function EpgGrid({
@@ -236,7 +245,9 @@ export function EpgGrid({
   dayHref,
   nowHref,
   channelsHref,
+  retryHref,
   playHref,
+  programmeHref,
 }: {
   /** The caller's single grouped read for the displayed day. */
   window: EpgWindow;
@@ -251,11 +262,49 @@ export function EpgGrid({
   dayHref: (date: string) => string;
   nowHref: string;
   channelsHref: string;
+  /** Reloads the same day — the only retry this Server Component can offer. */
+  retryHref: string;
   playHref: (channelId: string) => string;
+  /** Opens the programme sheet for the selected block (`?programme=`). */
+  programmeHref: (programmeId: string) => string;
 }) {
-  // A read that did not answer, or a source with no guide at all, draws no
-  // grid and no sentence (S7-03). S9-06 owns the "no guide" explanation.
-  if (guide.state !== "ok" || !guide.grid.epg.configured) return null;
+  // GD-10: the read did not answer. This is **not** an empty guide, and it is
+  // said so; the grid is absent because there is nothing to place, not because
+  // the provider has nothing. `loadEpgWindow` returns `unavailable` with a code
+  // when the API refused and without one when nothing answered at all — either
+  // way the product knows a read failed and does not know the schedule.
+  if (guide.state !== "ok") {
+    return (
+      <section role="alert" className="border-border rounded-xl border border-dashed px-5 py-6">
+        <p className="font-medium">{labels.error}</p>
+        <p className="text-muted-foreground mt-1 text-sm">{labels.errorHint}</p>
+        <p className="mt-3 flex gap-4 text-sm">
+          <a href={retryHref} className="underline underline-offset-4">
+            {labels.retry}
+          </a>
+          <a href={channelsHref} className="underline underline-offset-4">
+            {labels.seeChannels}
+          </a>
+        </p>
+      </section>
+    );
+  }
+
+  // GD-10/11: the source has no guide configured at all. Neither an error to
+  // retry nor an empty schedule: a distinct, neutral sentence, and the way out
+  // to the channel list (which plays immediately).
+  if (!guide.grid.epg.configured) {
+    return (
+      <section className="border-border rounded-xl border border-dashed px-5 py-6">
+        <p className="font-medium">{labels.noGuide}</p>
+        <p className="mt-3 text-sm">
+          <a href={channelsHref} className="underline underline-offset-4">
+            {labels.seeChannels}
+          </a>
+        </p>
+      </section>
+    );
+  }
 
   const active = days.find((day) => day.date === activeDate) ?? days[0];
   if (!active) return null;
@@ -363,10 +412,14 @@ export function EpgGrid({
                         </span>
                       </div>
                     ) : (
-                      <div
+                      // A link, not a div: selecting a programme opens the sheet
+                      // and the selection is a URL like every other state of this
+                      // page (S9-06-04). The accessible name is the title.
+                      <a
                         key={block.key}
+                        href={programmeHref(block.key)}
                         title={block.title}
-                        className="border-border bg-secondary/40 absolute inset-y-0.5 overflow-hidden rounded border px-1.5 py-1"
+                        className="border-border bg-secondary/40 hover:bg-secondary/70 focus-visible:ring-ring absolute inset-y-0.5 overflow-hidden rounded border px-1.5 py-1 focus-visible:ring-2 focus-visible:outline-none"
                         style={{ left: `${block.left * 100}%`, width: `${block.width * 100}%` }}
                       >
                         <span className="block truncate text-xs font-medium">{block.title}</span>
@@ -374,7 +427,7 @@ export function EpgGrid({
                           {clockTime(new Date(block.startsAt), locale, timeZone)} –{" "}
                           {clockTime(new Date(block.endsAt), locale, timeZone)}
                         </span>
-                      </div>
+                      </a>
                     ),
                 )}
               </div>
