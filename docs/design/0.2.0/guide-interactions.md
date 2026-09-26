@@ -112,6 +112,17 @@ date/journée sans données ne justifie aucune promesse de disponibilité.
 > distinct** (message neutre, jamais « guide vide », avec Réessayer et Voir les
 > chaînes) est exigé. Décision PO du 26/09 ; voir `docs/backlog/DECISIONS-PRODUIT.md`.
 
+> **Précision du 26 septembre 2026 — GD-03 / changement de source web.** La variante
+> du cas « changement de source, fiche ouverte » pilotée par **un autre appareil**
+> (`QA-06-04-11`) est un critère **natif Android/TV** pour la 0.2.0. Le web n'a pas de
+> source active de compte : le choix de source y est un cookie **par appareil**
+> (`lib/sources/active-source.ts` ; l'UI le dit : « Ce choix ne vaut que pour cet
+> appareil. ») et la fiche est liée à l'URL `?programme=` **et** à l'id de source du
+> chemin, jamais à la source active. L'attendu web accepté — et prouvé — est que la
+> fiche d'un appareil reste celle de **sa** source quand un autre appareil change la
+> sienne ; le reste de GD-03 (une réponse de l'ancienne source est ignorée) vaut sur
+> les trois surfaces. Décision PO du 26/09 ; voir `docs/backlog/DECISIONS-PRODUIT.md`.
+
 Préparer une horloge contrôlable et des identifiants stables dans les fixtures.
 La validation navigateur d’un schéma ne remplace ni les tests applicatifs ni la
 recette TV réelle. Les dates de test sont relatives ; aucun flux n’est nécessaire

@@ -87,15 +87,37 @@ Mis à jour le 26 septembre 2026. Une case cochée signifie recetté, pas seulem
   un **défaut d'affichage TV** de l'« erreur initiale » du Guide a été confirmé
   → `BUG-S9-06-03-01` (Todo, priorité haute), correctif attendu sur
   `feat/S9-06-03-guide-states`. **S9-06-04** (web) : recette rendue
-  (`qa/S9-06-04-web-recette` @ `525c999`) — 01/02/04/05/06/08/09/10/12 conformes,
-  **03 et 11 non exécutés**, `QA-06-04-07` **retiré du périmètre web** (voir Précision
-  ci-dessous). Un PR à la fois ; cycle S9 ouvert le 26/09.
+  (`qa/S9-06-04-web-recette` @ `f0be4fe`) — 01/02/03/04/05 (1<sup>re</sup> moitié)/06/08/09/10/12
+  conformes, `QA-06-04-07` **retiré du périmètre web** et `QA-06-04-11` **non applicable
+  au web** (natif Android/TV, voir Précision ci-dessous). Un PR à la fois ; cycle S9
+  ouvert le 26/09.
 - [ ] S9-07 — **Todo** : protocole écrit par QA
   (`docs/releases/0.2.0/s9-07-recette.md`, `be2a89a`), **non exécuté** ; **S9-07-03
   `Done`** (harnais : `feat/S9-07-03-bench-harness` @ `1afa234`, mergé `7d3e6d2`) —
   I-1→I-5 livrés. Recette `S9-07-01`/`02` **gated** : elle démarre quand S9-06 est vert,
-  c'est-à-dire après la correction de `BUG-S9-06-03-01` (TV) et les deux cas web restants
-  de S9-06-04 (03 passé, 11 changement de source).
+  c'est-à-dire après la correction de `BUG-S9-06-03-01` (TV). Les cas web restants de
+  S9-06-04 sont levés (`QA-06-04-03` conforme, `QA-06-04-11` non applicable).
+
+### Reste à faire (état au 26 septembre 2026)
+
+1. **`BUG-S9-06-03-01` (TV, priorité haute)** — corriger le rendu de l'« erreur
+   initiale » du Guide sur `feat/S9-06-03-guide-states`, puis revue @Tech Lead et
+   re-recette @QA (titre + corps + les deux boutons peints). Le rework @Dev est à
+   **relancer** : la première assignation a expiré (`timed_out`). ⚠️ La copie de
+   travail de cette branche porte un **WIP non commité** (`LumoStateMessage.kt`,
+   `GuideGridTv.kt`, `feature/live/build.gradle.kts`) : ne pas repartir d'un checkout
+   propre qui l'écraserait sans le préserver.
+2. **S9-06-04 (web)** — recette close de notre côté ; l'état `Done` de la sous-issue
+   reste posé par @Tech Lead. Story `S9-06` à passer quand TV est vert.
+3. **S9-07-01/02** — exécuter la recette intersurfaces, **gated** sur S9-06 vert ; le
+   harnais `S9-07-03` est livré. Une campagne e2e en mode `auto` devra recréer
+   `lumo-e2e-bench` via compose (le conteneur ne redémarre pas tel quel).
+4. **PRs à ouvrir par Hamza** (`gh` absent) : `feat/S9-06-01-programme-sheet`,
+   `feat/S9-06-02-guide-return-anchor`, `feat/S9-06-03-guide-states` (après le
+   correctif), `feat/S9-06-04-web-programme-sheet`, `fix/S9-06-01-tv-sheet-focus`, et
+   les branches de preuves QA.
+5. **S9-05** reste `In Progress` (journée mobile dans le périmètre) jusqu'à la recette
+   intersurfaces ; les correctifs #2/#3/#4 sont fusionnés.
 
 ## Cadrage S9-03 — arrêté le 24 septembre 2026
 
@@ -157,6 +179,14 @@ initiale distincte** (message neutre, jamais « guide vide ») avec **Réessayer
 ouvert ce cycle ; c'est un candidat de version ultérieure. Portée : S9-06-04 /
 `QA-06-04-07`, design GD-10 (`docs/design/0.2.0/guide-interactions.md`).
 
+**`QA-06-04-11` « changement de source, fiche ouverte » (web) est lui aussi un critère
+natif Android/TV pour la 0.2.0** quand le changement vient d'un **autre appareil** : le
+web n'a pas de source active de compte, le choix de source y est un cookie **par
+appareil** et la fiche est liée à l'URL, jamais à la source active. L'attendu web accepté
+(et prouvé, `run4` de la recette) est que la fiche d'un appareil reste celle de **sa**
+source quand un autre appareil change la sienne. Aucun lot ouvert. Portée : S9-06-04 /
+`QA-06-04-11`, design GD-03 (`docs/design/0.2.0/guide-interactions.md`).
+
 ## Découpage des tâches — arrêté le 24 septembre 2026
 
 Chaque tâche est une PR, une seule plateforme, sur la branche `feat/US-16-grouped-epg`
@@ -198,8 +228,9 @@ d'exécution. Réalisation : **@Dev**. Recette : **@QA**.
 (26 septembre 2026). Un cas par critère GD-07/08/09/10/11/13 + cas limites.
 **Partiellement exécuté** : S9-06-01 instrumenté 4/4, S9-06-02/03 par lecture et
 unitaires (preuves `qa/S9-06-02-03-recette` @ `4e20072`), S9-06-04 web
-(`qa/S9-06-04-web-recette` @ `525c999`). Restent `QA-06-04-03` et `11`, et la recette
-TV de l'erreur initiale à rejouer après le correctif de `BUG-S9-06-03-01`.
+(`qa/S9-06-04-web-recette` @ `f0be4fe` : `QA-06-04-03` conforme, `QA-06-04-11` non
+applicable au web, `QA-06-04-07` natif-only). Reste la recette TV de l'erreur initiale
+à rejouer après le correctif de `BUG-S9-06-03-01`.
 
 ### S9-07 — recette (préparée pour le QA, exécutée après S9-04 à S9-06)
 
