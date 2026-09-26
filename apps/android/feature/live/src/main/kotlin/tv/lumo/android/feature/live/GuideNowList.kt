@@ -60,9 +60,16 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
  *
  * <h2>« Maintenant » is at the top, and is the screen's clock</h2>
  *
- * The button sits above the list, always reachable. Until S9-05's time grid it
- * scrolls back to the first row and asks the screen to recompute "now"; it never
- * promises an offset on a grid that does not exist yet.
+ * The button sits above the list, always reachable, and scrolls back to the
+ * first row while asking the screen to recompute "now".
+ *
+ * <h2>Tapping a channel opens its day, it does not play it (S9-05-04)</h2>
+ *
+ * On the Guide a selection shows information, not playback: the mobile design
+ * (S9-E03) has the list open **the day of the channel** ([onOpenChannel]), and
+ * the programme detail is S9-06's. The Chaînes view keeps its immediate launch;
+ * a channel with no guide is reached there, which is what keeps "no guide" from
+ * hiding a stream nobody can start.
  */
 @Composable
 fun GuideNowList(
@@ -70,7 +77,7 @@ fun GuideNowList(
     channels: LazyPagingItems<Channel>,
     now: Instant,
     onNow: () -> Unit,
-    onPlay: (channelId: String, name: String?) -> Unit,
+    onOpenChannel: (Channel) -> Unit,
     onPageVisible: (List<String>) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
@@ -115,7 +122,7 @@ fun GuideNowList(
                 GuideNowRow(
                     channel = channel,
                     onAir = channel?.let { state.nowAndNext(it.id, now) },
-                    onPlay = onPlay,
+                    onOpenChannel = onOpenChannel,
                 )
             }
         }
@@ -162,14 +169,14 @@ private fun Header(onNow: () -> Unit) {
 private fun GuideNowRow(
     channel: Channel?,
     onAir: NowAndNext?,
-    onPlay: (channelId: String, name: String?) -> Unit,
+    onOpenChannel: (Channel) -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.medium)
             .background(MaterialTheme.colorScheme.surface)
-            .clickable(enabled = channel != null) { channel?.let { onPlay(it.id, it.name) } }
+            .clickable(enabled = channel != null) { channel?.let(onOpenChannel) }
             .padding(LumoSpacing.sm + LumoSpacing.xs),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
     ) {

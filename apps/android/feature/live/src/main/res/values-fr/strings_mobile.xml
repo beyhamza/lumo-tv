@@ -8,4 +8,5 @@
     <string name="feature_live_search_clear">Effacer</string>
     <string name="feature_live_search_empty_title">Aucune chaîne trouvée</string>
     <string name="feature_live_search_empty_body">Aucun résultat pour « %1$s ».</string>
+    <string name="feature_live_guide_back">Retour à En ce moment</string>
 </resources>

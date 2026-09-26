@@ -55,8 +55,11 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import coil3.compose.SubcomposeAsyncImage
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.DirectView
+import tv.lumo.android.core.data.EpgDayWindow
 import tv.lumo.android.core.data.EmptyGrid
 import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.data.SourceNotice
@@ -210,9 +213,13 @@ fun LiveMobileScreen(
 
             LiveStep.Browsing -> {
                 val guideList = rememberLazyListState()
+                val dayList = rememberLazyListState()
                 val scope = rememberCoroutineScope()
                 var now by remember { mutableStateOf(Instant.now()) }
                 var searchOpen by remember { mutableStateOf(false) }
+                // The day the mobile Guide's channel view is on. Null is "today",
+                // which Maintenant resets to; the five days are derived below.
+                var selectedDay by remember { mutableStateOf<LocalDate?>(null) }
 
                 DirectHeader(
                     state = state,
@@ -283,10 +290,41 @@ fun LiveMobileScreen(
                         onAll = { viewModel.onCategorySelected(null) },
                     )
 
+                    // A channel's day (S9-05-04): the second level of the mobile
+                    // Guide, opened from a row below. One grouped read for the
+                    // channel and the day shown; Back returns to "En ce moment"
+                    // with the list's position kept (GD-13).
+                    state.view == DirectView.Guide && state.dayChannel != null -> {
+                        val zone = remember { ZoneId.systemDefault() }
+                        val days = remember(now, zone) { EpgDayWindow.around(now, zone) }
+                        val today = days[EpgDayWindow.DAYS_BEFORE.toInt()]
+                        val activeDay = days.firstOrNull { it.date == selectedDay } ?: today
+                        GuideDayMobile(
+                            state = state,
+                            channel = requireNotNull(state.dayChannel),
+                            days = days,
+                            activeDay = activeDay,
+                            today = today.date,
+                            now = now,
+                            onBack = {
+                                viewModel.onChannelDayClosed()
+                                selectedDay = null
+                            },
+                            onSelectDay = { selectedDay = it.date },
+                            onNow = {
+                                now = Instant.now()
+                                selectedDay = null
+                            },
+                            onDayVisible = viewModel::onDayVisible,
+                            listState = dayList,
+                        )
+                    }
+
                     // "En ce moment", one line per channel of the filtered result,
                     // current then next (S9-04-05). The list reports its page and
                     // the tracker asks once for what it does not hold — never one
-                    // request per card.
+                    // request per card. A tap opens the channel's day (S9-05-04),
+                    // it does not play: the design keeps launch to the Chaînes view.
                     state.view == DirectView.Guide -> GuideNowList(
                         state = state,
                         channels = channels,
@@ -295,7 +333,7 @@ fun LiveMobileScreen(
                             now = Instant.now()
                             scope.launch { guideList.scrollToItem(0) }
                         },
-                        onPlay = onPlay,
+                        onOpenChannel = viewModel::onChannelDayOpened,
                         onPageVisible = viewModel::onGuideVisible,
                         listState = guideList,
                     )

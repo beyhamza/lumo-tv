@@ -30,4 +30,13 @@
     <string name="feature_live_glyph_refresh" translatable="false">↻</string>
     <string name="feature_live_glyph_chevron" translatable="false">›</string>
     <string name="feature_live_glyph_clear" translatable="false">✕</string>
+    <string name="feature_live_glyph_back" translatable="false">‹</string>
+
+    <!--
+      The mobile Guide's second level (S9-05-04): one channel's day, opened from
+      the "En ce moment" list. The back label says where it returns to (GD-13),
+      and the time range is a whole row, not the ~200 dp cell #215 constrained.
+    -->
+    <string name="feature_live_guide_back">Back to on now</string>
+    <string name="feature_live_guide_time_range" translatable="false">%1$s – %2$s</string>
 </resources>
