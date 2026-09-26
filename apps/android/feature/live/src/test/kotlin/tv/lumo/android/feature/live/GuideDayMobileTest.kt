@@ -148,6 +148,15 @@ class GuideDayMobileTest {
             .isEqualTo(GuideMobileLevel.ChannelDay("c1"))
     }
 
+    @Test
+    fun `the system back climbs the guide only while a channel's day is open`() {
+        // The `BackHandler` is enabled on exactly this, and it is what makes
+        // Android's gesture behave like the header's `‹`: one level up. On the
+        // "En ce moment" list it stays false, so Back keeps leaving Direct.
+        assertThat(LiveState().guideChannelDayOpen()).isFalse()
+        assertThat(LiveState(dayChannel = channel("c1")).guideChannelDayOpen()).isTrue()
+    }
+
     private fun channel(id: String) = Channel(
         id = id,
         sourceId = "s1",

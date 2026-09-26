@@ -78,6 +78,18 @@ internal fun guideMobileLevel(state: LiveState): GuideMobileLevel =
     state.dayChannel?.let { GuideMobileLevel.ChannelDay(it.id) } ?: GuideMobileLevel.Now
 
 /**
+ * GD-13: true while the mobile Guide is one level deep — a channel's day is
+ * open — so Android's Back must climb to "En ce moment" instead of leaving the
+ * Direct destination.
+ *
+ * The screen enables its `BackHandler` on this and nothing else, and reads it
+ * from [guideMobileLevel] so the gesture and the level actually drawn come from
+ * one rule: a day is open exactly when [LiveState.dayChannel] holds one.
+ */
+internal fun LiveState.guideChannelDayOpen(): Boolean =
+    guideMobileLevel(this) is GuideMobileLevel.ChannelDay
+
+/**
  * One channel's [programmes] clipped to [day] and the gaps between them filled.
  *
  * Thin on purpose: the clipping, the overlap rule and the terminal empty block

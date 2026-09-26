@@ -1,5 +1,6 @@
 package tv.lumo.android.feature.live
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -221,6 +222,17 @@ fun LiveMobileScreen(
                 // which Maintenant resets to; the five days are derived below.
                 var selectedDay by remember { mutableStateOf<LocalDate?>(null) }
 
+                // GD-13: Android's own Back climbs out of a channel's day the
+                // same way the header's ‹ does — one level, back to "En ce
+                // moment" — and only leaves the Direct destination when no day
+                // is open. Enabled on the level rule itself, so the gesture and
+                // the drawn level can never disagree.
+                val closeChannelDay = {
+                    viewModel.onChannelDayClosed()
+                    selectedDay = null
+                }
+                BackHandler(enabled = state.guideChannelDayOpen()) { closeChannelDay() }
+
                 DirectHeader(
                     state = state,
                     searchOpen = searchOpen || state.search.isNotEmpty(),
@@ -306,10 +318,7 @@ fun LiveMobileScreen(
                             activeDay = activeDay,
                             today = today.date,
                             now = now,
-                            onBack = {
-                                viewModel.onChannelDayClosed()
-                                selectedDay = null
-                            },
+                            onBack = closeChannelDay,
                             onSelectDay = { selectedDay = it.date },
                             onNow = {
                                 now = Instant.now()
