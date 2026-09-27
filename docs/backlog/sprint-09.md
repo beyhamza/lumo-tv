@@ -4,7 +4,7 @@ Statut : en réalisation. C1 gelé en S9-01, contrat et serveur livrés en S9-02
 S9-03 en recette ; S9-04 livré et **En recette** sur les trois surfaces (01→07 approuvées),
 correctifs des défauts #1 fusionnés ;
 S9-05 **En recette** (01→04 `Done`, journée mobile `f77930e` fusionnée via PR #5 ; correctifs #2/#3/#4 fusionnés) ;
-S9-06 **En recette** (01→04 `Done`, `BUG-S9-06-01-01`/`-03-01`/`-03-02` `Done`) — **quatre branches non fusionnées**, en attente de PR ;
+S9-06 **En recette** (01→04 `Done`, `BUG-S9-06-01-01`/`-03-01`/`-03-02` `Done`) — **quatre branches fusionnées dans `main`** (PR #8→#11) ;
 S9-07 **`Todo`** : harnais `S9-07-03` **livré et fusionné** (`7d3e6d2`, PR #7), campagne QA préparée, recette intersurfaces **non exécutée**. Aucun item n'est déclaré terminé tant que
 la recette réelle (DoD commune) n'est pas jouée. Taille relative : XL.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
@@ -91,7 +91,7 @@ Mis à jour le 27 septembre 2026. Une case cochée signifie recetté, pas seulem
   **S9-06-04 (web) `Done`** (`feat/S9-06-04-web-programme-sheet` @ `943d27e`, recette
   `qa/S9-06-04-web-recette` @ `f0be4fe` ; `QA-06-04-07` retiré du périmètre web,
   `QA-06-04-11` non applicable au web).
-  **Aucune de ces quatre branches n'est encore mergée dans `main`** (PR à ouvrir à la main). Cycle S9 ouvert le 26/09.
+  **Les quatre branches S9-06 sont fusionnées dans `main`** (PR #8→#11 ; conflit d'intégration résolu). Cycle S9 ouvert le 26/09.
 - [ ] S9-07 — **Todo** : protocole écrit par QA
   (`docs/releases/0.2.0/s9-07-recette.md`, `be2a89a`) ; **S9-07-03 `Done`** (harnais :
   `feat/S9-07-03-bench-harness` @ `1afa234`, mergé `7d3e6d2`, PR #7) ; campagne
@@ -103,16 +103,15 @@ Mis à jour le 27 septembre 2026. Une case cochée signifie recetté, pas seulem
 
 ### Reste à faire (état au 27 septembre 2026)
 
-1. **Fusionner les quatre branches S9-06** (`gh` absent → PR à ouvrir à la main) :
-   `feat/S9-06-02-guide-return-anchor` `f221f9b`,
-   `feat/S9-06-03-guide-states` `430b5de` (porte `4b75705` et `430b5de`),
-   `feat/S9-06-04-web-programme-sheet` `943d27e`,
-   `fix/S9-06-01-tv-sheet-focus` `c91eedd`. **Aucune n'est mergée** : le code web de
-   S9-06-04 (`ProgrammeSheet.tsx`, `lib/epg/programme.ts`, `lib/epg/live-clock.ts`) est
-   **absent de `main`** bien que la sous-issue soit `Done`.
-   URL : `https://github.com/beyhamza/lumo-tv/pull/new/<branche>`.
-2. **Recette S9-07-01/02** — exécuter la campagne intersurfaces (`qa/S9-07-campagne`
-   `476e290`, banc provisionnable vérifié) **après le merge** ; elle exige du
+1. **Merges faits** — les quatre branches S9-06 sont dans `main` via les PR #8→#11 :
+   `fix/S9-06-01-tv-sheet-focus` (`019eebf3`), `feat/S9-06-02` (`f39eb686`),
+   `feat/S9-06-03` (`eb24c8a4` ; merge `d97881c` sur la branche, conflit de commentaire
+   dans `build.gradle.kts` résolu), `feat/S9-06-04-web` (`dfafd50c`) ; plus les preuves
+   QA #13→#15 et la campagne S9-07 #12 (`3d2e61c6`). Sur le merge S9-06-03 :
+   `:feature:live:testDebugUnitTest` **119/0/0**, `lintDebug` (`:feature:live` +
+   `:core:designsystem`) **0**.
+2. **Recette S9-07-01/02** — exécuter la campagne intersurfaces (`qa/S9-07-campagne`,
+   `d8f2787`, banc provisionnable vérifié) ; elle exige du
    **matériel réel** (téléphone Android + TV/box avec télécommande) ; les émulateurs ne
    comptent que comme repli non « vert ». Une campagne e2e en mode `auto` recrée
    `lumo-e2e-bench` via compose (le conteneur ne redémarre pas tel quel).
