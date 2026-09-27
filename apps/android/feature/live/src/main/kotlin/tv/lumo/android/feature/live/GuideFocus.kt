@@ -179,6 +179,94 @@ internal fun entrySelection(rows: List<GuideRow?>, day: EpgDay, now: Instant): G
 }
 
 /**
+ * The place a viewer left the Guide at, kept across a return from the player
+ * (GD-09).
+ *
+ * A cell is identified by its **channel and its hour of reference**, not by a
+ * block index: an EPG refresh renumbers the blocks, and a return must land on the
+ * same channel at the same hour even when the programme that was there has been
+ * replaced. [rowIndex] is the one ordering hint an anchor carries: when the
+ * channel itself has left the filtered result, it is what lets
+ * [resolveReturnSelection] pick the next channel, or the previous one at the end
+ * of the list (guide-interactions.md, "Focus TV : conserver une heure de
+ * référence").
+ *
+ * The reference is an instant, so it already says which day it belongs to: an
+ * anchor whose hour is outside the day now on screen is a new entry, never a
+ * return into that day.
+ */
+data class GuideAnchor(
+    val channelId: String,
+    val reference: Instant,
+    val rowIndex: Int,
+)
+
+/** The anchor of a placed selection, on the row [channelId] names. */
+internal fun GuideSelection.anchorOn(channelId: String): GuideAnchor =
+    GuideAnchor(channelId = channelId, reference = reference, rowIndex = rowIndex)
+
+/**
+ * The cell a **return** lands on (GD-09).
+ *
+ * A return is not a new entry: the catalogue and the guide may both have moved
+ * while the viewer was in the player, so the remembered place is re-resolved
+ * against what is on screen now rather than trusted as it was. The rules are the
+ * design's, in order:
+ *
+ * - the same channel and the same hour when that channel is still answered —
+ *   the block that covers the remembered reference, a gap included, so a
+ *   programme that ended does not move the viewer to another channel;
+ * - the channel gone from the result: the row that took its place (the
+ *   remembered [GuideAnchor.rowIndex], clamped), or the previous row at the end
+ *   of the list — never a skeleton;
+ * - no anchor, or an anchor from a day that is no longer on screen: a first
+ *   placement, [entrySelection], which is null when there is no row and leaves
+ *   the focus to the filter control.
+ *
+ * Pure, like everything else here: instants and lists in, a cell out.
+ */
+internal fun resolveReturnSelection(
+    anchor: GuideAnchor?,
+    rows: List<GuideRow?>,
+    day: EpgDay,
+    now: Instant,
+): GuideSelection? {
+    if (anchor == null) return entrySelection(rows, day, now)
+
+    // The remembered hour belongs to a day that is not on screen: the viewer
+    // chose another day rather than returned, and Maintenant is the placement.
+    if (anchor.reference.isBefore(day.from) || !anchor.reference.isBefore(day.to)) {
+        return entrySelection(rows, day, now)
+    }
+
+    val exact = rows.indexOfFirst { it?.channelId == anchor.channelId && it.answered }
+    val rowIndex = if (exact >= 0) exact else fallbackRow(rows, anchor.rowIndex)
+    if (rowIndex < 0) return null
+
+    val row = checkNotNull(rows[rowIndex])
+    val blocks = dayBlocks(row.programmes, day.from, day.to)
+    return GuideSelection(
+        rowIndex = rowIndex,
+        blockIndex = indexCovering(blocks, anchor.reference),
+        reference = anchor.reference,
+    )
+}
+
+/**
+ * The row a return lands on when the anchored channel is gone: the row that took
+ * its place, or the previous row at the end of the list (GD-09), stepping over
+ * skeletons in either direction. -1 when nothing is loaded.
+ */
+private fun fallbackRow(rows: List<GuideRow?>, rowIndex: Int): Int {
+    if (rows.isEmpty()) return -1
+    val from = rowIndex.coerceIn(0, rows.lastIndex)
+    if (rows[from]?.answered == true) return from
+    for (i in from + 1 until rows.size) if (rows[i]?.answered == true) return i
+    for (i in from - 1 downTo 0) if (rows[i]?.answered == true) return i
+    return -1
+}
+
+/**
  * Up or down: the neighbouring channel, **at the same hour of reference**.
  *
  * That is the whole rule (GD-04). The row changes, the reference does not, and

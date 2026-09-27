@@ -429,6 +429,137 @@ class GuideFocusTest {
         assertThat(block(rows, entered).programme?.id).isEqualTo("b1")
     }
 
+    // ---- return to a remembered cell (GD-09) -------------------------------
+
+    @Test
+    fun `a selection remembers its channel and its hour`() {
+        val selection = GuideSelection(rowIndex = 2, blockIndex = 3, reference = now)
+
+        assertThat(selection.anchorOn("c"))
+            .isEqualTo(GuideAnchor(channelId = "c", reference = now, rowIndex = 2))
+    }
+
+    @Test
+    fun `a return finds the same programme that is still there`() {
+        val rows = listOf(
+            GuideRow("a", listOf(programme("a1", at(20, 0), at(21, 0)))),
+            GuideRow("b", listOf(programme("b1", at(20, 15), at(20, 30)))),
+        )
+        val anchor = GuideAnchor(channelId = "b", reference = now, rowIndex = 1)
+
+        val selection = checkNotNull(resolveReturnSelection(anchor, rows, day, now))
+
+        assertThat(selection.rowIndex).isEqualTo(1)
+        assertThat(selection.reference).isEqualTo(now)
+        assertThat(block(rows, selection).programme?.id).isEqualTo("b1")
+    }
+
+    @Test
+    fun `a return keeps the same channel and hour when the programme was replaced`() {
+        // The viewer was on a1 (20:00–20:45) at 20:25. Back from the player the
+        // guide has been refreshed and a1 is gone: 20:25 now falls in the gap
+        // 20:00–20:30. The same channel and the same hour are the landing — a
+        // neutral cell, never a drift to another channel.
+        val rows = listOf(
+            GuideRow(
+                "a",
+                listOf(
+                    programme("a0", at(19, 0), at(20, 0)),
+                    programme("a2", at(20, 30), at(21, 0)),
+                ),
+            ),
+            GuideRow("b", listOf(programme("b1", at(20, 0), at(21, 0)))),
+        )
+        val anchor = GuideAnchor(channelId = "a", reference = now, rowIndex = 0)
+
+        val selection = checkNotNull(resolveReturnSelection(anchor, rows, day, now))
+
+        assertThat(selection.rowIndex).isEqualTo(0)
+        assertThat(selection.reference).isEqualTo(now)
+        assertThat(block(rows, selection).programme).isNull()
+        assertThat(block(rows, selection).startsAt).isEqualTo(at(20, 0))
+    }
+
+    @Test
+    fun `a return whose channel left the result lands on the next channel`() {
+        val rows = listOf(
+            GuideRow("a", listOf(programme("a1", at(20, 0), at(21, 0)))),
+            GuideRow("c", listOf(programme("c1", at(20, 0), at(21, 0)))),
+        )
+        val anchor = GuideAnchor(channelId = "b", reference = now, rowIndex = 1)
+
+        val selection = checkNotNull(resolveReturnSelection(anchor, rows, day, now))
+
+        assertThat(selection.rowIndex).isEqualTo(1)
+        assertThat(block(rows, selection).programme?.id).isEqualTo("c1")
+    }
+
+    @Test
+    fun `a return whose channel was last lands on the previous channel`() {
+        val rows = listOf(
+            GuideRow("a", listOf(programme("a1", at(20, 0), at(21, 0)))),
+            GuideRow("b", listOf(programme("b1", at(20, 0), at(21, 0)))),
+        )
+        val anchor = GuideAnchor(channelId = "z", reference = now, rowIndex = 5)
+
+        val selection = checkNotNull(resolveReturnSelection(anchor, rows, day, now))
+
+        assertThat(selection.rowIndex).isEqualTo(1)
+        assertThat(block(rows, selection).programme?.id).isEqualTo("b1")
+    }
+
+    @Test
+    fun `a return never lands on a skeleton row`() {
+        val rows = listOf<GuideRow?>(
+            GuideRow("a", listOf(programme("a1", at(20, 0), at(21, 0)))),
+            null,
+            GuideRow("c", listOf(programme("c1", at(20, 0), at(21, 0)))),
+        )
+        val anchor = GuideAnchor(channelId = "b", reference = now, rowIndex = 1)
+
+        val selection = checkNotNull(resolveReturnSelection(anchor, rows, day, now))
+
+        assertThat(selection.rowIndex).isEqualTo(2)
+        assertThat(block(rows, selection).programme?.id).isEqualTo("c1")
+    }
+
+    @Test
+    fun `the first entry, with no anchor, still lands on Maintenant`() {
+        val rows = listOf(
+            GuideRow("a", listOf(programme("a1", at(20, 0), at(20, 45)))),
+            GuideRow("b", listOf(programme("b1", at(20, 0), at(20, 45)))),
+        )
+
+        val selection = checkNotNull(resolveReturnSelection(null, rows, day, now))
+
+        assertThat(selection).isEqualTo(entrySelection(rows, day, now))
+        assertThat(selection.rowIndex).isEqualTo(0)
+    }
+
+    @Test
+    fun `a return to an empty result has no cell to focus`() {
+        val anchor = GuideAnchor(channelId = "a", reference = now, rowIndex = 0)
+
+        assertThat(resolveReturnSelection(anchor, emptyList(), day, now)).isNull()
+        assertThat(resolveReturnSelection(null, emptyList(), day, now)).isNull()
+    }
+
+    @Test
+    fun `a return remembers only the day it belongs to`() {
+        val otherDay = EpgDay(
+            date = LocalDate.of(2026, 9, 25),
+            from = Instant.parse("2026-09-25T00:00:00Z"),
+            to = Instant.parse("2026-09-26T00:00:00Z"),
+        )
+        val rows = listOf(GuideRow("a", listOf(programme("a2", at(20, 0), at(21, 0)))))
+        val anchor = GuideAnchor(channelId = "a", reference = now, rowIndex = 0)
+
+        val selection = checkNotNull(resolveReturnSelection(anchor, rows, otherDay, otherDay.from))
+
+        assertThat(selection).isEqualTo(entrySelection(rows, otherDay, otherDay.from))
+        assertThat(selection.reference).isEqualTo(otherDay.from)
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private fun block(rows: List<GuideRow?>, selection: GuideSelection): GuideBlock =
