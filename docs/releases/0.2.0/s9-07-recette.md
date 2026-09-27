@@ -58,7 +58,7 @@ n'existe aujourd'hui ; chaque ligne nomme le propriétaire pressenti.
 | I-1 | XMLTV de banc à **dates relatives**, servi par `nginx`, avec `tvg-id` identiques à `playlist.m3u`/`mixed.m3u` | Aucune session avec guide n'est reproductible sans lui ; un fichier committé expirerait | `apps/web/e2e/bench/entrypoint.sh` (génération) + `nginx.conf` (`location = /guide.xml`) | Dev / infra |
 | I-2 | Variantes `guide-partial.xml`, `guide-empty.xml`, `guide-broken.xml`, `guide-stale.xml`, `guide-big.xml` | GD-06/GD-10/GD-11 et la preuve de volume | même endroit | Dev / infra |
 | I-3 | Horloge contrôlable côté **web SSR** | Le `new Date()` du rendu serveur de `channels/page.tsx` (il alimente `epgDayWindow`, puis le `loadEpgWindow` de la vue Guide) n'est pas atteint par le `page.clock` de Playwright. `loadEpgWindow` a un **second** appelant serveur : `src/lib/home/load-home-rails.ts` (défaut `now = new Date()`), donc patcher la seule page Guide laisserait « En ce moment » sur l'horloge réelle | Helper `apps/web/src/lib/epg/clock.ts` — **pas** `now.ts`, déjà pris par S9-03 (`currentAndNext`/`onAirByChannel`, + `now.test.ts`). Surcharge `LUMO_NOW` (RFC 3339) active seulement si posée, **centralisée** et lue par les **deux** appelants serveur de `loadEpgWindow` : `channels/page.tsx` **et** `src/lib/home/load-home-rails.ts` | Dev |
-| I-4 | Compteur d'appels `/sources/{id}/epg` côté **API** pour le web | L'appel EPG du web part du serveur Next (`server-only`), donc invisible à `page.on("request")` | Logger `org.springframework.web.servlet.FrameworkServlet` en DEBUG **en préservant la casse** : la variable d'env `LOGGING_LEVEL_…_FRAMEWORKSERVLET` est relâchée en minuscules par le relaxed binding de Spring Boot et ne cible donc **pas** un logger sensible à la casse. Chemin sûr : `SPRING_APPLICATION_JSON` ou profil yaml avec la clé quotée `logging.level."org.springframework.web.servlet.FrameworkServlet": DEBUG` ; sinon filtre dev dédié (aucun n'existe aujourd'hui). Puis `docker logs lumo-api`. **À confirmer d'un run** — non démontré | Dev / infra |
+| I-4 | Compteur d'appels `/sources/{id}/epg` côté **API** pour le web | L'appel EPG du web part du serveur Next (`server-only`), donc invisible à `page.on("request")` | Logger `org.springframework.web.servlet.DispatcherServlet` en DEBUG **en préservant la casse** : la ligne de requête est émise par `DispatcherServlet`, pas `FrameworkServlet` (le champ logger de ce dernier prend la classe d'exécution, donc activer le nom parent n'allume rien). La variable d'env `LOGGING_LEVEL_…_DISPATCHERSERVLET` est relâchée en minuscules par le relaxed binding de Spring Boot et ne cible donc **pas** un logger sensible à la casse. Chemin sûr : `SPRING_APPLICATION_JSON` ou profil yaml avec la clé quotée `logging.level."org.springframework.web.servlet.DispatcherServlet": DEBUG` (le profil livré `application-epg-logging.yml` le fait). Puis `docker logs lumo-api`. **Démontré en live** (image reconstruite, ligne de requête au préfixe `/v1`) | Dev / infra |
 | I-5 | Échec EPG à la demande en gardant les données affichées (GD-10 web) | Le web SSR ne peut pas « garder la grille + erreur » sans une panne partielle injectable | proxy/flag dev faisant échouer `/epg` en `503` | Dev / infra |
 | I-6 | Playlist 100 chaînes + XMLTV 100 chaînes alignés | Preuve de volume (S9-04-05 / S9-05-02) | `playlist-100.m3u` + `guide-big.xml` | Dev / infra |
 
@@ -111,6 +111,13 @@ Programme `E1` `T−30 min` → `T+2 min` (fin imminente) et `E2` `T+3 min` →
 `T+33 min` sur `bench.1`. La fiche d'`E1` est ouverte avant la fin ; le passage
 d'`E2` à l'état courant se fait par horloge contrôlée (§3), jamais en attendant
 réellement, sauf contrôle manuel explicitement noté.
+
+**Fichier : `guide-transition.xml`** — le jeu A est `guide.xml` (§2.2). Les deux
+jeux posent un programme sur `bench.1` à `T` (A1 `T→T+45` d'un côté ; E1/E2
+`T−30→T+2` puis `T+3→T+33` de l'autre), et un XMLTV ne peut pas porter deux
+programmes simultanés sur une chaîne : ils sont donc servis par **deux fichiers**,
+et la session change l'`epg_url` de la source entre les deux. Détail du harnais :
+`apps/web/e2e/bench/README.md`.
 
 ### 2.4 Jeu C — états (GD-10/11, S9-06-03)
 
@@ -285,16 +292,20 @@ preuves, l'automatique d'abord.
 
 ### 5.2 Écran réel — web
 
-1. Activer le logger `FrameworkServlet` en DEBUG **en préservant la casse** (I-4) :
-   la variable d'env `LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_FRAMEWORKSERVLET`
-   est relâchée en minuscules par Spring Boot et ne vise donc pas le logger
-   `org.springframework.web.servlet.FrameworkServlet`, qui est sensible à la
-   casse. Chemin sûr : `SPRING_APPLICATION_JSON` ou profil yaml avec la clé
-   quotée `logging.level."org.springframework.web.servlet.FrameworkServlet": DEBUG`.
-   Recréer le conteneur.
-2. Vider les logs, charger la vue Guide, puis compter :
+1. Activer le logger `DispatcherServlet` en DEBUG **en préservant la casse** (I-4) :
+   la ligne de requête est émise par
+   `org.springframework.web.servlet.DispatcherServlet` — **pas** `FrameworkServlet`,
+   dont le champ logger prend la classe d'exécution (activer le nom parent n'allume
+   rien). La variable d'env
+   `LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_DISPATCHERSERVLET` est relâchée
+   en minuscules par Spring Boot et ne vise donc pas le logger sensible à la casse.
+   Chemin sûr : `SPRING_APPLICATION_JSON` ou profil yaml avec la clé quotée
+   `logging.level."org.springframework.web.servlet.DispatcherServlet": DEBUG` — le
+   profil livré `application-epg-logging.yml` le fait déjà. Recréer le conteneur.
+2. Vider les logs, charger la vue Guide, puis compter (`getRequestURI()` porte le
+   préfixe `/v1`) :
    ```bash
-   docker logs lumo-api 2>&1 | grep -cE 'GET "/sources/[0-9a-f-]+/epg'
+   docker logs lumo-api 2>&1 | grep -cE 'GET "/v1/sources/[0-9a-f-]+/epg'
    ```
 3. Rejouer avec 3, 50 puis 100 chaînes (jeu D).
 4. **Attendu** : un nombre **petit et indépendant du nombre de cartes** (1 en

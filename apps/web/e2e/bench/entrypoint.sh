@@ -47,6 +47,7 @@ cp -R "$SRC"/. "$WEB"/
 # as committed, so what a qualification run reads is what review saw.
 sed -i "s|__BENCH_PUBLIC_URL__|${BENCH_PUBLIC_URL}|g" "$WEB/playlist.m3u"
 sed -i "s|__BENCH_PUBLIC_URL__|${BENCH_PUBLIC_URL}|g" "$WEB/mixed.m3u"
+sed -i "s|__BENCH_PUBLIC_URL__|${BENCH_PUBLIC_URL}|g" "$WEB/playlist-100.m3u"
 
 # ---- The two films of /mixed.m3u --------------------------------------------
 #
@@ -101,5 +102,50 @@ echo "bench: xtream panel at /player_api.php ($(ls "$WEB/xtream" | wc -l) fixtur
 } | head -c "$((BENCH_OVERSIZED_MB * 1024 * 1024))" | gzip -6 > "$WEB/oversized.m3u.gz"
 
 echo "bench: oversized payload is ${BENCH_OVERSIZED_MB} MB, served gzipped as $(wc -c < "$WEB/oversized.m3u.gz") bytes"
+
+# ---- The XMLTV guide (I-1/I-2/I-6) ------------------------------------------
+#
+# Until this block existed the bench served no guide at all, so GD-01..GD-14
+# could not be played: there was no EPG URL to point a bench source at, and a
+# committed guide would have expired the week it was written. The guide is
+# generated here, at every `up`, from the committed programme `xmltv.awk`, with
+# every date relative to an anchor:
+#
+#   BENCH_EPG_ANCHOR  RFC 3339 (YYYY-MM-DDTHH:MM:SSZ) or epoch seconds. Set it
+#                     to the same instant as the web's LUMO_NOW so the guide and
+#                     the controlled clock agree. Default: this container's
+#                     start, which is what an ordinary end-to-end run wants.
+#
+# The API's XmltvStreamParser keeps only [now - 1 day, now + 3 days], so an
+# anchor far from real time would import nothing; a session stays near real time.
+#
+# The variants are the ones §2 of docs/releases/0.2.0/s9-07-recette.md names:
+# guide.xml (Game A, the canonical grid), guide-transition.xml (Game B), then
+# partial/empty/broken/stale for the states, and big/huge for the volume proof.
+# `stale` is byte-identical to `canonical`: staleness is the DB's
+# `epg_last_success_at`, set by SQL (§2.4), not a property of the file.
+: "${BENCH_EPG_ANCHOR:=}"
+case "$BENCH_EPG_ANCHOR" in
+    "")        anchor_epoch=$(date -u +%s) ;;
+    *[!0-9]*)  anchor_epoch=$(date -u -D "%Y-%m-%dT%H:%M:%SZ" -d "$BENCH_EPG_ANCHOR" +%s 2>/dev/null || date -u +%s) ;;
+    *)         anchor_epoch="$BENCH_EPG_ANCHOR" ;;
+esac
+echo "bench: EPG anchor is $(date -u -d "@$anchor_epoch" +%Y-%m-%dT%H:%M:%SZ)"
+
+gen_guide() { # variant output-file
+    TZ=UTC awk -v anchor="$anchor_epoch" -v variant="$1" -f /bench/xmltv.awk > "$WEB/$2"
+    echo "bench: $2 ($(wc -c < "$WEB/$2") bytes, $(grep -c '<programme ' "$WEB/$2" || true) programmes)"
+}
+
+gen_guide canonical  guide.xml
+gen_guide transition guide-transition.xml
+gen_guide partial    guide-partial.xml
+gen_guide empty      guide-empty.xml
+gen_guide broken     guide-broken.xml
+gen_guide stale      guide-stale.xml
+gen_guide big        guide-big.xml
+gen_guide huge       guide-huge.xml
+
+echo "bench: volume playlist at /playlist-100.m3u ($(grep -c '^#EXTINF' "$WEB/playlist-100.m3u") channels, aligned with guide-big.xml)"
 
 exec nginx -g 'daemon off;'

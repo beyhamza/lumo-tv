@@ -10,6 +10,7 @@ import type {
   VodItem,
 } from "@/lib/api/types";
 import { resolveChannels } from "@/lib/catalogue/resolve-channels";
+import { epgNow } from "@/lib/epg/clock";
 import { NOW_WINDOW_MS, loadEpgWindow } from "@/lib/epg/load-epg-window";
 import { onAirByChannel } from "@/lib/epg/now";
 import { aggregateFavorites, recentChannelsOf } from "./channels";
@@ -96,7 +97,7 @@ export async function loadHomeRails(
   accessToken: string,
   sourceId: string,
   /** The instant "on now" is decided at; the page's, so that its clock and this one agree. */
-  now: Date = new Date(),
+  now: Date = epgNow(),
 ): Promise<HomeRails> {
   const client = api(accessToken);
 

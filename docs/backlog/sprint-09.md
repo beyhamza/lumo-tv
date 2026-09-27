@@ -3,8 +3,9 @@
 Statut : en réalisation. C1 gelé en S9-01, contrat et serveur livrés en S9-02 ; S9-00 et
 S9-03 en recette ; S9-04 livré et **En recette** sur les trois surfaces (01→07 approuvées),
 correctifs des défauts #1 fusionnés ;
-S9-05 **En recette** (01→04 `Done`, journée mobile `f77930e` fusionnée via PR #5 ; correctifs #2/#3/#4 fusionnés) ; S9-06 découpée et prête (Todo) ;
-S9-06 **en réalisation** (01→04) ; S9-07 passe **`Backlog` → `Todo`** (harnais `S9-07-03` à livrer avant la recette). Aucun item n'est déclaré terminé tant que
+S9-05 **En recette** (01→04 `Done`, journée mobile `f77930e` fusionnée via PR #5 ; correctifs #2/#3/#4 fusionnés) ;
+S9-06 **En recette** (01→04 `Done`, `BUG-S9-06-01-01`/`-03-01`/`-03-02` `Done`) — **quatre branches non fusionnées**, en attente de PR ;
+S9-07 **`Todo`** : harnais `S9-07-03` **livré et fusionné** (`7d3e6d2`, PR #7), campagne QA préparée, recette intersurfaces **non exécutée**. Aucun item n'est déclaré terminé tant que
 la recette réelle (DoD commune) n'est pas jouée. Taille relative : XL.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
@@ -42,7 +43,7 @@ réussi est distinct de la synchronisation du catalogue et de la récupération 
 
 ## Avancement
 
-Mis à jour le 26 septembre 2026. Une case cochée signifie recetté, pas seulement écrit.
+Mis à jour le 27 septembre 2026. Une case cochée signifie recetté, pas seulement écrit.
 
 - [ ] S9-00 — **en recette** : banc XMLTV livré, huit tests, rapport S9-00
 - [x] S9-01 — cadrage D1–D5 validé le 24 septembre ; **gel** des plafonds
@@ -79,14 +80,47 @@ Mis à jour le 26 septembre 2026. Une case cochée signifie recetté, pas seulem
   dans `main`** (PR #3 et #4). **Décision PO du 26 septembre :
   S9-05-04 reste dans le périmètre de S9-05** — la journée mobile est livrée, la story
   ne part en recette de sortie qu'en recette intersurfaces (S9-07).
-- [ ] S9-06 — **In Progress** : découpage arrêté (01→04) ; réalisation `01 → 02 → 03`
-  en série (Android, `LiveViewModel.kt`) puis `04` (web) après `S9-07-03` I-3, un PR à la
-  fois ; cycle S9 ouvert le 26/09
+- [ ] S9-06 — **En recette** (Plane, 27/09) : découpage 01→04 `Done`.
+  **S9-06-01 `Done`** (`feat/S9-06-01-programme-sheet` @ `f2d738f`,
+  `fix/S9-06-01-tv-sheet-focus` @ `c91eedd` : 4 tests instrumentés verts ; `BUG-S9-06-01-01` `Done`).
+  **S9-06-02 `Done`** (`feat/S9-06-02-guide-return-anchor` @ `f221f9b`).
+  **S9-06-03 `Done`** (`feat/S9-06-03-guide-states` @ `430b5de`) : les deux défauts TV
+  sont corrigés — `BUG-S9-06-03-01` (peinture, `a8bd021`→`4b75705`) et
+  `BUG-S9-06-03-02` (focus, `430b5de`) — 119 tests/0 échec/0 skip, lint 0, capture TV
+  1080p titre + corps + les deux boutons, focus sur *Réessayer*.
+  **S9-06-04 (web) `Done`** (`feat/S9-06-04-web-programme-sheet` @ `943d27e`, recette
+  `qa/S9-06-04-web-recette` @ `f0be4fe` ; `QA-06-04-07` retiré du périmètre web,
+  `QA-06-04-11` non applicable au web).
+  **Aucune de ces quatre branches n'est encore mergée dans `main`** (PR à ouvrir à la main). Cycle S9 ouvert le 26/09.
 - [ ] S9-07 — **Todo** : protocole écrit par QA
-  (`docs/releases/0.2.0/s9-07-recette.md`, `be2a89a`), **non exécuté** ; le harnais
-  S9-07-03 (code) est sélectionné dans le cycle et doit être livré avant toute session
-  de recette ; deux collisions connues : `LiveViewModel.kt` (S9-06-01→03) et
-  `channels/page.tsx` (S9-07-03 I-3 avant S9-06-04)
+  (`docs/releases/0.2.0/s9-07-recette.md`, `be2a89a`) ; **S9-07-03 `Done`** (harnais :
+  `feat/S9-07-03-bench-harness` @ `1afa234`, mergé `7d3e6d2`, PR #7) ; campagne
+  préparée par QA (`qa/S9-07-campagne` @ `476e290`, banc provisionnable vérifié une
+  fois). Recette `S9-07-01`/`02` **non exécutée** : gated sur le **merge des branches
+  S9-06** (les défauts TV sont corrigés et `Done`) et sur du **matériel réel**
+  (téléphone Android + TV/box avec télécommande) ; les émulateurs ne comptent que
+  comme repli non « vert ».
+
+### Reste à faire (état au 27 septembre 2026)
+
+1. **Fusionner les quatre branches S9-06** (`gh` absent → PR à ouvrir à la main) :
+   `feat/S9-06-02-guide-return-anchor` `f221f9b`,
+   `feat/S9-06-03-guide-states` `430b5de` (porte `4b75705` et `430b5de`),
+   `feat/S9-06-04-web-programme-sheet` `943d27e`,
+   `fix/S9-06-01-tv-sheet-focus` `c91eedd`. **Aucune n'est mergée** : le code web de
+   S9-06-04 (`ProgrammeSheet.tsx`, `lib/epg/programme.ts`, `lib/epg/live-clock.ts`) est
+   **absent de `main`** bien que la sous-issue soit `Done`.
+   URL : `https://github.com/beyhamza/lumo-tv/pull/new/<branche>`.
+2. **Recette S9-07-01/02** — exécuter la campagne intersurfaces (`qa/S9-07-campagne`
+   `476e290`, banc provisionnable vérifié) **après le merge** ; elle exige du
+   **matériel réel** (téléphone Android + TV/box avec télécommande) ; les émulateurs ne
+   comptent que comme repli non « vert ». Une campagne e2e en mode `auto` recrée
+   `lumo-e2e-bench` via compose (le conteneur ne redémarre pas tel quel).
+3. **`BUG-S9-06-03-01`/`-02`** — `Done` dans Plane le 27/09, code poussé sans force sur
+   `430b5de` ; la **recette écran réel** de ce correctif fait partie du passage S9-07.
+4. **S9-06-04 (web)** — recette close ; le code reste à merger (voir 1).
+5. **S9-05** est `En recette` (01→04 `Done`, journée mobile dans le périmètre) jusqu'à
+   la recette intersurfaces ; les correctifs #2/#3/#4 sont fusionnés.
 
 ## Cadrage S9-03 — arrêté le 24 septembre 2026
 
@@ -137,6 +171,35 @@ et « Guide TV ». Vaut pour **S9-04-07 (web)** et **S9-04-04 (Android mobile et
 les deux liens s'affichent indépendamment du contenu du rail. Le *comment* (liens
 conservés dans un rail vide, ou ligne d'accès autonome) est technique : @Tech Lead.
 
+### Précision produit — 26 septembre 2026 (recette S9-06)
+
+**GD-10 « erreur avec données » est un critère natif Android/TV pour la 0.2.0.** Le
+web est rendu côté serveur : au moment d'une lecture `/epg` en échec, il n'a **pas** de
+grille précédente à conserver, donc le critère « la grille et la position survivent » ne
+décrit pas un comportement web. Ce qui est exigé et accepté sur web, c'est l'**erreur
+initiale distincte** (message neutre, jamais « guide vide ») avec **Réessayer** et
+**Voir les chaînes**, couverte par `QA-06-04-06`. Aucun lot « cache client web » n'est
+ouvert ce cycle ; c'est un candidat de version ultérieure. Portée : S9-06-04 /
+`QA-06-04-07`, design GD-10 (`docs/design/0.2.0/guide-interactions.md`).
+
+**`QA-06-04-11` « changement de source, fiche ouverte » (web) est lui aussi un critère
+natif Android/TV pour la 0.2.0** quand le changement vient d'un **autre appareil** : le
+web n'a pas de source active de compte, le choix de source y est un cookie **par
+appareil** et la fiche est liée à l'URL, jamais à la source active. L'attendu web accepté
+(et prouvé, `run4` de la recette) est que la fiche d'un appareil reste celle de **sa**
+source quand un autre appareil change la sienne. Aucun lot ouvert. Portée : S9-06-04 /
+`QA-06-04-11`, design GD-03 (`docs/design/0.2.0/guide-interactions.md`).
+
+**Rendu TV de l'erreur initiale (GD-10) — invariant produit.** L'état d'« erreur
+initiale » du Guide TV est un état **plein écran** : il porte le **titre**, une **courte
+ligne de corps** et **les deux actions `Réessayer` et `Voir les chaînes`**. Ces deux
+actions sont **obligatoires** : on ne sacrifie jamais une action pour tenir la hauteur ;
+si le budget manque, on **raccourcit la copie du corps** (une ligne), on n'allège pas le
+titre jusqu'à l'illisible et on ne retire aucun bouton. Comme il n'y a **pas de grille**
+dans cet état, la recherche, les filtres et les puces de jour de la grille n'en font pas
+partie. Le **mécanisme** de layout (hauteur/centrage/scroll) relève du @Tech Lead ; le
+@Dev ne réinterprète pas ce cadre. Portée : `BUG-S9-06-03-01`, design GD-10.
+
 ## Découpage des tâches — arrêté le 24 septembre 2026
 
 Chaque tâche est une PR, une seule plateforme, sur la branche `feat/US-16-grouped-epg`
@@ -174,6 +237,14 @@ d'exécution. Réalisation : **@Dev**. Recette : **@QA**.
 | S9-06-03 | Android | États : absence, ancienneté, erreur avec données ; Réessayer et Voir les chaînes ; message neutre | `feature/live/…/GuideStates.kt` (nouveau), `LiveViewModel.kt` (réutilise `EpgFreshness` de S9-03) | GD-10/11 : erreur initiale et erreur avec données distinctes ; les données et le focus survivent ; aucune cause inventée pour une liste vide |
 | S9-06-04 | Web | Fiche programme et états équivalents | `src/components/app/ProgrammeSheet.tsx` (nouveau), page `sources/[id]/channels`, `src/messages/{fr,en}.json` | GD-07/08/10/11 web ; description et logo absents restent neutres |
 
+**Plan de test QA S9-06** : [s9-06-plan-de-test.md](../releases/0.2.0/s9-06-plan-de-test.md)
+(26 septembre 2026). Un cas par critère GD-07/08/09/10/11/13 + cas limites.
+**Partiellement exécuté** : S9-06-01 instrumenté 4/4, S9-06-02/03 par lecture et
+unitaires (preuves `qa/S9-06-02-03-recette` @ `4e20072`), S9-06-04 web
+(`qa/S9-06-04-web-recette` @ `f0be4fe` : `QA-06-04-03` conforme, `QA-06-04-11` non
+applicable au web, `QA-06-04-07` natif-only). Reste la recette TV de l'erreur initiale
+à rejouer après le correctif de `BUG-S9-06-03-01`.
+
 ### S9-07 — recette (préparée pour le QA, exécutée après S9-04 à S9-06)
 
 | ID | Plateforme | Contenu | Livrable | Critère d'acceptation |
@@ -206,8 +277,9 @@ au rapport QA. Ne pas les recréer : un item existant se met à jour par `PATCH`
 | `BUG-S9-05-02-01` (#214) | #2 grille web 1440 px | S9-05 |
 | `BUG-S9-05-03-01` (#215) | #3 cellules TV en « … » | S9-05 |
 | `BUG-S9-05-03-02` (#216) | #4 en-tête de jour TV | S9-05 |
+| `BUG-S9-06-03-01` | #6 erreur initiale du Guide TV non peinte (recette S9-06-03) | S9-06 |
 
-Les cinq sont **corrigés, revus par le Tech Lead et fusionnés dans `main`** (test rouge
+Les items `#213/217/214/215/216` sont **corrigés, revus par le Tech Lead et fusionnés dans `main`** (test rouge
 d'abord, recettes QA conformes, preuves versionnées sous `docs/releases/0.2.0/qa-evidence/`,
 un dossier par passage (`s9-07-passe-initiale-main-2026-09-26/`, `s9-04-07-cold-home-web-2026-09-26/`,
 `s9-04-04-cold-home-android-2026-09-26/`, `s9-04-04-217-cold-entries-android-2026-09-26/`,
@@ -217,6 +289,9 @@ passés `Done` dans Plane. Les 4 branches ont été mergées par Hamza via les P
 le QA recette ; le PO ne briefe pas @Dev directement. Le test qui échoue accompagne le
 correctif.
 
+> `BUG-S9-06-03-01` (#6, recette S9-06-03) reste **Todo** : c'est le seul rouge de la
+> chaîne S9-06, et le gate de la recette S9-07.
+>
 > S9-04 est déjà `In Progress` ; S9-05 et S9-06 passent en `Todo` (découpées et prêtes) ;
 > S9-07 reste en `Backlog` : la recette dépend de S9-04 à S9-06, et son harnais
 > S9-07-03 doit être livré avant toute session de recette.

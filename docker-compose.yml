@@ -190,6 +190,10 @@ services:
     restart: unless-stopped
     environment:
       BENCH_PUBLIC_URL: ${BENCH_PUBLIC_URL:-http://localhost:18081}
+      # The XMLTV anchor: the instant the generated guide is built around. Set it
+      # to the same instant as the web's LUMO_NOW for a controlled-clock session
+      # (I-3). Empty means this container's start, which is what e2e wants.
+      BENCH_EPG_ANCHOR: ${BENCH_EPG_ANCHOR:-}
     # The document root is built before nginx answers anything: the playlist is
     # a template, and the oversized payload is generated rather than committed.
     command: ["/bin/sh", "/bench/entrypoint.sh"]
@@ -200,6 +204,7 @@ services:
     volumes:
       - ./apps/web/e2e/bench/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./apps/web/e2e/bench/entrypoint.sh:/bench/entrypoint.sh:ro
+      - ./apps/web/e2e/bench/xmltv.awk:/bench/xmltv.awk:ro
       - ./apps/web/e2e/bench/fixtures:/bench/fixtures:ro
     healthcheck:
       # Healthy means GENERATED, which is the whole reason this probe exists:

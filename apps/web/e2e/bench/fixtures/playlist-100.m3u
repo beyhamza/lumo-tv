@@ -1,0 +1,207 @@
+#EXTM3U
+# =============================================================================
+# Volume playlist for the S9-07 bench proof (I-6), aligned channel for channel
+# with guide-big.xml: tvg-id="bench.001" ... "bench.100" (3 digits, as the
+# generator writes them). Same rule as playlist.m3u: the host is a template and
+# entrypoint.sh substitutes it, and nothing here is real (AGENTS.md §1).
+# =============================================================================
+#EXTINF:-1 tvg-id="bench.001" tvg-chno="001" group-title="Volume",Chaîne 001
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.002" tvg-chno="002" group-title="Volume",Chaîne 002
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.003" tvg-chno="003" group-title="Volume",Chaîne 003
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.004" tvg-chno="004" group-title="Volume",Chaîne 004
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.005" tvg-chno="005" group-title="Volume",Chaîne 005
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.006" tvg-chno="006" group-title="Volume",Chaîne 006
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.007" tvg-chno="007" group-title="Volume",Chaîne 007
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.008" tvg-chno="008" group-title="Volume",Chaîne 008
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.009" tvg-chno="009" group-title="Volume",Chaîne 009
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.010" tvg-chno="010" group-title="Volume",Chaîne 010
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.011" tvg-chno="011" group-title="Volume",Chaîne 011
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.012" tvg-chno="012" group-title="Volume",Chaîne 012
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.013" tvg-chno="013" group-title="Volume",Chaîne 013
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.014" tvg-chno="014" group-title="Volume",Chaîne 014
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.015" tvg-chno="015" group-title="Volume",Chaîne 015
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.016" tvg-chno="016" group-title="Volume",Chaîne 016
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.017" tvg-chno="017" group-title="Volume",Chaîne 017
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.018" tvg-chno="018" group-title="Volume",Chaîne 018
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.019" tvg-chno="019" group-title="Volume",Chaîne 019
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.020" tvg-chno="020" group-title="Volume",Chaîne 020
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.021" tvg-chno="021" group-title="Volume",Chaîne 021
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.022" tvg-chno="022" group-title="Volume",Chaîne 022
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.023" tvg-chno="023" group-title="Volume",Chaîne 023
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.024" tvg-chno="024" group-title="Volume",Chaîne 024
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.025" tvg-chno="025" group-title="Volume",Chaîne 025
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.026" tvg-chno="026" group-title="Volume",Chaîne 026
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.027" tvg-chno="027" group-title="Volume",Chaîne 027
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.028" tvg-chno="028" group-title="Volume",Chaîne 028
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.029" tvg-chno="029" group-title="Volume",Chaîne 029
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.030" tvg-chno="030" group-title="Volume",Chaîne 030
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.031" tvg-chno="031" group-title="Volume",Chaîne 031
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.032" tvg-chno="032" group-title="Volume",Chaîne 032
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.033" tvg-chno="033" group-title="Volume",Chaîne 033
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.034" tvg-chno="034" group-title="Volume",Chaîne 034
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.035" tvg-chno="035" group-title="Volume",Chaîne 035
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.036" tvg-chno="036" group-title="Volume",Chaîne 036
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.037" tvg-chno="037" group-title="Volume",Chaîne 037
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.038" tvg-chno="038" group-title="Volume",Chaîne 038
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.039" tvg-chno="039" group-title="Volume",Chaîne 039
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.040" tvg-chno="040" group-title="Volume",Chaîne 040
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.041" tvg-chno="041" group-title="Volume",Chaîne 041
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.042" tvg-chno="042" group-title="Volume",Chaîne 042
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.043" tvg-chno="043" group-title="Volume",Chaîne 043
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.044" tvg-chno="044" group-title="Volume",Chaîne 044
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.045" tvg-chno="045" group-title="Volume",Chaîne 045
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.046" tvg-chno="046" group-title="Volume",Chaîne 046
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.047" tvg-chno="047" group-title="Volume",Chaîne 047
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.048" tvg-chno="048" group-title="Volume",Chaîne 048
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.049" tvg-chno="049" group-title="Volume",Chaîne 049
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.050" tvg-chno="050" group-title="Volume",Chaîne 050
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.051" tvg-chno="051" group-title="Volume",Chaîne 051
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.052" tvg-chno="052" group-title="Volume",Chaîne 052
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.053" tvg-chno="053" group-title="Volume",Chaîne 053
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.054" tvg-chno="054" group-title="Volume",Chaîne 054
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.055" tvg-chno="055" group-title="Volume",Chaîne 055
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.056" tvg-chno="056" group-title="Volume",Chaîne 056
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.057" tvg-chno="057" group-title="Volume",Chaîne 057
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.058" tvg-chno="058" group-title="Volume",Chaîne 058
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.059" tvg-chno="059" group-title="Volume",Chaîne 059
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.060" tvg-chno="060" group-title="Volume",Chaîne 060
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.061" tvg-chno="061" group-title="Volume",Chaîne 061
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.062" tvg-chno="062" group-title="Volume",Chaîne 062
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.063" tvg-chno="063" group-title="Volume",Chaîne 063
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.064" tvg-chno="064" group-title="Volume",Chaîne 064
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.065" tvg-chno="065" group-title="Volume",Chaîne 065
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.066" tvg-chno="066" group-title="Volume",Chaîne 066
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.067" tvg-chno="067" group-title="Volume",Chaîne 067
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.068" tvg-chno="068" group-title="Volume",Chaîne 068
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.069" tvg-chno="069" group-title="Volume",Chaîne 069
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.070" tvg-chno="070" group-title="Volume",Chaîne 070
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.071" tvg-chno="071" group-title="Volume",Chaîne 071
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.072" tvg-chno="072" group-title="Volume",Chaîne 072
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.073" tvg-chno="073" group-title="Volume",Chaîne 073
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.074" tvg-chno="074" group-title="Volume",Chaîne 074
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.075" tvg-chno="075" group-title="Volume",Chaîne 075
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.076" tvg-chno="076" group-title="Volume",Chaîne 076
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.077" tvg-chno="077" group-title="Volume",Chaîne 077
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.078" tvg-chno="078" group-title="Volume",Chaîne 078
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.079" tvg-chno="079" group-title="Volume",Chaîne 079
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.080" tvg-chno="080" group-title="Volume",Chaîne 080
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.081" tvg-chno="081" group-title="Volume",Chaîne 081
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.082" tvg-chno="082" group-title="Volume",Chaîne 082
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.083" tvg-chno="083" group-title="Volume",Chaîne 083
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.084" tvg-chno="084" group-title="Volume",Chaîne 084
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.085" tvg-chno="085" group-title="Volume",Chaîne 085
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.086" tvg-chno="086" group-title="Volume",Chaîne 086
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.087" tvg-chno="087" group-title="Volume",Chaîne 087
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.088" tvg-chno="088" group-title="Volume",Chaîne 088
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.089" tvg-chno="089" group-title="Volume",Chaîne 089
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.090" tvg-chno="090" group-title="Volume",Chaîne 090
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.091" tvg-chno="091" group-title="Volume",Chaîne 091
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.092" tvg-chno="092" group-title="Volume",Chaîne 092
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.093" tvg-chno="093" group-title="Volume",Chaîne 093
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.094" tvg-chno="094" group-title="Volume",Chaîne 094
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.095" tvg-chno="095" group-title="Volume",Chaîne 095
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.096" tvg-chno="096" group-title="Volume",Chaîne 096
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.097" tvg-chno="097" group-title="Volume",Chaîne 097
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.098" tvg-chno="098" group-title="Volume",Chaîne 098
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.099" tvg-chno="099" group-title="Volume",Chaîne 099
+__BENCH_PUBLIC_URL__/stream/index.m3u8
+#EXTINF:-1 tvg-id="bench.100" tvg-chno="100" group-title="Volume",Chaîne 100
+__BENCH_PUBLIC_URL__/stream/index.m3u8

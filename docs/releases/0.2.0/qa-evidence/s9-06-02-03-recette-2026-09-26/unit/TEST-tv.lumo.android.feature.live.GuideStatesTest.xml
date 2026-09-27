@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tv.lumo.android.feature.live.GuideStatesTest" tests="19" skipped="0" failures="0" errors="0" timestamp="2026-09-26T16:54:35.826Z" hostname="PC-HAMZA" time="0.009">
+  <properties/>
+  <testcase name="once the read is complete an empty row is a real answer" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <testcase name="a fresh guide has nothing to say about its age" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.001"/>
+  <testcase name="a failure with programmes on screen is a data error" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.001"/>
+  <testcase name="a cache emission is not yet a complete read" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <testcase name="a channel the read never asked for stays a skeleton" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <testcase name="cached programmes are content even before the server answers" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <testcase name="a cache answer with nothing yet is a load, never an empty guide" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.004"/>
+  <testcase name="a completed read with programmes is content" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <testcase name="a guide that was never dated has nothing to say about its age" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <testcase name="a network emission completes the read" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <testcase name="before anything is read nothing is announced" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <testcase name="a cache emission with a reason is a failed read" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <testcase name="a failed import is said as incomplete, without inventing a date" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.001"/>
+  <testcase name="a cache row with nothing yet stays a skeleton" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <testcase name="a source with no guide configured is not a failure and not empty" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <testcase name="a stale guide dates itself from the last import" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <testcase name="a row with cached programmes is answered before the server speaks" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <testcase name="a completed read with nothing over the day is empty" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.001"/>
+  <testcase name="an initial failure with no data is an initial error, not an empty guide" classname="tv.lumo.android.feature.live.GuideStatesTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

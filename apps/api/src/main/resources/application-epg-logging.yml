@@ -1,0 +1,31 @@
+# ==============================================================================
+# I-4 (S9-07-03) — count the guide reads the web server makes.
+#
+# The web renders its guide on the Next.js server, so the browser's own request
+# interception cannot see the API call it makes. The call is counted from the
+# API side instead: this profile turns on the servlet's request log, and every
+# authenticated request then appears as
+#
+#   DEBUG ... o.s.web.servlet.DispatcherServlet : GET "/v1/sources/<uuid>/epg", parameters={...}
+#
+# **The logger is `org.springframework.web.servlet.DispatcherServlet`, and the
+# name is case-sensitive.** It is not `...FrameworkServlet`: the request line is
+# written by the DispatcherServlet (the logger field is taken from the runtime
+# class), so enabling the parent-class name enables nothing. The obvious
+# environment variable, LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_
+# DISPATCHERSERVLET, is passed through Spring Boot's relaxed binding, which
+# lowercases it to `...dispatcherservlet` — a logger that does not exist. The
+# bracket key below is what keeps the case.
+#
+# Activate it and count (see also apps/web/e2e/bench/count-epg.sh):
+#
+#   SPRING_PROFILES_ACTIVE=dev,epg-logging \
+#     docker compose --env-file apps/api/.env up -d --no-deps lumo-api
+#   docker logs lumo-api 2>&1 | grep -cE 'GET "/v1/sources/[0-9a-f-]+/epg'
+#
+# Off unless a developer names it: an inactive profile configures nothing, so
+# no deployment pays for a DEBUG line on every request.
+# ==============================================================================
+logging:
+  level:
+    "[org.springframework.web.servlet.DispatcherServlet]": DEBUG

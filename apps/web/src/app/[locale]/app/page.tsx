@@ -7,6 +7,7 @@ import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import type { EpgProgramme } from "@/lib/api/types";
 import { type DirectView, directViewHref } from "@/lib/direct/view-memory";
+import { epgNow } from "@/lib/epg/clock";
 import { clockTime } from "@/lib/epg/format";
 import { loadHomeRails, type HomeRails } from "@/lib/home/load-home-rails";
 import { requireSession } from "@/lib/session/session";
@@ -133,8 +134,11 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
   // would answer `409 SOURCE_NOT_READY`, and there is no history on a catalogue
   // nobody has seen yet.
   // One clock for the whole render: what is "on now" is decided at this
-  // instant, and the hours drawn are relative to it.
-  const now = new Date();
+  // instant, and the hours drawn are relative to it. It comes from `epgNow`
+  // and not from `new Date()`: this is the second server caller of
+  // `loadEpgWindow`, and a `LUMO_NOW`-controlled session must move the home
+  // rail exactly as it moves the Guide (I-3, S9-07-03).
+  const now = epgNow();
   const rails = condition.browsable
     ? await loadHomeRails(session.accessToken, source.id, now)
     : null;
