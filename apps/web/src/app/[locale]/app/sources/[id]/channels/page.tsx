@@ -20,6 +20,7 @@ import {
 import { ChannelPlayer } from "@/components/app/ChannelPlayer";
 import { DirectViews } from "@/components/app/DirectViews";
 import { EpgGrid } from "@/components/app/EpgGrid";
+import { ProgrammeSheet } from "@/components/app/ProgrammeSheet";
 import { SourceNotice } from "@/components/app/SourceNotice";
 import { Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
@@ -35,6 +36,7 @@ import { clockTime } from "@/lib/epg/format";
 import { epgFreshness } from "@/lib/epg/freshness";
 import { epgNow } from "@/lib/epg/clock";
 import { NOW_WINDOW_MS, loadEpgWindow, type EpgWindow } from "@/lib/epg/load-epg-window";
+import { findProgrammeInGrid } from "@/lib/epg/programme";
 import { onAirByChannel } from "@/lib/epg/now";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
@@ -187,6 +189,10 @@ export default async function ChannelsPage({
   const search = single(query.q);
   const page = Math.max(0, Number.parseInt(single(query.page) ?? "0", 10) || 0);
   const playing = single(query.play);
+  // The programme whose sheet is open (S9-06-04), as an identifier and never as
+  // an object: the URL is shareable, reloadable, and the sheet is fetched from
+  // the guide window this render already read.
+  const programmeId = single(query.programme);
   // Which favourite group the rail shows. In the URL like everything else on
   // this screen, so it survives a reload, can be shared, and comes back with the
   // back button (S4-09).
@@ -400,6 +406,15 @@ export default async function ChannelsPage({
   // as a gap, which is the honest outcome: the channel is gone.
   for (const channel of resolved?.data?.items ?? []) byId.set(channel.id, channel);
 
+  // S9-06-04: the selected programme, resolved inside the one grouped guide
+  // answer of this render. An identifier that is not in the window opens no
+  // sheet rather than a fabricated one.
+  const selection =
+    programmeId && guide.state === "ok"
+      ? findProgrammeInGrid(guide.grid.channels, programmeId)
+      : undefined;
+  const selectedChannel = selection ? byId.get(selection.channel.channel_id) : undefined;
+
   const nowPlaying = playing ? byId.get(playing) : undefined;
   const railFavorites = railOf(starred.slice(0, railSize), byId);
   const railRecents = railOf(watched.slice(0, RAIL_SIZE), byId);
@@ -464,6 +479,38 @@ export default async function ChannelsPage({
       group: activeGroup?.id,
     })}`,
   );
+
+  // The Guide's own URL, without a selected programme. It is both the sheet's
+  // close target and GD-10's **Réessayer**: a Server Component can only ask the
+  // same day again, and the URL is exactly that.
+  const guideSelfHref = hrefFor(
+    locale as Locale,
+    `/app/sources/${id}/channels${queryString({
+      view: "guide",
+      categoryId,
+      q: search,
+      page: page > 0 ? String(page) : undefined,
+      play: playing,
+      group: activeGroup?.id,
+      day: activeDay.date,
+    })}`,
+  );
+  // Selecting a programme in the grid (S9-06-04). Everything the page carries
+  // rides along, so closing the sheet returns to the same day and position.
+  const programmeHref = (selectedId: string) =>
+    hrefFor(
+      locale as Locale,
+      `/app/sources/${id}/channels${queryString({
+        view: "guide",
+        categoryId,
+        q: search,
+        page: page > 0 ? String(page) : undefined,
+        play: playing,
+        group: activeGroup?.id,
+        day: activeDay.date,
+        programme: selectedId,
+      })}`,
+    );
 
   return (
     <div>
@@ -677,27 +724,54 @@ export default async function ChannelsPage({
               </p>
             </div>
           ) : directView === "guide" ? (
-            <EpgGrid
-              window={guide}
-              channels={listed}
-              days={days}
-              activeDate={activeDay.date}
-              todayDate={today.date}
-              timeZone={timeZone}
-              locale={locale as Locale}
-              labels={{
-                grid: t("directGuideTitle"),
-                days: t("directGuideDays"),
-                today: t("directDayToday"),
-                nowButton: t("directNowButton"),
-                emptySlot: t("directGuideEmptySlot"),
-                seeChannels: t("sourceOpenCatalogue"),
-              }}
-              dayHref={guideDayHref}
-              nowHref={guideDayHref(today.date)}
-              channelsHref={channelsViewHref}
-              playHref={playHref}
-            />
+            <>
+              <EpgGrid
+                window={guide}
+                channels={listed}
+                days={days}
+                activeDate={activeDay.date}
+                todayDate={today.date}
+                timeZone={timeZone}
+                locale={locale as Locale}
+                labels={{
+                  grid: t("directGuideTitle"),
+                  days: t("directGuideDays"),
+                  today: t("directDayToday"),
+                  nowButton: t("directNowButton"),
+                  emptySlot: t("directGuideEmptySlot"),
+                  seeChannels: t("sourceOpenCatalogue"),
+                  error: t("directGuideError"),
+                  errorHint: t("directGuideErrorHint"),
+                  retry: t("directGuideRetry"),
+                  noGuide: t("directGuideNoGuide"),
+                }}
+                dayHref={guideDayHref}
+                nowHref={guideDayHref(today.date)}
+                channelsHref={channelsViewHref}
+                retryHref={guideSelfHref}
+                playHref={playHref}
+                programmeHref={programmeHref}
+              />
+              {/* The programme sheet (S9-06-04), drawn over the grid as a
+                  sibling so the grid stays underneath it. A client component:
+                  it is the one part of this page that needs a clock. */}
+              {selection && selectedChannel ? (
+                <ProgrammeSheet
+                  programme={selection.programme}
+                  channel={selectedChannel}
+                  nowIso={now.toISOString()}
+                  timeZone={timeZone}
+                  locale={locale as Locale}
+                  playHref={playHref(selection.channel.channel_id)}
+                  closeHref={guideSelfHref}
+                  labels={{
+                    sheet: t("programmeSheetLabel"),
+                    watch: t("programmeWatch"),
+                    close: t("programmeClose"),
+                  }}
+                />
+              ) : null}
+            </>
           ) : (
             <ul aria-label={t("catalogueTitle")} className="space-y-2">
               {listed.map((channel) => (

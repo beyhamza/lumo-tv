@@ -1,10 +1,13 @@
 package tv.lumo.android.core.designsystem.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -12,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -95,6 +99,14 @@ fun LumoStateMessage(
  * does not take the focus on arrival — the viewer came from the rail and is
  * still there; `RIGHT` finds it. Two buttons sit on one line, the primary first:
  * `RIGHT` from the rail lands on it, `RIGHT` again reaches the second.
+ *
+ * The message itself never takes the focus. A caller that must **give it back**
+ * after the viewer acted — a retry that falls back into the same error — passes
+ * the requesters the two actions were mounted with; nothing happens on arrival.
+ *
+ * @param actionFocusRequester the primary action's node, when a caller needs to
+ *   restore the focus there after an action that came back to this screen.
+ * @param secondaryActionFocusRequester the same, for the quieter second way on.
  */
 @Composable
 fun LumoTvStateMessage(
@@ -107,35 +119,58 @@ fun LumoTvStateMessage(
     onAction: () -> Unit = {},
     secondaryActionLabel: String? = null,
     onSecondaryAction: () -> Unit = {},
+    actionFocusRequester: FocusRequester? = null,
+    secondaryActionFocusRequester: FocusRequester? = null,
 ) {
-    Column(
-        modifier = modifier.padding(LumoSpacing.xxl),
-        verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+    // Centred, and scrollable rather than squashed: a Column measured against a
+    // bounded height shrinks its own children when the copy does not fit (the
+    // two actions collapsed to 18 px on the 1080p error screen,
+    // BUG-S9-06-03-01). The Box hands the inner Column its intrinsic height up to
+    // the height available, and lets it scroll past that rather than compress.
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
     ) {
-        TvText(
-            text = title,
-            style = TvMaterialTheme.typography.displayMedium,
-            color = LumoColors.OnDark,
-        )
-        detail?.let {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(LumoSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(LumoSpacing.md, Alignment.CenterVertically),
+        ) {
             TvText(
-                text = it,
-                style = TvMaterialTheme.typography.titleLarge,
-                color = if (isError) LumoColors.Error else LumoColors.Accent,
+                text = title,
+                style = TvMaterialTheme.typography.displayMedium,
+                color = LumoColors.OnDark,
             )
-        }
-        TvText(
-            text = body,
-            style = TvMaterialTheme.typography.bodyLarge,
-            color = LumoColors.OnDarkMuted,
-        )
-        if (actionLabel != null || secondaryActionLabel != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md)) {
-                if (actionLabel != null) {
-                    LumoTvButton(text = actionLabel, onClick = onAction, primary = true)
-                }
-                if (secondaryActionLabel != null) {
-                    LumoTvButton(text = secondaryActionLabel, onClick = onSecondaryAction)
+            detail?.let {
+                TvText(
+                    text = it,
+                    style = TvMaterialTheme.typography.titleLarge,
+                    color = if (isError) LumoColors.Error else LumoColors.Accent,
+                )
+            }
+            TvText(
+                text = body,
+                style = TvMaterialTheme.typography.bodyLarge,
+                color = LumoColors.OnDarkMuted,
+            )
+            if (actionLabel != null || secondaryActionLabel != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md)) {
+                    if (actionLabel != null) {
+                        LumoTvButton(
+                            text = actionLabel,
+                            onClick = onAction,
+                            primary = true,
+                            focusRequester = actionFocusRequester,
+                        )
+                    }
+                    if (secondaryActionLabel != null) {
+                        LumoTvButton(
+                            text = secondaryActionLabel,
+                            onClick = onSecondaryAction,
+                            focusRequester = secondaryActionFocusRequester,
+                        )
+                    }
                 }
             }
         }

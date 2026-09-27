@@ -1,0 +1,11 @@
+[WebServer] $ next build
+[WebServer] $ next start "--port" "3100"
+[e2e] pile déjà en écoute sur http://localhost:18082/actuator/health — réutilisée telle quelle.
+
+Running 2 tests using 1 worker
+
+  ✓  1 [setup] › e2e\auth.setup.ts:18:6 › un compte est créé et sa session enregistrée (458ms)
+  ✓  2 [journey] › e2e\s9-06-04-fault.journey.spec.ts:36:5 › QA-06-04-06 — GD-10 erreur initiale : message distinct, Réessayer, jamais « guide vide » (4.0s)
+[e2e] pile adoptée, pas démarrée par cette campagne — laissée en place.
+
+  2 passed (11.7s)

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tv.lumo.android.feature.live.LiveTvFocusTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-09-26T16:54:35.853Z" hostname="PC-HAMZA" time="0.002">
+  <properties/>
+  <testcase name="arrival skips a skeleton and lands on the first real card" classname="tv.lumo.android.feature.live.LiveTvFocusTest" time="0.001"/>
+  <testcase name="an empty grid has no target to move to" classname="tv.lumo.android.feature.live.LiveTvFocusTest" time="0.0"/>
+  <testcase name="a skeleton at the current index gives way to the first real card" classname="tv.lumo.android.feature.live.LiveTvFocusTest" time="0.0"/>
+  <testcase name="nothing loaded yet leaves the target where it was and invents no index" classname="tv.lumo.android.feature.live.LiveTvFocusTest" time="0.0"/>
+  <testcase name="a loaded card keeps the focus" classname="tv.lumo.android.feature.live.LiveTvFocusTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

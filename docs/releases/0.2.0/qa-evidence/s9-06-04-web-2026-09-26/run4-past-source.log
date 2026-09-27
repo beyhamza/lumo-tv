@@ -1,0 +1,12 @@
+[WebServer] $ next build
+[WebServer] $ next start "--port" "3100"
+[e2e] pile déjà en écoute sur http://localhost:18080/actuator/health — réutilisée telle quelle.
+
+Running 3 tests using 2 workers
+
+  ✓  1 [setup] › e2e\auth.setup.ts:18:6 › un compte est créé et sa session enregistrée (426ms)
+  ✓  3 [journey] › e2e\s9-06-04-past-source.journey.spec.ts:76:5 › QA-06-04-03 — fiche d'un programme passé : informations seules, aucune lecture (1.0s)
+  ✓  2 [journey] › e2e\s9-06-04-past-source.journey.spec.ts:97:5 › QA-06-04-11 — fiche ouverte : un changement de source venu d'un AUTRE appareil ne la ferme pas (portée par appareil) (8.1s)
+[e2e] pile adoptée, pas démarrée par cette campagne — laissée en place.
+
+  3 passed (17.3s)

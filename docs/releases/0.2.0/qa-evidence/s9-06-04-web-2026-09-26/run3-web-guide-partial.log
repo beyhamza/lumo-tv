@@ -1,0 +1,11 @@
+[WebServer] $ next build
+[WebServer] $ next start "--port" "3100"
+[e2e] pile déjà en écoute sur http://localhost:18080/actuator/health — réutilisée telle quelle.
+
+Running 2 tests using 1 worker
+
+  ✓  1 [setup] › e2e\auth.setup.ts:18:6 › un compte est créé et sa session enregistrée (440ms)
+  ✓  2 [journey] › e2e\s9-06-04-partial.journey.spec.ts:36:5 › QA-06-04-08 — GD-11 guide partiel : créneau vide annoncé, aucune erreur (4.0s)
+[e2e] pile adoptée, pas démarrée par cette campagne — laissée en place.
+
+  2 passed (11.7s)

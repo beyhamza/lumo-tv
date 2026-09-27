@@ -36,6 +36,7 @@ import java.time.LocalDate
 import tv.lumo.android.core.data.EpgDay
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.EpgProgramme
+import tv.lumo.android.core.designsystem.component.LumoStateMessage
 import tv.lumo.android.core.designsystem.format.formatTimeOfDay
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
@@ -144,11 +145,28 @@ internal fun GuideDayMobile(
     onNow: () -> Unit,
     onDayVisible: (EpgDay, List<String>) -> Unit,
     onOpenProgramme: (channelId: String, channelName: String?, programme: EpgProgramme) -> Unit,
+    onRetry: () -> Unit,
+    onSeeChannels: () -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
 ) {
     val guideDay = state.guideDay
-    val answered = channel.id in guideDay.answered
+    val guideState = guideStateOf(
+        configured = guideDay.configured,
+        status = guideDay.status,
+        answered = guideDay.answered,
+        programmes = guideDay.programmes,
+    )
+    val guideAge = guideAgeOf(guideDay.status)
+    // A row with cached programmes is answered at once; an empty one only once
+    // the read is terminal, so a load in progress keeps its spinner and never
+    // announces an empty guide (GD-10).
+    val answered = guideRowAnswered(
+        channelId = channel.id,
+        status = guideDay.status,
+        answered = guideDay.answered,
+        programmes = guideDay.programmes,
+    )
     val blocks = remember(guideDay.programmes[channel.id], activeDay) {
         channelDayBlocks(guideDay.programmes[channel.id].orEmpty(), activeDay)
     }
@@ -167,6 +185,61 @@ internal fun GuideDayMobile(
         // No guide on this source: nothing to draw, and the header above keeps
         // the way out reachable (S7-03).
         if (guideDay.configured == false) return@Column
+
+        // A stale guide, or one whose last import did not finish, dates itself
+        // (GD-11); fresh and undated guides say nothing.
+        guideAge?.let { age ->
+            Text(
+                text = guideAgeLabel(age),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = LumoSpacing.lg, vertical = LumoSpacing.xs),
+            )
+        }
+
+        // A failed read with no data is a screen of its own, never an empty day
+        // (GD-10): Réessayer and Voir les chaînes.
+        if (guideState == GuideState.InitialError) {
+            LumoStateMessage(
+                title = stringResource(R.string.feature_live_guide_error_title),
+                body = stringResource(R.string.feature_live_guide_error_body),
+                isError = true,
+                actionLabel = stringResource(R.string.feature_live_guide_retry),
+                onAction = onRetry,
+                secondaryActionLabel = stringResource(R.string.feature_live_guide_see_channels),
+                onSecondaryAction = onSeeChannels,
+            )
+            return@Column
+        }
+
+        // A failed read **with** data keeps the day on screen; only a distinct
+        // line and a retry say the update failed (GD-10).
+        if (guideState == GuideState.DataError) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = LumoSpacing.lg, vertical = LumoSpacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.feature_live_guide_stale_body),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = stringResource(R.string.feature_live_guide_retry),
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable(onClick = onRetry),
+                )
+            }
+        }
 
         if (!answered) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

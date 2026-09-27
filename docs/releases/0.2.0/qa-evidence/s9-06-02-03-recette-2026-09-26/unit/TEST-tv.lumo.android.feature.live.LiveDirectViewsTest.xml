@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tv.lumo.android.feature.live.LiveDirectViewsTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-09-26T16:54:35.836Z" hostname="PC-HAMZA" time="0.009">
+  <properties/>
+  <testcase name="a status change of the same source costs nobody their search or view" classname="tv.lumo.android.feature.live.LiveDirectViewsTest" time="0.002"/>
+  <testcase name="a search still loading draws nothing, not a no-result sentence" classname="tv.lumo.android.feature.live.LiveDirectViewsTest" time="0.004"/>
+  <testcase name="an explicit entry into the other view is the mirror case" classname="tv.lumo.android.feature.live.LiveDirectViewsTest" time="0.0"/>
+  <testcase name="a change of source drops the search and the filter" classname="tv.lumo.android.feature.live.LiveDirectViewsTest" time="0.0"/>
+  <testcase name="a source this device has no memory of opens on Channels" classname="tv.lumo.android.feature.live.LiveDirectViewsTest" time="0.001"/>
+  <testcase name="a blank search is never a search that found nothing" classname="tv.lumo.android.feature.live.LiveDirectViewsTest" time="0.0"/>
+  <testcase name="the view travels as a name and comes back as itself" classname="tv.lumo.android.feature.live.LiveDirectViewsTest" time="0.0"/>
+  <testcase name="an explicit entry overwrites the remembered view and resets the session" classname="tv.lumo.android.feature.live.LiveDirectViewsTest" time="0.0"/>
+  <testcase name="what the explicit entry does not own is left alone" classname="tv.lumo.android.feature.live.LiveDirectViewsTest" time="0.0"/>
+  <testcase name="a search that returned no channel is the state with the two ways out" classname="tv.lumo.android.feature.live.LiveDirectViewsTest" time="0.0"/>
+  <testcase name="a new source opens on its own remembered view" classname="tv.lumo.android.feature.live.LiveDirectViewsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
