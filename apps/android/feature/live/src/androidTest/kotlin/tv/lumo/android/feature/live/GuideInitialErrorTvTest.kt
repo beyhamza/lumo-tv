@@ -10,11 +10,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.pressKey
+import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.paging.PagingData
@@ -35,6 +49,7 @@ import tv.lumo.android.core.data.EpgDayWindow
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.designsystem.component.LumoTvStateMessage
+import tv.lumo.android.core.designsystem.component.LumoTvButton
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.theme.LumoTvTheme
@@ -71,6 +86,9 @@ class GuideInitialErrorTvTest {
     private val body = context.getString(FeatureLiveR.string.feature_live_guide_error_body)
     private val retry = context.getString(FeatureLiveR.string.feature_live_guide_retry)
     private val seeChannels = context.getString(FeatureLiveR.string.feature_live_guide_see_channels)
+
+    /** The rail's first entry, in the harness, so the focus starts where a viewer's does. */
+    private val railLabel = "Rail"
 
     private val emptySearchTitle = context.getString(FeatureLiveR.string.feature_live_search_empty_title)
     private val emptySearchBody =
@@ -207,6 +225,147 @@ class GuideInitialErrorTvTest {
             "clear" to emptySearchClear to 40.dp,
             "all" to emptySearchAll to 40.dp,
         )
+    }
+
+    /**
+     * The real shell on the Guide's initial error: the rail on the left, the Live
+     * TV column on the right. On an ordinary Guide day the header also carries the
+     * focusable view toggle, which put a stop between the rail and the message; on
+     * the initial error it is hidden (BUG-S9-06-03-02 s fix), so this harness
+     * mirrors that and the focus path is the real one.
+     */
+    @Composable
+    private fun LiveTvShellWithRail(content: @Composable () -> Unit) {
+        val railRequester = remember { FocusRequester() }
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(LumoColors.Ink)
+                .tvOverscan()
+                .padding(LumoSpacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
+        ) {
+            LumoTvButton(text = railLabel, onClick = {}, focusRequester = railRequester)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
+            ) {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    TvText(text = "Live TV", style = TvMaterialTheme.typography.displayMedium)
+                }
+                // The search field is hidden on the initial error, exactly as
+                // LiveTvScreen does: the message gets the band directly.
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+                ) {
+                    content()
+                }
+            }
+        }
+        LaunchedEffect(Unit) { railRequester.requestFocus() }
+    }
+
+    @Composable
+    private fun GuideInitialError(channels: androidx.paging.compose.LazyPagingItems<Channel>) {
+        GuideGridTv(
+            state = initialError,
+            channels = channels,
+            days = days,
+            activeDay = today,
+            today = today.date,
+            now = now,
+            onNow = {},
+            onSelectDay = {},
+            onOpenProgramme = { _, _, _ -> },
+            onDayVisible = { _, _ -> },
+            onAnchorChanged = {},
+            onSeeChannels = {},
+            onRetryGuide = {},
+        )
+    }
+
+    /**
+     * Rule 1 of `tv-focus-map.md`: a single `RIGHT` from the rail reaches the
+     * primary action. Before BUG-S9-06-03-02 the view toggle sat in the way and
+     * the viewer needed three `RIGHT` and a `DOWN` to get to *See channels*.
+     */
+    @Test
+    fun oneRightFromTheRailReachesTheRetryAction() {
+        compose.setContent {
+            LumoTvTheme {
+                LiveTvShellWithRail {
+                    val channels = flowOf(PagingData.from(listOf(channel)))
+                        .collectAsLazyPagingItems()
+                    GuideInitialError(channels)
+                }
+            }
+        }
+
+        compose.waitForIdle()
+        compose.onNodeWithText(railLabel).assertIsFocused()
+
+        compose.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        compose.waitForIdle()
+
+        compose.onNodeWithText(retry).assertIsFocused()
+    }
+
+    /**
+     * A retry whose read fails again disposes the focused button while the screen
+     * goes through `Loading`; the focus used to fall back to the rail (GD-10,
+     * "focus conservés"). It must come back on the action the viewer pressed.
+     */
+    @Test
+    fun aRetryThatFallsBackToTheInitialErrorKeepsTheFocusOnRetry() {
+        compose.setContent {
+            LumoTvTheme {
+                // The read failing again: a moment of Loading, then the same
+                // initial error, which is what dropped the focus to the rail.
+                val loading = initialError.copy(
+                    guideDay = initialError.guideDay.copy(status = GuideStatus(read = GuideRead.Idle)),
+                )
+                var state by remember { mutableStateOf(initialError) }
+                LaunchedEffect(state) {
+                    if (state.guideState() == GuideState.Loading) {
+                        withFrameNanos { }
+                        state = initialError
+                    }
+                }
+                val channels = flowOf(PagingData.from(listOf(channel)))
+                    .collectAsLazyPagingItems()
+                LiveTvShellWithRail {
+                    GuideGridTv(
+                        state = state,
+                        channels = channels,
+                        days = days,
+                        activeDay = today,
+                        today = today.date,
+                        now = now,
+                        onNow = {},
+                        onSelectDay = {},
+                        onOpenProgramme = { _, _, _ -> },
+                        onDayVisible = { _, _ -> },
+                        onAnchorChanged = {},
+                        onSeeChannels = {},
+                        onRetryGuide = { state = loading },
+                    )
+                }
+            }
+        }
+
+        compose.waitForIdle()
+        // The viewer sits on Réessayer, as QA did, then presses it.
+        compose.onNodeWithText(retry).requestFocus()
+        compose.waitForIdle()
+        compose.onNodeWithText(retry).assertIsFocused()
+
+        compose.onNodeWithText(retry).performClick()
+
+        compose.waitUntil(timeoutMillis = 5_000) {
+            runCatching { compose.onNodeWithText(retry).assertIsFocused() }.isSuccess
+        }
+        compose.onNodeWithText(retry).assertIsFocused()
     }
 
     /** Every named node must be laid out tall enough to be drawn, then displayed. */

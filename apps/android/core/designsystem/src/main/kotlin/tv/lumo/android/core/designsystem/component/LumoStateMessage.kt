@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -98,6 +99,14 @@ fun LumoStateMessage(
  * does not take the focus on arrival — the viewer came from the rail and is
  * still there; `RIGHT` finds it. Two buttons sit on one line, the primary first:
  * `RIGHT` from the rail lands on it, `RIGHT` again reaches the second.
+ *
+ * The message itself never takes the focus. A caller that must **give it back**
+ * after the viewer acted — a retry that falls back into the same error — passes
+ * the requesters the two actions were mounted with; nothing happens on arrival.
+ *
+ * @param actionFocusRequester the primary action's node, when a caller needs to
+ *   restore the focus there after an action that came back to this screen.
+ * @param secondaryActionFocusRequester the same, for the quieter second way on.
  */
 @Composable
 fun LumoTvStateMessage(
@@ -110,6 +119,8 @@ fun LumoTvStateMessage(
     onAction: () -> Unit = {},
     secondaryActionLabel: String? = null,
     onSecondaryAction: () -> Unit = {},
+    actionFocusRequester: FocusRequester? = null,
+    secondaryActionFocusRequester: FocusRequester? = null,
 ) {
     // Centred, and scrollable rather than squashed: a Column measured against a
     // bounded height shrinks its own children when the copy does not fit (the
@@ -146,10 +157,19 @@ fun LumoTvStateMessage(
             if (actionLabel != null || secondaryActionLabel != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md)) {
                     if (actionLabel != null) {
-                        LumoTvButton(text = actionLabel, onClick = onAction, primary = true)
+                        LumoTvButton(
+                            text = actionLabel,
+                            onClick = onAction,
+                            primary = true,
+                            focusRequester = actionFocusRequester,
+                        )
                     }
                     if (secondaryActionLabel != null) {
-                        LumoTvButton(text = secondaryActionLabel, onClick = onSecondaryAction)
+                        LumoTvButton(
+                            text = secondaryActionLabel,
+                            onClick = onSecondaryAction,
+                            focusRequester = secondaryActionFocusRequester,
+                        )
                     }
                 }
             }

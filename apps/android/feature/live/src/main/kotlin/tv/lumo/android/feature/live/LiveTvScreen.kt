@@ -373,6 +373,15 @@ private fun Browsing(
         modifier = Modifier.padding(LumoSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
     ) {
+        // The Guide's initial error is a screen of its own (GD-10). The view
+        // toggle is shell chrome, not a way out of that state: hiding it leaves
+        // the message as the only focus target right of the rail, so a single
+        // RIGHT lands on Réessayer (BUG-S9-06-03-02, rule 1 of
+        // tv-focus-map.md). "Voir les chaînes" is the switch the toggle gave, so
+        // the exit is not lost. The search field is hidden for the same reason.
+        val guideInitialError =
+            state.view == DirectView.Guide && state.guideState() == GuideState.InitialError
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
@@ -383,7 +392,9 @@ private fun Browsing(
                 style = MaterialTheme.typography.displayMedium,
                 color = LumoColors.OnDark,
             )
-            ViewToggle(view = state.view, onSelectView = onSelectView)
+            if (!guideInitialError) {
+                ViewToggle(view = state.view, onSelectView = onSelectView)
+            }
             if (state.origin == DataOrigin.Cache) {
                 Text(
                     text = stringResource(R.string.feature_live_offline),
@@ -468,7 +479,7 @@ private fun Browsing(
                 // and both actions fit (BUG-S9-06-03-01). The rule is read from
                 // LiveState.guideState(), the same one the grid uses, rather than
                 // rewritten here.
-                if (state.view != DirectView.Guide || state.guideState() != GuideState.InitialError) {
+                if (!guideInitialError) {
                     TvSearchField(
                         value = state.search,
                         onValueChange = onSearchChanged,

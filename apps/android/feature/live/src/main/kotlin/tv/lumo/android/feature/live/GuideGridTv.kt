@@ -182,6 +182,14 @@ internal fun GuideGridTv(
     }
     val focusRequester = remember { FocusRequester() }
 
+    // The initial-error retry, and whether the viewer took it. The message never
+    // takes the focus on arrival (LumoTvStateMessage); but a retry whose read
+    // fails again disposes the button that had the focus, and the focus falls
+    // back to the rail (BUG-S9-06-03-02). The flag lets the effect below give the
+    // focus back to *that* button on the way back, and only then.
+    val retryFocusRequester = remember { FocusRequester() }
+    var retryTaken by remember { mutableStateOf(false) }
+
     // The page on display, for the day being shown: one grouped read per page,
     // none for a page already held (S9-03's rule, through [epgPageIds]).
     LaunchedEffect(listState, channels, activeDay) {
@@ -286,6 +294,30 @@ internal fun GuideGridTv(
     val guideState = state.guideState()
     val guideAge = guideAgeOf(guideDay.status)
 
+    // A retry is only done when the screen leaves the initial error; when the
+    // read fails again the screen comes back to it, and the focus goes back to
+    // the button the viewer pressed rather than falling to the rail (GD-10,
+    // "focus conservés"). A load in flight keeps the flag, so the second
+    // InitialError is the one that is restored; the first arrival never sets it,
+    // so the focus is never taken from the rail on entry.
+    LaunchedEffect(guideState, retryTaken) {
+        if (!retryTaken) return@LaunchedEffect
+        when (guideState) {
+            GuideState.InitialError -> {
+                withFrameNanos { }
+                runCatching { retryFocusRequester.requestFocus() }
+            }
+
+            // In flight: the button is gone, the flag waits for the outcome.
+            GuideState.Loading -> Unit
+
+            // The retry resolved into content, an empty day or data carried over:
+            // there is no button left to re-seat, and a later error must not
+            // inherit the flag.
+            else -> retryTaken = false
+        }
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
         // The day-tab header belongs to a guide there is something to navigate.
         // An initial error is a screen of its own (GD-10): its two rows are what
@@ -330,9 +362,13 @@ internal fun GuideGridTv(
                 body = stringResource(R.string.feature_live_guide_error_body),
                 isError = true,
                 actionLabel = stringResource(R.string.feature_live_guide_retry),
-                onAction = onRetryGuide,
+                onAction = {
+                    retryTaken = true
+                    onRetryGuide()
+                },
                 secondaryActionLabel = stringResource(R.string.feature_live_guide_see_channels),
                 onSecondaryAction = onSeeChannels,
+                actionFocusRequester = retryFocusRequester,
                 // The leftover band under the header, explicitly: the message is
                 // centred in what is left rather than measured against the whole
                 // column and clipped (BUG-S9-06-03-01).
