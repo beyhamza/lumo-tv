@@ -111,7 +111,7 @@ class LiveViewModel @Inject constructor(
     private val recents: RecentChannelRepository,
     private val epg: EpgRepository,
     private val directViews: DirectViewRepository,
-    clock: Clock,
+    private val clock: Clock,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LiveState())
@@ -305,7 +305,6 @@ class LiveViewModel @Inject constructor(
      * one.
      */
     fun onDayVisible(day: EpgDay, channelIds: List<String>) {
-        val sourceId = _state.value.sourceId ?: return
         if (channelIds.isEmpty()) return
 
         if (_state.value.guideDay.day != day) {
@@ -317,8 +316,43 @@ class LiveViewModel @Inject constructor(
         if (missing.isEmpty()) return
         guideDayAsked += missing
 
+        readGuideDay(day, missing)
+    }
+
+    /**
+     * **Réessayer**, on the Guide's own error screens (S9-06-03, GD-10).
+     *
+     * The failed read is re-issued for the channels the day had already asked
+     * for. What is already on screen is kept until the answer replaces it, so a
+     * retry from an **erreur avec données** never takes the grid, or the focus
+     * sitting on it, away. Nothing to ask means nothing to retry — the button is
+     * only drawn from a failure state, and this is the guard that makes it safe
+     * to call from anywhere.
+     */
+    fun onGuideRetry() {
+        val day = _state.value.guideDay.day ?: return
+        val asked = guideDayAsked.toList()
+        if (asked.isEmpty()) return
+
+        // The asked set is kept: those channels are still the day's, and the
+        // screen's next visibility report must not read them a second time. The
+        // retry goes straight to the read instead of through that filter.
+        readGuideDay(day, asked)
+    }
+
+    /**
+     * One grouped read of a day, feeding the day's programmes and its status.
+     *
+     * The two emissions are both applied: the cache draws at once, the server
+     * redraws, and a failure lands as the cache plus a reason. The mapping from
+     * emission to [GuideRead] is [GuideStatus.afterRead] in `GuideStates.kt`, so
+     * the rule a screen turns into "initial error" or "error with data" is one
+     * pure function and not a second copy here (the D1 lesson of S9-06-01).
+     */
+    private fun readGuideDay(day: EpgDay, channelIds: List<String>) {
+        val sourceId = _state.value.sourceId ?: return
         viewModelScope.launch {
-            epg.window(sourceId, missing, day.from, day.to).collect { cached ->
+            epg.window(sourceId, channelIds, day.from, day.to).collect { cached ->
                 _state.update { state ->
                     if (state.sourceId != sourceId || state.guideDay.day != day) {
                         return@update state
@@ -335,6 +369,12 @@ class LiveViewModel @Inject constructor(
                             // it yet; the server's answer carries it.
                             configured = cached.value.importStatus?.configured
                                 ?: state.guideDay.configured,
+                            status = state.guideDay.status.afterRead(
+                                origin = cached.origin,
+                                staleReason = cached.staleReason,
+                                freshness = cached.value.freshness(clock.instant()),
+                                lastImportAt = cached.value.importStatus?.lastSuccessfulImportAt,
+                            ),
                         ),
                     )
                 }

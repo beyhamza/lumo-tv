@@ -55,11 +55,15 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import kotlinx.coroutines.flow.distinctUntilChanged
 import tv.lumo.android.core.data.EpgDay
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.EpgProgramme
+import tv.lumo.android.core.designsystem.component.LumoTvSourceNotice
+import tv.lumo.android.core.designsystem.component.LumoTvStateMessage
 import tv.lumo.android.core.designsystem.format.formatTimeOfDay
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
@@ -83,6 +87,12 @@ data class GuideDay(
     val programmes: Map<String, List<EpgProgramme>> = emptyMap(),
     val answered: Set<String> = emptySet(),
     val configured: Boolean? = null,
+    /**
+     * What the day's read last did, and how old the guide is (S9-06-03).
+     * [GuideState] is derived from it, not stored beside it (see
+     * `GuideStates.kt`).
+     */
+    val status: GuideStatus = GuideStatus(),
 )
 
 /**
@@ -136,6 +146,7 @@ internal fun GuideGridTv(
     onDayVisible: (EpgDay, List<String>) -> Unit,
     onAnchorChanged: (GuideAnchor?) -> Unit,
     onSeeChannels: () -> Unit,
+    onRetryGuide: () -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
 ) {
@@ -150,7 +161,12 @@ internal fun GuideGridTv(
                 GuideRow(
                     channelId = channel.id,
                     programmes = guideDay.programmes[channel.id].orEmpty(),
-                    answered = channel.id in guideDay.answered,
+                    answered = guideRowAnswered(
+                        channelId = channel.id,
+                        status = guideDay.status,
+                        answered = guideDay.answered,
+                        programmes = guideDay.programmes,
+                    ),
                 )
             }
         }
@@ -165,6 +181,14 @@ internal fun GuideGridTv(
         mutableStateOf(resolveReturnSelection(remembered, rows, activeDay, now))
     }
     val focusRequester = remember { FocusRequester() }
+
+    // The initial-error retry, and whether the viewer took it. The message never
+    // takes the focus on arrival (LumoTvStateMessage); but a retry whose read
+    // fails again disposes the button that had the focus, and the focus falls
+    // back to the rail (BUG-S9-06-03-02). The flag lets the effect below give the
+    // focus back to *that* button on the way back, and only then.
+    val retryFocusRequester = remember { FocusRequester() }
+    var retryTaken by remember { mutableStateOf(false) }
 
     // The page on display, for the day being shown: one grouped read per page,
     // none for a page already held (S9-03's rule, through [epgPageIds]).
@@ -267,19 +291,105 @@ internal fun GuideGridTv(
         }
     }
 
+    val guideState = state.guideState()
+    val guideAge = guideAgeOf(guideDay.status)
+
+    // A retry is only done when the screen leaves the initial error; when the
+    // read fails again the screen comes back to it, and the focus goes back to
+    // the button the viewer pressed rather than falling to the rail (GD-10,
+    // "focus conservés"). A load in flight keeps the flag, so the second
+    // InitialError is the one that is restored; the first arrival never sets it,
+    // so the focus is never taken from the rail on entry.
+    LaunchedEffect(guideState, retryTaken) {
+        if (!retryTaken) return@LaunchedEffect
+        when (guideState) {
+            GuideState.InitialError -> {
+                withFrameNanos { }
+                runCatching { retryFocusRequester.requestFocus() }
+            }
+
+            // In flight: the button is gone, the flag waits for the outcome.
+            GuideState.Loading -> Unit
+
+            // The retry resolved into content, an empty day or data carried over:
+            // there is no button left to re-seat, and a later error must not
+            // inherit the flag.
+            else -> retryTaken = false
+        }
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
-        GuideGridHeader(
-            days = days,
-            activeDay = activeDay,
-            today = today,
-            onSelectDay = onSelectDay,
-            onNow = onNow,
-            onSeeChannels = onSeeChannels,
-        )
+        // The day-tab header belongs to a guide there is something to navigate.
+        // An initial error is a screen of its own (GD-10): its two rows are what
+        // left the message ~105 dp on the 1080p panel, less than the message's own
+        // padding, so nothing was drawn (BUG-S9-06-03-01). The message carries both
+        // ways out, so the tabs are not needed here.
+        if (guideState != GuideState.InitialError) {
+            GuideGridHeader(
+                days = days,
+                activeDay = activeDay,
+                today = today,
+                onSelectDay = onSelectDay,
+                onNow = onNow,
+                onSeeChannels = onSeeChannels,
+            )
+        }
 
         // No guide configured: nothing to draw (S7-03). The header above stays,
         // so the exits and the day tabs remain reachable.
         if (guideDay.configured == false) return@Column
+
+        // The guide's age, when it is old or its last import did not finish
+        // (GD-11). A fresh or undated guide says nothing — the ordinary case is
+        // not a warning.
+        guideAge?.let { age ->
+            Text(
+                text = guideAgeLabel(age),
+                style = MaterialTheme.typography.labelLarge,
+                color = LumoColors.OnDarkMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(vertical = LumoSpacing.xs),
+            )
+        }
+
+        // A failed read with **no** data is a screen of its own, never an empty
+        // guide (GD-10): the neutral sentence belongs to a guide that answered.
+        // Réessayer is the primary action, Voir les chaînes the way out.
+        if (guideState == GuideState.InitialError) {
+            LumoTvStateMessage(
+                title = stringResource(R.string.feature_live_guide_error_title),
+                body = stringResource(R.string.feature_live_guide_error_body),
+                isError = true,
+                actionLabel = stringResource(R.string.feature_live_guide_retry),
+                onAction = {
+                    retryTaken = true
+                    onRetryGuide()
+                },
+                secondaryActionLabel = stringResource(R.string.feature_live_guide_see_channels),
+                onSecondaryAction = onSeeChannels,
+                actionFocusRequester = retryFocusRequester,
+                // The leftover band under the header, explicitly: the message is
+                // centred in what is left rather than measured against the whole
+                // column and clipped (BUG-S9-06-03-01).
+                modifier = Modifier.weight(1f),
+            )
+            return@Column
+        }
+
+        // A failed read **with** data keeps the grid and the focus sitting on it;
+        // only a distinct line says the update failed (GD-10). The retry is an
+        // extra focus stop, never a focus owner: the selection keeps the focus.
+        if (guideState == GuideState.DataError) {
+            LumoTvSourceNotice(
+                title = stringResource(R.string.feature_live_guide_stale_title),
+                message = stringResource(R.string.feature_live_guide_stale_body),
+                isError = true,
+                retryLabel = stringResource(R.string.feature_live_guide_retry),
+                onRetry = onRetryGuide,
+                compact = true,
+            )
+        }
 
         Box(modifier = Modifier.fillMaxSize().onPreviewKeyEvent(::handleKey)) {
             // The visible window is what fits when a **half-hour** cell stays
@@ -340,6 +450,19 @@ internal fun GuideGridTv(
             }
         }
     }
+}
+
+/** The one line GD-11 allows about the guide's age, or its incomplete import. */
+@Composable
+internal fun guideAgeLabel(age: GuideAge): String = when (age) {
+    is GuideAge.LastImport -> stringResource(
+        R.string.feature_live_guide_age,
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+            .withZone(ZoneId.systemDefault())
+            .format(age.at),
+    )
+
+    GuideAge.Incomplete -> stringResource(R.string.feature_live_guide_age_incomplete)
 }
 
 /**

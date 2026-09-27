@@ -6,9 +6,10 @@ android {
     namespace = "tv.lumo.android.feature.live"
 
     defaultConfig {
-        // The instrumented focus proof for GD-07 (BUG-S9-06-01-01) launches the
-        // composable in a bare ComponentActivity; the runner comes from the
-        // compose test stack the convention plugin already wires.
+        // The instrumented proofs for GD-07 focus (BUG-S9-06-01-01) and the
+        // Guide's states (BUG-S9-06-03-01) launch the composable in a bare
+        // ComponentActivity; the runner comes from the compose test stack the
+        // convention plugin already wires.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 }
