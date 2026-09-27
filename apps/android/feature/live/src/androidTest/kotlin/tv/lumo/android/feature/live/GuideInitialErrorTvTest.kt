@@ -1,5 +1,6 @@
 package tv.lumo.android.feature.live
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import tv.lumo.android.core.data.EpgDayWindow
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.designsystem.component.LumoTvStateMessage
+import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.theme.LumoTvTheme
 import tv.lumo.android.core.designsystem.tv.tvOverscan
@@ -110,6 +112,9 @@ class GuideInitialErrorTvTest {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                // The real shell paints the Ink canvas (LiveTvScreen); the harness
+                // did not, so a capture would have read as light text on white.
+                .background(LumoColors.Ink)
                 .tvOverscan()
                 .padding(LumoSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
