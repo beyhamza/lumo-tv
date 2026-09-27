@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tv generator-info-name="lumo-qa">
+  <channel id="bench.1"><display-name lang="fr">Chaîne 01 FHD</display-name></channel>
+  <channel id="bench.2"><display-name lang="fr">Chaîne 02</display-name></channel>
+  <channel id="bench.3"><display-name lang="fr">Chaîne 03 HD</display-name></channel>
+  <channel id="bench.4"><display-name lang="fr">Chaîne 04 4K</display-name></channel>
+  <programme start="20260926154519 +0000" stop="20260926163519 +0000" channel="bench.1">
+    <title lang="fr">QA passé</title>
+    <desc lang="fr">Programme passé (aucune action).</desc>
+    <category lang="fr">Bench</category>
+  </programme>
+  <programme start="20260926164019 +0000" stop="20260926164949 +0000" channel="bench.1">
+    <title lang="fr">QA courant</title>
+    <desc lang="fr">Programme courant qui se termine pendant la passe.</desc>
+    <category lang="fr">Bench</category>
+  </programme>
+  <programme start="20260926170519 +0000" stop="20260926172519 +0000" channel="bench.1">
+    <title lang="fr">QA suivant</title>
+    <desc lang="fr">Programme suivant.</desc>
+    <category lang="fr">Bench</category>
+  </programme>
+  <programme start="20260926172519 +0000" stop="20260926174519 +0000" channel="bench.1">
+    <title lang="fr">QA plus tard</title>
+    <desc lang="fr">Programme tardif.</desc>
+    <category lang="fr">Bench</category>
+  </programme>
+  <programme start="20260926163519 +0000" stop="20260926171519 +0000" channel="bench.2">
+    <title lang="fr">QA B courant</title>
+    <desc lang="fr">Autre chaîne, programme courant.</desc>
+    <category lang="fr">Bench</category>
+  </programme>
+  <programme start="20260926171519 +0000" stop="20260926173519 +0000" channel="bench.2">
+    <title lang="fr">QA B suivant</title>
+    <desc lang="fr">Autre chaîne, programme suivant.</desc>
+    <category lang="fr">Bench</category>
+  </programme>
+  <programme start="20260926162519 +0000" stop="20260926170019 +0000" channel="bench.3">
+    <title lang="fr">QA C courant</title>
+    <desc lang="fr">Durée variable.</desc>
+    <category lang="fr">Bench</category>
+  </programme>
+  <programme start="20260926164019 +0000" stop="20260926171019 +0000" channel="bench.4">
+    <title lang="fr">QA D courant</title>
+    <desc lang="fr">Autre chaîne encore.</desc>
+    <category lang="fr">Bench</category>
+  </programme>
+</tv>
