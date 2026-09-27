@@ -1,0 +1,18 @@
+[WebServer] $ next build
+[WebServer] $ next start "--port" "3100"
+[e2e] pile déjà en écoute sur http://localhost:18080/actuator/health — réutilisée telle quelle.
+
+Running 9 tests using 1 worker
+
+  ✓  1 [setup] › e2e\auth.setup.ts:18:6 › un compte est créé et sa session enregistrée (471ms)
+  ✓  2 [journey] › e2e\s9-06-04-web.journey.spec.ts:71:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › préparation — source de banc avec guide (Game B) et grille du Guide (4.1s)
+  ✓  3 [journey] › e2e\s9-06-04-web.journey.spec.ts:81:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-01 — fiche d'un programme courant : action visible (179ms)
+  ✓  4 [journey] › e2e\s9-06-04-web.journey.spec.ts:92:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-02 — fiche d'un programme futur : aucune action (180ms)
+  ✓  5 [journey] › e2e\s9-06-04-web.journey.spec.ts:101:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-04 — GD-07 : l'action disparaît à la fin, fiche ouverte, focus sur Fermer (205ms)
+  ✓  6 [journey] › e2e\s9-06-04-web.journey.spec.ts:133:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-05 — GD-08 : l'action apparaît au démarrage, sans voler le focus (170ms)
+  ✓  7 [journey] › e2e\s9-06-04-web.journey.spec.ts:162:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-09 — nom lisible sans logo, pas de zone description vide (165ms)
+  ✓  8 [journey] › e2e\s9-06-04-web.journey.spec.ts:173:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-10 — FR puis EN : libellés traduits, aucune clé brute (251ms)
+  ✓  9 [journey] › e2e\s9-06-04-web.journey.spec.ts:185:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-12 — Échap ferme la fiche d'abord, focus visible et non piégé (225ms)
+[e2e] pile adoptée, pas démarrée par cette campagne — laissée en place.
+
+  9 passed (13.4s)
