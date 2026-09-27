@@ -31,7 +31,7 @@ LUMO_INGEST_ALLOW_PRIVATE_HOSTS=true docker compose --profile bench --env-file a
 | Site | `pnpm dev` dans `apps/web`, `http://localhost:3000` |
 | Banc de sources | `http://localhost:18081` ; depuis un appareil réel, `BENCH_PUBLIC_URL=http://<ip du poste>:18081` avant le `up` |
 | Base | `docker exec -it lumo-postgres psql -U lumo -d lumo` (port hôte `15432`) |
-| Guide de test | **à instrumenter** — voir §1.3 : le banc ne sert pas encore d'XMLTV |
+| Guide de test | **livré** — le banc sert l'XMLTV ; voir §1.3 et `apps/web/e2e/bench/README.md` |
 
 Deux comptes email créés pour la session (`recette-s9-…@test.example`), un
 téléphone Android réel, une TV/box avec télécommande, un navigateur de bureau.
@@ -48,12 +48,20 @@ S9-07 n'est pas jouable. Le dernier import EPG réussi est distinct de la
 synchronisation du catalogue : vérifier la ligne « Dernier import du guide », pas
 « dernière synchronisation ».
 
-### 1.3 À instrumenter avant toute session — bloquants
+### 1.3 Instrumentation I-1 à I-6 — état au 27 septembre 2026
 
-Cette liste est le livrable « ce qui reste à instrumenter ». Rien ci-dessous
-n'existe aujourd'hui ; chaque ligne nomme le propriétaire pressenti.
+> **Mise à jour QA du 27/09/2026.** Les six points de cette section sont
+> **livrés** sur `origin/main` depuis la fusion de `feat/S9-07-03-bench-harness`
+> (`7d3e6d2`, PR #7). Le tableau ci-dessous garde la description de ce qu'il
+> fallait instrumenter ; la colonne « Livré par » indique qui l'a livré, et
+> le plan de démarrage (`qa-evidence/s9-07-campagne-2026-09-27/PLAN-DEMARRAGE.md`)
+> donne les commandes à jour. Ne pas relire cette liste comme une liste de
+> manques : elle est historique.
+>
+> Vérifié par QA le 27/09 : banc monté, les 9 URLs (8 guides + `playlist-100.m3u`)
+> répondent 200, `guide-big.xml` = 19 200 programmes sur 100 chaînes.
 
-| # | Manque | Pourquoi c'est bloquant | Où | Propriétaire |
+| # | Ce qu'il fallait instrumenter | Pourquoi c'était bloquant | Où c'est livré | Livré par |
 |---|---|---|---|---|
 | I-1 | XMLTV de banc à **dates relatives**, servi par `nginx`, avec `tvg-id` identiques à `playlist.m3u`/`mixed.m3u` | Aucune session avec guide n'est reproductible sans lui ; un fichier committé expirerait | `apps/web/e2e/bench/entrypoint.sh` (génération) + `nginx.conf` (`location = /guide.xml`) | Dev / infra |
 | I-2 | Variantes `guide-partial.xml`, `guide-empty.xml`, `guide-broken.xml`, `guide-stale.xml`, `guide-big.xml` | GD-06/GD-10/GD-11 et la preuve de volume | même endroit | Dev / infra |
@@ -63,7 +71,8 @@ n'existe aujourd'hui ; chaque ligne nomme le propriétaire pressenti.
 | I-6 | Playlist 100 chaînes + XMLTV 100 chaînes alignés | Preuve de volume (S9-04-05 / S9-05-02) | `playlist-100.m3u` + `guide-big.xml` | Dev / infra |
 
 Tant que I-1 et I-3 ne sont pas faits, GD-01 à GD-14 restent **non joués**, pas
-« verts par déduction ».
+« verts par déduction ». _(27/09 : I-1 et I-3 sont livrés ; GD-01 à GD-14 restent
+**non joués** tant que la campagne S9-07 n'a pas eu lieu.)_
 
 ---
 
