@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tv.lumo.android.feature.live.GuideFocusTest" tests="32" skipped="0" failures="0" errors="0" timestamp="2026-09-26T16:54:35.803Z" hostname="PC-HAMZA" time="0.012">
+  <properties/>
+  <testcase name="down then up returns the first row without drifting" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.001"/>
+  <testcase name="a shorter programme on the next row is selected at the same hour" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="a day shorter than the window gives the whole day" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.001"/>
+  <testcase name="the window never exceeds the two hours the design asks for" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="right sets the reference to the start of the next cell" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.001"/>
+  <testcase name="the window is clamped inside the day" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="entry lands on the first loaded row" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="the Guide recovers the hours the channel filter column starves" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.002"/>
+  <testcase name="a return remembers only the day it belongs to" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="the first and last rows do not wrap" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="hour marks step by absolute hours to the day's end" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="the window does not move while the reference is visible" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.001"/>
+  <testcase name="the reference is clamped to the edge of a row thinner than the hour" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="two hours fit from four readable half-hours per hour" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="a panel narrower than two readable hours gets one, never none" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.001"/>
+  <testcase name="a programme that ends exactly at the hour is over" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="a programme that starts at the hour is the one on" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.001"/>
+  <testcase name="the first entry, with no anchor, still lands on Maintenant" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="an empty row is one neutral cell for the whole day" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="a return never lands on a skeleton row" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.001"/>
+  <testcase name="left and right do not wrap at the day's edges" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="a vertical move steps over a row Paging has not loaded" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="a return whose channel was last lands on the previous channel" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="the blocks fill the gaps, in order, clipped to the window" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.001"/>
+  <testcase name="the window moves only when the reference leaves it" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="a return finds the same programme that is still there" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="a gap is a neutral cell and does not skip the channel" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="a selection remembers its channel and its hour" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.001"/>
+  <testcase name="a return to an empty result has no cell to focus" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="a return keeps the same channel and hour when the programme was replaced" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.001"/>
+  <testcase name="a return whose channel left the result lands on the next channel" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <testcase name="the channel list keeps its filter column" classname="tv.lumo.android.feature.live.GuideFocusTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

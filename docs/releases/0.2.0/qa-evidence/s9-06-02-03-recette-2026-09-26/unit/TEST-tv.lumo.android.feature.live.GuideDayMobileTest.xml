@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tv.lumo.android.feature.live.GuideDayMobileTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-09-26T16:54:35.774Z" hostname="PC-HAMZA" time="0.026">
+  <properties/>
+  <testcase name="a channel with nothing on answers one empty block" classname="tv.lumo.android.feature.live.GuideDayMobileTest" time="0.013"/>
+  <testcase name="a programme started the day before is clipped to the day" classname="tv.lumo.android.feature.live.GuideDayMobileTest" time="0.0"/>
+  <testcase name="back from a channel's day returns to the on-now list" classname="tv.lumo.android.feature.live.GuideDayMobileTest" time="0.001"/>
+  <testcase name="a gap between two programmes is a block with no programme" classname="tv.lumo.android.feature.live.GuideDayMobileTest" time="0.005"/>
+  <testcase name="a gap can be the slot that is on" classname="tv.lumo.android.feature.live.GuideDayMobileTest" time="0.0"/>
+  <testcase name="now outside the day selects nothing" classname="tv.lumo.android.feature.live.GuideDayMobileTest" time="0.001"/>
+  <testcase name="the slot that is on is the one containing now" classname="tv.lumo.android.feature.live.GuideDayMobileTest" time="0.0"/>
+  <testcase name="the level follows the channel whose day is open" classname="tv.lumo.android.feature.live.GuideDayMobileTest" time="0.004"/>
+  <testcase name="the system back climbs the guide only while a channel's day is open" classname="tv.lumo.android.feature.live.GuideDayMobileTest" time="0.0"/>
+  <testcase name="a programme running past midnight stops at the day's end" classname="tv.lumo.android.feature.live.GuideDayMobileTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
