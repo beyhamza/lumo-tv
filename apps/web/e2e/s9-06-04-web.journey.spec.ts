@@ -121,6 +121,14 @@ test.describe.serial("S9-06-04 — fiche programme web (GD-07/08/10/11)", () => 
     // Le titre est capturé : il ne doit pas changer sous la fiche.
     await expect(sheet.getByRole("heading", { name: "E1" })).toBeVisible();
 
+    // Avant d'avancer l'horloge, on attend que les effets du composant client
+    // aient tourné : l'arrivée met le focus sur l'action (GD-08), et
+    // `useProgrammeClock` enregistre sa base et arme son timer avant ce focus.
+    // Sans cette attente, `fastForward` peut passer avant l'`useEffect` qui
+    // pose la base : le `setTimeout` est alors ré-armé depuis l'instant factice
+    // avancé et ne tire pas, ce qui rendrait le cas rouge sous charge.
+    await expect(watch).toBeFocused();
+
     // E1 finit à T+2 min. On avance au-delà, sans rechargement.
     await page.clock.fastForward(125_000);
 

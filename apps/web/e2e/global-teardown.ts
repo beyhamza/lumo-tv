@@ -16,7 +16,10 @@ import { composeArgs, composeEnv, stackMode } from "./support/stack";
  *   - `E2E_KEEP_STACK=1`: nothing is stopped, on purpose. The next run adopts
  *     it and starts testing immediately, and the database is there to be
  *     inspected after a failure;
- *   - otherwise, `down -v`.
+ *   - otherwise, `--profile bench down -v`: the profile is named explicitly, so
+ *     the `bench` service started by the setup is removed with the rest. A bare
+ *     `down` does not touch services from an inactive profile, which left
+ *     `lumo-e2e-bench` orphaned — and holding the `lumo-e2e` network open.
  *
  * The logs are written first, and that ordering is the whole point: `down`
  * destroys the containers, and with them the only account of what the server
@@ -25,7 +28,8 @@ import { composeArgs, composeEnv, stackMode } from "./support/stack";
  *
  * Whatever is left running is yours to remove:
  *
- *     docker compose -p lumo-e2e -f docker-compose.yml -f docker-compose.e2e.yml down -v
+ *     docker compose -p lumo-e2e -f docker-compose.yml -f docker-compose.e2e.yml \
+ *       --profile bench down -v
  */
 export default async function globalTeardown(config: FullConfig) {
   const repoRoot = repoRootFrom(config.rootDir);
@@ -48,7 +52,11 @@ export default async function globalTeardown(config: FullConfig) {
     return;
   }
 
-  compose(repoRoot, ["down", "-v"]);
+  // The `bench` profile is named on `down` on purpose: the setup starts the bench
+  // by naming it, and compose only stops services of an active profile. Without
+  // it, `lumo-e2e-bench` survives the teardown and keeps the `lumo-e2e` network
+  // alive — an orphan every following run then has to clear by hand.
+  compose(repoRoot, ["--profile", "bench", "down", "-v"]);
 }
 
 function captureApiLogs(repoRoot: string, outputDir: string) {
