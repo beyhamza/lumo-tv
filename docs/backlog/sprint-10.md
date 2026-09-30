@@ -27,6 +27,13 @@ au périmètre nominal ; tout manque découvert est remonté avant extension du 
 | S10-04 | Traiter champ vide, aucun résultat, erreur partielle, hors ligne ; aucune conservation d'historique | Trois clients |
 | S10-05 | Recette avec gros catalogue neutre et saisie rapide, clavier/télécommande, deux sources | Toutes |
 
+Découpe détaillée (modules, dépendances, unités de PR, points d'attention) et
+vérification contractuelle `q` : [US-021 § Tâches](stories/US-021-unified-search.md).
+Parité vérifiée le 30 septembre 2026 : les trois listes appliquent la même
+sous-chaîne insensible à la casse ; la description `q` des chaînes (« typo-tolerant »)
+est à corriger en S10-00. La recherche web passe par une route BFF serveur, le jeton
+d'accès étant httpOnly.
+
 ## Démo et sortie
 
 Rechercher un fragment avec une casse différente, filtrer un type, ouvrir une fiche
