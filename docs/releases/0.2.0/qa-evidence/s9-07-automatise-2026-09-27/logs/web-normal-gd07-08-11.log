@@ -1,0 +1,475 @@
+$ playwright test "--project=journey" "s9-06-04-web.journey.spec.ts" "s9-06-04-partial.journey.spec.ts" "guide-grid-density.journey.spec.ts" "s9-06-04-past-source.journey.spec.ts"
+[WebServer] $ next build
+[WebServer] $ next start "--port" "3100"
+[e2e] pas d'empreinte connue — construction de l'image.
+ Image lumo-e2e-lumo-api Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 526B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 3.54kB 0.0s done
+#2 DONE 0.1s
+
+#3 [internal] load metadata for docker.io/library/eclipse-temurin:25-jre
+#3 DONE 0.9s
+
+#4 [internal] load metadata for docker.io/library/eclipse-temurin:25-jdk
+#4 DONE 0.9s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 469B 0.0s done
+#5 DONE 0.1s
+
+#6 [runtime 1/8] FROM docker.io/library/eclipse-temurin:25-jre@sha256:8da0490fa9a3c26867012019565948eef0ee69438f5c75ac28146967bae984b5
+#6 resolve docker.io/library/eclipse-temurin:25-jre@sha256:8da0490fa9a3c26867012019565948eef0ee69438f5c75ac28146967bae984b5 0.0s done
+#6 DONE 0.0s
+
+#7 [build  1/10] FROM docker.io/library/eclipse-temurin:25-jdk@sha256:119a3d18f160a3e7655a66034d0f43beee31cd7b3b9142d57a5de29772011de6
+#7 resolve docker.io/library/eclipse-temurin:25-jdk@sha256:119a3d18f160a3e7655a66034d0f43beee31cd7b3b9142d57a5de29772011de6 0.0s done
+#7 DONE 0.1s
+
+#8 [internal] load build context
+#8 transferring context: 2.30MB 0.2s done
+#8 DONE 0.2s
+
+#9 [build  2/10] WORKDIR /repo/apps/api
+#9 CACHED
+
+#10 [build  3/10] COPY packages/contracts /repo/packages/contracts
+#10 CACHED
+
+#11 [build  4/10] COPY apps/api/gradlew /repo/apps/api/
+#11 CACHED
+
+#12 [build  5/10] COPY apps/api/gradle /repo/apps/api/gradle
+#12 CACHED
+
+#13 [build  6/10] COPY apps/api/settings.gradle.kts apps/api/build.gradle.kts apps/api/gradle.properties /repo/apps/api/
+#13 CACHED
+
+#14 [build  7/10] RUN --mount=type=cache,target=/root/.gradle     ./gradlew --no-daemon --quiet dependencies || true
+#14 CACHED
+
+#15 [build  8/10] COPY apps/api/src /repo/apps/api/src
+#15 DONE 0.1s
+
+#16 [build  9/10] RUN --mount=type=cache,target=/root/.gradle     ./gradlew --no-daemon bootJar -x test
+#16 0.850 Fetching distribution.
+#16 0.850 Downloading https://services.gradle.org/distributions/gradle-9.7.1-bin.zip
+#16 1.795 ..............10%..............20%...............30%..............40%...............50%..............60%...............70%..............80%..............90%...............100%
+#16 12.10 
+#16 12.10 Welcome to Gradle 9.7.1!
+#16 12.10 
+#16 12.10 Here are the highlights of this release:
+#16 12.10  - Isolated Projects graduates to incubating
+#16 12.10  - Broader Configuration Cache compatibility
+#16 12.10  - Resilient Sync helps you fix broken builds
+#16 12.10  - More source locations in problem reports
+#16 12.10 
+#16 12.10 For more details see https://docs.gradle.org/9.7.1/release-notes.html
+#16 12.10 
+#16 12.30 To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.7.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+#16 13.20 Daemon will be stopped at the end of the build 
+#16 14.70 Calculating task graph as no cached configuration is available for tasks: bootJar
+#16 51.90 > Task :processResources
+#16 53.90 
+#16 53.90 > Task :openApiGenerate
+#16 53.90 No application/json content media type found in response. Response examples can currently only be generated for application/json media type.
+#16 54.10 ############################################################################################
+#16 54.10 # Thanks for using OpenAPI Generator.                                                      #
+#16 54.10 # We appreciate your support! Please consider donation to help us maintain this project.   #
+#16 54.10 # https://opencollective.com/openapi_generator/donate                                      #
+#16 54.10 ############################################################################################
+#16 54.10 Successfully generated code to /repo/apps/api/build/generated/openapi
+#16 56.10 
+#16 56.10 > Task :compileJava
+#16 56.10 /repo/apps/api/src/main/java/tv/lumo/api/auth/DeviceAuthorizationRepository.java:139: warning: [text-blocks] trailing white space will be removed
+#16 56.10         Boolean tooFast = jdbc.sql("""
+#16 56.10                                    ^
+#16 56.10 /repo/apps/api/src/main/java/tv/lumo/api/shared/config/LumoProperties.java:49: warning: [dangling-doc-comments] documentation comment is not attached to any declaration
+#16 56.10             /** HMAC signing key, at least 32 bytes. No default: see application.yml. */
+#16 56.10             ^
+#16 56.10 /repo/apps/api/src/main/java/tv/lumo/api/shared/config/LumoProperties.java:58: warning: [dangling-doc-comments] documentation comment is not attached to any declaration
+#16 56.10             /** Base64, 32 bytes. Wraps the per-credential data keys. */
+#16 56.10             ^
+#16 56.10 /repo/apps/api/src/main/java/tv/lumo/api/shared/config/LumoProperties.java:69: warning: [dangling-doc-comments] documentation comment is not attached to any declaration
+#16 56.10             /**
+#16 56.10             ^
+#16 56.10 /repo/apps/api/src/main/java/tv/lumo/api/shared/config/LumoProperties.java:79: warning: [dangling-doc-comments] documentation comment is not attached to any declaration
+#16 56.10             /**
+#16 56.10             ^
+#16 56.10 /repo/apps/api/src/main/java/tv/lumo/api/source/SourceService.java:273: warning: [deprecation] UNPROCESSABLE_ENTITY in HttpStatus has been deprecated
+#16 56.10             throw new ApiException(org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY,
+#16 56.10                                                                       ^
+#16 56.10 /repo/apps/api/src/main/java/tv/lumo/api/source/SourceService.java:279: warning: [deprecation] UNPROCESSABLE_ENTITY in HttpStatus has been deprecated
+#16 56.10             throw new ApiException(org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY,
+#16 56.10                                                                       ^
+#16 56.30 /repo/apps/api/src/main/java/tv/lumo/api/ingest/xtream/XtreamClient.java:672: warning: [deprecation] isTextual() in JsonNode has been deprecated
+#16 56.30         String value = node.isTextual() ? node.stringValue() : node.asString("");
+#16 56.30                            ^
+#16 56.30 /repo/apps/api/src/main/java/tv/lumo/api/ingest/xtream/XtreamClient.java:693: warning: [dangling-doc-comments] documentation comment is not attached to any declaration
+#16 56.30     /**
+#16 56.30     ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:37: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   private @Nullable String host = null;
+#16 56.30            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:39: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   private @Nullable String username = null;
+#16 56.30            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:41: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   private @Nullable String m3uUrl = null;
+#16 56.30            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:43: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   private @Nullable String epgUrl = null;
+#16 56.30            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:47: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   private @Nullable SyncStep syncStep = null;
+#16 56.30            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:51: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   private @Nullable IngestionErrorCode errorCode = null;
+#16 56.30            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:54: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   private @Nullable OffsetDateTime lastErrorAt = null;
+#16 56.30            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:57: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   private @Nullable OffsetDateTime lastSyncedAt = null;
+#16 56.30            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:60: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   private @Nullable OffsetDateTime expiresAt = null;
+#16 56.30            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:62: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   private @Nullable Integer maxConnections = null;
+#16 56.30            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:64: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   private @Nullable Integer channelCount = null;
+#16 56.30            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:66: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   private @Nullable Integer categoryCount = null;
+#16 56.30            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:140: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public Source host(@Nullable String host) {
+#16 56.30                       ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:151: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public @Nullable String getHost() {
+#16 56.30           ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:155: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public void setHost(@Nullable String host) {
+#16 56.30                        ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:159: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public Source username(@Nullable String username) {
+#16 56.30                           ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:170: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public @Nullable String getUsername() {
+#16 56.30           ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:174: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public void setUsername(@Nullable String username) {
+#16 56.30                            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:178: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public Source m3uUrl(@Nullable String m3uUrl) {
+#16 56.30                         ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:189: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public @Nullable String getM3uUrl() {
+#16 56.30           ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:193: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public void setM3uUrl(@Nullable String m3uUrl) {
+#16 56.30                          ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:197: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public Source epgUrl(@Nullable String epgUrl) {
+#16 56.30                         ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:208: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public @Nullable String getEpgUrl() {
+#16 56.30           ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:212: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public void setEpgUrl(@Nullable String epgUrl) {
+#16 56.30                          ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:235: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public Source syncStep(@Nullable SyncStep syncStep) {
+#16 56.30                           ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:246: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public @Nullable SyncStep getSyncStep() {
+#16 56.30           ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:250: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public void setSyncStep(@Nullable SyncStep syncStep) {
+#16 56.30                            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:273: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public Source errorCode(@Nullable IngestionErrorCode errorCode) {
+#16 56.30                            ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:284: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public @Nullable IngestionErrorCode getErrorCode() {
+#16 56.30           ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:288: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public void setErrorCode(@Nullable IngestionErrorCode errorCode) {
+#16 56.30                             ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:292: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public Source lastErrorAt(@Nullable OffsetDateTime lastErrorAt) {
+#16 56.30                              ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:303: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public @Nullable OffsetDateTime getLastErrorAt() {
+#16 56.30           ^
+#16 56.30 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:307: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.30   public void setLastErrorAt(@Nullable OffsetDateTime lastErrorAt) {
+#16 56.30                               ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:311: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public Source lastSyncedAt(@Nullable OffsetDateTime lastSyncedAt) {
+#16 56.31                               ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:322: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable OffsetDateTime getLastSyncedAt() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:326: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setLastSyncedAt(@Nullable OffsetDateTime lastSyncedAt) {
+#16 56.31                                ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:330: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public Source expiresAt(@Nullable OffsetDateTime expiresAt) {
+#16 56.31                            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:341: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable OffsetDateTime getExpiresAt() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:345: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setExpiresAt(@Nullable OffsetDateTime expiresAt) {
+#16 56.31                             ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:349: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public Source maxConnections(@Nullable Integer maxConnections) {
+#16 56.31                                 ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:360: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable Integer getMaxConnections() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:364: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setMaxConnections(@Nullable Integer maxConnections) {
+#16 56.31                                  ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:368: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public Source channelCount(@Nullable Integer channelCount) {
+#16 56.31                               ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:379: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable Integer getChannelCount() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:383: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setChannelCount(@Nullable Integer channelCount) {
+#16 56.31                                ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:387: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public Source categoryCount(@Nullable Integer categoryCount) {
+#16 56.31                                ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:398: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable Integer getCategoryCount() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/Source.java:402: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setCategoryCount(@Nullable Integer categoryCount) {
+#16 56.31                                 ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:29: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   private @Nullable String host = null;
+#16 56.31            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:31: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   private @Nullable String username = null;
+#16 56.31            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:33: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   private @Nullable String password = null;
+#16 56.31            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:35: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   private @Nullable String m3uUrl = null;
+#16 56.31            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:37: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   private @Nullable String epgUrl = null;
+#16 56.31            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:91: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public CreateSourceRequest host(@Nullable String host) {
+#16 56.31                                    ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:102: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable String getHost() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:106: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setHost(@Nullable String host) {
+#16 56.31                        ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:110: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public CreateSourceRequest username(@Nullable String username) {
+#16 56.31                                        ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:121: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable String getUsername() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:125: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setUsername(@Nullable String username) {
+#16 56.31                            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:129: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public CreateSourceRequest password(@Nullable String password) {
+#16 56.31                                        ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:140: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable String getPassword() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:144: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setPassword(@Nullable String password) {
+#16 56.31                            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:148: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public CreateSourceRequest m3uUrl(@Nullable String m3uUrl) {
+#16 56.31                                      ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:159: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable String getM3uUrl() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:163: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setM3uUrl(@Nullable String m3uUrl) {
+#16 56.31                          ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:167: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public CreateSourceRequest epgUrl(@Nullable String epgUrl) {
+#16 56.31                                      ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:178: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable String getEpgUrl() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java:182: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setEpgUrl(@Nullable String epgUrl) {
+#16 56.31                          ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:23: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   private @Nullable String label;
+#16 56.31            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:25: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   private @Nullable String host = null;
+#16 56.31            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:27: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   private @Nullable String username = null;
+#16 56.31            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:29: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   private @Nullable String password = null;
+#16 56.31            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:31: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   private @Nullable String m3uUrl = null;
+#16 56.31            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:33: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   private @Nullable String epgUrl = null;
+#16 56.31            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:35: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   private @Nullable Boolean autoSync;
+#16 56.31            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:37: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public UpdateSourceRequest label(@Nullable String label) {
+#16 56.31                                     ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:48: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable String getLabel() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:52: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setLabel(@Nullable String label) {
+#16 56.31                         ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:56: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public UpdateSourceRequest host(@Nullable String host) {
+#16 56.31                                    ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:67: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable String getHost() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:71: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setHost(@Nullable String host) {
+#16 56.31                        ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:75: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public UpdateSourceRequest username(@Nullable String username) {
+#16 56.31                                        ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:86: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable String getUsername() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:90: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setUsername(@Nullable String username) {
+#16 56.31                            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:94: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public UpdateSourceRequest password(@Nullable String password) {
+#16 56.31                                        ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:105: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable String getPassword() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:109: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setPassword(@Nullable String password) {
+#16 56.31                            ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:113: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public UpdateSourceRequest m3uUrl(@Nullable String m3uUrl) {
+#16 56.31                                      ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:124: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public @Nullable String getM3uUrl() {
+#16 56.31           ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:128: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public void setM3uUrl(@Nullable String m3uUrl) {
+#16 56.31                          ^
+#16 56.31 /repo/apps/api/build/generated/openapi/src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java:132: warning: [deprecation] Nullable in org.springframework.lang has been deprecated
+#16 56.31   public UpdateSourceRequest epgUrl(@Nullable String epgUrl) {
+#16 56.31                                      ^
+#16 57.10 Note: Some input files additionally use or override a deprecated API.
+#16 57.10 100 warnings
+#16 59.70 
+#16 59.70 > Task :classes
+#16 59.70 > Task :resolveMainClassName
+#16 60.60 > Task :bootJar
+#16 60.65 
+#16 60.65 [Incubating] Problems report is available at: file:///repo/apps/api/build/reports/problems/problems-report.html
+#16 60.65 
+#16 60.65 BUILD SUCCESSFUL in 59s
+#16 60.65 5 actionable tasks: 5 executed
+#16 60.65 Configuration cache entry stored.
+#16 DONE 60.9s
+
+#17 [build 10/10] RUN cp build/libs/lumo-api-*.jar app.jar  && java -Djarmode=tools -jar app.jar extract --layers --destination /extracted
+#17 DONE 0.9s
+
+#18 [runtime 7/8] COPY --from=build --chown=lumo:lumo /extracted/snapshot-dependencies/ ./
+#18 CACHED
+
+#19 [runtime 4/8] WORKDIR /app
+#19 CACHED
+
+#20 [runtime 5/8] COPY --from=build --chown=lumo:lumo /extracted/dependencies/ ./
+#20 CACHED
+
+#21 [runtime 6/8] COPY --from=build --chown=lumo:lumo /extracted/spring-boot-loader/ ./
+#21 CACHED
+
+#22 [runtime 2/8] RUN apt-get update  && apt-get install -y --no-install-recommends curl  && rm -rf /var/lib/apt/lists/*
+#22 CACHED
+
+#23 [runtime 3/8] RUN useradd --system --uid 10001 --create-home --shell /usr/sbin/nologin lumo
+#23 CACHED
+
+#24 [runtime 8/8] COPY --from=build --chown=lumo:lumo /extracted/application/ ./
+#24 CACHED
+
+#25 exporting to image
+#25 exporting layers done
+#25 exporting manifest sha256:0ba32b1bb7a7abdccd2b59542658c49f71d794c2f1e09f3ab577e94bf409b074 done
+#25 exporting config sha256:4685ba146e4bfff7427d49a59a2bbd15bb30e2d4481d16e1d5a23c3cecde6118 0.0s done
+#25 exporting attestation manifest sha256:78f7f74522a890aed72fab5d43dff20d70da069e8c3f45f49625d93f81ffcfcc
+#25 exporting attestation manifest sha256:78f7f74522a890aed72fab5d43dff20d70da069e8c3f45f49625d93f81ffcfcc 0.0s done
+#25 exporting manifest list sha256:88f85fe8c19d984d2ce9eb6d0034accb8fa2fd676fed4b19d6853d52f7ae567c 0.0s done
+#25 naming to docker.io/library/lumo-e2e-lumo-api:latest done
+#25 unpacking to docker.io/library/lumo-e2e-lumo-api:latest 0.0s done
+#25 DONE 0.1s
+
+#26 resolving provenance for metadata file
+#26 DONE 0.0s
+ Image lumo-e2e-lumo-api Built 
+ Container lumo-e2e-bench Running 
+ Container lumo-e2e-postgres Creating 
+ Container lumo-e2e-postgres Created 
+ Container lumo-e2e-api Creating 
+ Container lumo-e2e-api Created 
+ Container lumo-e2e-postgres Starting 
+ Container lumo-e2e-postgres Started 
+ Container lumo-e2e-postgres Waiting 
+ Container lumo-e2e-postgres Healthy 
+ Container lumo-e2e-api Starting 
+ Container lumo-e2e-api Started 
+ Container lumo-e2e-api Waiting 
+ Container lumo-e2e-postgres Waiting 
+ Container lumo-e2e-bench Waiting 
+ Container lumo-e2e-bench Healthy 
+ Container lumo-e2e-postgres Healthy 
+ Container lumo-e2e-api Healthy 
+
+Running 13 tests using 5 workers
+
+  ok  1 [setup] › e2e\auth.setup.ts:18:6 › un compte est créé et sa session enregistrée (1.1s)
+  -   2 [journey] › e2e\guide-grid-density.journey.spec.ts:29:7 › grille du guide — densité 1440 px (BUG-S9-05-02-01) › la grille défile dans sa cellule, la page ne défile pas
+  ok  6 [journey] › e2e\s9-06-04-partial.journey.spec.ts:36:5 › QA-06-04-08 — GD-11 guide partiel : créneau vide annoncé, aucune erreur (4.9s)
+  ok  4 [journey] › e2e\s9-06-04-web.journey.spec.ts:71:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › préparation — source de banc avec guide (Game B) et grille du Guide (4.9s)
+  ok  5 [journey] › e2e\s9-06-04-past-source.journey.spec.ts:76:5 › QA-06-04-03 — fiche d'un programme passé : informations seules, aucune lecture (5.1s)
+  ok  7 [journey] › e2e\s9-06-04-web.journey.spec.ts:81:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-01 — fiche d'un programme courant : action visible (287ms)
+  ok  8 [journey] › e2e\s9-06-04-web.journey.spec.ts:92:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-02 — fiche d'un programme futur : aucune action (195ms)
+  ok  9 [journey] › e2e\s9-06-04-web.journey.spec.ts:101:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-04 — GD-07 : l'action disparaît à la fin, fiche ouverte, focus sur Fermer (182ms)
+  ok 10 [journey] › e2e\s9-06-04-web.journey.spec.ts:133:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-05 — GD-08 : l'action apparaît au démarrage, sans voler le focus (184ms)
+  ok 11 [journey] › e2e\s9-06-04-web.journey.spec.ts:162:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-09 — nom lisible sans logo, pas de zone description vide (174ms)
+  ok 12 [journey] › e2e\s9-06-04-web.journey.spec.ts:173:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-10 — FR puis EN : libellés traduits, aucune clé brute (180ms)
+  ok 13 [journey] › e2e\s9-06-04-web.journey.spec.ts:185:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-12 — Échap ferme la fiche d'abord, focus visible et non piégé (247ms)
+  ok  3 [journey] › e2e\s9-06-04-past-source.journey.spec.ts:97:5 › QA-06-04-11 — fiche ouverte : un changement de source venu d'un AUTRE appareil ne la ferme pas (portée par appareil) (9.0s)
+[e2e] E2E_KEEP_STACK=1 — la pile reste debout ; la prochaine campagne l'adoptera.
+
+  1 skipped
+  12 passed (1.8m)
