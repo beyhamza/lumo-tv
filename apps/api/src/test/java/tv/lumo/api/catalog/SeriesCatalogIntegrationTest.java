@@ -86,6 +86,38 @@ class SeriesCatalogIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("the search and the category filters compose, as on films")
+    void searchAndCategoryCompose() {
+        // A second series matching the same substring, in another category, so the
+        // category filter has something to exclude: with one series in one
+        // category, "the two compose" would pass on a query that ignored the
+        // category entirely.
+        UUID comedy = insertCategory(sourceId, "Comédie");
+        insertSeries(sourceId, "Les Falaises du Nord", comedy, 1);
+
+        // Case-insensitive substring, exactly what the channel and film search do.
+        assertThat(catalog.findSeries(sourceId, user.id(), null, "falaises", null, 0, 50))
+                .extracting(Series::getName)
+                .containsExactlyInAnyOrder("Les Falaises", "Les Falaises du Nord");
+        assertThat(catalog.findSeries(sourceId, user.id(), null, "FALAISES", null, 0, 50))
+                .extracting(Series::getName)
+                .containsExactlyInAnyOrder("Les Falaises", "Les Falaises du Nord");
+
+        // The category narrows the same substring to its own series rather than
+        // being replaced by it.
+        assertThat(catalog.findSeries(sourceId, user.id(), drama, "falaises", null, 0, 50))
+                .extracting(Series::getName).containsExactly("Les Falaises");
+        assertThat(catalog.findSeries(sourceId, user.id(), comedy, "falaises", null, 0, 50))
+                .extracting(Series::getName).containsExactly("Les Falaises du Nord");
+
+        // Accent-insensitive it is not, and does not claim to be: ILIKE on a
+        // substring, exactly what the channel search does.
+        assertThat(catalog.findSeries(sourceId, user.id(), null, "Falaises", null, 0, 50))
+                .extracting(Series::getName)
+                .containsExactlyInAnyOrder("Les Falaises", "Les Falaises du Nord");
+    }
+
+    @Test
     @DisplayName("a series category counts its series, not their episodes")
     void aSeriesCategoryCountsItsSeries() {
         // One series, three episodes: the chip next to "Drame" must say 1. The
