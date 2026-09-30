@@ -1,11 +1,14 @@
 # Sprint 9 — Direct et guide sur les trois surfaces
 
-Statut : en réalisation. C1 gelé en S9-01, contrat et serveur livrés en S9-02 ; S9-00 et
-S9-03 en recette ; S9-04 livré et **En recette** sur les trois surfaces (01→07 approuvées),
-correctifs des défauts #1 fusionnés ;
+Statut : **code livré, cycle non clos — recette réelle reportée.** C1 gelé en S9-01,
+contrat et serveur livrés en S9-02 ; S9-00 et S9-03 en recette ; S9-04 **En recette**
+sur les trois surfaces (01→07 approuvées, correctifs des défauts #1 fusionnés) ;
 S9-05 **En recette** (01→04 `Done`, journée mobile `f77930e` fusionnée via PR #5 ; correctifs #2/#3/#4 fusionnés) ;
 S9-06 **En recette** (01→04 `Done`, `BUG-S9-06-01-01`/`-03-01`/`-03-02` `Done`) — **quatre branches fusionnées dans `main`** (PR #8→#11) ;
-S9-07 **`Todo`** : harnais `S9-07-03` **livré et fusionné** (`7d3e6d2`, PR #7), campagne QA préparée, recette intersurfaces **non exécutée**. Aucun item n'est déclaré terminé tant que
+S9-07 **`Todo`** : harnais `S9-07-03` **livré et fusionné** (`7d3e6d2`, PR #7), campagne QA préparée, recette intersurfaces **non exécutée**.
+**Décision du 27 septembre : Hamza n'a pas de créneau pour la recette matérielle ;
+elle reste « préparée, non jouée », le cycle S9 n'est pas clos et aucun item ne passe
+`Done`. L'automatique sur le banc fait foi en attendant.** Aucun item n'est déclaré terminé tant que
 la recette réelle (DoD commune) n'est pas jouée. Taille relative : XL.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
@@ -96,10 +99,15 @@ Mis à jour le 27 septembre 2026. Une case cochée signifie recetté, pas seulem
   (`docs/releases/0.2.0/s9-07-recette.md`, `be2a89a`) ; **S9-07-03 `Done`** (harnais :
   `feat/S9-07-03-bench-harness` @ `1afa234`, mergé `7d3e6d2`, PR #7) ; campagne
   préparée par QA (`qa/S9-07-campagne` @ `476e290`, banc provisionnable vérifié une
-  fois). Recette `S9-07-01`/`02` **non exécutée** : gated sur le **merge des branches
-  S9-06** (les défauts TV sont corrigés et `Done`) et sur du **matériel réel**
+  fois). Recette `S9-07-01`/`02` **non exécutée** : le merge des branches S9-06 est
+  fait et les défauts TV sont corrigés et `Done` ; il ne reste que du **matériel réel**
   (téléphone Android + TV/box avec télécommande) ; les émulateurs ne comptent que
   comme repli non « vert ».
+  **Décision du 27 septembre : Hamza ne peut pas jouer la recette maintenant.** Le
+  protocole et le banc sont prêts ; @QA exécute les preuves **automatiques** et la
+  partie **automatisable** des cas GD (aucune ne vaut « vert » sans exécution), et
+  tient une liste courte des cas qui exigent du **matériel réel**, à jouer en une
+  seule séance ultérieure. Détail : `DECISIONS-PRODUIT.md` (27/09).
 
 ### Reste à faire (état au 27 septembre 2026)
 
