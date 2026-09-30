@@ -11,4 +11,9 @@
          and Series (US-017), and the shell is what draws it. The French copy is
          in values-fr. -->
     <string name="app_mobile_explore">Explore</string>
+
+    <!-- The way into Search, at the top of Explore (US-021, decisions table —
+         "accès en haut d'Explorer"). The label comes from the feature's own
+         destination; only the decorative glyph is the shell's. -->
+    <string name="app_mobile_search_glyph" translatable="false">⌕</string>
 </resources>

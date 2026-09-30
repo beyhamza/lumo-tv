@@ -1,24 +1,38 @@
 package tv.lumo.android.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import tv.lumo.android.R
 import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.core.designsystem.component.LumoMobileNavBar
 import tv.lumo.android.core.designsystem.component.LumoMobileSectionTabs
+import tv.lumo.android.core.designsystem.theme.LumoShapes
+import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.feature.live.PlayerDestination
+import tv.lumo.android.feature.search.SearchDestination
 import tv.lumo.android.feature.series.EpisodePlayerDestination
 import tv.lumo.android.feature.source.SourceDestination
 import tv.lumo.android.feature.source.switcher.SourceSwitcherMobile
@@ -110,6 +124,17 @@ fun LumoMobileApp(
             // own screen and on a player — those are not sections, they are
             // somewhere one went *from* a section.
             if (ExploreSections.any { it.route == currentRoute }) {
+                // The way into Search, at the top of Explore (US-021, decisions
+                // table). It is a push, not a bar move: Search is a screen one
+                // visits and comes back from, so BACK returns to the section
+                // that was open. It is not in [MobileDestinations] — the four
+                // entries of the bar are unchanged, and Search is offered from
+                // here rather than as a fifth tab.
+                ExploreSearchAccess(
+                    onOpen = {
+                        navController.navigate(SearchDestination.route) { launchSingleTop = true }
+                    },
+                )
                 LumoMobileSectionTabs(
                     sections = ExploreSections,
                     selectedRoute = currentRoute,
@@ -143,6 +168,43 @@ fun LumoMobileApp(
                 )
             }
         }
+    }
+}
+
+/**
+ * The search access drawn at the head of Explore on the phone (US-021).
+ *
+ * A labelled row rather than a fifth bar entry: the bar's four entries are the
+ * places somebody lives, and the product decision puts Search *in* Explore
+ * instead. Its label is the feature's own [SearchDestination.titleRes], so a
+ * rename cannot leave the door and the room with two names.
+ */
+@Composable
+private fun ExploreSearchAccess(onOpen: () -> Unit) {
+    val label = stringResource(SearchDestination.titleRes)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = LumoSpacing.sm, vertical = LumoSpacing.sm)
+            .clip(LumoShapes.pill)
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onOpen)
+            .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.sm)
+            .semantics { contentDescription = label },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+    ) {
+        Text(
+            text = stringResource(R.string.app_mobile_search_glyph),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

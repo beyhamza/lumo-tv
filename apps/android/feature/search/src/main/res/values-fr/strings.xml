@@ -1,6 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="feature_search_title">Recherche</string>
+    <!-- L'écran TV reste le placeholder S10-01 jusqu'à S10-02 (C) ; l'écran mobile
+         utilise l'invitation ci-dessous. -->
     <string name="feature_search_placeholder">Recherchez parmi vos chaînes, vos films et vos séries.</string>
+    <string name="feature_search_invitation">Recherchez parmi vos chaînes, vos films et vos séries.</string>
+    <string name="feature_search_hint">Chaînes, films, séries</string>
+    <string name="feature_search_clear">Effacer la recherche</string>
+    <string name="feature_search_glyph_clear" translatable="false">✕</string>
     <string name="feature_search_too_long">La recherche est limitée à 100 caractères.</string>
+
+    <string name="feature_search_filter_all">Tous</string>
+    <string name="feature_search_filter_channels">Chaînes</string>
+    <string name="feature_search_filter_films">Films</string>
+    <string name="feature_search_filter_series">Séries</string>
+
+    <string name="feature_search_see_all">Voir tous</string>
+    <string name="feature_search_show_more">Afficher plus</string>
+    <string name="feature_search_loading">Recherche en cours…</string>
+    <string name="feature_search_empty">Aucun résultat pour « %1$s ».</string>
+    <string name="feature_search_error">La recherche n’a pas abouti.</string>
+    <string name="feature_search_page_error">La page suivante n’a pas abouti.</string>
+    <string name="feature_search_retry">Réessayer</string>
 </resources>
