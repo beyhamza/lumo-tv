@@ -1,5 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import fr from "../src/messages/fr.json";
+import { sessionPathFor } from "./support/stack";
+
+/** The account this file signs up for, so its sources are its own. */
+test.use({ storageState: sessionPathFor("s9-06-04-partial") });
 
 /**
  * QA-06-04-08 — GD-11 web, guide partiel (S9-06-04, dépend I-2).

@@ -81,6 +81,23 @@ export const webBaseUrl =
   process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${WEB_PORT}`;
 
 /**
+ * The instant a controlled-clock session is built around — one value, two
+ * clocks.
+ *
+ * Pinning time moves BOTH sides. The API's guide importer keeps only
+ * `[anchor − 1 day, anchor + 3 days]` (`XmltvStreamParser`), and the web's SSR
+ * clock reads `LUMO_NOW` (`src/lib/epg/clock.ts`). Set them from two instants
+ * and the guide is imported around one moment while the page renders another,
+ * which is how a test fails for a reason nobody can see. So the anchor is
+ * computed once, here, and handed to both `composeEnv` and `webEnv`.
+ *
+ * Defaults to now, which is what every ordinary run wants: the suite follows
+ * real time, and GD-12 skips itself. `E2E_ANCHOR` pins it for the opt-in
+ * anchored pass (`.github/workflows/web.yml`, `workflow_dispatch`).
+ */
+export const ANCHOR = process.env.E2E_ANCHOR ?? new Date().toISOString();
+
+/**
  * Secrets, generated per run and never written anywhere.
  *
  * Not read from a file, and no committed defaults: `.env` files are refused by
@@ -110,7 +127,18 @@ export const composeEnv: Record<string, string> = {
   LUMO_ENCRYPTION_MASTER_KEY: secrets.masterKey,
   LUMO_WEB_BASE_URL: webBaseUrl,
   LUMO_CORS_ALLOWED_ORIGINS: webBaseUrl,
-  SPRING_PROFILES_ACTIVE: "dev",
+  // The guide the bench generates MUST be built around the same instant the web
+  // renders from, or every controlled-clock case reads a guide that does not
+  // cover "now". See ANCHOR.
+  BENCH_EPG_ANCHOR: ANCHOR,
+  // `epg-logging` (I-4) turns on the servlet request log the volume proof
+  // counts (`s9-07-network-bound.journey.spec.ts`). Without it that counter
+  // reads 0 and the proof fails on its own threshold, not on a widget.
+  SPRING_PROFILES_ACTIVE: "dev,epg-logging",
+  // GD-10's injected fault (I-5). Off by default, which is what ships. An
+  // opt-in pass arms it through `E2E_FAULT_ARMED`; the fault spec gates on the
+  // same variable, so the stack and the spec cannot disagree about it.
+  LUMO_EPG_FAULT: process.env.E2E_FAULT_ARMED ? "503" : "0",
 };
 
 /**
@@ -130,10 +158,25 @@ export const webEnv: Record<string, string> = {
   // every sign-in would appear to succeed and then do nothing.
   SESSION_COOKIE_SECURE: "false",
   NEXT_TELEMETRY_DISABLED: "1",
+  // The SSR clock, pinned to the same instant as the bench's guide (ANCHOR).
+  LUMO_NOW: ANCHOR,
 };
 
-/** Where the authenticated project's cookie jar is written. Gitignored. */
-export const SESSION_FILE = "e2e/.auth/user.json";
+/**
+ * One cookie jar per journey spec file.
+ *
+ * Gitignored, and written by `auth.setup.ts`. The suite used to hand every
+ * `*.journey.spec.ts` the SAME account, which the free plan's source ceiling
+ * made impossible: several specs register two or three sources each, and only
+ * the first to run could win the slot. Each file now signs up its own account,
+ * so a spec's sources are its own business.
+ */
+export const SESSION_DIR = ".e2e/sessions";
+
+/** The cookie jar of the account dedicated to one journey spec file. */
+export function sessionPathFor(key: string): string {
+  return `${SESSION_DIR}/${key}.json`;
+}
 
 /** Arguments common to every compose invocation of this stack. */
 export const composeArgs = [

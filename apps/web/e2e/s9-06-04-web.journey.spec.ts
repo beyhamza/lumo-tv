@@ -1,6 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import fr from "../src/messages/fr.json";
 import en from "../src/messages/en.json";
+import { sessionPathFor } from "./support/stack";
+
+/** The account this file signs up for, so its sources are its own. */
+test.use({ storageState: sessionPathFor("s9-06-04-web") });
 
 /**
  * Recette web S9-06-04 (GD-07/08/10/11), jouée par QA contre l'artefact

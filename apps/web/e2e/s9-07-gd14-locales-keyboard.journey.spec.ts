@@ -1,6 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import fr from "../src/messages/fr.json";
 import en from "../src/messages/en.json";
+import { sessionPathFor } from "./support/stack";
+
+/** The account this file signs up for, so its sources are its own. */
+test.use({ storageState: sessionPathFor("s9-07-gd14-locales-keyboard") });
 
 /**
  * GD-14 (S9-07-02) — web, FR/EN et clavier, sans matériel.

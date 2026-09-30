@@ -1,6 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
 import fr from "../src/messages/fr.json";
+import { sessionPathFor } from "./support/stack";
+
+/** The account this file signs up for, so its three volumes do not contend. */
+test.use({ storageState: sessionPathFor("s9-07-network-bound") });
 
 /**
  * S9-07 §5.2 — la preuve réseau web : le nombre d'appels
