@@ -208,7 +208,15 @@ fun LumoTvNavHost(
             onBack = { navController.popBackStack() },
             onOpenSources = leavePlayerForSources,
         )
-        searchTvScreen()
+        searchTvScreen(
+            onPlayChannel = playChannel,
+            onOpenFilm = { filmId ->
+                navController.navigate(VodDetailDestination.routeFor(filmId))
+            },
+            onOpenSeries = { seriesId ->
+                navController.navigate(SeriesDetailDestination.routeFor(seriesId))
+            },
+        )
         settingsTvScreen(
             // A push, unlike the rail's moves: "My sources" is opened *from*
             // Settings, and BACK from it returns there rather than to Home.

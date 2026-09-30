@@ -31,6 +31,16 @@ fun NavGraphBuilder.searchMobileScreen(
     }
 }
 
-fun NavGraphBuilder.searchTvScreen() {
-    composable(route = SearchDestination.route) { SearchTvScreen() }
+fun NavGraphBuilder.searchTvScreen(
+    onPlayChannel: (channelId: String, name: String?) -> Unit,
+    onOpenFilm: (filmId: String) -> Unit,
+    onOpenSeries: (seriesId: String) -> Unit,
+) {
+    composable(route = SearchDestination.route) {
+        SearchTvScreen(
+            onPlayChannel = onPlayChannel,
+            onOpenFilm = onOpenFilm,
+            onOpenSeries = onOpenSeries,
+        )
+    }
 }

@@ -2,7 +2,6 @@ package tv.lumo.android.feature.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +45,8 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.SearchFilter
+import tv.lumo.android.core.data.model.Series
+import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.designsystem.component.LumoPoster
 import tv.lumo.android.core.designsystem.component.LumoTvButton
 import tv.lumo.android.core.designsystem.theme.LumoColors
@@ -68,11 +69,22 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
  *    the platform's own keyboard; the product builds no on-screen keyboard in
  *    S10 (Q9).
  * 2. **No arrival steals the focus.** A response that lands while somebody is
- *    typing or reading a result leaves the focus exactly where it was — there is
- *    no `LaunchedEffect` on the results here, deliberately.
+ *    typing or reading a result leaves the focus exactly where it was — the one
+ *    effect keyed on the state below waits for a pending return, never for data
+ *    (Q9, SR-13).
  * 3. The one explicit move is `Voir les résultats`: it puts the focus on the first
  *    card, and while a request is in flight it does nothing and keeps the focus,
  *    rather than jumping to a card that does not exist yet (Q9, SR-13).
+ * 4. **A return restores the card it left from** (S10-03). Choosing a channel, a
+ *    film or a series records its key, and coming back from the player or the
+ *    fiche puts the focus back on that card — once, and only while a return is
+ *    pending, so a late answer still cannot move the focus (SR-12, SR-13).
+ *
+ * <h2>Opening a result</h2>
+ *
+ * A card says "this channel/film/series was chosen" and the application decides
+ * whether that is playback or a fiche — this file draws and moves the focus, it
+ * owns no route (S10-03).
  *
  * <h2>Absent, empty and loading are three different things</h2>
  *
@@ -83,6 +95,9 @@ import tv.lumo.android.core.designsystem.tv.tvOverscanEdges
  */
 @Composable
 fun SearchTvScreen(
+    onPlayChannel: (channelId: String, name: String?) -> Unit,
+    onOpenFilm: (filmId: String) -> Unit,
+    onOpenSeries: (seriesId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
@@ -90,17 +105,29 @@ fun SearchTvScreen(
     var field by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue(state.query))
     }
+    // The card chosen before leaving for a player or a fiche. Saved with the
+    // entry, so a return finds it; consumed the moment the focus is back on it.
+    var chosen by rememberSaveable { mutableStateOf<String?>(null) }
     val fieldFocus = remember { FocusRequester() }
     val firstResultFocus = remember { FocusRequester() }
+    val restoreFocus = remember { FocusRequester() }
 
-    // Arrival focus, once. It is the whole of the arrival choreography: nothing
-    // below ever asks for the focus again as a side effect of data arriving.
+    // Arrival focus, once, and not when a return is restoring a card.
     LaunchedEffect(Unit) {
-        runCatching { fieldFocus.requestFocus() }
+        if (chosen == null) runCatching { fieldFocus.requestFocus() }
+    }
+
+    // The return's own move. It runs only while a return is pending, so an answer
+    // that lands later still cannot take the focus (SR-13).
+    LaunchedEffect(chosen, state) {
+        if (chosen == null) return@LaunchedEffect
+        if (runCatching { restoreFocus.requestFocus() }.isSuccess) {
+            chosen = null
+        }
     }
 
     val query = state.query.trim()
-    val firstTarget = state.firstResultTarget()
+    val firstTargetKey = state.firstResultTarget()
 
     Box(
         modifier = modifier
@@ -163,40 +190,82 @@ fun SearchTvScreen(
                     SearchFilter.All -> GroupedResults(
                         state = state,
                         query = query,
-                        firstTarget = firstTarget,
+                        firstTargetKey = firstTargetKey,
+                        restoreKey = chosen,
                         firstResultFocus = firstResultFocus,
-                        viewModel = viewModel,
+                        restoreFocus = restoreFocus,
+                        onSeeAll = viewModel::onFilterSelected,
+                        onRetry = viewModel::onRetry,
+                        channelCard = { channel, requester ->
+                            TvChannelCard(channel, requester) {
+                                chosen = resultKey(SearchFilter.Channels, channel.id)
+                                onPlayChannel(channel.id, channel.name)
+                            }
+                        },
+                        filmCard = { film, requester ->
+                            TvMediaCard(film.name, film.posterUrl, requester) {
+                                chosen = resultKey(SearchFilter.Films, film.id)
+                                onOpenFilm(film.id)
+                            }
+                        },
+                        seriesCard = { series, requester ->
+                            TvMediaCard(series.name, series.posterUrl, requester) {
+                                chosen = resultKey(SearchFilter.Series, series.id)
+                                onOpenSeries(series.id)
+                            }
+                        },
                     )
 
                     SearchFilter.Channels -> TvTypeResults(
-                        filter = SearchFilter.Channels,
                         section = state.channels,
                         query = query,
-                        firstTarget = firstTarget,
+                        firstTargetKey = firstTargetKey,
+                        restoreKey = chosen,
                         firstResultFocus = firstResultFocus,
+                        restoreFocus = restoreFocus,
+                        keyOf = { resultKey(SearchFilter.Channels, it.id) },
                         onRetry = { viewModel.onRetry(SearchFilter.Channels) },
                         onLoadMore = { viewModel.onLoadMore(SearchFilter.Channels) },
-                    ) { channel, requester -> TvChannelCard(channel, requester) }
+                    ) { channel, requester ->
+                        TvChannelCard(channel, requester) {
+                            chosen = resultKey(SearchFilter.Channels, channel.id)
+                            onPlayChannel(channel.id, channel.name)
+                        }
+                    }
 
                     SearchFilter.Films -> TvTypeResults(
-                        filter = SearchFilter.Films,
                         section = state.films,
                         query = query,
-                        firstTarget = firstTarget,
+                        firstTargetKey = firstTargetKey,
+                        restoreKey = chosen,
                         firstResultFocus = firstResultFocus,
+                        restoreFocus = restoreFocus,
+                        keyOf = { resultKey(SearchFilter.Films, it.id) },
                         onRetry = { viewModel.onRetry(SearchFilter.Films) },
                         onLoadMore = { viewModel.onLoadMore(SearchFilter.Films) },
-                    ) { film, requester -> TvMediaCard(film.name, film.posterUrl, requester) }
+                    ) { film, requester ->
+                        TvMediaCard(film.name, film.posterUrl, requester) {
+                            chosen = resultKey(SearchFilter.Films, film.id)
+                            onOpenFilm(film.id)
+                        }
+                    }
 
                     SearchFilter.Series -> TvTypeResults(
-                        filter = SearchFilter.Series,
                         section = state.series,
                         query = query,
-                        firstTarget = firstTarget,
+                        firstTargetKey = firstTargetKey,
+                        restoreKey = chosen,
                         firstResultFocus = firstResultFocus,
+                        restoreFocus = restoreFocus,
+                        keyOf = { resultKey(SearchFilter.Series, it.id) },
                         onRetry = { viewModel.onRetry(SearchFilter.Series) },
                         onLoadMore = { viewModel.onLoadMore(SearchFilter.Series) },
-                    ) { series, requester -> TvMediaCard(series.name, series.posterUrl, requester) }
+                    ) { series, requester ->
+                        TvMediaCard(series.name, series.posterUrl, requester) {
+                            chosen = resultKey(SearchFilter.Series, series.id)
+                            onOpenSeries(series.id)
+                        }
+                    }
                 }
             }
         }
@@ -318,43 +387,58 @@ private fun Invitation() {
 private fun GroupedResults(
     state: SearchState,
     query: String,
-    firstTarget: ResultKey?,
+    firstTargetKey: String?,
+    restoreKey: String?,
     firstResultFocus: FocusRequester,
-    viewModel: SearchViewModel,
+    restoreFocus: FocusRequester,
+    onSeeAll: (SearchFilter) -> Unit,
+    onRetry: (SearchFilter) -> Unit,
+    channelCard: @Composable (Channel, FocusRequester?) -> Unit,
+    filmCard: @Composable (VodItem, FocusRequester?) -> Unit,
+    seriesCard: @Composable (Series, FocusRequester?) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.xl)) {
         TvSection(
             title = stringResource(R.string.feature_search_filter_channels),
-            filter = SearchFilter.Channels,
             section = state.channels,
             query = query,
-            firstTarget = firstTarget,
+            firstTargetKey = firstTargetKey,
+            restoreKey = restoreKey,
             firstResultFocus = firstResultFocus,
-            onSeeAll = { viewModel.onFilterSelected(SearchFilter.Channels) },
-            onRetry = { viewModel.onRetry(SearchFilter.Channels) },
-        ) { channel, requester -> TvChannelCard(channel, requester) }
+            restoreFocus = restoreFocus,
+            keyOf = { resultKey(SearchFilter.Channels, it.id) },
+            onSeeAll = { onSeeAll(SearchFilter.Channels) },
+            onRetry = { onRetry(SearchFilter.Channels) },
+            card = channelCard,
+        )
 
         TvSection(
             title = stringResource(R.string.feature_search_filter_films),
-            filter = SearchFilter.Films,
             section = state.films,
             query = query,
-            firstTarget = firstTarget,
+            firstTargetKey = firstTargetKey,
+            restoreKey = restoreKey,
             firstResultFocus = firstResultFocus,
-            onSeeAll = { viewModel.onFilterSelected(SearchFilter.Films) },
-            onRetry = { viewModel.onRetry(SearchFilter.Films) },
-        ) { film, requester -> TvMediaCard(film.name, film.posterUrl, requester) }
+            restoreFocus = restoreFocus,
+            keyOf = { resultKey(SearchFilter.Films, it.id) },
+            onSeeAll = { onSeeAll(SearchFilter.Films) },
+            onRetry = { onRetry(SearchFilter.Films) },
+            card = filmCard,
+        )
 
         TvSection(
             title = stringResource(R.string.feature_search_filter_series),
-            filter = SearchFilter.Series,
             section = state.series,
             query = query,
-            firstTarget = firstTarget,
+            firstTargetKey = firstTargetKey,
+            restoreKey = restoreKey,
             firstResultFocus = firstResultFocus,
-            onSeeAll = { viewModel.onFilterSelected(SearchFilter.Series) },
-            onRetry = { viewModel.onRetry(SearchFilter.Series) },
-        ) { series, requester -> TvMediaCard(series.name, series.posterUrl, requester) }
+            restoreFocus = restoreFocus,
+            keyOf = { resultKey(SearchFilter.Series, it.id) },
+            onSeeAll = { onSeeAll(SearchFilter.Series) },
+            onRetry = { onRetry(SearchFilter.Series) },
+            card = seriesCard,
+        )
     }
 }
 
@@ -367,11 +451,13 @@ private fun GroupedResults(
 @Composable
 private fun <T> TvSection(
     title: String,
-    filter: SearchFilter,
     section: SearchSection<T>,
     query: String,
-    firstTarget: ResultKey?,
+    firstTargetKey: String?,
+    restoreKey: String?,
     firstResultFocus: FocusRequester,
+    restoreFocus: FocusRequester,
+    keyOf: (T) -> String,
     onSeeAll: () -> Unit,
     onRetry: () -> Unit,
     card: @Composable (T, FocusRequester?) -> Unit,
@@ -404,7 +490,15 @@ private fun <T> TvSection(
                 if (section.items.isEmpty()) {
                     TvEmptyLine(query)
                 } else {
-                    TvCardRow(section.items, filter, firstTarget, firstResultFocus, card)
+                    TvCardRow(
+                        items = section.items,
+                        keyOf = keyOf,
+                        firstTargetKey = firstTargetKey,
+                        restoreKey = restoreKey,
+                        firstResultFocus = firstResultFocus,
+                        restoreFocus = restoreFocus,
+                        card = card,
+                    )
                 }
         }
     }
@@ -413,11 +507,13 @@ private fun <T> TvSection(
 /** The list of one type: twenty a page, "Afficher plus" on demand (Q9, SR-07). */
 @Composable
 private fun <T> TvTypeResults(
-    filter: SearchFilter,
     section: SearchSection<T>,
     query: String,
-    firstTarget: ResultKey?,
+    firstTargetKey: String?,
+    restoreKey: String?,
     firstResultFocus: FocusRequester,
+    restoreFocus: FocusRequester,
+    keyOf: (T) -> String,
     onRetry: () -> Unit,
     onLoadMore: () -> Unit,
     card: @Composable (T, FocusRequester?) -> Unit,
@@ -430,7 +526,15 @@ private fun <T> TvTypeResults(
                 if (section.items.isEmpty()) {
                     TvEmptyLine(query)
                 } else {
-                    TvCardRow(section.items, filter, firstTarget, firstResultFocus, card)
+                    TvCardRow(
+                        items = section.items,
+                        keyOf = keyOf,
+                        firstTargetKey = firstTargetKey,
+                        restoreKey = restoreKey,
+                        firstResultFocus = firstResultFocus,
+                        restoreFocus = restoreFocus,
+                        card = card,
+                    )
                 }
 
                 when {
@@ -449,28 +553,42 @@ private fun <T> TvTypeResults(
     }
 }
 
-/** A scrolling row of cards; the first of the first non-empty section takes the focus. */
+/**
+ * A scrolling row of cards.
+ *
+ * The card that was chosen before leaving carries [restoreFocus], the first real
+ * result carries [firstResultFocus] for the explicit move, and every other card
+ * carries none. A key is (filter, item id), so the same identity serves the
+ * explicit move and the return.
+ */
 @Composable
 private fun <T> TvCardRow(
     items: List<T>,
-    filter: SearchFilter,
-    firstTarget: ResultKey?,
+    keyOf: (T) -> String,
+    firstTargetKey: String?,
+    restoreKey: String?,
     firstResultFocus: FocusRequester,
+    restoreFocus: FocusRequester,
     card: @Composable (T, FocusRequester?) -> Unit,
 ) {
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
     ) {
-        items.forEachIndexed { index, item ->
-            val requester = if (firstTarget == ResultKey(filter, index)) firstResultFocus else null
+        items.forEach { item ->
+            val key = keyOf(item)
+            val requester = when {
+                restoreKey != null && key == restoreKey -> restoreFocus
+                key == firstTargetKey -> firstResultFocus
+                else -> null
+            }
             card(item, requester)
         }
     }
 }
 
 @Composable
-private fun TvChannelCard(channel: Channel, focusRequester: FocusRequester?) {
+private fun TvChannelCard(channel: Channel, focusRequester: FocusRequester?, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
 
     Text(
@@ -486,13 +604,18 @@ private fun TvChannelCard(channel: Channel, focusRequester: FocusRequester?) {
             .lumoTvFocus(focused, shape = LumoTvShapes.small)
             .clip(LumoTvShapes.small)
             .background(if (focused) LumoColors.SurfaceRaised else LumoColors.Surface)
-            .focusable()
+            .clickable(onClick = onClick)
             .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.sm),
     )
 }
 
 @Composable
-private fun TvMediaCard(title: String, posterUrl: String?, focusRequester: FocusRequester?) {
+private fun TvMediaCard(
+    title: String,
+    posterUrl: String?,
+    focusRequester: FocusRequester?,
+    onClick: () -> Unit,
+) {
     var focused by remember { mutableStateOf(false) }
 
     Column(
@@ -503,7 +626,7 @@ private fun TvMediaCard(title: String, posterUrl: String?, focusRequester: Focus
             .lumoTvFocus(focused, shape = LumoTvShapes.small)
             .clip(LumoTvShapes.small)
             .background(if (focused) LumoColors.SurfaceRaised else LumoColors.Surface)
-            .focusable()
+            .clickable(onClick = onClick)
             .padding(LumoSpacing.sm),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
     ) {
@@ -598,23 +721,26 @@ private fun SearchFilter.label(): String = stringResource(
 /**
  * Where the first real result is, for the one explicit focus move.
  *
- * A pair of (filter, index) so a card can recognise itself as the target without
- * the screen having to hold a mutable "have I attached it yet" flag — which would
- * fire on recomposition and produce a moving focus, the exact thing SR-13
- * forbids.
+ * Identified by (filter, item id) rather than by index, so the same key serves
+ * both the explicit "Voir les résultats" move and the return from a player or a
+ * fiche. The screen holds no mutable "have I attached it yet" flag: that would
+ * fire on recomposition and move the focus, the exact thing SR-13 forbids.
  */
-private data class ResultKey(val filter: SearchFilter, val index: Int)
-
-private fun SearchState.firstResultTarget(): ResultKey? = when (filter) {
+private fun SearchState.firstResultTarget(): String? = when (filter) {
     SearchFilter.All -> listOf(
-        SearchFilter.Channels to channels,
-        SearchFilter.Films to films,
-        SearchFilter.Series to series,
-    ).firstOrNull { (_, section) -> section.hasAnyItem() }
-        ?.let { (type, _) -> ResultKey(type, 0) }
+        SearchFilter.Channels to channels.firstItemId { it.id },
+        SearchFilter.Films to films.firstItemId { it.id },
+        SearchFilter.Series to series.firstItemId { it.id },
+    ).firstOrNull { (_, id) -> id != null }
+        ?.let { (type, id) -> resultKey(type, id!!) }
 
-    else -> if (section(filter).hasAnyItem()) ResultKey(filter, 0) else null
+    SearchFilter.Channels -> channels.firstItemId { it.id }?.let { resultKey(filter, it) }
+    SearchFilter.Films -> films.firstItemId { it.id }?.let { resultKey(filter, it) }
+    SearchFilter.Series -> series.firstItemId { it.id }?.let { resultKey(filter, it) }
 }
 
-private fun SearchSection<*>?.hasAnyItem(): Boolean =
-    this is SearchSection.Loaded && items.isNotEmpty()
+private fun <T> SearchSection<T>?.firstItemId(select: (T) -> String): String? =
+    (this as? SearchSection.Loaded)?.items?.firstOrNull()?.let(select)
+
+/** The identity of one card across a return: its filter and its item id. */
+private fun resultKey(filter: SearchFilter, itemId: String): String = "${filter.name}:$itemId"
