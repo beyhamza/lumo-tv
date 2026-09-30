@@ -18,9 +18,11 @@ import tv.lumo.android.core.common.di.LumoDispatcher
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.internal.ApiCaller
+import tv.lumo.android.core.data.map
 import tv.lumo.android.core.data.model.Cached
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
+import tv.lumo.android.core.data.model.SearchPage
 import tv.lumo.android.core.data.model.Episode
 import tv.lumo.android.core.data.model.Season
 import tv.lumo.android.core.data.model.Series
@@ -113,6 +115,24 @@ class SeriesRepository @Inject internal constructor(
     /** Local search over what has already been synchronised. See [VodRepository.search]. */
     fun search(sourceId: String, query: String): Flow<PagingData<Series>> =
         pager.search(sourceId, query).map { page -> page.map(SeriesEntity::asSeries) }
+
+    /**
+     * One page of server-side search (S10-01). The series twin of
+     * [CatalogueRepository.searchPage]; see it for why the local [search] is the
+     * fallback and not the path.
+     */
+    suspend fun searchPage(
+        sourceId: String,
+        query: String,
+        page: Int,
+        size: Int,
+    ): LumoResult<SearchPage<Series>> = withContext(io) {
+        calls.call {
+            api.listSeries(UUID.fromString(sourceId), q = query, page = page, size = size)
+        }.map { body ->
+            SearchPage(items = body.items.map { it.asSeries() }, totalElements = body.totalElements)
+        }
+    }
 
     /** One series, from the cache, kept current. */
     fun one(id: String): Flow<Series?> = seriesDao.observe(id).map { it?.asSeries() }
@@ -441,6 +461,20 @@ class SeriesRepository @Inject internal constructor(
 }
 
 // ---- mapping ---------------------------------------------------------------
+
+private fun ApiSeries.asSeries() = Series(
+    id = id.toString(),
+    sourceId = sourceId.toString(),
+    categoryId = categoryId?.toString(),
+    name = name,
+    posterUrl = posterUrl,
+    year = year,
+    episodeRunTime = episodeRunTime,
+    rating = rating,
+    // Null in every listing, by design: it arrives with the tree.
+    plot = plot,
+    isAdult = isAdult,
+)
 
 private fun ApiSeries.asEntity() = SeriesEntity(
     id = id.toString(),

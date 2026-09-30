@@ -2,4 +2,5 @@
 <resources>
     <string name="feature_search_title">Recherche</string>
     <string name="feature_search_placeholder">Recherchez parmi vos chaînes, vos films et vos séries.</string>
+    <string name="feature_search_too_long">La recherche est limitée à 100 caractères.</string>
 </resources>

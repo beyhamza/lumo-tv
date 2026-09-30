@@ -17,10 +17,12 @@ import tv.lumo.android.core.common.di.LumoDispatcher
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.internal.ApiCaller
+import tv.lumo.android.core.data.map
 import tv.lumo.android.core.data.model.Cached
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
+import tv.lumo.android.core.data.model.SearchPage
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.ChannelDao
 import tv.lumo.android.core.database.model.CategoryEntity
@@ -117,6 +119,42 @@ class CatalogueRepository @Inject internal constructor(
      */
     fun search(sourceId: String, query: String): Flow<PagingData<Channel>> =
         pager.search(sourceId, query).map { page -> page.map(ChannelEntity::asChannel) }
+
+    /**
+     * One page of server-side search (S10-01).
+     *
+     * <h2>The nominal search path, and the reason the local [search] is not it</h2>
+     *
+     * `GET /sources/{id}/channels?q=` is the server's own substring match: it sees
+     * the whole catalogue, including what this device has not synchronised yet, and
+     * the contract's `q` is the exact semantics US-021 promises. [search] reads only
+     * what Room holds, and becomes the honest offline fallback of S10-04 —
+     * deliberately not the path a screen calls first.
+     *
+     * <h2>Not [refresh], and it does not touch the cache</h2>
+     *
+     * This returns a page to the caller and writes nothing. A search is a read like
+     * any other; caching it would mean a second store with its own staleness rules,
+     * which Q9 rules out. The server's page is the answer.
+     *
+     * The mapping is direct, from the generated model to the domain type, and does
+     * not pass through `ChannelEntity`: the entity is a cache row, and building one
+     * only to reduce it again is the double mapping S10-01 excludes. It mirrors the
+     * `asEntity`/`asChannel` pair field for field, and is kept next to them so a field
+     * added to one is visible next to the other.
+     */
+    suspend fun searchPage(
+        sourceId: String,
+        query: String,
+        page: Int,
+        size: Int,
+    ): LumoResult<SearchPage<Channel>> = withContext(io) {
+        calls.call {
+            api.listChannels(UUID.fromString(sourceId), q = query, page = page, size = size)
+        }.map { body ->
+            SearchPage(items = body.items.map { it.asChannel() }, totalElements = body.totalElements)
+        }
+    }
 
     /**
      * Pulls the whole catalogue of one source into the cache.
@@ -247,6 +285,17 @@ class CatalogueRepository @Inject internal constructor(
 // The two directions live next to each other on purpose: a field added to the
 // contract and forgotten in the cache is visible here, in one screenful, instead
 // of being discovered when an offline screen renders a blank badge.
+
+private fun ApiChannel.asChannel() = Channel(
+    id = id.toString(),
+    sourceId = sourceId.toString(),
+    categoryId = categoryId?.toString(),
+    name = name,
+    logoUrl = logoUrl,
+    number = number,
+    quality = quality,
+    isAdult = isAdult,
+)
 
 private fun ApiChannel.asEntity() = ChannelEntity(
     id = id.toString(),

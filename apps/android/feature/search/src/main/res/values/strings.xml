@@ -6,4 +6,9 @@
 <resources>
     <string name="feature_search_title">Search</string>
     <string name="feature_search_placeholder">Search across your channels, films and series.</string>
+    <!--
+      The query is longer than the contract's q allows. The text is refused, never
+      shortened silently (Q9, SR-05); this says so next to the field.
+    -->
+    <string name="feature_search_too_long">Searching is limited to 100 characters.</string>
 </resources>

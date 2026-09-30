@@ -18,9 +18,11 @@ import tv.lumo.android.core.common.di.LumoDispatcher
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.internal.ApiCaller
+import tv.lumo.android.core.data.map
 import tv.lumo.android.core.data.model.Cached
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
+import tv.lumo.android.core.data.model.SearchPage
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.VodDao
@@ -105,6 +107,24 @@ class VodRepository @Inject internal constructor(
     /** Local search over what has already been synchronised. See [CatalogueRepository.search]. */
     fun search(sourceId: String, query: String): Flow<PagingData<VodItem>> =
         pager.search(sourceId, query).map { page -> page.map(VodItemEntity::asVodItem) }
+
+    /**
+     * One page of server-side search (S10-01). The film twin of
+     * [CatalogueRepository.searchPage], whose argument this repeats; see it for
+     * why the local [search] is the fallback and not the path.
+     */
+    suspend fun searchPage(
+        sourceId: String,
+        query: String,
+        page: Int,
+        size: Int,
+    ): LumoResult<SearchPage<VodItem>> = withContext(io) {
+        calls.call {
+            api.listVod(UUID.fromString(sourceId), q = query, page = page, size = size)
+        }.map { body ->
+            SearchPage(items = body.items.map { it.asVodItem() }, totalElements = body.totalElements)
+        }
+    }
 
     /**
      * One film, from the cache, kept current.
@@ -344,6 +364,21 @@ class VodRepository @Inject internal constructor(
 }
 
 // ---- mapping ---------------------------------------------------------------
+
+private fun ApiVodItem.asVodItem() = VodItem(
+    id = id.toString(),
+    sourceId = sourceId.toString(),
+    categoryId = categoryId?.toString(),
+    name = name,
+    posterUrl = posterUrl,
+    year = year,
+    durationSeconds = durationSeconds,
+    rating = rating,
+    // Null in every listing, by design. On the single-film read it is the point
+    // of the call, and this same mapping is what writes it.
+    plot = plot,
+    isAdult = isAdult,
+)
 
 private fun ApiVodItem.asEntity() = VodItemEntity(
     id = id.toString(),

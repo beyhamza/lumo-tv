@@ -3,6 +3,7 @@ package tv.lumo.android.core.data
 import com.google.common.truth.Truth.assertThat
 import java.io.IOException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -133,6 +134,8 @@ class PlaybackSourceGuardTest {
         val gone = mutableListOf<String>()
 
         override val state: StateFlow<ActiveSourceState> = MutableStateFlow(ActiveSourceState.Loading)
+
+        override val accountId: Flow<String?> = MutableStateFlow("account")
 
         override suspend fun select(sourceId: String): Unit = throw AssertionError("never auto-selects")
 
