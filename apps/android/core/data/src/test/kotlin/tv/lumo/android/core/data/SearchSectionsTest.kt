@@ -4,11 +4,13 @@ import com.google.common.truth.Truth.assertThat
 import java.io.IOException
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import tv.lumo.android.core.data.model.CataloguePresence
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.SearchFilter
 import tv.lumo.android.core.data.model.SearchPage
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.VodItem
+import tv.lumo.android.core.data.repository.cataloguePresenceOf
 import tv.lumo.android.core.data.repository.searchSections
 
 /**
@@ -89,5 +91,59 @@ class SearchSectionsTest {
             series = { error("never") },
         )
         assertThat(onlyChannels.channels).isInstanceOf(LumoResult.Success::class.java)
+    }
+
+    // ---- S10-02: the presence rule ------------------------------------------
+
+    @Test
+    fun `an absent type is not asked for, even in the grouped view`() = runTest {
+        val asked = mutableListOf<String>()
+
+        val result = searchSections(
+            filter = SearchFilter.All,
+            present = CataloguePresence(channels = true, films = false, series = false),
+            channels = { asked += "channels"; channels },
+            films = { error("an absent film catalogue must not be asked for") },
+            series = { error("an absent series catalogue must not be asked for") },
+        )
+
+        assertThat(asked).containsExactly("channels")
+        // Null is still "not asked for", and it is what keeps the section Idle on
+        // the screen rather than an empty result the source did not give.
+        assertThat(result.films).isNull()
+        assertThat(result.series).isNull()
+    }
+
+    @Test
+    fun `a present type with no match is an empty success, not a hidden one`() = runTest {
+        val empty = LumoResult.Success(SearchPage(emptyList<Channel>(), totalElements = 0L))
+
+        val result = searchSections(
+            filter = SearchFilter.Channels,
+            present = CataloguePresence(channels = true, films = false, series = false),
+            channels = { empty },
+            films = { error("never") },
+            series = { error("never") },
+        )
+
+        // Present and empty: a success carrying zero, which the screen keeps under
+        // its filter. Distinct from the type being absent above.
+        assertThat(result.channels).isEqualTo(empty)
+    }
+
+    @Test
+    fun `a probe that did not answer leaves its type present`() = runTest {
+        val offline = LumoResult.Failure(LumoError.Offline(IOException("no network")))
+
+        val presence = cataloguePresenceOf(
+            channels = { LumoResult.Success(true) },
+            films = { LumoResult.Success(false) },
+            series = { offline },
+        )
+
+        assertThat(presence.channels).isTrue()
+        assertThat(presence.films).isFalse()
+        // Fail-open: an outage never hides a filter (SR-11).
+        assertThat(presence.series).isTrue()
     }
 }

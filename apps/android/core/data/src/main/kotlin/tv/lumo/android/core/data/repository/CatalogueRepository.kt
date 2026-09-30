@@ -157,6 +157,20 @@ class CatalogueRepository @Inject internal constructor(
     }
 
     /**
+     * Whether the source carries any channel at all (S10-02).
+     *
+     * One request of one row, and deliberately **no `q`**: the contract makes `q`
+     * at least one character, so passing it here would be a `400`. This is the
+     * probe the search makes once per source before it offers the Channels filter;
+     * a failed probe is not an answer, and the caller decides what to do with it
+     * (`DefaultSearchRepository` leaves the type present).
+     */
+    suspend fun hasItems(sourceId: String): LumoResult<Boolean> = withContext(io) {
+        calls.call { api.listChannels(UUID.fromString(sourceId), page = 0, size = 1) }
+            .map { it.totalElements > 0 }
+    }
+
+    /**
      * Pulls the whole catalogue of one source into the cache.
      *
      * <h3>Yes, the whole thing, and yes, that is many requests</h3>

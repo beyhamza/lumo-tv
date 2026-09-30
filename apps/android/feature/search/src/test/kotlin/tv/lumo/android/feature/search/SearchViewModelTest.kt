@@ -23,6 +23,7 @@ import org.junit.Test
 import tv.lumo.android.core.data.ActiveSourceState
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.model.CataloguePresence
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.SearchFilter
 import tv.lumo.android.core.data.model.SearchPage
@@ -347,6 +348,148 @@ class SearchViewModelTest {
         assertThat(loaded(viewModel.state.value.channels).items.map { it.sourceId }).containsExactly("source-2")
     }
 
+    // ---- S10-02: only the catalogues the source carries ----------------------
+
+    @Test
+    fun `a source without films never asks for films and offers no films filter`() = runTest(main) {
+        val search = FakeSearch()
+        search.presence = CataloguePresence(channels = true, films = false, series = false)
+        val viewModel = viewModel(search)
+
+        viewModel.onQueryChanged("falaise", composing = false)
+        advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS)
+        runCurrent()
+
+        // The grouped view is composed for the present type only: the absent types
+        // are not sent to the repository at all (S10-02).
+        val call = search.calls.single()
+        assertThat(call.present.channels).isTrue()
+        assertThat(call.present.films).isFalse()
+        assertThat(call.present.series).isFalse()
+
+        // Absent is Idle, not Loaded(empty): nothing was asked, so nothing can be
+        // claimed about the source.
+        assertThat(viewModel.state.value.films).isEqualTo(SearchSection.Idle)
+        assertThat(viewModel.state.value.series).isEqualTo(SearchSection.Idle)
+
+        // The screen offers only the present filters.
+        assertThat(viewModel.state.value.filters)
+            .containsExactly(SearchFilter.All, SearchFilter.Channels)
+    }
+
+    @Test
+    fun `a present type with no match stays offered, with an empty section`() = runTest(main) {
+        val search = FakeSearch()
+        search.presence = CataloguePresence(channels = true, films = false, series = false)
+        val viewModel = viewModel(search)
+
+        viewModel.onQueryChanged("falaise", composing = false)
+        advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS)
+        runCurrent()
+        search.answer(0, onlyChannels(emptyList(), total = 0L))
+        runCurrent()
+
+        // Present without a match: an empty section under a filter that stays. It
+        // is not the same as the type being absent (S10-02).
+        assertThat(viewModel.state.value.channels).isEqualTo(
+            SearchSection.Loaded(
+                emptyList<Channel>(),
+                totalElements = 0L,
+                page = 0,
+                size = SearchViewModel.PREVIEW_SIZE,
+            ),
+        )
+        assertThat(viewModel.state.value.filters).contains(SearchFilter.Channels)
+    }
+
+    @Test
+    fun `a change of source re-reads the presence`() = runTest(main) {
+        val search = FakeSearch()
+        val active = FakeActiveSource()
+        val viewModel = viewModel(search, active)
+        assertThat(search.presenceCalls).containsExactly("source-1")
+
+        // The new source carries films, not channels.
+        search.presence = CataloguePresence(channels = false, films = true, series = false)
+        active.active.value = selected("source-2")
+        runCurrent()
+
+        assertThat(search.presenceCalls).containsExactly("source-1", "source-2")
+        assertThat(viewModel.state.value.filters)
+            .containsExactly(SearchFilter.All, SearchFilter.Films)
+    }
+
+    @Test
+    fun `a presence answer for the old account is ignored`() = runTest(main) {
+        val search = FakeSearch(nonCancellable = true, deferPresence = true)
+        val active = FakeActiveSource()
+        val viewModel = viewModel(search, active)
+        assertThat(search.presenceCalls).containsExactly("source-1")
+
+        // Another account signs in, with its own source.
+        active.account.value = "account-2"
+        active.active.value = selected("source-2")
+        runCurrent()
+        assertThat(search.presenceCalls).containsExactly("source-1", "source-2")
+
+        // The first account's probe arrives late: it must not set the filters.
+        search.answerPresence(0, CataloguePresence(channels = false, films = false, series = false))
+        runCurrent()
+        assertThat(viewModel.state.value.presence).isEqualTo(CataloguePresence.all)
+
+        // The new account's presence is the one that applies.
+        search.answerPresence(1, CataloguePresence(channels = false, films = true, series = false))
+        runCurrent()
+        assertThat(viewModel.state.value.filters)
+            .containsExactly(SearchFilter.All, SearchFilter.Films)
+    }
+
+    @Test
+    fun `a search typed while the probe is in flight runs once, after the probe`() = runTest(main) {
+        val search = FakeSearch(deferPresence = true)
+        val viewModel = viewModel(search)
+        assertThat(search.presenceCalls).containsExactly("source-1")
+
+        // Typed while the probe is still out: the debounce fires but no request is
+        // issued, because the types the source carries are not known yet.
+        viewModel.onQueryChanged("falaise", composing = false)
+        advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS)
+        runCurrent()
+        assertThat(search.calls).isEmpty()
+
+        // The probe answers: the wanted search runs now, exactly once, with the
+        // presence it just learned.
+        search.answerPresence(0, CataloguePresence(channels = true, films = false, series = false))
+        runCurrent()
+        assertThat(search.calls).hasSize(1)
+        assertThat(search.calls.single().present.films).isFalse()
+
+        // The debounce already fired; it must not add a second request.
+        advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS)
+        runCurrent()
+        assertThat(search.calls).hasSize(1)
+    }
+
+    @Test
+    fun `a probe answer during composition does not search early`() = runTest(main) {
+        val search = FakeSearch(deferPresence = true)
+        val viewModel = viewModel(search)
+
+        viewModel.onQueryChanged("falai", composing = true)
+        runCurrent()
+        search.answerPresence(0, CataloguePresence(channels = true, films = false, series = false))
+        runCurrent()
+
+        // Still composing: no request, even though the probe is now known.
+        assertThat(search.calls).isEmpty()
+
+        // Validating the composition starts the delay, then the single search runs.
+        viewModel.onQueryChanged("falaise", composing = false)
+        advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS)
+        runCurrent()
+        assertThat(search.calls.map { it.query }).containsExactly("falaise")
+    }
+
     // ---- SR-10: a section fails, the others stay ----------------------------
 
     @Test
@@ -443,7 +586,13 @@ class SearchViewModelTest {
     )
 
     /** A search that records its requests and answers when the test says so. */
-    private class FakeSearch(private val nonCancellable: Boolean = false) : SearchRepository {
+    private class FakeSearch(
+        private val nonCancellable: Boolean = false,
+        private val deferPresence: Boolean = false,
+    ) : SearchRepository {
+
+        /** What the source carries, set by a test before it changes identity. */
+        var presence: CataloguePresence = CataloguePresence.all
 
         data class Call(
             val sourceId: String,
@@ -451,10 +600,14 @@ class SearchViewModelTest {
             val filter: SearchFilter,
             val page: Int,
             val size: Int,
+            val present: CataloguePresence,
         )
 
         val calls = mutableListOf<Call>()
+        val presenceCalls = mutableListOf<String>()
         private val answers = mutableListOf<kotlinx.coroutines.CompletableDeferred<SearchResults>>()
+        private val presenceAnswers =
+            mutableListOf<kotlinx.coroutines.CompletableDeferred<CataloguePresence>>()
 
         override suspend fun search(
             sourceId: String,
@@ -462,8 +615,9 @@ class SearchViewModelTest {
             filter: SearchFilter,
             page: Int,
             size: Int,
+            present: CataloguePresence,
         ): SearchResults {
-            calls += Call(sourceId, query, filter, page, size)
+            calls += Call(sourceId, query, filter, page, size, present)
             val answer = kotlinx.coroutines.CompletableDeferred<SearchResults>()
             answers += answer
             // Non-cancellable for the stale test: the answer outlives the job so the
@@ -471,8 +625,22 @@ class SearchViewModelTest {
             return if (nonCancellable) withContext(NonCancellable) { answer.await() } else answer.await()
         }
 
+        override suspend fun cataloguePresence(sourceId: String): CataloguePresence {
+            presenceCalls += sourceId
+            if (!deferPresence) return presence
+            val answer = kotlinx.coroutines.CompletableDeferred<CataloguePresence>()
+            presenceAnswers += answer
+            // Non-cancellable for the old-account probe: it outlives its job so the
+            // identity guard, not the cancellation, is what refuses it.
+            return if (nonCancellable) withContext(NonCancellable) { answer.await() } else answer.await()
+        }
+
         fun answer(index: Int, results: SearchResults) {
             answers[index].complete(results)
+        }
+
+        fun answerPresence(index: Int, value: CataloguePresence) {
+            presenceAnswers[index].complete(value)
         }
     }
 

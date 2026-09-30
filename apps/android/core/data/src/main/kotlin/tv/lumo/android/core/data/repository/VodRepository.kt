@@ -127,6 +127,15 @@ class VodRepository @Inject internal constructor(
     }
 
     /**
+     * Whether the source carries any film at all (S10-02). The film twin of
+     * [CatalogueRepository.hasItems], whose argument this repeats.
+     */
+    suspend fun hasItems(sourceId: String): LumoResult<Boolean> = withContext(io) {
+        calls.call { api.listVod(UUID.fromString(sourceId), page = 0, size = 1) }
+            .map { it.totalElements > 0 }
+    }
+
+    /**
      * One film, from the cache, kept current.
      *
      * The Flow emits what Room holds — immediately, with whatever synopsis is

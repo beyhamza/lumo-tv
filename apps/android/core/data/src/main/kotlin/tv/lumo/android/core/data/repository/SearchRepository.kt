@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import tv.lumo.android.core.common.di.Dispatcher
 import tv.lumo.android.core.common.di.LumoDispatcher
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.model.CataloguePresence
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.SearchFilter
 import tv.lumo.android.core.data.model.SearchPage
@@ -45,6 +46,9 @@ interface SearchRepository {
      *   requests).
      * @param size the contract's page size. [SearchFilter.All] is asked at the
      *   preview size, a single type at the page size.
+     * @param present the types the source carries. A type it does not carry is not
+     *   asked for, even in the grouped view (S10-02). Defaults to the fail-open
+     *   value, so a caller that has not probed still asks for everything.
      * @return one field per requested type, each a success or a failure. The fields
      *   of types [filter] does not ask for are null.
      */
@@ -54,7 +58,17 @@ interface SearchRepository {
         filter: SearchFilter,
         page: Int,
         size: Int,
+        present: CataloguePresence = CataloguePresence.all,
     ): SearchResults
+
+    /**
+     * Which catalogues [sourceId] carries, so the screens list only real filters.
+     *
+     * Never fails: a probe that did not answer leaves its type present (fail-open),
+     * so an outage never hides a filter. Read once per source, before its first
+     * search.
+     */
+    suspend fun cataloguePresence(sourceId: String): CataloguePresence
 }
 
 /**
@@ -81,12 +95,22 @@ internal class DefaultSearchRepository @Inject constructor(
         filter: SearchFilter,
         page: Int,
         size: Int,
+        present: CataloguePresence,
     ): SearchResults = withContext(io) {
         searchSections(
             filter = filter,
+            present = present,
             channels = { channels.searchPage(sourceId, query, page, size) },
             films = { films.searchPage(sourceId, query, page, size) },
             series = { series.searchPage(sourceId, query, page, size) },
+        )
+    }
+
+    override suspend fun cataloguePresence(sourceId: String): CataloguePresence = withContext(io) {
+        cataloguePresenceOf(
+            channels = { channels.hasItems(sourceId) },
+            films = { films.hasItems(sourceId) },
+            series = { series.hasItems(sourceId) },
         )
     }
 }
@@ -108,16 +132,24 @@ internal class DefaultSearchRepository @Inject constructor(
  * is a property of this function rather than of Retrofit. The lambdas stand in for
  * the three repositories, and a test hands it a failure for one and successes for
  * the others without a session or a network.
+ *
+ * <h2>An absent type is not asked for</h2>
+ *
+ * [present] is what the source carries. A type it does not carry is skipped even by
+ * the grouped view, so the search never spends a request on a catalogue the source
+ * does not have (S10-02). The section stays null, exactly as for a type the filter
+ * did not ask for.
  */
 internal suspend fun searchSections(
     filter: SearchFilter,
+    present: CataloguePresence = CataloguePresence.all,
     channels: suspend () -> LumoResult<SearchPage<Channel>>,
     films: suspend () -> LumoResult<SearchPage<VodItem>>,
     series: suspend () -> LumoResult<SearchPage<Series>>,
 ): SearchResults = coroutineScope {
-    val wantsChannels = filter == SearchFilter.All || filter == SearchFilter.Channels
-    val wantsFilms = filter == SearchFilter.All || filter == SearchFilter.Films
-    val wantsSeries = filter == SearchFilter.All || filter == SearchFilter.Series
+    val wantsChannels = present.channels && (filter == SearchFilter.All || filter == SearchFilter.Channels)
+    val wantsFilms = present.films && (filter == SearchFilter.All || filter == SearchFilter.Films)
+    val wantsSeries = present.series && (filter == SearchFilter.All || filter == SearchFilter.Series)
 
     // Started before any of them is awaited, so the three are genuinely in
     // flight together and not merely declared together.
@@ -130,4 +162,41 @@ internal suspend fun searchSections(
         films = filmJob?.await(),
         series = seriesJob?.await(),
     )
+}
+
+/**
+ * Probes the three catalogues together, and keeps a failed probe present.
+ *
+ * The three questions are independent, so they are asked concurrently and awaited
+ * in a fixed order for a deterministic assembly. Extracted from
+ * [DefaultSearchRepository.cataloguePresence] for the same reason as
+ * [searchSections]: "a probe that did not answer keeps its type" is the rule worth
+ * testing, and it is a property of this function rather than of the three
+ * repositories.
+ */
+internal suspend fun cataloguePresenceOf(
+    channels: suspend () -> LumoResult<Boolean>,
+    films: suspend () -> LumoResult<Boolean>,
+    series: suspend () -> LumoResult<Boolean>,
+): CataloguePresence = coroutineScope {
+    val channelProbe = async { channels() }
+    val filmProbe = async { films() }
+    val seriesProbe = async { series() }
+
+    CataloguePresence(
+        channels = channelProbe.await().presentOrFailOpen(),
+        films = filmProbe.await().presentOrFailOpen(),
+        series = seriesProbe.await().presentOrFailOpen(),
+    )
+}
+
+/**
+ * A probe's answer as a presence.
+ *
+ * A failure is "present": an outage must never shorten the list of filters
+ * (US-021, SR-11). See [CataloguePresence].
+ */
+private fun LumoResult<Boolean>.presentOrFailOpen(): Boolean = when (this) {
+    is LumoResult.Success -> value
+    is LumoResult.Failure -> true
 }

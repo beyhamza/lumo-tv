@@ -134,6 +134,15 @@ class SeriesRepository @Inject internal constructor(
         }
     }
 
+    /**
+     * Whether the source carries any series at all (S10-02). The series twin of
+     * [CatalogueRepository.hasItems], whose argument this repeats.
+     */
+    suspend fun hasItems(sourceId: String): LumoResult<Boolean> = withContext(io) {
+        calls.call { api.listSeries(UUID.fromString(sourceId), page = 0, size = 1) }
+            .map { it.totalElements > 0 }
+    }
+
     /** One series, from the cache, kept current. */
     fun one(id: String): Flow<Series?> = seriesDao.observe(id).map { it?.asSeries() }
 

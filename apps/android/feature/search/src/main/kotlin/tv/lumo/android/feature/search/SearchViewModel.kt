@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.model.CataloguePresence
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.SearchFilter
 import tv.lumo.android.core.data.model.SearchPage
@@ -91,6 +92,11 @@ data class SearchState(
     val channels: SearchSection<Channel> = SearchSection.Idle,
     val films: SearchSection<VodItem> = SearchSection.Idle,
     val series: SearchSection<Series> = SearchSection.Idle,
+    /**
+     * Which catalogues the current source carries, so a screen offers only the
+     * filters that mean something here. Fail-open while the probe is unknown.
+     */
+    val presence: CataloguePresence = CataloguePresence.all,
 ) {
 
     /**
@@ -102,6 +108,19 @@ data class SearchState(
      * catalogue.
      */
     val invitation: Boolean get() = query.isBlank() && !tooLong
+
+    /**
+     * The filters a screen offers: [SearchFilter.All] first, then only the types
+     * the source carries (SR-11). A filter that is not listed is one the source
+     * cannot answer, and offering it would open onto nothing.
+     */
+    val filters: List<SearchFilter>
+        get() = buildList {
+            add(SearchFilter.All)
+            if (presence.channels) add(SearchFilter.Channels)
+            if (presence.films) add(SearchFilter.Films)
+            if (presence.series) add(SearchFilter.Series)
+        }
 
     /** The section for one type, or null for [SearchFilter.All], which has three. */
     fun section(filter: SearchFilter): SearchSection<*>? = when (filter) {
@@ -163,6 +182,24 @@ class SearchViewModel @Inject constructor(
 
     private var searchJob: Job? = null
     private var debounceJob: Job? = null
+
+    /**
+     * The catalogues the current source carries, or null while the probe is
+     * unknown. Null is what makes a search wait rather than ask a type the source
+     * may not have; the screen shows the fail-open value meanwhile.
+     */
+    private var presence: CataloguePresence? = null
+    private var presenceJob: Job? = null
+
+    /**
+     * A search is waiting for the presence probe to answer.
+     *
+     * Set when the text or the filter asks for a search while the probe is still
+     * in flight, and cleared by every input change. It is what makes the probe's
+     * answer run that search — and only that one, so a completion during
+     * composition or before the debounce fires does not search early (S10-02).
+     */
+    private var searchWanted = false
 
     init {
         viewModelScope.launch {
@@ -228,6 +265,9 @@ class SearchViewModel @Inject constructor(
      * request at page 0, size 20.
      */
     fun onFilterSelected(filter: SearchFilter) {
+        // A filter the source does not carry is not offered; asking for it anyway
+        // leaves the screen on the one it can answer rather than on an empty tab.
+        if (!_state.value.presence.carries(filter)) return
         debounceJob?.cancel()
         _state.update { it.copy(filter = filter) }
         if (!canSearch()) {
@@ -241,7 +281,8 @@ class SearchViewModel @Inject constructor(
     fun onLoadMore(filter: SearchFilter) {
         val loaded = _state.value.section(filter) as? SearchSection.Loaded ?: return
         if (!loaded.hasMore || loaded.loadingMore) return
-        request(requested = filter, page = loaded.page + 1, size = loaded.size, append = true)
+        val present = presence ?: return
+        request(present, requested = filter, page = loaded.page + 1, size = loaded.size, append = true)
     }
 
     /**
@@ -258,13 +299,14 @@ class SearchViewModel @Inject constructor(
             return
         }
 
+        val present = presence ?: return
         when (val section = _state.value.section(filter)) {
             is SearchSection.Failed ->
-                request(requested = filter, page = 0, size = sizeFor(_state.value.filter), append = false)
+                request(present, requested = filter, page = 0, size = sizeFor(_state.value.filter), append = false)
 
             is SearchSection.Loaded ->
                 if (section.pageError != null) {
-                    request(requested = filter, page = section.page + 1, size = section.size, append = true)
+                    request(present, requested = filter, page = section.page + 1, size = section.size, append = true)
                 }
 
             else -> Unit
@@ -289,9 +331,40 @@ class SearchViewModel @Inject constructor(
 
         debounceJob?.cancel()
         dropPending()
-        _state.update { it.copy(filter = SearchFilter.All) }
 
-        if (source != null && canSearch()) searchNow()
+        // A new identity's presence is unknown. Reset to the fail-open value so a
+        // probe that never answers never hides a filter, and drop the previous
+        // identity's presence so nothing of it can be applied (SR-08).
+        presenceJob?.cancel()
+        presenceJob = null
+        presence = null
+        _state.update { it.copy(filter = SearchFilter.All, presence = CataloguePresence.all) }
+
+        if (source == null) return
+        // A change of identity keeps the text and searches it again, but only once
+        // the probe has answered (see [searchNow]); the answer runs that search.
+        searchWanted = canSearch()
+        loadPresence(account, source)
+    }
+
+    /**
+     * Reads which catalogues the source carries, then searches if the text is ready.
+     *
+     * The probe is what lets the screen offer only real filters, and the first
+     * request of a source waits for it so a type the source does not carry is never
+     * asked for (S10-02). The answer is compared against the identity that asked for
+     * it before it is applied, exactly as a search answer is: a probe that outlives
+     * a change of account must not put the old account's filters on the new screen
+     * (SR-08).
+     */
+    private fun loadPresence(account: String?, source: String) {
+        presenceJob = viewModelScope.launch {
+            val loaded = search.cataloguePresence(source)
+            if (accountId != account || sourceId != source) return@launch
+            presence = loaded
+            _state.update { it.copy(presence = loaded) }
+            if (searchWanted && canSearch()) searchNow()
+        }
     }
 
     // ---- requesting ---------------------------------------------------------
@@ -306,8 +379,16 @@ class SearchViewModel @Inject constructor(
 
     /** Searches the current filter from its first page, at the size that filter uses. */
     private fun searchNow() {
+        val present = presence
+        if (present == null) {
+            // The probe decides which types exist. Remember that a search is
+            // wanted, and [loadPresence] runs it once the answer is in.
+            searchWanted = true
+            return
+        }
+        searchWanted = false
         val filter = _state.value.filter
-        request(requested = filter, page = 0, size = sizeFor(filter), append = false)
+        request(present, requested = filter, page = 0, size = sizeFor(filter), append = false)
     }
 
     /**
@@ -317,8 +398,20 @@ class SearchViewModel @Inject constructor(
      * *before* the new state is marked loading, so an answer to the old request
      * cannot land between the two and be mistaken for the new one's.
      */
-    private fun request(requested: SearchFilter, page: Int, size: Int, append: Boolean) {
+    private fun request(
+        present: CataloguePresence,
+        requested: SearchFilter,
+        page: Int,
+        size: Int,
+        append: Boolean,
+    ) {
         val source = sourceId ?: return
+
+        // A type the source does not carry is never asked for, and never marked
+        // loading: there is no request to wait for (S10-02). Its section stays
+        // Idle and the screen offers no filter for it.
+        if (!present.carries(requested)) return
+
         val query = _state.value.query.trim()
         if (query.isEmpty() || _state.value.tooLong) return
 
@@ -326,10 +419,10 @@ class SearchViewModel @Inject constructor(
         context = request
         searchJob?.cancel()
 
-        _state.update { if (append) it.markingMore(requested) else it.markingLoading(requested) }
+        _state.update { if (append) it.markingMore(requested) else it.markingLoading(requested, present) }
 
         searchJob = viewModelScope.launch {
-            val results = search.search(source, query, requested, page, size)
+            val results = search.search(source, query, requested, page, size, present)
             // The explicit guard, and not a duplicate of the cancellation: a
             // repository that answered before it observed the cancellation
             // would otherwise have its answer applied to a text it no longer
@@ -343,6 +436,9 @@ class SearchViewModel @Inject constructor(
     private fun dropPending() {
         context = null
         searchJob?.cancel()
+        // The text or the filter moved on: a search that was waiting for the
+        // presence probe is no longer the one wanted.
+        searchWanted = false
         _state.update {
             it.copy(
                 channels = SearchSection.Idle,
@@ -402,16 +498,20 @@ class SearchViewModel @Inject constructor(
 /**
  * Marks one request's sections as loading.
  *
- * Only the requested types are touched: a grouped search marks all three, a
- * single-type search marks its own and leaves the others as they were. It never
- * *clears* a section it is not asking for, because those results still belong to
- * the current text.
+ * Only the requested types are touched, and within the grouped view only the types
+ * the source carries: an absent catalogue has no request to wait for, so marking it
+ * loading would show a spinner for a filter the screen does not even offer
+ * (S10-02). A type this request does not carry keeps its current value — a
+ * single-type search must not clear the others, and an absent type stays Idle.
  */
-private fun SearchState.markingLoading(filter: SearchFilter): SearchState = when (filter) {
+private fun SearchState.markingLoading(
+    filter: SearchFilter,
+    present: CataloguePresence,
+): SearchState = when (filter) {
     SearchFilter.All -> copy(
-        channels = SearchSection.Loading,
-        films = SearchSection.Loading,
-        series = SearchSection.Loading,
+        channels = if (present.channels) SearchSection.Loading else channels,
+        films = if (present.films) SearchSection.Loading else films,
+        series = if (present.series) SearchSection.Loading else series,
     )
     SearchFilter.Channels -> copy(channels = SearchSection.Loading)
     SearchFilter.Films -> copy(films = SearchSection.Loading)
