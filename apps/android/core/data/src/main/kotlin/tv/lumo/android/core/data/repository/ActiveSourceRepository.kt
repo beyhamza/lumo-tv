@@ -1,6 +1,7 @@
 package tv.lumo.android.core.data.repository
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,6 +46,25 @@ interface ActiveSourceRepository {
      * immediately rather than a loading frame it has no reason to show.
      */
     val state: StateFlow<ActiveSourceState>
+
+    /**
+     * Who [_state] belongs to, or null when nobody is signed in.
+     *
+     * <h3>Why the account is part of this interface</h3>
+     *
+     * A catalogue read is only ever valid for the account and the source that
+     * asked for it. Screens that hold an answer across a moment — S10-01's
+     * search, whose responses can arrive after the question has changed — have
+     * to be able to tell a change of account apart from a change of source, and
+     * the one place that knows both is here. Exposing it is what lets a search
+     * view model empty its context on a sign-out or a switch of account without
+     * reaching past `core:data` into the session.
+     *
+     * It is read straight from the session rather than from [_state], so it
+     * changes the instant the account does — before the source list has been
+     * re-read — which is exactly when a stale response is most dangerous.
+     */
+    val accountId: Flow<String?>
 
     /**
      * Browses another source, from now on and on this device only.
@@ -125,6 +145,15 @@ internal class DefaultActiveSourceRepository(
 
     private val _state = MutableStateFlow<ActiveSourceState>(ActiveSourceState.Loading)
     override val state: StateFlow<ActiveSourceState> = _state.asStateFlow()
+
+    /**
+     * Straight from the session, and `distinctUntilChanged` because a token
+     * rotation rewrites it roughly hourly: the account has not changed, only the
+     * tokens have, and a search must not empty its context every hour.
+     */
+    override val accountId: Flow<String?> = session.sessions
+        .map { it?.userId }
+        .distinctUntilChanged()
 
     private val mutex = Mutex()
 

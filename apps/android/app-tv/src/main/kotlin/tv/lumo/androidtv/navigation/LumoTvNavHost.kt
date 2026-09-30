@@ -23,6 +23,7 @@ import tv.lumo.android.feature.live.navigation.KEY_RETURNED_CHANNEL
 import tv.lumo.android.feature.live.navigation.livePlayerTvScreen
 import tv.lumo.android.feature.live.navigation.liveTvScreen
 import tv.lumo.android.feature.onboarding.navigation.onboardingTvScreen
+import tv.lumo.android.feature.search.SearchDestination
 import tv.lumo.android.feature.search.navigation.searchTvScreen
 import tv.lumo.android.feature.series.EpisodePlayerDestination
 import tv.lumo.android.feature.series.SeriesDestination
@@ -207,7 +208,15 @@ fun LumoTvNavHost(
             onBack = { navController.popBackStack() },
             onOpenSources = leavePlayerForSources,
         )
-        searchTvScreen()
+        searchTvScreen(
+            onPlayChannel = playChannel,
+            onOpenFilm = { filmId ->
+                navController.navigate(VodDetailDestination.routeFor(filmId))
+            },
+            onOpenSeries = { seriesId ->
+                navController.navigate(SeriesDetailDestination.routeFor(seriesId))
+            },
+        )
         settingsTvScreen(
             // A push, unlike the rail's moves: "My sources" is opened *from*
             // Settings, and BACK from it returns there rather than to Home.
@@ -246,8 +255,9 @@ fun tvStartRoute(start: AppStart): String? = when (start) {
 }
 
 /**
- * The rail's contents, in D-pad order: **Home, Live, Films, Series, My library,
- * Settings** (US-017, decisions table — the side menu the web shares).
+ * The rail's contents, in D-pad order: **Home, Live, Films, Series, Search, My
+ * library, Settings** (US-017 and US-021, decisions table — the side menu the web
+ * shares).
  *
  * <h2>Home first, and Live is still one press from it</h2>
  *
@@ -271,8 +281,18 @@ fun tvStartRoute(start: AppStart): String? = when (start) {
  * thousand films conclude the feature did not exist: **an absence is
  * indistinguishable from a bug**, and on a television there is nowhere else to go
  * and look. An *empty* catalogue is a reply, an *unbuilt* screen is a promise, and
- * only the first belongs in a rail (`adr/0010`). That is also what still keeps
- * Search out: its screen is a placeholder until sprint 10.
+ * only the first belongs in a rail (`adr/0010`). Search crossed that line in
+ * S10-02, when it gained a real screen: US-021 asks for it in the main navigation
+ * on the television, and this rail is that navigation.
+ *
+ * <h2>Where Search sits, and why it is not second like the web's</h2>
+ *
+ * The web's side menu lists Search straight after Home. Here it goes *after* the
+ * three catalogues, before My library: a rail entry is a mandatory `DOWN`, and
+ * putting Search between Home and Live would make the most-watched screen cost
+ * one more press on every journey. Search is somewhere one goes occasionally; the
+ * catalogues are where one lives. The price is paid at the bottom of the rail,
+ * not at the top.
  *
  * The rail's own rule is unchanged: `RIGHT` enters the content, `LEFT` comes back,
  * and nothing here is reachable only by travelling through everything else (US-10).
@@ -282,6 +302,7 @@ val TvDestinations: List<LumoDestination> = listOf(
     LiveDestination,
     VodDestination,
     SeriesDestination,
+    SearchDestination,
     FavoritesTvDestination,
     SettingsDestination,
 )

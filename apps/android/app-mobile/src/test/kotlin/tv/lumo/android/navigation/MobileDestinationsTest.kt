@@ -30,8 +30,9 @@ import tv.lumo.android.feature.vod.VodDetailDestination
  * US-017 replaced those six with four — Home, Explore, Library, Settings — and
  * what is guarded now is the line that survived both reversals: **an empty
  * catalogue belongs in the navigation, an unbuilt screen does not.** The three
- * catalogues are all offered, always, as the sections of Explore; Search, still a
- * placeholder, is offered nowhere.
+ * catalogues are all offered, always, as the sections of Explore; Search gained
+ * its screen in S10-02 and is offered from the head of Explore, not from the
+ * bar, so this file still keeps it out of the four entries.
  *
  * The order is asserted for the reason it always was: a bar that quietly reorders
  * itself moves a target under somebody's thumb between two launches.
@@ -77,11 +78,14 @@ class MobileDestinationsTest {
     }
 
     @Test
-    fun `a screen that does not exist yet is offered nowhere`() {
-        // The distinction that survived both reversals, and the last destination
-        // it still keeps out. Search is `LumoMobilePlaceholder` and nothing else;
-        // a tab onto it is a promise rather than a reply. It joins the day its
-        // screen lands (sprint 10), and this test is what will change with it.
+    fun `Search is offered from the head of Explore, not as a fifth bar entry`() {
+        // Search gained its screen in S10-02, and the product decision put its
+        // access at the head of Explore rather than in the bar: the four entries
+        // are the places somebody lives, and a fifth would take a thumb-width
+        // from each. The access itself is `ExploreSearchAccess` in
+        // `LumoMobileApp`; what this guards is that it has not also been added
+        // here, where a second door would open a second back stack for one
+        // screen.
         val offered = (MobileDestinations + ExploreSections).map { it.route }
 
         assertThat(offered).doesNotContain(SearchDestination.route)
