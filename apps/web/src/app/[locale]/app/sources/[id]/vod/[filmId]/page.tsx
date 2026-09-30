@@ -7,6 +7,7 @@ import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api, problemCode } from "@/lib/api/client";
 import { asClock, isFinished } from "@/lib/playback/progress";
+import { openedFromSearch, searchReturnPath } from "@/lib/search/search";
 import type { VodItem } from "@/lib/api/types";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
@@ -116,14 +117,19 @@ export default async function FilmPage({
       ? progress.position_ms
       : 0;
 
-  // The grid's own state, carried in and handed straight back. Filter values
-  // only — no path and no host, so there is nothing here that could turn into a
-  // redirect somewhere else.
-  const back = `/app/sources/${id}/vod${queryString({
-    categoryId: single(query.categoryId),
-    q: single(query.q),
-    page: single(query.page),
-  })}`;
+  // Where the back link goes. From the search, it returns to that search —
+  // text, filter and page — rebuilt from a fixed path and three whitelisted
+  // parameters, so nothing arbitrary in the URL can redirect anywhere (SR-12).
+  // Otherwise it is the grid's own state, carried in and handed straight back:
+  // filter values only, no path and no host.
+  const fromSearch = openedFromSearch(single(query.from));
+  const back = fromSearch
+    ? searchReturnPath({ q: single(query.q), type: single(query.type), page: single(query.page) })
+    : `/app/sources/${id}/vod${queryString({
+        categoryId: single(query.categoryId),
+        q: single(query.q),
+        page: single(query.page),
+      })}`;
 
   return (
     <div className="max-w-3xl">
@@ -132,7 +138,7 @@ export default async function FilmPage({
           href={hrefFor(locale as Locale, back)}
           className="text-muted-foreground underline underline-offset-4"
         >
-          {t("filmsBackToList")}
+          {fromSearch ? t("searchBackToResults") : t("filmsBackToList")}
         </a>
       </p>
 

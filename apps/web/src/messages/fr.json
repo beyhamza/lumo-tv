@@ -497,6 +497,7 @@
     "searchSectionFailed": "Cette partie n’a pas pu être chargée",
     "searchRetry": "Réessayer",
     "searchSeeAll": "Voir tous",
+    "searchBackToResults": "Retour à la recherche",
     "searchPrevious": "Précédent",
     "searchNext": "Suivant",
     "searchPageOf": "Page {page} sur {total}"

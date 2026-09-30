@@ -4,13 +4,17 @@ import {
   codePointLength,
   filterFromParam,
   normalizeQuery,
+  openedFromSearch,
   PAGE_SIZE,
   pageFor,
   pageSizeFor,
   PREVIEW_SIZE,
   queryTooLong,
   runSection,
+  searchResultPath,
+  searchReturnPath,
   searchSections,
+  SEARCH_ORIGIN,
   type CataloguePresent,
   type SearchFetchers,
 } from "./search";
@@ -177,5 +181,54 @@ describe("runSection", () => {
       items,
       totalElements: 42,
     });
+  });
+});
+
+describe("opening a result and coming back", () => {
+  it("starts a channel on its source's page, without a search context", () => {
+    // A channel has nothing to say about itself: `?play=` is the whole gesture.
+    expect(
+      searchResultPath("channels", "chan-1", "src-9", {
+        query: "falaise",
+        filter: "channels",
+        page: 2,
+      }),
+    ).toBe("/app/sources/src-9/channels?play=chan-1");
+  });
+
+  it("opens a film on its own page, with the search it must return to", () => {
+    const path = searchResultPath("films", "film-3", "src-9", {
+      query: "voyage",
+      filter: "films",
+      page: 1,
+    });
+    expect(path).toBe(
+      "/app/sources/src-9/vod/film-3?from=search&q=voyage&type=films&page=1",
+    );
+  });
+
+  it("opens a series on its own page, keeping the grouped view and page zero out", () => {
+    const path = searchResultPath("series", "ser-7", "src-9", {
+      query: "falaises",
+      filter: "all",
+      page: 0,
+    });
+    expect(path).toBe("/app/sources/src-9/series/ser-7?from=search&q=falaises");
+  });
+
+  it("rebuilds the return path from the search screen and its three parameters only", () => {
+    expect(searchReturnPath({ q: "voyage", type: "films", page: "2" })).toBe(
+      "/app/search?q=voyage&type=films&page=2",
+    );
+    // Nothing that could have been put in the query becomes a path or a host.
+    expect(searchReturnPath({ q: "x" })).toBe("/app/search?q=x");
+    expect(searchReturnPath({})).toBe("/app/search");
+  });
+
+  it("honours the exact provenance marker and nothing else", () => {
+    expect(openedFromSearch(SEARCH_ORIGIN)).toBe(true);
+    expect(openedFromSearch("Search")).toBe(false);
+    expect(openedFromSearch("//evil.example/app/search")).toBe(false);
+    expect(openedFromSearch(undefined)).toBe(false);
   });
 });

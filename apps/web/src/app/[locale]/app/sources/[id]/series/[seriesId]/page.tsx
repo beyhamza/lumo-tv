@@ -7,6 +7,7 @@ import { hrefFor } from "@/i18n/navigation";
 import type { Episode, Season, Series } from "@/lib/api/types";
 import { api, problemCode } from "@/lib/api/client";
 import { asClock, isFinished } from "@/lib/playback/progress";
+import { openedFromSearch, searchReturnPath } from "@/lib/search/search";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
 
@@ -86,11 +87,19 @@ export default async function SeriesDetailPage({
     }),
   ]);
 
-  const back = `/app/sources/${id}/series${queryString({
-    categoryId: single(query.categoryId),
-    q: single(query.q),
-    page: single(query.page),
-  })}`;
+  // From the search, the back link returns to that search — text, filter and
+  // page — rebuilt from a fixed path and three whitelisted parameters, so
+  // nothing arbitrary in the URL can redirect anywhere (SR-12). Otherwise it is
+  // the series grid's own state, carried in and handed straight back.
+  const fromSearch = openedFromSearch(single(query.from));
+  const back = fromSearch
+    ? searchReturnPath({ q: single(query.q), type: single(query.type), page: single(query.page) })
+    : `/app/sources/${id}/series${queryString({
+        categoryId: single(query.categoryId),
+        q: single(query.q),
+        page: single(query.page),
+      })}`;
+  const backLabel = fromSearch ? t("searchBackToResults") : t("seriesBackToList");
 
   const failure = problemCode(detail.error);
   if (failure) {
@@ -100,7 +109,7 @@ export default async function SeriesDetailPage({
     const retryable = failure !== "SERIES_NOT_FOUND";
     return (
       <div className="max-w-3xl">
-        <BackLink href={hrefFor(locale as Locale, back)} label={t("seriesBackToList")} />
+        <BackLink href={hrefFor(locale as Locale, back)} label={backLabel} />
         <div role="alert" className="border-destructive/40 mt-6 rounded-lg border px-4 py-3">
           <p className="font-medium">{tErrors(failure as never)}</p>
           {retryable ? (
@@ -147,7 +156,7 @@ export default async function SeriesDetailPage({
 
   return (
     <div className="max-w-3xl">
-      <BackLink href={hrefFor(locale as Locale, back)} label={t("seriesBackToList")} />
+      <BackLink href={hrefFor(locale as Locale, back)} label={backLabel} />
 
       <div className="mt-6 flex flex-col gap-6 sm:flex-row">
         <Poster series={series} />
@@ -200,6 +209,7 @@ export default async function SeriesDetailPage({
               categoryId: single(query.categoryId),
               q: single(query.q),
               page: single(query.page),
+              from: single(query.from),
             }}
             locale={locale as Locale}
             label={t("seriesSeasonsLabel")}
@@ -225,6 +235,7 @@ export default async function SeriesDetailPage({
                         categoryId: single(query.categoryId),
                         q: single(query.q),
                         page: single(query.page),
+                        from: single(query.from),
                         season: String(open?.season_number ?? 0),
                         play: row.id,
                       })}`,

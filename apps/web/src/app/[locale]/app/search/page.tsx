@@ -14,6 +14,7 @@ import {
   filterFromParam,
   normalizeQuery,
   queryTooLong,
+  searchResultPath,
   type SearchFilter,
   type SearchSection,
   type SearchSections,
@@ -40,6 +41,14 @@ import { loadCatalogueTypes, loadSearchSections } from "@/lib/search/load-search
  * field, the tabs, the grouped preview of four, "Voir tous" at page 0 of twenty,
  * and twenty-per-page lists — with the four and the twenty as distinct requests
  * (Q9, SR-06).
+ *
+ * <h2>S10-03: every row is a link, and the fiche knows the way back</h2>
+ *
+ * A channel starts playing on its source's page (`?play=`); a film or a series
+ * opens its own page carrying the search it came from (`from=search` plus the
+ * text, the filter and the page), so the fiche's return link lands on the same
+ * search (SR-12). The hrefs are plain `<a>`s: the whole screen still works with
+ * no JavaScript.
  *
  * <h2>The tabs list the source's catalogues, not the query's matches</h2>
  *
@@ -148,6 +157,16 @@ export default async function SearchPage({
         }}
         seeAllHref={offerSeeAll ? searchHref({ type, page: 0 }) : undefined}
         retryHref={retryHref}
+        resultHref={(itemId) =>
+          hrefFor(
+            locale as Locale,
+            searchResultPath(type, itemId, sourceId, {
+              query: text,
+              filter,
+              page: requestedPage,
+            }),
+          )
+        }
         pagination={
           withPagination
             ? {
@@ -313,6 +332,7 @@ function Section({
   labels,
   seeAllHref,
   retryHref,
+  resultHref,
   pagination,
 }: {
   type: SearchType;
@@ -327,6 +347,8 @@ function Section({
   };
   seeAllHref?: string;
   retryHref: string;
+  /** Where one row opens: a channel's playback or a film/series fiche (S10-03). */
+  resultHref: (itemId: string) => string;
   pagination?: {
     previousHref?: string;
     nextHref?: string;
@@ -352,14 +374,16 @@ function Section({
       ) : (
         <ul className="mt-3 space-y-2">
           {section.items.map((item) => (
-            <li
-              key={item.id}
-              className="border-border flex items-center gap-3 rounded-xl border px-4 py-3"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{item.name}</span>
-                <Subtitle type={type} item={item} />
-              </span>
+            <li key={item.id}>
+              <a
+                href={resultHref(item.id)}
+                className="border-border flex items-center gap-3 rounded-xl border px-4 py-3 hover:border-foreground/30"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{item.name}</span>
+                  <Subtitle type={type} item={item} />
+                </span>
+              </a>
             </li>
           ))}
         </ul>

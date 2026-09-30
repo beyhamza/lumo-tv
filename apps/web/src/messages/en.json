@@ -497,6 +497,7 @@
     "searchSectionFailed": "This part could not be loaded",
     "searchRetry": "Try again",
     "searchSeeAll": "See all",
+    "searchBackToResults": "Back to the search",
     "searchPrevious": "Previous",
     "searchNext": "Next",
     "searchPageOf": "Page {page} of {total}"

@@ -95,6 +95,89 @@ export function queryTooLong(value: string): boolean {
   return codePointLength(value) > MAX_QUERY_LENGTH;
 }
 
+/**
+ * The search screen's context, as a fiche carries it through and gives it back
+ * (US-021, SR-12).
+ */
+export interface SearchContext {
+  query: string;
+  filter: SearchFilter;
+  page: number;
+}
+
+/**
+ * The provenance marker a film's or series' page accepts to return to a search.
+ *
+ * Restricted on purpose: the fiche only ever acts on this exact, known value,
+ * and rebuilds the return path from `/app/search` and three whitelisted
+ * parameters. An arbitrary `?from=`, a path or a host has nowhere to redirect
+ * to, because none of them is ever read (Q9, SR-12).
+ */
+export const SEARCH_ORIGIN = "search";
+
+/** True only for the exact marker this application writes. */
+export function openedFromSearch(value: string | undefined): boolean {
+  return value === SEARCH_ORIGIN;
+}
+
+/**
+ * Where one result opens.
+ *
+ * A channel has nothing to say about itself and starts playing on its source's
+ * page (`?play=`, the pattern of the home rails). A film or a series opens its
+ * own page and carries the search it came from: the marker makes the fiche's
+ * return link point back at `/app/search`, and the three parameters make that
+ * link the exact search — text, filter and page (US-021, SR-12).
+ */
+export function searchResultPath(
+  type: SearchType,
+  itemId: string,
+  sourceId: string,
+  context: SearchContext,
+): string {
+  if (type === "channels") {
+    return `/app/sources/${sourceId}/channels?play=${encodeURIComponent(itemId)}`;
+  }
+  const base =
+    type === "films"
+      ? `/app/sources/${sourceId}/vod/${encodeURIComponent(itemId)}`
+      : `/app/sources/${sourceId}/series/${encodeURIComponent(itemId)}`;
+  return `${base}${queryParams({ from: SEARCH_ORIGIN, ...contextParams(context) })}`;
+}
+
+/**
+ * The fiche's way back to the search it was opened from.
+ *
+ * Built from `/app/search` and the three whitelisted parameters only — never
+ * from a path or a host that could have been put in the query (SR-12).
+ */
+export function searchReturnPath(values: {
+  q?: string;
+  type?: string;
+  page?: string;
+}): string {
+  return `/app/search${queryParams(values)}`;
+}
+
+/** The three search parameters, absent values omitted so `all`/page 0 stay out. */
+function contextParams(context: SearchContext): Record<string, string | undefined> {
+  return {
+    q: context.query,
+    type: context.filter === "all" ? undefined : context.filter,
+    page: context.page > 0 ? String(context.page) : undefined,
+  };
+}
+
+/** `?a=1&b=2`, or an empty string. Absent values are omitted, never sent empty. */
+function queryParams(values: Record<string, string | undefined>): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(values)) {
+    if (value) params.set(key, value);
+  }
+  const encoded = params.toString();
+  return encoded ? `?${encoded}` : "";
+}
+
 /** What one type's request answered: the page, or a failure to name. */
 export type SectionResult<T> =
   | { ok: true; items: T[]; totalElements: number }
