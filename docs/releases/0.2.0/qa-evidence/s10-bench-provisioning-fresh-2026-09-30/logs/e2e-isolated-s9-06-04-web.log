@@ -1,0 +1,57 @@
+$ playwright test "e2e/s9-06-04-web.journey.spec.ts"
+[WebServer] $ next build
+[WebServer] $ next start "--port" "3100"
+[e2e] sources de l'API inchangées — image réutilisée.
+ Container lumo-e2e-bench Recreate 
+ Container lumo-e2e-postgres Creating 
+ Container lumo-e2e-postgres Created 
+ Container lumo-e2e-api Creating 
+ Container lumo-e2e-api Created 
+ Container lumo-e2e-bench Recreated 
+ Container lumo-e2e-postgres Starting 
+ Container lumo-e2e-bench Starting 
+ Container lumo-e2e-postgres Started 
+ Container lumo-e2e-postgres Waiting 
+ Container lumo-e2e-bench Started 
+ Container lumo-e2e-postgres Healthy 
+ Container lumo-e2e-api Starting 
+ Container lumo-e2e-api Started 
+ Container lumo-e2e-bench Waiting 
+ Container lumo-e2e-api Waiting 
+ Container lumo-e2e-postgres Waiting 
+ Container lumo-e2e-postgres Healthy 
+ Container lumo-e2e-bench Healthy 
+ Container lumo-e2e-api Healthy 
+
+Running 18 tests using 1 worker
+
+  ok  1 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « guide-grid-density » (544ms)
+  ok  2 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « journey » (381ms)
+  ok  3 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-06-04-fault » (313ms)
+  ok  4 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-06-04-partial » (279ms)
+  ok  5 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-06-04-past-source » (381ms)
+  ok  6 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-06-04-web » (269ms)
+  ok  7 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-07-gd12-midnight » (257ms)
+  ok  8 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-07-gd14-locales-keyboard » (443ms)
+  ok  9 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-07-network-bound » (270ms)
+  ok 10 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-sources-ceiling » (427ms)
+  ok 11 [journey] › e2e\s9-06-04-web.journey.spec.ts:75:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › préparation — source de banc avec guide (Game B) et grille du Guide (4.1s)
+  ok 12 [journey] › e2e\s9-06-04-web.journey.spec.ts:85:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-01 — fiche d'un programme courant : action visible (175ms)
+  ok 13 [journey] › e2e\s9-06-04-web.journey.spec.ts:96:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-02 — fiche d'un programme futur : aucune action (207ms)
+  ok 14 [journey] › e2e\s9-06-04-web.journey.spec.ts:105:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-04 — GD-07 : l'action disparaît à la fin, fiche ouverte, focus sur Fermer (3.6s)
+  ok 15 [journey] › e2e\s9-06-04-web.journey.spec.ts:137:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-05 — GD-08 : l'action apparaît au démarrage, sans voler le focus (3.6s)
+  ok 16 [journey] › e2e\s9-06-04-web.journey.spec.ts:166:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-09 — nom lisible sans logo, pas de zone description vide (182ms)
+  ok 17 [journey] › e2e\s9-06-04-web.journey.spec.ts:177:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-10 — FR puis EN : libellés traduits, aucune clé brute (238ms)
+  ok 18 [journey] › e2e\s9-06-04-web.journey.spec.ts:189:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-12 — Échap ferme la fiche d'abord, focus visible et non piégé (248ms)
+ Container lumo-e2e-api Stopping 
+ Container lumo-e2e-api Stopped 
+ Container lumo-e2e-api Removing 
+ Container lumo-e2e-api Removed 
+ Container lumo-e2e-postgres Stopping 
+ Container lumo-e2e-postgres Stopped 
+ Container lumo-e2e-postgres Removing 
+ Container lumo-e2e-postgres Removed 
+ Network lumo-e2e Removing 
+ Network lumo-e2e Resource is still in use 
+
+  18 passed (37.2s)

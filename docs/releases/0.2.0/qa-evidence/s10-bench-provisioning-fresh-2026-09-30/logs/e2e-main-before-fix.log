@@ -1,0 +1,720 @@
+$ playwright test
+[WebServer] $ next build
+[WebServer] $ next start "--port" "3100"
+[e2e] pas d'empreinte connue — construction de l'image.
+ Image lumo-e2e-lumo-api Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 520B 0.1s done
+#1 DONE 0.1s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 3.54kB done
+#2 DONE 0.1s
+
+#3 [internal] load metadata for docker.io/library/eclipse-temurin:25-jdk
+#3 ...
+
+#4 [internal] load metadata for docker.io/library/eclipse-temurin:25-jre
+#4 DONE 0.8s
+
+#3 [internal] load metadata for docker.io/library/eclipse-temurin:25-jdk
+#3 DONE 0.8s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 469B done
+#5 DONE 0.0s
+
+#6 [runtime 1/8] FROM docker.io/library/eclipse-temurin:25-jre@sha256:8da0490fa9a3c26867012019565948eef0ee69438f5c75ac28146967bae984b5
+#6 resolve docker.io/library/eclipse-temurin:25-jre@sha256:8da0490fa9a3c26867012019565948eef0ee69438f5c75ac28146967bae984b5 0.0s done
+#6 DONE 0.0s
+
+#7 [build  1/10] FROM docker.io/library/eclipse-temurin:25-jdk@sha256:119a3d18f160a3e7655a66034d0f43beee31cd7b3b9142d57a5de29772011de6
+#7 resolve docker.io/library/eclipse-temurin:25-jdk@sha256:119a3d18f160a3e7655a66034d0f43beee31cd7b3b9142d57a5de29772011de6 0.0s done
+#7 DONE 0.0s
+
+#8 [internal] load build context
+#8 transferring context: 2.30MB 0.2s done
+#8 DONE 0.2s
+
+#9 [build  2/10] WORKDIR /repo/apps/api
+#9 CACHED
+
+#10 [build  6/10] COPY apps/api/settings.gradle.kts apps/api/build.gradle.kts apps/api/gradle.properties /repo/apps/api/
+#10 CACHED
+
+#11 [runtime 2/8] RUN apt-get update  && apt-get install -y --no-install-recommends curl  && rm -rf /var/lib/apt/lists/*
+#11 CACHED
+
+#12 [build  8/10] COPY apps/api/src /repo/apps/api/src
+#12 CACHED
+
+#13 [build 10/10] RUN cp build/libs/lumo-api-*.jar app.jar  && java -Djarmode=tools -jar app.jar extract --layers --destination /extracted
+#13 CACHED
+
+#14 [build  5/10] COPY apps/api/gradle /repo/apps/api/gradle
+#14 CACHED
+
+#15 [build  7/10] RUN --mount=type=cache,target=/root/.gradle     ./gradlew --no-daemon --quiet dependencies || true
+#15 CACHED
+
+#16 [build  3/10] COPY packages/contracts /repo/packages/contracts
+#16 CACHED
+
+#17 [runtime 7/8] COPY --from=build --chown=lumo:lumo /extracted/snapshot-dependencies/ ./
+#17 CACHED
+
+#18 [build  9/10] RUN --mount=type=cache,target=/root/.gradle     ./gradlew --no-daemon bootJar -x test
+#18 CACHED
+
+#19 [runtime 3/8] RUN useradd --system --uid 10001 --create-home --shell /usr/sbin/nologin lumo
+#19 CACHED
+
+#20 [runtime 5/8] COPY --from=build --chown=lumo:lumo /extracted/dependencies/ ./
+#20 CACHED
+
+#21 [runtime 4/8] WORKDIR /app
+#21 CACHED
+
+#22 [runtime 6/8] COPY --from=build --chown=lumo:lumo /extracted/spring-boot-loader/ ./
+#22 CACHED
+
+#23 [build  4/10] COPY apps/api/gradlew /repo/apps/api/
+#23 CACHED
+
+#24 [runtime 8/8] COPY --from=build --chown=lumo:lumo /extracted/application/ ./
+#24 CACHED
+
+#25 exporting to image
+#25 exporting layers done
+#25 exporting manifest sha256:0ba32b1bb7a7abdccd2b59542658c49f71d794c2f1e09f3ab577e94bf409b074 done
+#25 exporting config sha256:4685ba146e4bfff7427d49a59a2bbd15bb30e2d4481d16e1d5a23c3cecde6118 done
+#25 exporting attestation manifest sha256:c11e5820ac1ac10963d287ae37f3a2060c2b8a5986f033877e0732eb798586ec 0.0s done
+#25 exporting manifest list sha256:172b154acfe85c23652a63e466f365bd4d2ab51972ccff71a198a9e148daf3cc 0.0s done
+#25 naming to docker.io/library/lumo-e2e-lumo-api:latest done
+#25 unpacking to docker.io/library/lumo-e2e-lumo-api:latest 0.1s done
+#25 DONE 0.2s
+
+#26 resolving provenance for metadata file
+#26 DONE 0.0s
+ Image lumo-e2e-lumo-api Built 
+ Container lumo-e2e-bench Recreate 
+ Container lumo-e2e-postgres Recreate 
+ Container lumo-e2e-postgres Recreated 
+ Container lumo-e2e-api Recreate 
+ Container lumo-e2e-bench Recreated 
+ Container lumo-e2e-api Recreated 
+ Container lumo-e2e-bench Starting 
+ Container lumo-e2e-postgres Starting 
+ Container lumo-e2e-postgres Started 
+ Container lumo-e2e-postgres Waiting 
+ Container lumo-e2e-bench Started 
+ Container lumo-e2e-postgres Healthy 
+ Container lumo-e2e-api Starting 
+ Container lumo-e2e-api Started 
+ Container lumo-e2e-api Waiting 
+ Container lumo-e2e-postgres Waiting 
+ Container lumo-e2e-bench Waiting 
+ Container lumo-e2e-bench Healthy 
+ Container lumo-e2e-postgres Healthy 
+ Container lumo-e2e-api Healthy 
+
+Running 62 tests using 6 workers
+···························°×°°°°°°°°°°°°T
+::error file=e2e\journey.spec.ts,title=[journey] › e2e\journey.spec.ts:106:7 › sources › une playlist enregistrée devient une source prête::  1) [journey] › e2e\journey.spec.ts:106:7 › sources › une playlist enregistrée devient une source prête %0A    Test timeout of 30000ms exceeded.
+::error file=e2e\journey.spec.ts,title=[journey] › e2e\journey.spec.ts:106:7 › sources › une playlist enregistrée devient une source prête,line=117,col=59::  1) [journey] › e2e\journey.spec.ts:106:7 › sources › une playlist enregistrée devient une source prête %0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 30000ms%0A      - waiting for getByText('Source prête')%0A      - Test timeout of 30000ms exceeded.%0A%0A%0A      115 |     // is the end state — reaching it at all proves the whole chain: server%0A      116 |     // action, API, ingestion worker, PostgreSQL, and the polling screen.%0A    > 117 |     await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({%0A          |                                                           ^%0A      118 |       timeout: 30_000,%0A      119 |     });%0A      120 |%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\journey.spec.ts:117:59
+::error file=e2e\journey.spec.ts,title=[journey] › e2e\journey.spec.ts:106:7 › sources › une playlist enregistrée devient une source prête::  1) [journey] › e2e\journey.spec.ts:106:7 › sources › une playlist enregistrée devient une source prête %0A%0A    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────%0A    Test timeout of 30000ms exceeded.
+::error file=e2e\journey.spec.ts,title=[journey] › e2e\journey.spec.ts:106:7 › sources › une playlist enregistrée devient une source prête,line=117,col=59::  1) [journey] › e2e\journey.spec.ts:106:7 › sources › une playlist enregistrée devient une source prête %0A%0A    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────%0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 30000ms%0A      - waiting for getByText('Source prête')%0A      - Test timeout of 30000ms exceeded.%0A%0A%0A      115 |     // is the end state — reaching it at all proves the whole chain: server%0A      116 |     // action, API, ingestion worker, PostgreSQL, and the polling screen.%0A    > 117 |     await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({%0A          |                                                           ^%0A      118 |       timeout: 30_000,%0A      119 |     });%0A      120 |%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\journey.spec.ts:117:59
+°°°°°°°°°°°°×××××°°°°°°°×°F
+::error file=e2e\s9-06-04-fault.journey.spec.ts,title=[journey] › e2e\s9-06-04-fault.journey.spec.ts:36:5 › QA-06-04-06 — GD-10 erreur initiale : message distinct, Réessayer, jamais « guide vide »,line=23,col=57::  2) [journey] › e2e\s9-06-04-fault.journey.spec.ts:36:5 › QA-06-04-06 — GD-10 erreur initiale : message distinct, Réessayer, jamais « guide vide » %0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      21 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      22 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 23 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      24 |%0A      25 |   await page.goto("/fr/app/sources");%0A      26 |   await page.getByRole("link", { name: LABEL, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-fault.journey.spec.ts:23:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-fault.journey.spec.ts:39:20
+::error file=e2e\s9-06-04-fault.journey.spec.ts,title=[journey] › e2e\s9-06-04-fault.journey.spec.ts:36:5 › QA-06-04-06 — GD-10 erreur initiale : message distinct, Réessayer, jamais « guide vide »,line=23,col=57::  2) [journey] › e2e\s9-06-04-fault.journey.spec.ts:36:5 › QA-06-04-06 — GD-10 erreur initiale : message distinct, Réessayer, jamais « guide vide » %0A%0A    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────%0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      21 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      22 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 23 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      24 |%0A      25 |   await page.goto("/fr/app/sources");%0A      26 |   await page.getByRole("link", { name: LABEL, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-fault.journey.spec.ts:23:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-fault.journey.spec.ts:39:20
+F
+::error file=e2e\s9-06-04-past-source.journey.spec.ts,title=[journey] › e2e\s9-06-04-past-source.journey.spec.ts:76:5 › QA-06-04-03 — fiche d'un programme passé : informations seules, aucune lecture,line=36,col=57::  3) [journey] › e2e\s9-06-04-past-source.journey.spec.ts:76:5 › QA-06-04-03 — fiche d'un programme passé : informations seules, aucune lecture %0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      34 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      35 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 36 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      37 |%0A      38 |   await page.goto("/fr/app/sources");%0A      39 |   await page.getByRole("link", { name: label, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:36:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:79:20
+::error file=e2e\s9-06-04-past-source.journey.spec.ts,title=[journey] › e2e\s9-06-04-past-source.journey.spec.ts:76:5 › QA-06-04-03 — fiche d'un programme passé : informations seules, aucune lecture,line=36,col=57::  3) [journey] › e2e\s9-06-04-past-source.journey.spec.ts:76:5 › QA-06-04-03 — fiche d'un programme passé : informations seules, aucune lecture %0A%0A    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────%0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      34 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      35 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 36 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      37 |%0A      38 |   await page.goto("/fr/app/sources");%0A      39 |   await page.getByRole("link", { name: label, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:36:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:79:20
+F
+::error file=e2e\s9-06-04-partial.journey.spec.ts,title=[journey] › e2e\s9-06-04-partial.journey.spec.ts:36:5 › QA-06-04-08 — GD-11 guide partiel : créneau vide annoncé, aucune erreur,line=23,col=57::  4) [journey] › e2e\s9-06-04-partial.journey.spec.ts:36:5 › QA-06-04-08 — GD-11 guide partiel : créneau vide annoncé, aucune erreur %0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      21 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      22 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 23 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      24 |%0A      25 |   await page.goto("/fr/app/sources");%0A      26 |   await page.getByRole("link", { name: LABEL, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-partial.journey.spec.ts:23:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-partial.journey.spec.ts:39:20
+::error file=e2e\s9-06-04-partial.journey.spec.ts,title=[journey] › e2e\s9-06-04-partial.journey.spec.ts:36:5 › QA-06-04-08 — GD-11 guide partiel : créneau vide annoncé, aucune erreur,line=23,col=57::  4) [journey] › e2e\s9-06-04-partial.journey.spec.ts:36:5 › QA-06-04-08 — GD-11 guide partiel : créneau vide annoncé, aucune erreur %0A%0A    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────%0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      21 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      22 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 23 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      24 |%0A      25 |   await page.goto("/fr/app/sources");%0A      26 |   await page.getByRole("link", { name: LABEL, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-partial.journey.spec.ts:23:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-partial.journey.spec.ts:39:20
+F
+::error file=e2e\s9-06-04-past-source.journey.spec.ts,title=[journey] › e2e\s9-06-04-past-source.journey.spec.ts:97:5 › QA-06-04-11 — fiche ouverte : un changement de source venu d'un AUTRE appareil ne la ferme pas (portée par appareil),line=36,col=57::  5) [journey] › e2e\s9-06-04-past-source.journey.spec.ts:97:5 › QA-06-04-11 — fiche ouverte : un changement de source venu d'un AUTRE appareil ne la ferme pas (portée par appareil) %0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      34 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      35 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 36 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      37 |%0A      38 |   await page.goto("/fr/app/sources");%0A      39 |   await page.getByRole("link", { name: label, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:36:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:103:19
+::error file=e2e\s9-06-04-past-source.journey.spec.ts,title=[journey] › e2e\s9-06-04-past-source.journey.spec.ts:97:5 › QA-06-04-11 — fiche ouverte : un changement de source venu d'un AUTRE appareil ne la ferme pas (portée par appareil),line=36,col=57::  5) [journey] › e2e\s9-06-04-past-source.journey.spec.ts:97:5 › QA-06-04-11 — fiche ouverte : un changement de source venu d'un AUTRE appareil ne la ferme pas (portée par appareil) %0A%0A    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────%0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      34 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      35 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 36 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      37 |%0A      38 |   await page.goto("/fr/app/sources");%0A      39 |   await page.getByRole("link", { name: label, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:36:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:103:19
+F
+::error file=e2e\s9-06-04-web.journey.spec.ts,title=[journey] › e2e\s9-06-04-web.journey.spec.ts:71:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › préparation — source de banc avec guide (Game B) et grille du Guide,line=31,col=57::  6) [journey] › e2e\s9-06-04-web.journey.spec.ts:71:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › préparation — source de banc avec guide (Game B) et grille du Guide %0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      29 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      30 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 31 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      32 |%0A      33 |   await page.goto("/fr/app/sources");%0A      34 |   await page.getByRole("link", { name: LABEL, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-web.journey.spec.ts:31:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-web.journey.spec.ts:72:16
+::error file=e2e\s9-06-04-web.journey.spec.ts,title=[journey] › e2e\s9-06-04-web.journey.spec.ts:71:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › préparation — source de banc avec guide (Game B) et grille du Guide,line=31,col=57::  6) [journey] › e2e\s9-06-04-web.journey.spec.ts:71:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › préparation — source de banc avec guide (Game B) et grille du Guide %0A%0A    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────%0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      29 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      30 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 31 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      32 |%0A      33 |   await page.goto("/fr/app/sources");%0A      34 |   await page.getByRole("link", { name: LABEL, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-web.journey.spec.ts:31:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-web.journey.spec.ts:72:16
+°°°°°°°
+F
+::error file=e2e\s9-07-gd12-midnight.journey.spec.ts,title=[journey] › e2e\s9-07-gd12-midnight.journey.spec.ts:53:7 › GD-12 — minuit, web SSR sous LUMO_NOW › préparation — source de banc et jour courant,line=37,col=57::  7) [journey] › e2e\s9-07-gd12-midnight.journey.spec.ts:53:7 › GD-12 — minuit, web SSR sous LUMO_NOW › préparation — source de banc et jour courant %0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      35 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      36 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 37 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      38 |%0A      39 |   await page.goto("/fr/app/sources");%0A      40 |   await page.getByRole("link", { name: label, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd12-midnight.journey.spec.ts:37:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd12-midnight.journey.spec.ts:54:16
+::error file=e2e\s9-07-gd12-midnight.journey.spec.ts,title=[journey] › e2e\s9-07-gd12-midnight.journey.spec.ts:53:7 › GD-12 — minuit, web SSR sous LUMO_NOW › préparation — source de banc et jour courant,line=37,col=57::  7) [journey] › e2e\s9-07-gd12-midnight.journey.spec.ts:53:7 › GD-12 — minuit, web SSR sous LUMO_NOW › préparation — source de banc et jour courant %0A%0A    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────%0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      35 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      36 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 37 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      38 |%0A      39 |   await page.goto("/fr/app/sources");%0A      40 |   await page.getByRole("link", { name: label, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd12-midnight.journey.spec.ts:37:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd12-midnight.journey.spec.ts:54:16
+°×°°°×°°F
+::error file=e2e\s9-07-gd14-locales-keyboard.journey.spec.ts,title=[journey] › e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:44:7 › GD-14 — web FR/EN et clavier › préparation — source de banc avec guide (Game A),line=28,col=57::  8) [journey] › e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:44:7 › GD-14 — web FR/EN et clavier › préparation — source de banc avec guide (Game A) %0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      26 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      27 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 28 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      29 |%0A      30 |   await page.goto("/fr/app/sources");%0A      31 |   await page.getByRole("link", { name: label, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:28:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:45:16
+::error file=e2e\s9-07-gd14-locales-keyboard.journey.spec.ts,title=[journey] › e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:44:7 › GD-14 — web FR/EN et clavier › préparation — source de banc avec guide (Game A),line=28,col=57::  8) [journey] › e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:44:7 › GD-14 — web FR/EN et clavier › préparation — source de banc avec guide (Game A) %0A%0A    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────%0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      26 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);%0A      27 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 28 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      29 |%0A      30 |   await page.goto("/fr/app/sources");%0A      31 |   await page.getByRole("link", { name: label, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:28:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:45:16
+°°°F
+::error file=e2e\s9-07-network-bound.journey.spec.ts,title=[journey] › e2e\s9-07-network-bound.journey.spec.ts:71:9 › S9-07 §5.2 — preuve réseau web (I-4) › 3 chaînes : appels EPG bornés et indépendants du volume,line=56,col=57::  9) [journey] › e2e\s9-07-network-bound.journey.spec.ts:71:9 › S9-07 §5.2 — preuve réseau web (I-4) › 3 chaînes : appels EPG bornés et indépendants du volume %0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      54 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(`http://bench/${volume.epg}`);%0A      55 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 56 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      57 |%0A      58 |   await page.goto("/fr/app/sources");%0A      59 |   await page.getByRole("link", { name: label, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-network-bound.journey.spec.ts:56:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-network-bound.journey.spec.ts:74:24
+::error file=e2e\s9-07-network-bound.journey.spec.ts,title=[journey] › e2e\s9-07-network-bound.journey.spec.ts:71:9 › S9-07 §5.2 — preuve réseau web (I-4) › 3 chaînes : appels EPG bornés et indépendants du volume,line=56,col=57::  9) [journey] › e2e\s9-07-network-bound.journey.spec.ts:71:9 › S9-07 §5.2 — preuve réseau web (I-4) › 3 chaînes : appels EPG bornés et indépendants du volume %0A%0A    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────%0A    Error: expect(locator).toBeVisible() failed%0A%0A    Locator: getByText('Source prête')%0A    Expected: visible%0A    Timeout: 60000ms%0A    Error: element(s) not found%0A%0A    Call log:%0A      - Expect "toBeVisible" with timeout 60000ms%0A      - waiting for getByText('Source prête')%0A%0A%0A      54 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(`http://bench/${volume.epg}`);%0A      55 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();%0A    > 56 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });%0A         |                                                         ^%0A      57 |%0A      58 |   await page.goto("/fr/app/sources");%0A      59 |   await page.getByRole("link", { name: label, exact: true }).click();%0A        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-network-bound.journey.spec.ts:56:57)%0A        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-network-bound.journey.spec.ts:74:24
+°° Container lumo-e2e-api Stopping 
+ Container lumo-e2e-api Stopped 
+ Container lumo-e2e-api Removing 
+ Container lumo-e2e-api Removed 
+ Container lumo-e2e-postgres Stopping 
+ Container lumo-e2e-postgres Stopped 
+ Container lumo-e2e-postgres Removing 
+ Container lumo-e2e-postgres Removed 
+ Network lumo-e2e Removing 
+ Network lumo-e2e Resource is still in use 
+
+
+  1) [journey] › e2e\journey.spec.ts:106:7 › sources › une playlist enregistrée devient une source prête 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 30000ms
+      - waiting for getByText('Source prête')
+      - Test timeout of 30000ms exceeded.
+
+
+      115 |     // is the end state — reaching it at all proves the whole chain: server
+      116 |     // action, API, ingestion worker, PostgreSQL, and the polling screen.
+    > 117 |     await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({
+          |                                                           ^
+      118 |       timeout: 30_000,
+      119 |     });
+      120 |
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\journey.spec.ts:117:59
+
+    Error Context: test-results\journey-sources-une-playli-bfba7-ée-devient-une-source-prête-journey\error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 30000ms
+      - waiting for getByText('Source prête')
+      - Test timeout of 30000ms exceeded.
+
+
+      115 |     // is the end state — reaching it at all proves the whole chain: server
+      116 |     // action, API, ingestion worker, PostgreSQL, and the polling screen.
+    > 117 |     await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({
+          |                                                           ^
+      118 |       timeout: 30_000,
+      119 |     });
+      120 |
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\journey.spec.ts:117:59
+
+    Error Context: test-results\journey-sources-une-playli-bfba7-ée-devient-une-source-prête-journey-retry1\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\journey-sources-une-playli-bfba7-ée-devient-une-source-prête-journey-retry1\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\journey-sources-une-playli-bfba7-ée-devient-une-source-prête-journey-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [journey] › e2e\s9-06-04-fault.journey.spec.ts:36:5 › QA-06-04-06 — GD-10 erreur initiale : message distinct, Réessayer, jamais « guide vide » 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      21 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      22 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 23 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      24 |
+      25 |   await page.goto("/fr/app/sources");
+      26 |   await page.getByRole("link", { name: LABEL, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-fault.journey.spec.ts:23:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-fault.journey.spec.ts:39:20
+
+    Error Context: test-results\s9-06-04-fault.journey-QA--c9500-sayer-jamais-«-guide-vide-»-journey\error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      21 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      22 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 23 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      24 |
+      25 |   await page.goto("/fr/app/sources");
+      26 |   await page.getByRole("link", { name: LABEL, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-fault.journey.spec.ts:23:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-fault.journey.spec.ts:39:20
+
+    Error Context: test-results\s9-06-04-fault.journey-QA--c9500-sayer-jamais-«-guide-vide-»-journey-retry1\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\s9-06-04-fault.journey-QA--c9500-sayer-jamais-«-guide-vide-»-journey-retry1\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\s9-06-04-fault.journey-QA--c9500-sayer-jamais-«-guide-vide-»-journey-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [journey] › e2e\s9-06-04-partial.journey.spec.ts:36:5 › QA-06-04-08 — GD-11 guide partiel : créneau vide annoncé, aucune erreur 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      21 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      22 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 23 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      24 |
+      25 |   await page.goto("/fr/app/sources");
+      26 |   await page.getByRole("link", { name: LABEL, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-partial.journey.spec.ts:23:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-partial.journey.spec.ts:39:20
+
+    Error Context: test-results\s9-06-04-partial.journey-Q-abbc1--vide-annoncé-aucune-erreur-journey\error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      21 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      22 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 23 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      24 |
+      25 |   await page.goto("/fr/app/sources");
+      26 |   await page.getByRole("link", { name: LABEL, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-partial.journey.spec.ts:23:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-partial.journey.spec.ts:39:20
+
+    Error Context: test-results\s9-06-04-partial.journey-Q-abbc1--vide-annoncé-aucune-erreur-journey-retry1\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\s9-06-04-partial.journey-Q-abbc1--vide-annoncé-aucune-erreur-journey-retry1\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\s9-06-04-partial.journey-Q-abbc1--vide-annoncé-aucune-erreur-journey-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [journey] › e2e\s9-06-04-past-source.journey.spec.ts:76:5 › QA-06-04-03 — fiche d'un programme passé : informations seules, aucune lecture 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      34 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      35 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 36 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      37 |
+      38 |   await page.goto("/fr/app/sources");
+      39 |   await page.getByRole("link", { name: label, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:36:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:79:20
+
+    Error Context: test-results\s9-06-04-past-source.journ-61fb3-tions-seules-aucune-lecture-journey\error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      34 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      35 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 36 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      37 |
+      38 |   await page.goto("/fr/app/sources");
+      39 |   await page.getByRole("link", { name: label, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:36:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:79:20
+
+    Error Context: test-results\s9-06-04-past-source.journ-61fb3-tions-seules-aucune-lecture-journey-retry1\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\s9-06-04-past-source.journ-61fb3-tions-seules-aucune-lecture-journey-retry1\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\s9-06-04-past-source.journ-61fb3-tions-seules-aucune-lecture-journey-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [journey] › e2e\s9-06-04-past-source.journey.spec.ts:97:5 › QA-06-04-11 — fiche ouverte : un changement de source venu d'un AUTRE appareil ne la ferme pas (portée par appareil) 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      34 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      35 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 36 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      37 |
+      38 |   await page.goto("/fr/app/sources");
+      39 |   await page.getByRole("link", { name: label, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:36:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:103:19
+
+    Error Context: test-results\s9-06-04-past-source.journ-3a4b9-me-pas-portée-par-appareil--journey\error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      34 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      35 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 36 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      37 |
+      38 |   await page.goto("/fr/app/sources");
+      39 |   await page.getByRole("link", { name: label, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:36:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-past-source.journey.spec.ts:103:19
+
+    Error Context: test-results\s9-06-04-past-source.journ-3a4b9-me-pas-portée-par-appareil--journey-retry1\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\s9-06-04-past-source.journ-3a4b9-me-pas-portée-par-appareil--journey-retry1\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\s9-06-04-past-source.journ-3a4b9-me-pas-portée-par-appareil--journey-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [journey] › e2e\s9-06-04-web.journey.spec.ts:71:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › préparation — source de banc avec guide (Game B) et grille du Guide 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      29 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      30 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 31 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      32 |
+      33 |   await page.goto("/fr/app/sources");
+      34 |   await page.getByRole("link", { name: LABEL, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-web.journey.spec.ts:31:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-web.journey.spec.ts:72:16
+
+    Error Context: test-results\s9-06-04-web.journey-S9-06-65069-e-Game-B-et-grille-du-Guide-journey\error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      29 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      30 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 31 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      32 |
+      33 |   await page.goto("/fr/app/sources");
+      34 |   await page.getByRole("link", { name: LABEL, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-web.journey.spec.ts:31:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-06-04-web.journey.spec.ts:72:16
+
+    Error Context: test-results\s9-06-04-web.journey-S9-06-65069-e-Game-B-et-grille-du-Guide-journey-retry1\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\s9-06-04-web.journey-S9-06-65069-e-Game-B-et-grille-du-Guide-journey-retry1\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\s9-06-04-web.journey-S9-06-65069-e-Game-B-et-grille-du-Guide-journey-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [journey] › e2e\s9-07-gd12-midnight.journey.spec.ts:53:7 › GD-12 — minuit, web SSR sous LUMO_NOW › préparation — source de banc et jour courant 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      35 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      36 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 37 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      38 |
+      39 |   await page.goto("/fr/app/sources");
+      40 |   await page.getByRole("link", { name: label, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd12-midnight.journey.spec.ts:37:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd12-midnight.journey.spec.ts:54:16
+
+    Error Context: test-results\s9-07-gd12-midnight.journe-f05ff-rce-de-banc-et-jour-courant-journey\error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      35 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      36 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 37 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      38 |
+      39 |   await page.goto("/fr/app/sources");
+      40 |   await page.getByRole("link", { name: label, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd12-midnight.journey.spec.ts:37:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd12-midnight.journey.spec.ts:54:16
+
+    Error Context: test-results\s9-07-gd12-midnight.journe-f05ff-rce-de-banc-et-jour-courant-journey-retry1\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\s9-07-gd12-midnight.journe-f05ff-rce-de-banc-et-jour-courant-journey-retry1\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\s9-07-gd12-midnight.journe-f05ff-rce-de-banc-et-jour-courant-journey-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) [journey] › e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:44:7 › GD-14 — web FR/EN et clavier › préparation — source de banc avec guide (Game A) 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      26 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      27 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 28 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      29 |
+      30 |   await page.goto("/fr/app/sources");
+      31 |   await page.getByRole("link", { name: label, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:28:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:45:16
+
+    Error Context: test-results\s9-07-gd14-locales-keyboar-87637--de-banc-avec-guide-Game-A--journey\error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      26 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+      27 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 28 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      29 |
+      30 |   await page.goto("/fr/app/sources");
+      31 |   await page.getByRole("link", { name: label, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:28:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:45:16
+
+    Error Context: test-results\s9-07-gd14-locales-keyboar-87637--de-banc-avec-guide-Game-A--journey-retry1\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\s9-07-gd14-locales-keyboar-87637--de-banc-avec-guide-Game-A--journey-retry1\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\s9-07-gd14-locales-keyboar-87637--de-banc-avec-guide-Game-A--journey-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) [journey] › e2e\s9-07-network-bound.journey.spec.ts:71:9 › S9-07 §5.2 — preuve réseau web (I-4) › 3 chaînes : appels EPG bornés et indépendants du volume 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      54 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(`http://bench/${volume.epg}`);
+      55 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 56 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      57 |
+      58 |   await page.goto("/fr/app/sources");
+      59 |   await page.getByRole("link", { name: label, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-network-bound.journey.spec.ts:56:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-network-bound.journey.spec.ts:74:24
+
+    Error Context: test-results\s9-07-network-bound.journe-58db8-s-et-indépendants-du-volume-journey\error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Source prête')
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for getByText('Source prête')
+
+
+      54 |   await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(`http://bench/${volume.epg}`);
+      55 |   await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    > 56 |   await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+         |                                                         ^
+      57 |
+      58 |   await page.goto("/fr/app/sources");
+      59 |   await page.getByRole("link", { name: label, exact: true }).click();
+        at createSource (C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-network-bound.journey.spec.ts:56:57)
+        at C:\dev\lumo-tv-s10-qa\apps\web\e2e\s9-07-network-bound.journey.spec.ts:74:24
+
+    Error Context: test-results\s9-07-network-bound.journe-58db8-s-et-indépendants-du-volume-journey-retry1\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\s9-07-network-bound.journe-58db8-s-et-indépendants-du-volume-journey-retry1\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\s9-07-network-bound.journe-58db8-s-et-indépendants-du-volume-journey-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9 failed
+    [journey] › e2e\journey.spec.ts:106:7 › sources › une playlist enregistrée devient une source prête 
+    [journey] › e2e\s9-06-04-fault.journey.spec.ts:36:5 › QA-06-04-06 — GD-10 erreur initiale : message distinct, Réessayer, jamais « guide vide » 
+    [journey] › e2e\s9-06-04-partial.journey.spec.ts:36:5 › QA-06-04-08 — GD-11 guide partiel : créneau vide annoncé, aucune erreur 
+    [journey] › e2e\s9-06-04-past-source.journey.spec.ts:76:5 › QA-06-04-03 — fiche d'un programme passé : informations seules, aucune lecture 
+    [journey] › e2e\s9-06-04-past-source.journey.spec.ts:97:5 › QA-06-04-11 — fiche ouverte : un changement de source venu d'un AUTRE appareil ne la ferme pas (portée par appareil) 
+    [journey] › e2e\s9-06-04-web.journey.spec.ts:71:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › préparation — source de banc avec guide (Game B) et grille du Guide 
+    [journey] › e2e\s9-07-gd12-midnight.journey.spec.ts:53:7 › GD-12 — minuit, web SSR sous LUMO_NOW › préparation — source de banc et jour courant 
+    [journey] › e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:44:7 › GD-14 — web FR/EN et clavier › préparation — source de banc avec guide (Game A) 
+    [journey] › e2e\s9-07-network-bound.journey.spec.ts:71:9 › S9-07 §5.2 — preuve réseau web (I-4) › 3 chaînes : appels EPG bornés et indépendants du volume 
+  1 skipped
+  25 did not run
+  27 passed (4.7m)
+::notice title=🎭 Playwright Run Summary::  9 failed%0A    [journey] › e2e\journey.spec.ts:106:7 › sources › une playlist enregistrée devient une source prête %0A    [journey] › e2e\s9-06-04-fault.journey.spec.ts:36:5 › QA-06-04-06 — GD-10 erreur initiale : message distinct, Réessayer, jamais « guide vide » %0A    [journey] › e2e\s9-06-04-partial.journey.spec.ts:36:5 › QA-06-04-08 — GD-11 guide partiel : créneau vide annoncé, aucune erreur %0A    [journey] › e2e\s9-06-04-past-source.journey.spec.ts:76:5 › QA-06-04-03 — fiche d'un programme passé : informations seules, aucune lecture %0A    [journey] › e2e\s9-06-04-past-source.journey.spec.ts:97:5 › QA-06-04-11 — fiche ouverte : un changement de source venu d'un AUTRE appareil ne la ferme pas (portée par appareil) %0A    [journey] › e2e\s9-06-04-web.journey.spec.ts:71:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › préparation — source de banc avec guide (Game B) et grille du Guide %0A    [journey] › e2e\s9-07-gd12-midnight.journey.spec.ts:53:7 › GD-12 — minuit, web SSR sous LUMO_NOW › préparation — source de banc et jour courant %0A    [journey] › e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:44:7 › GD-14 — web FR/EN et clavier › préparation — source de banc avec guide (Game A) %0A    [journey] › e2e\s9-07-network-bound.journey.spec.ts:71:9 › S9-07 §5.2 — preuve réseau web (I-4) › 3 chaînes : appels EPG bornés et indépendants du volume %0A  1 skipped%0A  25 did not run%0A  27 passed (4.7m)
+[ELIFECYCLE] Command failed with exit code 1.

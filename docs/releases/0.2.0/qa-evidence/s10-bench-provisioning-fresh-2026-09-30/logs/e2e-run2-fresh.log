@@ -1,0 +1,114 @@
+$ playwright test
+[WebServer] $ next build
+[WebServer] $ next start "--port" "3100"
+[e2e] sources de l'API inchangées — image réutilisée.
+ Container lumo-e2e-bench Recreate 
+ Container lumo-e2e-postgres Creating 
+ Container lumo-e2e-postgres Created 
+ Container lumo-e2e-api Creating 
+ Container lumo-e2e-api Created 
+ Container lumo-e2e-bench Recreated 
+ Container lumo-e2e-bench Starting 
+ Container lumo-e2e-postgres Starting 
+ Container lumo-e2e-postgres Started 
+ Container lumo-e2e-postgres Waiting 
+ Container lumo-e2e-bench Started 
+ Container lumo-e2e-postgres Healthy 
+ Container lumo-e2e-api Starting 
+ Container lumo-e2e-api Started 
+ Container lumo-e2e-bench Waiting 
+ Container lumo-e2e-api Waiting 
+ Container lumo-e2e-postgres Waiting 
+ Container lumo-e2e-postgres Healthy 
+ Container lumo-e2e-bench Healthy 
+ Container lumo-e2e-api Healthy 
+
+Running 71 tests using 6 workers
+
+  ok  2 [chromium] › e2e\zones.spec.ts:37:7 › marketing › a locale already in the URL beats the browser's preference (434ms)
+  ok  4 [chromium] › e2e\zones.spec.ts:52:7 › marketing › the landing page carries its canonical and its alternates (425ms)
+  ok  6 [chromium] › e2e\zones.spec.ts:68:7 › marketing › structured data is present and parses (329ms)
+  ok  5 [chromium] › e2e\zones.spec.ts:62:7 › marketing › the guides are reachable and translated (480ms)
+  ok  1 [chromium] › e2e\zones.spec.ts:16:7 › marketing › the root sends a French browser to /fr and an English one to /en (606ms)
+  ok 10 [chromium] › e2e\zones.spec.ts:113:7 › account › the retired Google endpoint is gone, not answering (137ms)
+  ok 11 [chromium] › e2e\zones.spec.ts:127:7 › activation › works without JavaScript (154ms)
+  ok  8 [chromium] › e2e\zones.spec.ts:89:7 › account › the session cookie is not readable from JavaScript (345ms)
+  ok  7 [chromium] › e2e\zones.spec.ts:80:7 › account › an anonymous visitor is sent to sign-in, and back afterwards (379ms)
+  ok 12 [chromium] › e2e\zones.spec.ts:139:7 › activation › an anonymous visitor is asked to sign in, without losing the code (197ms)
+  ok  9 [chromium] › e2e\zones.spec.ts:95:7 › account › no Google button, and no request to Google (393ms)
+  ok  3 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « guide-grid-density » (1.3s)
+  ok 13 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « journey » (517ms)
+  ok 14 [mobile] › e2e\zones.spec.ts:37:7 › marketing › a locale already in the URL beats the browser's preference (366ms)
+  ok 15 [mobile] › e2e\zones.spec.ts:52:7 › marketing › the landing page carries its canonical and its alternates (374ms)
+  ok 17 [mobile] › e2e\zones.spec.ts:68:7 › marketing › structured data is present and parses (328ms)
+  ok 21 [mobile] › e2e\zones.spec.ts:89:7 › account › the session cookie is not readable from JavaScript (271ms)
+  ok 20 [mobile] › e2e\zones.spec.ts:80:7 › account › an anonymous visitor is sent to sign-in, and back afterwards (345ms)
+  ok 16 [mobile] › e2e\zones.spec.ts:16:7 › marketing › the root sends a French browser to /fr and an English one to /en (688ms)
+  ok 23 [mobile] › e2e\zones.spec.ts:113:7 › account › the retired Google endpoint is gone, not answering (39ms)
+  ok 19 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-06-04-fault » (589ms)
+  ok 22 [mobile] › e2e\zones.spec.ts:95:7 › account › no Google button, and no request to Google (291ms)
+  ok 24 [mobile] › e2e\zones.spec.ts:127:7 › activation › works without JavaScript (224ms)
+  ok 25 [mobile] › e2e\zones.spec.ts:139:7 › activation › an anonymous visitor is asked to sign in, without losing the code (239ms)
+  ok 18 [mobile] › e2e\zones.spec.ts:62:7 › marketing › the guides are reachable and translated (561ms)
+  ok 26 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-06-04-partial » (339ms)
+  ok 27 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-06-04-past-source » (379ms)
+  ok 28 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-06-04-web » (269ms)
+  ok 29 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-07-gd12-midnight » (430ms)
+  ok 30 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-07-gd14-locales-keyboard » (371ms)
+  ok 31 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-07-network-bound » (393ms)
+  ok 32 [setup] › e2e\auth.setup.ts:51:8 › un compte est créé pour « s9-sources-ceiling » (370ms)
+  ok 34 [journey] › e2e\journey.spec.ts:23:7 › espace compte › la liste des sources vient de l'API, pas d'un état de repli (502ms)
+  -  39 [journey] › e2e\s9-06-04-fault.journey.spec.ts:49:5 › QA-06-04-06 — GD-10 erreur initiale : message distinct, Réessayer, jamais « guide vide »
+  ok 36 [journey] › e2e\journey.spec.ts:65:7 › activation › le champ de code prend le focus et arrive pré-rempli (492ms)
+  ok 35 [journey] › e2e\journey.spec.ts:38:7 › espace compte › la liste des appareils montre la session qui la consulte (508ms)
+  ok 37 [journey] › e2e\journey.spec.ts:76:7 › activation › un code inconnu est refusé par l'API, sans perdre la saisie (754ms)
+  ok 38 [journey] › e2e\journey.spec.ts:111:7 › sources › une playlist enregistrée devient une source prête (793ms)
+  ok 44 [journey] › e2e\journey.spec.ts:131:7 › sources › le catalogue liste les chaînes, avec numéro et qualité (430ms)
+  ok 45 [journey] › e2e\journey.spec.ts:152:7 › sources › catégorie et recherche passent par l'URL, donc sans JavaScript (800ms)
+  ok 46 [journey] › e2e\journey.spec.ts:181:7 › sources › lancer une chaîne demande l'URL au serveur, sans jamais la mettre dans la page (402ms)
+  ok 47 [journey] › e2e\journey.spec.ts:206:7 › sources › un flux que le navigateur ne peut pas ouvrir le dit, et propose la sortie (519ms)
+  ok 48 [journey] › e2e\journey.spec.ts:229:7 › sources › un flux que le navigateur peut ouvrir affiche une image (544ms)
+  -  33 [journey] › e2e\guide-grid-density.journey.spec.ts:33:7 › grille du guide — densité 1440 px (BUG-S9-05-02-01) › la grille défile dans sa cellule, la page ne défile pas
+  -  50 [journey] › e2e\s9-07-gd12-midnight.journey.spec.ts:69:7 › GD-12 — minuit, web SSR sous LUMO_NOW › préparation — source de banc et jour courant
+  -  51 [journey] › e2e\s9-07-gd12-midnight.journey.spec.ts:77:7 › GD-12 — minuit, web SSR sous LUMO_NOW › la journée coupe A1 à minuit, la suivante le reprend à 00:00
+  ok 40 [journey] › e2e\s9-06-04-partial.journey.spec.ts:40:5 › QA-06-04-08 — GD-11 guide partiel : créneau vide annoncé, aucune erreur (4.4s)
+  ok 49 [journey] › e2e\journey.spec.ts:259:7 › sources › une chaîne mise en favori le reste, et rend la vue où elle était (1.2s)
+  ok 41 [journey] › e2e\s9-06-04-past-source.journey.spec.ts:79:5 › QA-06-04-03 — fiche d'un programme passé : informations seules, aucune lecture (4.6s)
+  ok 43 [journey] › e2e\s9-06-04-web.journey.spec.ts:75:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › préparation — source de banc avec guide (Game B) et grille du Guide (4.3s)
+  ok 56 [journey] › e2e\s9-06-04-web.journey.spec.ts:85:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-01 — fiche d'un programme courant : action visible (316ms)
+  ok 57 [journey] › e2e\s9-06-04-web.journey.spec.ts:96:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-02 — fiche d'un programme futur : aucune action (330ms)
+  ok 54 [journey] › e2e\journey.spec.ts:321:7 › sources › le rail des chaînes récentes nomme une chaîne absente de la page (894ms)
+  ok 42 [journey] › e2e\s9-06-04-past-source.journey.spec.ts:100:5 › QA-06-04-11 — fiche ouverte : un changement de source venu d'un AUTRE appareil ne la ferme pas (portée par appareil) (5.7s)
+  ok 55 [journey] › e2e\s9-sources-ceiling.journey.spec.ts:30:5 › le plafond du compte remplace le bouton d'ajout (1.5s)
+  ok 59 [journey] › e2e\journey.spec.ts:347:7 › sources › l'étoile fonctionne sans JavaScript (768ms)
+  ok 60 [journey] › e2e\journey.spec.ts:386:7 › sources › supprimer la source rend la place (384ms)
+  ok 61 [journey] › e2e\journey.spec.ts:413:7 › sources › une adresse qui ne renvoie pas une playlist est nommée comme telle (277ms)
+  ok 52 [journey] › e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:48:7 › GD-14 — web FR/EN et clavier › préparation — source de banc avec guide (Game A) (4.1s)
+  ok 63 [journey] › e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:56:7 › GD-14 — web FR/EN et clavier › FR — libellés, jour courant et horaires 24 h (199ms)
+  ok 64 [journey] › e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:76:7 › GD-14 — web FR/EN et clavier › EN — libellés traduits, aucun français résiduel, horaires 12 h (253ms)
+[I-4] 3 chaînes → 2 appel(s) EPG
+  ok 53 [journey] › e2e\s9-07-network-bound.journey.spec.ts:75:9 › S9-07 §5.2 — preuve réseau web (I-4) › 3 chaînes : appels EPG bornés et indépendants du volume (4.4s)
+  ok 65 [journey] › e2e\s9-07-gd14-locales-keyboard.journey.spec.ts:111:7 › GD-14 — web FR/EN et clavier › clavier — Tab atteint une case du guide et Entrée ouvre la fiche (427ms)
+  ok 58 [journey] › e2e\s9-06-04-web.journey.spec.ts:105:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-04 — GD-07 : l'action disparaît à la fin, fiche ouverte, focus sur Fermer (4.2s)
+  ok 62 [journey] › e2e\journey.spec.ts:433:7 › sources › une playlist au-delà du plafond est refusée sur sa taille (3.6s)
+[I-4] 50 chaînes → 1 appel(s) EPG
+  ok 66 [journey] › e2e\s9-07-network-bound.journey.spec.ts:75:9 › S9-07 §5.2 — preuve réseau web (I-4) › 50 chaînes : appels EPG bornés et indépendants du volume (4.6s)
+  ok 67 [journey] › e2e\s9-06-04-web.journey.spec.ts:137:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-05 — GD-08 : l'action apparaît au démarrage, sans voler le focus (4.1s)
+  ok 69 [journey] › e2e\s9-06-04-web.journey.spec.ts:166:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-09 — nom lisible sans logo, pas de zone description vide (184ms)
+  ok 70 [journey] › e2e\s9-06-04-web.journey.spec.ts:177:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-10 — FR puis EN : libellés traduits, aucune clé brute (190ms)
+  ok 71 [journey] › e2e\s9-06-04-web.journey.spec.ts:189:7 › S9-06-04 — fiche programme web (GD-07/08/10/11) › QA-06-04-12 — Échap ferme la fiche d'abord, focus visible et non piégé (234ms)
+[I-4] 100 chaînes → 1 appel(s) EPG
+  ok 68 [journey] › e2e\s9-07-network-bound.journey.spec.ts:75:9 › S9-07 §5.2 — preuve réseau web (I-4) › 100 chaînes : appels EPG bornés et indépendants du volume (4.6s)
+ Container lumo-e2e-api Stopping 
+ Container lumo-e2e-api Stopped 
+ Container lumo-e2e-api Removing 
+ Container lumo-e2e-api Removed 
+ Container lumo-e2e-postgres Stopping 
+ Container lumo-e2e-postgres Stopped 
+ Container lumo-e2e-postgres Removing 
+ Container lumo-e2e-postgres Removed 
+ Network lumo-e2e Removing 
+ Network lumo-e2e Resource is still in use 
+
+  4 skipped
+  67 passed (45.3s)
