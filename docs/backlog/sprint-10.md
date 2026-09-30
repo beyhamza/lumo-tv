@@ -1,12 +1,22 @@
 # Sprint 10 — Recherche unifiée
 
-Statut : découpe arrêtée, cycle à ouvrir. Consigne du 30 septembre : avancer sans attendre la recette manuelle S9 ; S10-00 (contrat `q`) démarre en premier. Taille relative : M.
+Statut : **cycle ouvert**, du 1er au 7 octobre 2026 (validé par Hamza le 30 septembre 2026). Sélection `Todo` : `S10-00` → `S10-05` + `US-021`, affectée au cycle Plane « Sprint 10 — Recherche unifiée ». `S10-00` (contrat `q`) démarre en premier ; l'ordre des lots suivants est fixé par le Tech Lead. Taille relative : M.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 [Proposition d’écrans](../design/0.2.0/unified-search.md) préparée le 19 septembre
 2026 pour les trois surfaces ; relecture visuelle à effectuer.
 Les [règles Q9](../design/0.2.0/search-interactions.md) précisent maintenant
 les choix d’interaction et les cas SR-01 à SR-15 ; recette non exécutée.
+
+## Cycle 10 — ouvert le 30 septembre 2026
+
+Objectif validé par Hamza : **une saisie retrouve chaînes, films et séries de la
+source active, sur les trois surfaces.** Sélection `Todo` affectée au cycle Plane
+« Sprint 10 — Recherche unifiée » (01/10 → 07/10/2026) : `S10-00` à `S10-05`, plus
+la story `US-021`. `S10-00` passe en premier et clôt la vérification de Q9 ; le
+Tech Lead découpe et briefe @Dev tâche par tâche. La recette `S10-05` (télécommande
+réelle, deux sources) rejoint la liste matérielle déjà ouverte en S9-07 : la DoD
+commune n'est pas levée pour `US-021` sans elle.
 
 ## Objectif
 
