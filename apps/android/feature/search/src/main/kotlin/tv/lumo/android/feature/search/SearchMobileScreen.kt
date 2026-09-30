@@ -75,9 +75,20 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
  * matched nothing keeps its chip and shows [SearchSection.Loaded] with no items.
  * And a request in flight shows a spinner, never an empty list — an absence is a
  * reply, a spinner is not.
+ *
+ * <h2>S10-03: every row opens through the application</h2>
+ *
+ * A row says "this channel/film/series was chosen" and the NavHost decides
+ * whether that is playback or a fiche, exactly as the catalogues do. The screen
+ * holds no route and no business rule; the search state lives in the entry's
+ * [SearchViewModel], so returning from a player or a fiche finds the same text,
+ * filter, page and scroll position.
  */
 @Composable
 fun SearchMobileScreen(
+    onPlayChannel: (channelId: String, name: String?) -> Unit,
+    onOpenFilm: (filmId: String) -> Unit,
+    onOpenSeries: (seriesId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
@@ -120,8 +131,9 @@ fun SearchMobileScreen(
 
         when {
             state.invitation -> Invitation()
-            state.filter == SearchFilter.All -> GroupedResults(state, viewModel)
-            else -> TypeResults(state, viewModel)
+            state.filter == SearchFilter.All ->
+                GroupedResults(state, viewModel, onPlayChannel, onOpenFilm, onOpenSeries)
+            else -> TypeResults(state, viewModel, onPlayChannel, onOpenFilm, onOpenSeries)
         }
     }
 }
@@ -255,14 +267,22 @@ private fun Invitation() {
  * film section that failed leaves the channel section readable (Q9, SR-10).
  */
 @Composable
-private fun GroupedResults(state: SearchState, viewModel: SearchViewModel) {
+private fun GroupedResults(
+    state: SearchState,
+    viewModel: SearchViewModel,
+    onPlayChannel: (channelId: String, name: String?) -> Unit,
+    onOpenFilm: (filmId: String) -> Unit,
+    onOpenSeries: (seriesId: String) -> Unit,
+) {
     Group(
         title = stringResource(R.string.feature_search_filter_channels),
         section = state.channels,
         query = state.query.trim(),
         onSeeAll = { viewModel.onFilterSelected(SearchFilter.Channels) },
         onRetry = { viewModel.onRetry(SearchFilter.Channels) },
-    ) { channel -> ChannelRow(channel) }
+    ) { channel ->
+        ChannelRow(channel, onClick = { onPlayChannel(channel.id, channel.name) })
+    }
 
     Group(
         title = stringResource(R.string.feature_search_filter_films),
@@ -271,7 +291,9 @@ private fun GroupedResults(state: SearchState, viewModel: SearchViewModel) {
         columns = 2,
         onSeeAll = { viewModel.onFilterSelected(SearchFilter.Films) },
         onRetry = { viewModel.onRetry(SearchFilter.Films) },
-    ) { film -> MediaCard(title = film.name, posterUrl = film.posterUrl) }
+    ) { film ->
+        MediaCard(title = film.name, posterUrl = film.posterUrl, onClick = { onOpenFilm(film.id) })
+    }
 
     Group(
         title = stringResource(R.string.feature_search_filter_series),
@@ -280,12 +302,24 @@ private fun GroupedResults(state: SearchState, viewModel: SearchViewModel) {
         columns = 2,
         onSeeAll = { viewModel.onFilterSelected(SearchFilter.Series) },
         onRetry = { viewModel.onRetry(SearchFilter.Series) },
-    ) { series -> MediaCard(title = series.name, posterUrl = series.posterUrl) }
+    ) { series ->
+        MediaCard(
+            title = series.name,
+            posterUrl = series.posterUrl,
+            onClick = { onOpenSeries(series.id) },
+        )
+    }
 }
 
 /** The list of one type: twenty a page, "Afficher plus" on demand (Q9, SR-07). */
 @Composable
-private fun TypeResults(state: SearchState, viewModel: SearchViewModel) {
+private fun TypeResults(
+    state: SearchState,
+    viewModel: SearchViewModel,
+    onPlayChannel: (channelId: String, name: String?) -> Unit,
+    onOpenFilm: (filmId: String) -> Unit,
+    onOpenSeries: (seriesId: String) -> Unit,
+) {
     val filter = state.filter
     when (filter) {
         SearchFilter.All -> Unit // The grouped view is drawn by [GroupedResults].
@@ -295,7 +329,9 @@ private fun TypeResults(state: SearchState, viewModel: SearchViewModel) {
             query = state.query.trim(),
             onRetry = { viewModel.onRetry(filter) },
             onLoadMore = { viewModel.onLoadMore(filter) },
-        ) { channel -> ChannelRow(channel) }
+        ) { channel ->
+            ChannelRow(channel, onClick = { onPlayChannel(channel.id, channel.name) })
+        }
 
         SearchFilter.Films -> TypeList(
             section = state.films,
@@ -303,7 +339,13 @@ private fun TypeResults(state: SearchState, viewModel: SearchViewModel) {
             columns = 2,
             onRetry = { viewModel.onRetry(filter) },
             onLoadMore = { viewModel.onLoadMore(filter) },
-        ) { film -> MediaCard(title = film.name, posterUrl = film.posterUrl) }
+        ) { film ->
+            MediaCard(
+                title = film.name,
+                posterUrl = film.posterUrl,
+                onClick = { onOpenFilm(film.id) },
+            )
+        }
 
         SearchFilter.Series -> TypeList(
             section = state.series,
@@ -311,7 +353,13 @@ private fun TypeResults(state: SearchState, viewModel: SearchViewModel) {
             columns = 2,
             onRetry = { viewModel.onRetry(filter) },
             onLoadMore = { viewModel.onLoadMore(filter) },
-        ) { series -> MediaCard(title = series.name, posterUrl = series.posterUrl) }
+        ) { series ->
+            MediaCard(
+                title = series.name,
+                posterUrl = series.posterUrl,
+                onClick = { onOpenSeries(series.id) },
+            )
+        }
     }
 }
 
@@ -445,12 +493,13 @@ private fun SectionHeader(title: String, action: Pair<String, () -> Unit>? = nul
 }
 
 @Composable
-private fun ChannelRow(channel: Channel) {
+private fun ChannelRow(channel: Channel, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(LumoShapes.small)
             .background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onClick)
             .padding(LumoSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -465,8 +514,11 @@ private fun ChannelRow(channel: Channel) {
 }
 
 @Composable
-private fun MediaCard(title: String, posterUrl: String?) {
-    Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs)) {
+private fun MediaCard(title: String, posterUrl: String?, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier.clickable(onClick = onClick),
+        verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
+    ) {
         LumoPoster(
             posterUrl = posterUrl,
             title = title,

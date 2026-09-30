@@ -209,7 +209,15 @@ fun LumoMobileNavHost(
             onBack = { navController.popBackStack() },
             onOpenSources = leavePlayerForSources,
         )
-        searchMobileScreen()
+        searchMobileScreen(
+            onPlayChannel = playChannel,
+            onOpenFilm = { filmId ->
+                navController.navigate(VodDetailDestination.routeFor(filmId))
+            },
+            onOpenSeries = { seriesId ->
+                navController.navigate(SeriesDetailDestination.routeFor(seriesId))
+            },
+        )
         settingsMobileScreen(
             // A push, unlike the bar's moves: "My sources" is opened *from*
             // Settings, and BACK from it returns there rather than to Home.
