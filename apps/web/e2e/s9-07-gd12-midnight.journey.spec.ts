@@ -1,11 +1,18 @@
 import { expect, test, type Page } from "@playwright/test";
 import fr from "../src/messages/fr.json";
+import { sessionPathFor } from "./support/stack";
+
+/** The account this file signs up for, so its sources are its own. */
+test.use({ storageState: sessionPathFor("s9-07-gd12-midnight") });
 
 /**
  * GD-12 — minuit, côté web SSR, horloge contrôlée (`LUMO_NOW`).
  *
- * La session qui joue ce fichier est ancrée à **23:50 Europe/Paris** le
- * 30 septembre 2026 (`LUMO_NOW` = `BENCH_EPG_ANCHOR` = `2026-09-30T21:50:00Z`).
+ * La session qui joue ce fichier est ancrée à **23:50 Europe/Paris**
+ * (`LUMO_NOW` = `BENCH_EPG_ANCHOR`, un même instant). Le passage ancré pose
+ * `E2E_ANCHOR` au prochain 23:50 Europe/Paris ; sans lui, ce fichier se saute
+ * (`test.skip` ci-dessous) parce qu'un banc resté sur l'heure réelle sert un
+ * guide d'aujourd'hui, pas celui de la nuit de minuit.
  * Le jeu A place `A1` de `T` à `T+45 min`, soit 23:50 → 00:35 : un programme à
  * cheval sur minuit.
  *
@@ -46,6 +53,15 @@ async function createSource(page: Page): Promise<string> {
 }
 
 test.setTimeout(180_000);
+
+// Une horloge contrôlée se demande, elle ne se suppose pas. Le passage ancré
+// (`.github/workflows/web.yml`, `workflow_dispatch`) pose `E2E_ANCHOR` ; partout
+// ailleurs la suite suit l'heure réelle et ce fichier s'annonce comme sauté au
+// lieu d'échouer sur un guide ancré à un autre instant.
+test.skip(
+  !process.env.E2E_ANCHOR,
+  "horloge contrôlée : requiert E2E_ANCHOR (prochain 23:50 Europe/Paris)",
+);
 
 test.describe.serial("GD-12 — minuit, web SSR sous LUMO_NOW", () => {
   let sourceId = "";

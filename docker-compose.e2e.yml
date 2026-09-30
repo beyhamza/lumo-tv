@@ -51,18 +51,29 @@ services:
       # being tested is the one that ships.
       LUMO_RATE_LIMIT_AUTH_ATTEMPTS_PER_MINUTE: ${LUMO_RATE_LIMIT_AUTH_ATTEMPTS_PER_MINUTE:-1000}
       LUMO_RATE_LIMIT_DEVICE_APPROVE_ATTEMPTS_PER_MINUTE: ${LUMO_RATE_LIMIT_DEVICE_APPROVE_ATTEMPTS_PER_MINUTE:-1000}
-      # The FREE plan's source ceiling, pinned back to the shipped value.
+      # The FREE plan's source ceiling for the suite.
       #
       # This stack runs SPRING_PROFILES_ACTIVE=dev, and `application-dev.yml`
       # raises `lumo.plans.free.max-sources` to 1000 so that a developer wiring
       # screens is not rationed. That is right for a developer and wrong here:
-      # the suite asserts that a second source is refused, which is a property of
-      # the product and not of a profile. Without this line the assertion passes
-      # only for as long as the API image is stale.
+      # the suite must run against a real ceiling.
+      #
+      # 3, not the shipped 1, because a per-account ceiling of 1 cannot hold the
+      # suite: `past-source` peaks at 3 sources and `network-bound` at 3. Each
+      # journey spec file now has its OWN account, so 3 is the real per-account
+      # peak and no file contends with another. The shipped value (1) stays
+      # covered where it belongs — at the API, by `PlanLimitsIntegrationTest` —
+      # and the web rendering of the ceiling by
+      # `s9-sources-ceiling.journey.spec.ts`, which reads it dynamically.
       #
       # The device ceiling is deliberately left relaxed: nothing here tests it,
       # and every sign-in in the suite holds a session against it.
-      LUMO_PLANS_FREE_MAX_SOURCES: ${LUMO_PLANS_FREE_MAX_SOURCES:-1}
+      LUMO_PLANS_FREE_MAX_SOURCES: ${LUMO_PLANS_FREE_MAX_SOURCES:-3}
+      # The guide fault (I-5, GD-10). Off by default, which is what ships. An
+      # opt-in pass arms it through E2E_FAULT_ARMED (see e2e/support/stack.ts)
+      # and plays only s9-06-04-fault.journey.spec.ts, because a global 503 would
+      # fail every other guide spec.
+      LUMO_EPG_FAULT: ${LUMO_EPG_FAULT:-0}
       # The bench lives on the compose network, so it answers on a 172.x
       # address, which PrivateAddressGuard refuses by default — and must keep
       # refusing in production, where a source pointing at an internal address

@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
 import fr from "../src/messages/fr.json";
+import { sessionPathFor } from "./support/stack";
+
+/** The account this file signs up for, so its sources are its own. */
+test.use({ storageState: sessionPathFor("guide-grid-density") });
 
 /**
  * La grille du guide à 1440 px — le défilement est celui de la grille, pas de la

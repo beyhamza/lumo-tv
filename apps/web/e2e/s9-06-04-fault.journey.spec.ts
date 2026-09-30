@@ -1,5 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import fr from "../src/messages/fr.json";
+import { sessionPathFor } from "./support/stack";
+
+/** The account this file signs up for, so its sources are its own. */
+test.use({ storageState: sessionPathFor("s9-06-04-fault") });
 
 /**
  * QA-06-04-06 — GD-10 web, erreur initiale (S9-06-04).
@@ -32,6 +36,15 @@ async function createSource(page: Page): Promise<string> {
 }
 
 test.setTimeout(120_000);
+
+// La panne est un réglage GLOBAL de l'API (`EpgFaultInjection`, `LUMO_EPG_FAULT`,
+// défaut 0) : armée, elle ferait échouer toutes les autres specs guide. Elle
+// exige donc une pile dédiée, et ce fichier se saute partout ailleurs — comme
+// GD-12 attend son `E2E_ANCHOR`.
+test.skip(
+  !process.env.E2E_FAULT_ARMED,
+  "requiert LUMO_EPG_FAULT=503 sur une pile dédiée (E2E_FAULT_ARMED=1)",
+);
 
 test("QA-06-04-06 — GD-10 erreur initiale : message distinct, Réessayer, jamais « guide vide »", async ({
   page,

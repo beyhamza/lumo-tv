@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import { SESSION_FILE, WEB_PORT, webBaseUrl, webEnv } from "./e2e/support/stack";
+import { WEB_PORT, webBaseUrl, webEnv } from "./e2e/support/stack";
 
 /**
  * End-to-end tests, against the whole stack.
@@ -41,11 +41,15 @@ export default defineConfig({
   },
 
   projects: [
-    // Signs up once and saves the cookie jar the `journey` project reuses.
+    // Signs up one account per journey spec file and saves its cookie jar.
     // Matched by filename, so it is invisible to the projects below.
+    //
+    // Serial: several fresh sign-ups at once is needless load on Argon2id and
+    // on the single API, and a prerequisite has nothing to gain from racing.
     {
       name: "setup",
       testMatch: /.*\.setup\.ts/,
+      fullyParallel: false,
     },
     // The two anonymous projects. They ignore journey.spec.ts, which needs a
     // session; running it here would only produce three copies of the same
@@ -63,10 +67,12 @@ export default defineConfig({
       use: { ...devices["Pixel 7"] },
       testIgnore: /journey\.spec\.ts/,
     },
-    // Everything that crosses into lumo-api.
+    // Everything that crosses into lumo-api. Each file declares its own
+    // `storageState` with `sessionPathFor` — one account per spec file, because
+    // the free plan's source ceiling makes a shared account impossible.
     {
       name: "journey",
-      use: { ...devices["Desktop Chrome"], storageState: SESSION_FILE },
+      use: { ...devices["Desktop Chrome"] },
       testMatch: /journey\.spec\.ts/,
       dependencies: ["setup"],
     },

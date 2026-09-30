@@ -49,8 +49,7 @@ next-env.d.ts
 /blob-report/
 /playwright/.cache/
 
-# Cookie jar written by e2e/auth.setup.ts. A real session: never committed.
-/e2e/.auth/
-
-# Empreinte de l'image et état de la pile e2e, entre deux campagnes.
+# Empreinte de l'image et état de la pile e2e, entre deux campagnes, plus un
+# pot à cookies par fichier journey (`e2e/support/stack.ts`, `sessionPathFor`).
+# De vraies sessions : jamais commitées.
 /.e2e/

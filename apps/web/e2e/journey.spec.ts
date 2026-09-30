@@ -1,6 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import fr from "../src/messages/fr.json";
-import { SESSION_FILE } from "./support/stack";
+import { sessionPathFor } from "./support/stack";
+
+/** The account this file signs up for, so its sources are its own. */
+test.use({ storageState: sessionPathFor("journey") });
 
 /**
  * What only a stack can test.
@@ -92,10 +95,12 @@ test.describe("activation", () => {
 /**
  * Registering a source, from the form to a usable catalogue (US-06, US-07).
  *
- * Serial, because it is one flow rather than four independent checks: the
- * account created by `auth.setup.ts` is on the free plan, which allows exactly
- * one source, and that ceiling is itself part of what is being verified. Each
- * test leaves the account in the state the next one needs.
+ * Serial, because it is one flow rather than four independent checks: each test
+ * leaves the account in the state the next one needs.
+ *
+ * The free plan's source ceiling is NOT asserted here — it lives in its own
+ * file with its own account (`s9-sources-ceiling.journey.spec.ts`), so a change
+ * to `max_sources` cannot turn an unrelated registration test red.
  *
  * Everything points at the bench container (`docker-compose.e2e.yml`), never at
  * a real provider: a qualification run that depends on somebody's IPTV
@@ -265,10 +270,31 @@ test.describe.serial("sources", () => {
     const filtered = page.url();
     await expect(channels(page).getByRole("listitem")).toHaveCount(2);
 
+    // S6-09 a remplacé le simple bouton « Retirer des favoris » par la fiche de
+    // groupes : une chaîne déjà en favori ouvre le groupe où la ranger, et le
+    // retrait se fait par le bouton du groupe par défaut. L'état « en favori »
+    // est donc le résumé nommé « Groupes de … », pas l'ancien libellé — qui
+    // reste réservé au cas « en favori mais aucun groupe » (lecture des groupes
+    // en échec).
+    const groupsOf = page.locator(
+      `summary[aria-label="${fr.App.catalogueFavoriteGroupsOf.replace("{channel}", "Chaîne 03 HD")}"]`,
+    );
+    const removeFromFavorites = stars(
+      page,
+      fr.App.catalogueFavoriteRemoveFrom.replace(
+        "{group}",
+        fr.App.catalogueFavoritesDefaultGroup,
+      ),
+    );
+
     await stars(page, fr.App.catalogueFavoriteAdd).first().click();
 
     await expect(page).toHaveURL(filtered);
-    await expect(stars(page, fr.App.catalogueFavoriteRemove)).toHaveCount(1);
+    await expect(groupsOf).toBeVisible();
+    // Le contenu d'un `<details>` fermé n'est pas dans l'arbre d'accessibilité :
+    // `getByRole` ne voit le bouton de retrait qu'une fois la fiche ouverte.
+    await groupsOf.click();
+    await expect(removeFromFavorites).toHaveCount(1);
 
     // Le rail nomme la chaîne. Or `Favorite` ne porte qu'un `channel_id` : ce
     // nom ne peut venir que du paramètre `ids` de GET /sources/{id}/channels.
@@ -279,10 +305,12 @@ test.describe.serial("sources", () => {
     // Rechargement : l'étoile pleine ne vient pas d'un état de page mais d'un
     // GET /me/favorites, donc d'une ligne écrite en base par lumo-api.
     await page.reload();
-    await expect(stars(page, fr.App.catalogueFavoriteRemove)).toHaveCount(1);
-
-    await stars(page, fr.App.catalogueFavoriteRemove).click();
-    await expect(stars(page, fr.App.catalogueFavoriteRemove)).toHaveCount(0);
+    await expect(groupsOf).toBeVisible();
+    // Le rechargement referme la fiche : on la rouvre avant de retirer.
+    await groupsOf.click();
+    await expect(removeFromFavorites).toHaveCount(1);
+    await removeFromFavorites.click();
+    await expect(groupsOf).toHaveCount(0);
     await expect(stars(page, fr.App.catalogueFavoriteAdd)).toHaveCount(2);
 
     // Et le rail disparaît avec son dernier favori, plutôt que de laisser un
@@ -324,7 +352,7 @@ test.describe.serial("sources", () => {
     // autres tests.
     const context = await browser.newContext({
       javaScriptEnabled: false,
-      storageState: SESSION_FILE,
+      storageState: sessionPathFor("journey"),
     });
     const page = await context.newPage();
 
@@ -332,26 +360,27 @@ test.describe.serial("sources", () => {
     await page.getByRole("link", { name: "Banc d'essai", exact: true }).click();
     await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
 
-    await stars(page, fr.App.catalogueFavoriteAdd).first().click();
-    await expect(stars(page, fr.App.catalogueFavoriteRemove)).toHaveCount(1);
+    const removeFromFavorites = stars(
+      page,
+      fr.App.catalogueFavoriteRemoveFrom.replace(
+        "{group}",
+        fr.App.catalogueFavoritesDefaultGroup,
+      ),
+    );
 
-    await stars(page, fr.App.catalogueFavoriteRemove).click();
-    await expect(stars(page, fr.App.catalogueFavoriteRemove)).toHaveCount(0);
+    await stars(page, fr.App.catalogueFavoriteAdd).first().click();
+
+    // Le groupe par défaut existe maintenant, donc le contrôle est la fiche de
+    // groupes : on l'ouvre — natif, sans JavaScript — avant de retirer, car le
+    // contenu d'un `<details>` fermé reste hors de l'arbre d'accessibilité.
+    const openGroupList = channels(page).locator("summary").first();
+    await expect(openGroupList).toBeVisible();
+    await openGroupList.click();
+    await expect(removeFromFavorites).toBeVisible();
+    await removeFromFavorites.click();
+    await expect(removeFromFavorites).toHaveCount(0);
 
     await context.close();
-  });
-
-  test("le plafond du compte remplace le bouton d'ajout", async ({ page }) => {
-    await page.goto("/fr/app/sources");
-
-    // The account allows one source and one is registered. The ceiling is read
-    // from GET /me/entitlement, never written into the web: the day the server
-    // allows two, this screen follows without a release. And it is said as a
-    // fact, with nothing to buy behind it (S8-06).
-    await expect(page.getByText(fr.App.sourcesLimitBody)).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: fr.App.sourcesAddCta }),
-    ).toHaveCount(0);
   });
 
   test("supprimer la source rend la place", async ({ page }) => {
@@ -412,16 +441,9 @@ test.describe.serial("sources", () => {
     // Content-Length check would wave through — and the case a hostile panel
     // produces on purpose.
     //
-    // The free plan allows ONE source and the previous test left one behind.
-    // This suite is a chained narrative against a single account, so a test that
-    // registers a source has to make room first — the ceiling is the product's,
-    // and the test bends rather than the plan.
-    await page.goto("/fr/app/sources");
-    await page.getByRole("link", { name: "Page HTML" }).click();
-    await page.getByRole("link", { name: fr.App.sourceDelete }).click();
-    await page.getByRole("button", { name: fr.App.sourceDeleteConfirm }).click();
-    await expect(page.getByText(fr.App.sourcesEmpty)).toBeVisible();
-
+    // No need to make room any more: this file has its own account, and the
+    // suite ceiling (three sources) is above what this narrative uses. The
+    // account ceiling is asserted in `s9-sources-ceiling.journey.spec.ts`.
     await page.goto("/fr/app/sources/new");
 
     await page.getByLabel(fr.App.sourceLabelLabel).fill("Trop volumineuse");

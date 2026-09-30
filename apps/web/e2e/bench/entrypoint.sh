@@ -45,9 +45,35 @@ cp -R "$SRC"/. "$WEB"/
 
 # The templates are the only files that are rewritten. Everything else is copied
 # as committed, so what a qualification run reads is what review saw.
-sed -i "s|__BENCH_PUBLIC_URL__|${BENCH_PUBLIC_URL}|g" "$WEB/playlist.m3u"
+# Every playlist template is substituted in one loop, so a playlist added later
+# cannot be left naming `__BENCH_PUBLIC_URL__`. `mixed.m3u` does not match the
+# glob and keeps the explicit line below; it is not a volume playlist.
+for playlist in "$WEB"/playlist*.m3u; do
+    sed -i "s|__BENCH_PUBLIC_URL__|${BENCH_PUBLIC_URL}|g" "$playlist"
+done
 sed -i "s|__BENCH_PUBLIC_URL__|${BENCH_PUBLIC_URL}|g" "$WEB/mixed.m3u"
-sed -i "s|__BENCH_PUBLIC_URL__|${BENCH_PUBLIC_URL}|g" "$WEB/playlist-100.m3u"
+
+# ---- The volume sizes (S9-07 §5.2) ------------------------------------------
+#
+# The network proof walks the SAME screen at 3, 50 then 100 channels. Committing
+# four copies of a playlist would be four fixtures to keep in step; two ends are
+# committed instead — `playlist.m3u` (5 channels) and `playlist-100.m3u` — and
+# the intermediate sizes are derived here, AFTER substitution, from the exact
+# bytes the API will read. Deriving before substitution would hand the API a
+# playlist still pointing at the template's placeholder.
+#
+# `playlist-3.m3u` is taken from `playlist.m3u` (5 channels) rather than from a
+# dedicated fixture: the proof wants 3, and the first 3 of those 5 are enough.
+take_entries() { # count source target
+    awk -v n="$1" '
+        /^#EXTM3U/ { print; next }
+        /^#EXTINF/ { if (++seen > n) exit; print; next }
+        seen > 0   { print }
+    ' "$2" > "$3"
+}
+take_entries 3  "$WEB/playlist.m3u"     "$WEB/playlist-3.m3u"
+take_entries 50 "$WEB/playlist-100.m3u" "$WEB/playlist-50.m3u"
+echo "bench: derived playlists /playlist-3.m3u ($(grep -c '^#EXTINF' "$WEB/playlist-3.m3u") channels) and /playlist-50.m3u ($(grep -c '^#EXTINF' "$WEB/playlist-50.m3u") channels)"
 
 # ---- The two films of /mixed.m3u --------------------------------------------
 #

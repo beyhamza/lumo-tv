@@ -30,6 +30,15 @@ on:
       - 'packages/contracts/**'
       - '.github/workflows/web.yml'
   workflow_dispatch:
+    inputs:
+      anchored_gd12:
+        description: 'GD-12 sous horloge contrôlée (E2E_ANCHOR = prochain 23:50 Europe/Paris)'
+        type: boolean
+        default: false
+      fault_gd10:
+        description: 'GD-10 sur pile dédiée (LUMO_EPG_FAULT=503) : ne joue que s9-06-04-fault'
+        type: boolean
+        default: false
 
 concurrency:
   group: web-${{ github.ref }}
@@ -135,8 +144,42 @@ jobs:
       # survive between runs, so expect several minutes before the first test
       # executes. If that becomes the bottleneck, the fix is a buildx cache
       # keyed on the API sources - not dropping the stack.
+      # Default pass: real time. GD-12 skips itself with its reason, the GD-10
+      # fault spec skips itself too, and the anchor is "now"
+      # (e2e/support/stack.ts).
       - name: End-to-end tests
+        if: ${{ github.event_name != 'workflow_dispatch' || (!inputs.anchored_gd12 && !inputs.fault_gd10) }}
         run: pnpm test:e2e
+
+      # The anchored pass, opt-in and never a fixed date: the API's XMLTV
+      # importer keeps only [now − 1 day, now + 3 days], so a date written into
+      # a file would expire. The helper prints the NEXT 23:50 Europe/Paris,
+      # whenever that is, and the same instant reaches the guide and the SSR
+      # clock through stack.ts.
+      - name: Resolve the GD-12 anchor
+        id: anchor
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.anchored_gd12 }}
+        run: echo "value=$(node e2e/support/next-paris-2350.mjs)" >> "$GITHUB_OUTPUT"
+
+      - name: End-to-end tests (anchored GD-12)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.anchored_gd12 }}
+        env:
+          E2E_ANCHOR: ${{ steps.anchor.outputs.value }}
+        # No `--` before the path: pnpm forwards it to Playwright verbatim, and
+        # Playwright then ignores the file filter and runs the whole suite.
+        run: pnpm test:e2e e2e/s9-07-gd12-midnight.journey.spec.ts
+
+      # The fault pass, opt-in and on a dedicated stack. `E2E_FAULT_ARMED=1`
+      # makes the API serve 503 on every guide read (EpgFaultInjection) AND gates
+      # the spec on, so the two cannot disagree. A global guide fault would fail
+      # every other guide spec, so only the GD-10 file is played. `E2E_STACK=docker`
+      # refuses to adopt a stack that was started without the fault.
+      - name: End-to-end tests (armed GD-10 fault)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.fault_gd10 }}
+        env:
+          E2E_FAULT_ARMED: '1'
+          E2E_STACK: docker
+        run: pnpm test:e2e e2e/s9-06-04-fault.journey.spec.ts
 
       # A failed browser test is unreadable from a log alone. The report carries
       # the trace of the retried run (trace: on-first-retry).

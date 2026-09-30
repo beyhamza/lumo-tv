@@ -1,6 +1,9 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import fr from "../src/messages/fr.json";
-import { SESSION_FILE } from "./support/stack";
+import { sessionPathFor } from "./support/stack";
+
+/** The account this file signs up for, so its two sources are its own. */
+test.use({ storageState: sessionPathFor("s9-06-04-past-source") });
 
 /**
  * S9-06-04 — les deux cas restants du plan §6 : QA-06-04-03 (fiche d'un
@@ -127,5 +130,5 @@ test("QA-06-04-11 — fiche ouverte : un changement de source venu d'un AUTRE ap
 });
 
 async function newContextWithSession(browser: Browser) {
-  return browser.newContext({ storageState: SESSION_FILE });
+  return browser.newContext({ storageState: sessionPathFor("s9-06-04-past-source") });
 }

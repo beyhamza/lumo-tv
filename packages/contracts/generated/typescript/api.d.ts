@@ -3926,7 +3926,11 @@ export interface operations {
             query?: {
                 /** @description Restrict to one category. */
                 categoryId?: string;
-                /** @description Free-text search on the channel name, typo-tolerant (trigram). */
+                /**
+                 * @description Free-text search on the channel name. Case-insensitive substring, as
+                 *     on the other two listings — the trigram index makes it fast, not
+                 *     approximate.
+                 */
                 q?: string;
                 /**
                  * @description Resolve these channels, and only these. Repeatable:
