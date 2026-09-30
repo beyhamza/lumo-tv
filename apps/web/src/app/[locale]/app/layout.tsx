@@ -53,7 +53,9 @@ import { cn } from "@/lib/utils";
  * "My library" is the favourites page under the name the product gave it: same
  * route, because a bookmark to `/app/favorites` is somebody's, and the watch
  * list that will join it (sprint 11) is not announced by an entry that cannot
- * open it yet. For the same reason there is no search entry (sprint 10).
+ * open it yet. **Search** joined the menu with sprint 10 (US-021): it works
+ * from the active source, so it sits beside Home rather than with the account
+ * entries.
  *
  * Two `<nav>` elements, each with its own name: a screen reader lists landmarks,
  * and one landmark holding eight links says less than two that say what they
@@ -150,6 +152,7 @@ export default async function AppLayout({
     // `exact`: every page of the zone is "under" `/app`, and Home is current on
     // the home page only.
     entry("/app", t("navHome"), true),
+    entry("/app/search", t("navSearch")),
     ...catalogueLinks.map((link) => entry(link.href, link.label)),
     entry("/app/favorites", t("navLibrary")),
   ];
