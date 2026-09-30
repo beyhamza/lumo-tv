@@ -32,24 +32,25 @@ import tv.lumo.android.feature.vod.VodDestination
  *
  * What is guarded is the line that survived: an *empty* catalogue is a reply and
  * belongs in the rail; an *unbuilt* screen is a promise and does not. Series
- * crossed that line with `S6-06` and "My library" with US-017 — both by gaining a
- * screen, which is the rule the right way round. Search is the last destination
- * it still keeps out.
+ * crossed that line with `S6-06`, "My library" with US-017 and Search with
+ * S10-02 — each by gaining a screen, which is the rule the right way round. There
+ * is no placeholder destination left for this file to keep out.
  *
  * <h2>And because every entry is a stop, the rail does not grow for free</h2>
  *
- * US-017 added Home and My library. Source left to pay for one of them; the rail
- * is six entries and this file is what notices a seventh.
+ * US-017 added Home and My library, S10-02 added Search. Each arrival was argued
+ * for; the rail is seven entries and this file is what notices an eighth.
  */
 class TvDestinationsTest {
 
     @Test
-    fun `the rail offers Home, the three catalogues, My library and Settings, in that order`() {
+    fun `the rail offers Home, the three catalogues, Search, My library and Settings, in that order`() {
         assertThat(TvDestinations.map { it.route }).containsExactly(
             HomeDestination.route,
             LiveDestination.route,
             VodDestination.route,
             SeriesDestination.route,
+            SearchDestination.route,
             FavoritesDestination.route,
             SettingsDestination.route,
         ).inOrder()
@@ -87,13 +88,17 @@ class TvDestinationsTest {
     }
 
     @Test
-    fun `a screen that does not exist yet is not in the rail`() {
-        // Search has no television screen — only `LumoTvPlaceholder`. A rail entry
-        // onto one would cost every viewer a `DOWN` press to reach a sentence
-        // saying the feature is not built, which is the one thing worse than an
-        // empty catalogue. It joins the day its screen lands (sprint 10), exactly
-        // as series and the library did, and this test is what will change with it.
-        assertThat(TvDestinations.map { it.route }).doesNotContain(SearchDestination.route)
+    fun `Search joined the rail the day its screen landed`() {
+        // The rule the right way round: a rail entry is a promise, and Search kept
+        // it in S10-02 by gaining `SearchTvScreen`. It sits *after* the three
+        // catalogues so that Live stays one press from Home — the web lists Search
+        // second, but a rail entry is a mandatory DOWN and the catalogues are
+        // where a viewer lives.
+        val routes = TvDestinations.map { it.route }
+
+        assertThat(routes).contains(SearchDestination.route)
+        assertThat(routes.indexOf(SearchDestination.route))
+            .isGreaterThan(routes.indexOf(SeriesDestination.route))
     }
 
     // ---- where the television opens ------------------------------------------

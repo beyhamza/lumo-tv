@@ -5,15 +5,17 @@
 -->
 <resources>
     <string name="feature_search_title">Search</string>
-    <!-- The television screen is still the S10-01 placeholder until S10-02 (C);
-         the phone screen uses the invitation below. -->
-    <string name="feature_search_placeholder">Search across your channels, films and series.</string>
     <!-- The invitation shown while the field is empty. S10-04 finishes this state;
          S10-02 only has to say something honest and load nothing. -->
     <string name="feature_search_invitation">Search your channels, films and series.</string>
     <string name="feature_search_hint">Channels, films, series</string>
     <string name="feature_search_clear">Clear the search</string>
+    <string name="feature_search_glyph_search" translatable="false">⌕</string>
     <string name="feature_search_glyph_clear" translatable="false">✕</string>
+    <!-- The television's explicit way from the field to the first result (Q9):
+         the D-pad activates it, and it keeps the focus while a request is in
+         flight rather than moving somebody mid-keystroke. -->
+    <string name="feature_search_see_results">See results</string>
     <!--
       The query is longer than the contract's q allows. The text is refused, never
       shortened silently (Q9, SR-05); this says so next to the field.
