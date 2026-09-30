@@ -1,0 +1,174 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.7.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Calculating task graph as no cached configuration is available for tasks: :core:data:testDebugUnitTest --tests *EpgRepositoryTest*
+Type-safe project accessors is an incubating feature.
+> Task :build-logic:convention:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :build-logic:convention:compileKotlin FROM-CACHE
+> Task :build-logic:convention:compileJava NO-SOURCE
+> Task :build-logic:convention:pluginDescriptors
+> Task :build-logic:convention:processResources
+> Task :build-logic:convention:classes
+> Task :build-logic:convention:jar
+> Task :core:network:preBuild UP-TO-DATE
+> Task :core:data:generateDebugUnitTestAssets UP-TO-DATE
+> Task :core:common:preBuild UP-TO-DATE
+> Task :core:network:generateDebugAssets UP-TO-DATE
+> Task :core:data:generateDebugAssets UP-TO-DATE
+> Task :core:common:preDebugBuild UP-TO-DATE
+> Task :core:database:preBuild UP-TO-DATE
+> Task :core:database:generateDebugAssets UP-TO-DATE
+> Task :core:database:preDebugBuild UP-TO-DATE
+> Task :core:auth:preBuild UP-TO-DATE
+> Task :core:data:preBuild UP-TO-DATE
+> Task :core:auth:generateDebugAssets UP-TO-DATE
+> Task :core:common:generateDebugAssets UP-TO-DATE
+> Task :core:network:preDebugBuild UP-TO-DATE
+> Task :core:auth:preDebugBuild UP-TO-DATE
+> Task :core:data:preDebugBuild UP-TO-DATE
+> Task :core:common:processDebugNavigationResources FROM-CACHE
+> Task :core:auth:generateDebugResources FROM-CACHE
+> Task :core:auth:processDebugNavigationResources FROM-CACHE
+> Task :core:common:generateDebugResources FROM-CACHE
+> Task :core:database:generateDebugResources FROM-CACHE
+> Task :core:network:generateDebugResources FROM-CACHE
+> Task :core:database:processDebugNavigationResources FROM-CACHE
+> Task :core:data:generateDebugResources FROM-CACHE
+> Task :core:data:processDebugNavigationResources FROM-CACHE
+> Task :core:common:javaPreCompileDebug FROM-CACHE
+> Task :core:auth:javaPreCompileDebug FROM-CACHE
+> Task :core:network:processDebugNavigationResources FROM-CACHE
+> Task :core:network:javaPreCompileDebug FROM-CACHE
+> Task :core:data:javaPreCompileDebug FROM-CACHE
+> Task :core:data:preDebugUnitTestBuild UP-TO-DATE
+> Task :core:database:javaPreCompileDebug FROM-CACHE
+> Task :core:network:generateDebugBuildConfig FROM-CACHE
+> Task :core:database:packageDebugResources FROM-CACHE
+> Task :core:data:packageDebugResources FROM-CACHE
+> Task :core:auth:packageDebugResources FROM-CACHE
+> Task :core:common:packageDebugResources FROM-CACHE
+> Task :core:network:packageDebugResources FROM-CACHE
+> Task :core:auth:mapDebugSourceSetPaths
+> Task :core:auth:compileDebugLibraryResources FROM-CACHE
+> Task :core:common:mapDebugSourceSetPaths
+> Task :core:common:compileDebugLibraryResources FROM-CACHE
+> Task :core:auth:writeDebugAarMetadata
+> Task :core:common:writeDebugAarMetadata
+> Task :core:data:writeDebugAarMetadata
+> Task :core:database:writeDebugAarMetadata
+> Task :core:network:writeDebugAarMetadata
+> Task :core:auth:mergeDebugAssets
+> Task :core:database:mergeDebugAssets
+> Task :core:common:mergeDebugAssets
+> Task :core:network:mergeDebugAssets
+> Task :core:data:mergeDebugAssets
+> Task :core:data:mapDebugUnitTestSourceSetPaths
+> Task :core:data:mapDebugSourceSetPaths
+> Task :core:auth:extractDeepLinksDebug FROM-CACHE
+> Task :core:data:generateDebugUnitTestResources FROM-CACHE
+> Task :core:data:compileDebugLibraryResources FROM-CACHE
+> Task :core:common:extractDeepLinksDebug FROM-CACHE
+> Task :core:data:extractDeepLinksDebug FROM-CACHE
+> Task :core:common:processDebugManifest FROM-CACHE
+> Task :core:database:extractDeepLinksDebug FROM-CACHE
+> Task :core:data:processDebugManifest FROM-CACHE
+> Task :core:network:extractDeepLinksDebug FROM-CACHE
+> Task :core:database:processDebugManifest FROM-CACHE
+> Task :core:database:mapDebugSourceSetPaths
+> Task :core:network:processDebugManifest FROM-CACHE
+> Task :core:database:compileDebugLibraryResources FROM-CACHE
+> Task :core:network:mapDebugSourceSetPaths
+> Task :core:auth:processDebugManifest FROM-CACHE
+> Task :core:data:javaPreCompileDebugUnitTest FROM-CACHE
+> Task :core:network:compileDebugLibraryResources FROM-CACHE
+> Task :core:data:mergeDebugUnitTestAssets
+> Task :core:data:checkDebugUnitTestAarMetadata
+> Task :core:data:mergeDebugUnitTestManifest
+> Task :core:data:processDebugUnitTestManifest
+> Task :core:data:mergeDebugUnitTestResources FROM-CACHE
+> Task :core:database:parseDebugLocalResources FROM-CACHE
+> Task :core:auth:parseDebugLocalResources FROM-CACHE
+> Task :core:database:generateDebugRFile FROM-CACHE
+> Task :core:auth:generateDebugRFile FROM-CACHE
+> Task :core:data:parseDebugLocalResources FROM-CACHE
+> Task :core:common:parseDebugLocalResources FROM-CACHE
+> Task :core:data:generateDebugRFile FROM-CACHE
+> Task :core:network:parseDebugLocalResources FROM-CACHE
+> Task :core:common:generateDebugRFile FROM-CACHE
+> Task :core:network:generateDebugRFile FROM-CACHE
+> Task :core:common:kspDebugKotlin FROM-CACHE
+> Task :core:data:processDebugUnitTestResources FROM-CACHE
+> Task :core:data:packageDebugUnitTestForUnitTest
+> Task :core:common:compileDebugKotlin FROM-CACHE
+> Task :core:data:generateDebugUnitTestConfig
+> Task :core:common:processDebugJavaRes
+> Task :core:common:compileDebugJavaWithJavac FROM-CACHE
+> Task :core:common:transformDebugClassesWithAsm FROM-CACHE
+> Task :core:common:bundleLibRuntimeToJarDebug
+> Task :core:common:bundleLibCompileToJarDebug
+> Task :core:auth:kspDebugKotlin FROM-CACHE
+> Task :core:database:kspDebugKotlin FROM-CACHE
+> Task :core:auth:compileDebugKotlin FROM-CACHE
+> Task :core:auth:processDebugJavaRes
+> Task :core:auth:compileDebugJavaWithJavac FROM-CACHE
+> Task :core:auth:transformDebugClassesWithAsm FROM-CACHE
+> Task :core:auth:bundleLibRuntimeToJarDebug
+> Task :core:auth:bundleLibCompileToJarDebug
+> Task :core:database:compileDebugKotlin FROM-CACHE
+> Task :core:database:processDebugJavaRes
+> Task :core:database:compileDebugJavaWithJavac FROM-CACHE
+> Task :core:database:copyRoomSchemas NO-SOURCE
+
+> Task :core:network:openApiGenerate
+No application/json content media type found in response. Response examples can currently only be generated for application/json media type.
+
+> Task :core:database:transformDebugClassesWithAsm FROM-CACHE
+> Task :core:database:bundleLibRuntimeToJarDebug
+> Task :core:database:bundleLibCompileToJarDebug
+
+> Task :core:network:openApiGenerate
+################################################################################
+# Thanks for using OpenAPI Generator.                                          #
+# Please consider donation to help us maintain this project 🙏                 #
+# https://opencollective.com/openapi_generator/donate                          #
+#                                                                              #
+# This generator's contributed by Jim Schubert (https://github.com/jimschubert)#
+# Please support his work directly via https://patreon.com/jimschubert 🙏      #
+################################################################################
+Successfully generated code to C:\dev\lumo-tv-qa907auto\apps\android\core\network\build\generated\openapi
+
+> Task :core:network:syncGeneratedApiClient FROM-CACHE
+> Task :core:network:kspDebugKotlin FROM-CACHE
+> Task :core:network:compileDebugKotlin FROM-CACHE
+> Task :core:network:processDebugJavaRes
+> Task :core:network:compileDebugJavaWithJavac FROM-CACHE
+> Task :core:network:transformDebugClassesWithAsm FROM-CACHE
+> Task :core:network:bundleLibRuntimeToJarDebug
+> Task :core:network:bundleLibCompileToJarDebug
+> Task :core:data:kspDebugKotlin FROM-CACHE
+> Task :core:data:compileDebugKotlin FROM-CACHE
+> Task :core:data:processDebugJavaRes
+> Task :core:data:compileDebugJavaWithJavac FROM-CACHE
+> Task :core:data:transformDebugClassesWithAsm FROM-CACHE
+> Task :core:data:bundleLibRuntimeToJarDebug
+> Task :core:data:bundleLibCompileToJarDebug
+> Task :core:data:kspDebugUnitTestKotlin
+> Task :core:data:compileDebugUnitTestKotlin
+> Task :core:data:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :core:data:hiltCollectClassesDebugUnitTest
+> Task :core:data:processDebugUnitTestJavaRes
+> Task :core:data:hiltAggregateDepsDebugUnitTest FROM-CACHE
+> Task :core:data:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :core:data:transformDebugUnitTestClassesWithAsm FROM-CACHE
+> Task :core:data:testDebugUnitTest
+
+[Incubating] Problems report is available at: file:///C:/dev/lumo-tv-qa907auto/apps/android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.7.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 20s
+119 actionable tasks: 45 executed, 74 from cache
+Configuration cache entry stored.

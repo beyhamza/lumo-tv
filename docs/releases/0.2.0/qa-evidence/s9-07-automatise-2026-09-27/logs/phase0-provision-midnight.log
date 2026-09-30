@@ -1,0 +1,24 @@
+dépôt : /c/dev/lumo-tv-qa907auto
+ancre EPG : 2026-09-30T21:50:00Z
+note : LUMO_JWT_SECRET jetable généré (le banc ne l'utilise pas).
+note : LUMO_ENCRYPTION_MASTER_KEY jetable généré (le banc ne l'utilise pas).
+suppression de lumo-e2e-bench (orphelin éventuel)…
+création de lumo-e2e-bench…
+ Container lumo-e2e-bench Creating 
+ Container lumo-e2e-bench Created 
+ Container lumo-e2e-bench Starting 
+ Container lumo-e2e-bench Started 
+ Container lumo-e2e-bench Waiting 
+ Container lumo-e2e-bench Healthy 
+vérification des URLs servies :
+  PASS  guide.xml              200 (110569 octets)
+  PASS  guide-transition.xml   200 (27963 octets)
+  PASS  guide-partial.xml      200 (82910 octets)
+  PASS  guide-empty.xml        200 (83 octets)
+  PASS  guide-broken.xml       200 (302 octets)
+  PASS  guide-stale.xml        200 (110569 octets)
+  PASS  guide-big.xml          200 (3164583 octets)
+  PASS  guide-huge.xml         200 (5028383 octets)
+  PASS  playlist-100.m3u       200 (12376 octets)
+
+banc prêt. Rappel du garde-fou : la recette ne démarre qu'au signal « S9-06 vert ».

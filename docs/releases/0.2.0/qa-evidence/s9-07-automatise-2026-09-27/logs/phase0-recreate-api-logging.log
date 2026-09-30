@@ -1,0 +1,7 @@
+recréation de lumo-e2e-api avec SPRING_PROFILES_ACTIVE=dev,epg-logging (secrets préservés)…
+ Container lumo-e2e-api Recreate 
+ Container lumo-e2e-api Recreated 
+ Container lumo-e2e-api Starting 
+ Container lumo-e2e-api Started 
+attente de la santé…
+lumo-e2e-api UP avec epg-logging.

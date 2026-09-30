@@ -1,0 +1,63 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.7.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Calculating task graph as no cached configuration is available for tasks: test --tests *GroupedEpgIntegrationTest*
+> Task :processTestResources
+> Task :processResources
+
+> Task :openApiGenerate
+No application/json content media type found in response. Response examples can currently only be generated for application/json media type.
+############################################################################################
+# Thanks for using OpenAPI Generator.                                                      #
+# We appreciate your support! Please consider donation to help us maintain this project.   #
+# https://opencollective.com/openapi_generator/donate                                      #
+############################################################################################
+Successfully generated code to C:\dev\lumo-tv-qa907auto\apps\api\build\generated\openapi
+
+> Task :compileJava FROM-CACHE
+> Task :classes
+> Task :compileTestJava FROM-CACHE
+> Task :testClasses
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :test
+
+GroupedEpgIntegrationTest > les bornes par défaut sont renvoyées : `from` = maintenant capturé une fois, `to` = from + 24 h PASSED
+
+GroupedEpgIntegrationTest > C1-01 — cent chaînes rendent cent entrées, dans l'ordre demandé, listes vides comprises PASSED
+
+GroupedEpgIntegrationTest > C4 — la grille répond pendant une synchronisation, après un échec, et avant le premier succès PASSED
+
+GroupedEpgIntegrationTest > C1-04 — source d'un autre compte : 404 SOURCE_NOT_FOUND, sans données PASSED
+
+GroupedEpgIntegrationTest > C1-04 — un identifiant inconnu refuse aussi le lot PASSED
+
+GroupedEpgIntegrationTest > C1-03 — finir à `from` ou commencer à `to` exclut ; chevaucher une borne inclut, horaires complets PASSED
+
+GroupedEpgIntegrationTest > C1-06 — 5 000 occurrences passent entières ; 5 001 lignes : 422 sans aucun programme PASSED
+
+GroupedEpgIntegrationTest > C1-02 — liste vide, doublon, UUID invalide : 400 VALIDATION_FAILED PASSED
+
+GroupedEpgIntegrationTest > C1-06 — un programme partagé compte une fois par chaîne : 100 × 50 = 5 000 passe, une de plus refuse PASSED
+
+GroupedEpgIntegrationTest > GET /channels/{id}/epg porte le même `epg`, et refuse une durée nulle PASSED
+
+GroupedEpgIntegrationTest > C1-02 — durée nulle, négative ou de plus de 96 h : 400 VALIDATION_FAILED PASSED
+
+GroupedEpgIntegrationTest > C1-04 — une chaîne de l'autre source du même compte dans le lot : 404 CHANNEL_NOT_FOUND, lot entier refusé PASSED
+
+GroupedEpgIntegrationTest > C1-05 — deux chaînes partageant un tvg_id reçoivent chacune leur entrée ; un autre source avec le même texte n'est jamais mélangée PASSED
+
+GroupedEpgIntegrationTest > C1-01 — cent une chaînes : 400, rien n'est lu PASSED
+
+GroupedEpgIntegrationTest > C1-06 — des descriptions longues franchissent 4 Mio bien avant 5 000 occurrences : 422, rien de tronqué PASSED
+
+GroupedEpgIntegrationTest > `epg` décrit l'import et ne date jamais le contenu ; sans URL de guide, configured=false PASSED
+
+2026-09-30T13:40:02.377+02:00  INFO 15852 --- [lumo-api] [ionShutdownHook] o.s.boot.tomcat.GracefulShutdown         : Commencing graceful shutdown. Waiting for active requests to complete
+2026-09-30T13:40:02.386+02:00  INFO 15852 --- [lumo-api] [tomcat-shutdown] o.s.boot.tomcat.GracefulShutdown         : Graceful shutdown complete
+2026-09-30T13:40:02.390+02:00  INFO 15852 --- [lumo-api] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : lumo-pool - Shutdown initiated...
+2026-09-30T13:40:02.393+02:00  INFO 15852 --- [lumo-api] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : lumo-pool - Shutdown completed.
+
+BUILD SUCCESSFUL in 19s
+6 actionable tasks: 4 executed, 2 from cache
+Configuration cache entry stored.

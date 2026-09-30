@@ -1,0 +1,284 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.7.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Calculating task graph as no cached configuration is available for tasks: :feature:live:connectedDebugAndroidTest
+Type-safe project accessors is an incubating feature.
+> Task :build-logic:convention:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :build-logic:convention:compileKotlin UP-TO-DATE
+> Task :build-logic:convention:compileJava NO-SOURCE
+> Task :build-logic:convention:pluginDescriptors UP-TO-DATE
+> Task :build-logic:convention:processResources UP-TO-DATE
+> Task :build-logic:convention:classes UP-TO-DATE
+> Task :build-logic:convention:jar UP-TO-DATE
+> Task :core:designsystem:preBuild UP-TO-DATE
+> Task :core:player:preBuild UP-TO-DATE
+> Task :core:auth:preBuild UP-TO-DATE
+> Task :core:network:preBuild UP-TO-DATE
+> Task :core:database:preBuild UP-TO-DATE
+> Task :core:player:preDebugBuild UP-TO-DATE
+> Task :core:data:preBuild UP-TO-DATE
+> Task :core:designsystem:preDebugBuild UP-TO-DATE
+> Task :core:auth:generateDebugAssets UP-TO-DATE
+> Task :core:common:generateDebugAssets UP-TO-DATE
+> Task :core:common:preBuild UP-TO-DATE
+> Task :core:data:generateDebugAssets UP-TO-DATE
+> Task :feature:live:preBuild UP-TO-DATE
+> Task :core:network:preDebugBuild UP-TO-DATE
+> Task :core:database:preDebugBuild UP-TO-DATE
+> Task :core:auth:preDebugBuild UP-TO-DATE
+> Task :core:data:preDebugBuild UP-TO-DATE
+> Task :core:common:preDebugBuild UP-TO-DATE
+> Task :core:database:generateDebugResources UP-TO-DATE
+> Task :core:common:generateDebugResources UP-TO-DATE
+> Task :core:auth:generateDebugResources UP-TO-DATE
+> Task :core:auth:processDebugNavigationResources UP-TO-DATE
+> Task :core:network:generateDebugResources UP-TO-DATE
+> Task :core:network:processDebugNavigationResources UP-TO-DATE
+> Task :core:data:generateDebugResources UP-TO-DATE
+> Task :core:data:processDebugNavigationResources UP-TO-DATE
+> Task :core:common:processDebugNavigationResources UP-TO-DATE
+> Task :core:auth:javaPreCompileDebug UP-TO-DATE
+> Task :core:common:javaPreCompileDebug UP-TO-DATE
+> Task :core:network:javaPreCompileDebug UP-TO-DATE
+> Task :core:network:generateDebugBuildConfig UP-TO-DATE
+> Task :core:data:javaPreCompileDebug UP-TO-DATE
+> Task :core:database:packageDebugResources UP-TO-DATE
+> Task :core:data:packageDebugResources UP-TO-DATE
+> Task :core:network:packageDebugResources UP-TO-DATE
+> Task :core:auth:packageDebugResources UP-TO-DATE
+> Task :core:auth:parseDebugLocalResources UP-TO-DATE
+> Task :core:network:parseDebugLocalResources UP-TO-DATE
+> Task :core:data:parseDebugLocalResources UP-TO-DATE
+> Task :core:auth:generateDebugRFile UP-TO-DATE
+> Task :core:data:generateDebugRFile UP-TO-DATE
+> Task :feature:live:preDebugBuild UP-TO-DATE
+> Task :core:database:processDebugNavigationResources UP-TO-DATE
+> Task :core:network:openApiGenerate UP-TO-DATE
+> Task :core:common:packageDebugResources UP-TO-DATE
+> Task :core:database:parseDebugLocalResources UP-TO-DATE
+> Task :core:common:parseDebugLocalResources UP-TO-DATE
+> Task :core:database:generateDebugRFile UP-TO-DATE
+> Task :core:common:generateDebugRFile UP-TO-DATE
+> Task :core:network:generateDebugRFile UP-TO-DATE
+> Task :core:network:syncGeneratedApiClient UP-TO-DATE
+> Task :feature:live:preDebugAndroidTestBuild UP-TO-DATE
+> Task :core:designsystem:processDebugNavigationResources FROM-CACHE
+> Task :core:player:generateDebugResources FROM-CACHE
+> Task :core:player:processDebugNavigationResources FROM-CACHE
+> Task :core:player:javaPreCompileDebug FROM-CACHE
+> Task :core:designsystem:javaPreCompileDebug FROM-CACHE
+> Task :feature:live:javaPreCompileDebug FROM-CACHE
+> Task :core:data:mergeDebugAssets UP-TO-DATE
+> Task :core:common:mergeDebugAssets UP-TO-DATE
+> Task :core:auth:mergeDebugAssets UP-TO-DATE
+> Task :core:database:generateDebugAssets UP-TO-DATE
+> Task :core:designsystem:generateDebugAssets UP-TO-DATE
+> Task :core:network:generateDebugAssets UP-TO-DATE
+> Task :core:database:mergeDebugAssets UP-TO-DATE
+> Task :core:player:generateDebugAssets UP-TO-DATE
+> Task :core:network:mergeDebugAssets UP-TO-DATE
+> Task :feature:live:processDebugAndroidTestNavigationResources FROM-CACHE
+> Task :feature:live:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :core:designsystem:generateDebugResources FROM-CACHE
+> Task :feature:live:generateDebugAssets UP-TO-DATE
+> Task :feature:live:generateDebugAndroidTestResources FROM-CACHE
+> Task :feature:live:javaPreCompileDebugAndroidTest FROM-CACHE
+> Task :feature:live:processDebugNavigationResources FROM-CACHE
+> Task :feature:live:generateDebugResources FROM-CACHE
+> Task :core:database:javaPreCompileDebug UP-TO-DATE
+> Task :feature:live:generateDebugAndroidTestGlobalSynthetics FROM-CACHE
+> Task :core:player:packageDebugResources FROM-CACHE
+> Task :feature:live:packageDebugAndroidTestResources FROM-CACHE
+> Task :core:player:parseDebugLocalResources FROM-CACHE
+> Task :core:auth:mapDebugSourceSetPaths UP-TO-DATE
+> Task :core:auth:compileDebugLibraryResources UP-TO-DATE
+> Task :core:designsystem:packageDebugResources FROM-CACHE
+> Task :core:common:mapDebugSourceSetPaths UP-TO-DATE
+> Task :feature:live:parseDebugAndroidTestLocalResources FROM-CACHE
+> Task :core:common:compileDebugLibraryResources UP-TO-DATE
+> Task :feature:live:desugarDebugAndroidTestFileDependencies FROM-CACHE
+> Task :core:data:mapDebugSourceSetPaths UP-TO-DATE
+> Task :core:designsystem:parseDebugLocalResources FROM-CACHE
+> Task :core:player:generateDebugRFile FROM-CACHE
+> Task :core:data:compileDebugLibraryResources UP-TO-DATE
+> Task :core:database:mapDebugSourceSetPaths UP-TO-DATE
+> Task :core:network:mapDebugSourceSetPaths UP-TO-DATE
+> Task :core:database:compileDebugLibraryResources UP-TO-DATE
+> Task :feature:live:packageDebugResources FROM-CACHE
+> Task :core:network:compileDebugLibraryResources UP-TO-DATE
+> Task :feature:live:parseDebugLocalResources FROM-CACHE
+> Task :core:auth:writeDebugAarMetadata UP-TO-DATE
+> Task :core:designsystem:generateDebugRFile FROM-CACHE
+> Task :core:common:writeDebugAarMetadata UP-TO-DATE
+> Task :core:data:writeDebugAarMetadata UP-TO-DATE
+> Task :feature:live:generateDebugAndroidTestRFile FROM-CACHE
+> Task :core:database:writeDebugAarMetadata UP-TO-DATE
+> Task :feature:live:generateDebugRFile FROM-CACHE
+> Task :core:network:writeDebugAarMetadata UP-TO-DATE
+> Task :core:player:mapDebugSourceSetPaths
+> Task :core:designsystem:mapDebugSourceSetPaths
+> Task :core:player:writeDebugAarMetadata
+> Task :feature:live:mapDebugAndroidTestSourceSetPaths
+> Task :feature:live:mergeDebugAssets
+> Task :core:player:mergeDebugAssets
+> Task :core:designsystem:mergeDebugAssets
+> Task :feature:live:writeDebugAarMetadata
+> Task :core:designsystem:writeDebugAarMetadata
+> Task :core:player:compileDebugLibraryResources FROM-CACHE
+> Task :core:auth:extractDeepLinksDebug UP-TO-DATE
+> Task :core:common:extractDeepLinksDebug UP-TO-DATE
+> Task :feature:live:mapDebugSourceSetPaths
+> Task :core:auth:processDebugManifest UP-TO-DATE
+> Task :core:data:extractDeepLinksDebug UP-TO-DATE
+> Task :core:database:extractDeepLinksDebug UP-TO-DATE
+> Task :feature:live:compileDebugAndroidTestNavigationResources FROM-CACHE
+> Task :core:designsystem:compileDebugLibraryResources FROM-CACHE
+> Task :feature:live:compileDebugLibraryResources FROM-CACHE
+> Task :core:common:processDebugManifest UP-TO-DATE
+> Task :core:data:processDebugManifest UP-TO-DATE
+> Task :core:network:extractDeepLinksDebug UP-TO-DATE
+> Task :core:database:processDebugManifest UP-TO-DATE
+> Task :core:player:extractDeepLinksDebug FROM-CACHE
+> Task :core:network:processDebugManifest UP-TO-DATE
+> Task :core:designsystem:extractDeepLinksDebug FROM-CACHE
+> Task :core:auth:mergeDebugJniLibFolders
+> Task :feature:live:extractDeepLinksDebug FROM-CACHE
+> Task :feature:live:processDebugManifest FROM-CACHE
+> Task :core:auth:mergeDebugNativeLibs NO-SOURCE
+> Task :core:designsystem:processDebugManifest FROM-CACHE
+> Task :core:player:processDebugManifest FROM-CACHE
+> Task :core:common:mergeDebugJniLibFolders
+> Task :core:database:mergeDebugJniLibFolders
+> Task :core:data:mergeDebugJniLibFolders
+> Task :core:designsystem:mergeDebugJniLibFolders
+> Task :core:database:mergeDebugNativeLibs NO-SOURCE
+> Task :core:data:mergeDebugNativeLibs NO-SOURCE
+> Task :core:common:mergeDebugNativeLibs NO-SOURCE
+> Task :core:designsystem:mergeDebugNativeLibs NO-SOURCE
+> Task :core:auth:copyDebugJniLibsProjectOnly
+> Task :core:data:copyDebugJniLibsProjectOnly
+> Task :core:database:copyDebugJniLibsProjectOnly
+> Task :core:designsystem:copyDebugJniLibsProjectOnly
+> Task :core:common:copyDebugJniLibsProjectOnly
+> Task :core:network:mergeDebugJniLibFolders
+> Task :core:player:mergeDebugJniLibFolders
+> Task :core:network:mergeDebugNativeLibs NO-SOURCE
+> Task :core:player:mergeDebugNativeLibs NO-SOURCE
+> Task :core:common:kspDebugKotlin UP-TO-DATE
+> Task :feature:live:mergeDebugJniLibFolders
+> Task :core:network:copyDebugJniLibsProjectOnly
+> Task :core:player:copyDebugJniLibsProjectOnly
+> Task :feature:live:mergeDebugAndroidTestJniLibFolders
+> Task :feature:live:mergeDebugNativeLibs NO-SOURCE
+> Task :feature:live:copyDebugJniLibsProjectOnly
+> Task :feature:live:writeDebugAndroidTestSigningConfigVersions
+> Task :feature:live:validateSigningDebugAndroidTest
+> Task :core:common:compileDebugKotlin UP-TO-DATE
+> Task :core:common:compileDebugJavaWithJavac UP-TO-DATE
+> Task :core:common:transformDebugClassesWithAsm UP-TO-DATE
+> Task :core:common:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :core:auth:kspDebugKotlin UP-TO-DATE
+> Task :feature:live:checkDebugAndroidTestDuplicateClasses
+> Task :core:common:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :core:common:processDebugJavaRes UP-TO-DATE
+> Task :feature:live:mergeDebugAndroidTestAssets
+> Task :core:auth:compileDebugKotlin UP-TO-DATE
+> Task :feature:live:compressDebugAndroidTestAssets FROM-CACHE
+> Task :core:auth:processDebugJavaRes UP-TO-DATE
+> Task :feature:live:checkDebugAndroidTestAarMetadata
+> Task :core:common:bundleLibRuntimeToDirDebug
+> Task :core:auth:compileDebugJavaWithJavac UP-TO-DATE
+> Task :feature:live:l8DexDesugarLibDebugAndroidTest FROM-CACHE
+> Task :core:database:kspDebugKotlin UP-TO-DATE
+> Task :core:auth:transformDebugClassesWithAsm UP-TO-DATE
+> Task :core:auth:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :core:auth:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :feature:live:mergeDebugAndroidTestNativeLibs
+> Task :core:network:kspDebugKotlin UP-TO-DATE
+
+> Task :feature:live:stripDebugAndroidTestDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so. Run with --info option to learn more.
+
+> Task :core:database:compileDebugKotlin UP-TO-DATE
+> Task :core:database:processDebugJavaRes UP-TO-DATE
+> Task :core:database:compileDebugJavaWithJavac UP-TO-DATE
+> Task :feature:live:mergeDebugAndroidTestResources FROM-CACHE
+> Task :core:auth:bundleLibRuntimeToDirDebug
+> Task :core:database:copyRoomSchemas NO-SOURCE
+> Task :core:database:transformDebugClassesWithAsm UP-TO-DATE
+> Task :core:database:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :core:database:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :core:network:compileDebugKotlin UP-TO-DATE
+> Task :core:network:processDebugJavaRes UP-TO-DATE
+> Task :core:network:compileDebugJavaWithJavac UP-TO-DATE
+> Task :core:designsystem:compileDebugKotlin FROM-CACHE
+> Task :core:designsystem:compileDebugJavaWithJavac NO-SOURCE
+> Task :core:network:transformDebugClassesWithAsm UP-TO-DATE
+> Task :core:network:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :core:network:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :feature:live:mergeDebugAndroidTestManifest
+> Task :core:designsystem:bundleLibRuntimeToJarDebug
+> Task :core:designsystem:bundleLibCompileToJarDebug
+> Task :feature:live:processDebugAndroidTestManifest
+> Task :core:designsystem:processDebugJavaRes
+> Task :core:data:kspDebugKotlin UP-TO-DATE
+> Task :core:designsystem:bundleLibRuntimeToDirDebug
+> Task :core:database:bundleLibRuntimeToDirDebug
+> Task :core:network:bundleLibRuntimeToDirDebug
+> Task :core:player:kspDebugKotlin FROM-CACHE
+> Task :feature:live:processDebugAndroidTestResources FROM-CACHE
+> Task :core:data:compileDebugKotlin UP-TO-DATE
+> Task :core:data:processDebugJavaRes UP-TO-DATE
+> Task :core:data:compileDebugJavaWithJavac UP-TO-DATE
+> Task :feature:live:mergeExtDexDebugAndroidTest FROM-CACHE
+> Task :core:player:compileDebugKotlin FROM-CACHE
+> Task :core:player:processDebugJavaRes
+> Task :core:player:compileDebugJavaWithJavac FROM-CACHE
+> Task :core:data:transformDebugClassesWithAsm UP-TO-DATE
+> Task :core:data:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :core:data:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :core:player:transformDebugClassesWithAsm FROM-CACHE
+> Task :core:player:bundleLibRuntimeToJarDebug
+> Task :core:player:bundleLibCompileToJarDebug
+> Task :core:player:bundleLibRuntimeToDirDebug
+> Task :core:data:bundleLibRuntimeToDirDebug
+> Task :feature:live:kspDebugKotlin
+> Task :feature:live:compileDebugKotlin
+> Task :feature:live:processDebugJavaRes
+> Task :feature:live:compileDebugJavaWithJavac
+> Task :feature:live:transformDebugClassesWithAsm
+> Task :feature:live:bundleLibRuntimeToJarDebug
+> Task :feature:live:bundleLibCompileToJarDebug
+> Task :feature:live:kspDebugAndroidTestKotlin
+> Task :feature:live:bundleLibRuntimeToDirDebug
+
+> Task :feature:live:compileDebugAndroidTestKotlin
+w: file:///C:/dev/lumo-tv-qa907auto/apps/android/feature/live/src/androidTest/kotlin/tv/lumo/android/feature/live/GuideInitialErrorTvTest.kt:81:19 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///C:/dev/lumo-tv-qa907auto/apps/android/feature/live/src/androidTest/kotlin/tv/lumo/android/feature/live/ProgrammeSheetTvFocusTest.kt:44:19 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+
+> Task :feature:live:compileDebugAndroidTestJavaWithJavac NO-SOURCE
+> Task :feature:live:processDebugAndroidTestJavaRes
+> Task :feature:live:hiltCollectClassesDebugAndroidTest
+> Task :feature:live:hiltAggregateDepsDebugAndroidTest FROM-CACHE
+> Task :feature:live:hiltJavaCompileDebugAndroidTest NO-SOURCE
+> Task :feature:live:transformDebugAndroidTestClassesWithAsm
+> Task :feature:live:mergeLibDexDebugAndroidTest
+> Task :feature:live:dexBuilderDebugAndroidTest
+> Task :feature:live:mergeProjectDexDebugAndroidTest
+> Task :feature:live:mergeDebugAndroidTestJavaResource
+> Task :feature:live:packageDebugAndroidTest
+> Task :feature:live:createDebugAndroidTestApkListingFileRedirect
+Starting 8 tests on Television_1080p(AVD) - 16
+Finished 8 tests on Television_1080p(AVD) - 16
+> Task :feature:live:connectedDebugAndroidTest
+
+[Incubating] Problems report is available at: file:///C:/dev/lumo-tv-qa907auto/apps/android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.7.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 39s
+217 actionable tasks: 68 executed, 47 from cache, 102 up-to-date
+Configuration cache entry stored.

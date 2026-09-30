@@ -1,0 +1,17 @@
+$ playwright test "--project=journey" "s9-07-network-bound.journey.spec.ts"
+[WebServer] $ next build
+[WebServer] $ next start "--port" "3100"
+[e2e] pile déjà en écoute sur http://localhost:18080/actuator/health — réutilisée telle quelle.
+
+Running 4 tests using 1 worker
+
+  ok 1 [setup] › e2e\auth.setup.ts:18:6 › un compte est créé et sa session enregistrée (552ms)
+[I-4] 3 chaînes → 1 appel(s) EPG
+  ok 2 [journey] › e2e\s9-07-network-bound.journey.spec.ts:71:9 › S9-07 §5.2 — preuve réseau web (I-4) › 3 chaînes : appels EPG bornés et indépendants du volume (4.4s)
+[I-4] 50 chaînes → 1 appel(s) EPG
+  ok 3 [journey] › e2e\s9-07-network-bound.journey.spec.ts:71:9 › S9-07 §5.2 — preuve réseau web (I-4) › 50 chaînes : appels EPG bornés et indépendants du volume (4.6s)
+[I-4] 100 chaînes → 1 appel(s) EPG
+  ok 4 [journey] › e2e\s9-07-network-bound.journey.spec.ts:71:9 › S9-07 §5.2 — preuve réseau web (I-4) › 100 chaînes : appels EPG bornés et indépendants du volume (4.5s)
+[e2e] pile adoptée, pas démarrée par cette campagne — laissée en place.
+
+  4 passed (21.5s)
