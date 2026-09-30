@@ -1,6 +1,6 @@
 # Sprint 10 — Recherche unifiée
 
-Statut : proposé, non commencé. Taille relative : M.
+Statut : découpe arrêtée, cycle à ouvrir. Consigne du 30 septembre : avancer sans attendre la recette manuelle S9 ; S10-00 (contrat `q`) démarre en premier. Taille relative : M.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 [Proposition d’écrans](../design/0.2.0/unified-search.md) préparée le 19 septembre
