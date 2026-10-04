@@ -1,0 +1,2 @@
+fault-proxy on 18083 -> http://127.0.0.1:8080, 503 on /vod
+503 /v1/sources/x/vod
