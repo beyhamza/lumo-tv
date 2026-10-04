@@ -35,4 +35,11 @@
     <string name="feature_search_error">The search did not complete.</string>
     <string name="feature_search_page_error">The next page did not load.</string>
     <string name="feature_search_retry">Try again</string>
+    <!-- A completed search that matched nothing: the query and the source are
+         named, and clearing the text is offered (S10-04, S10-E04). -->
+    <string name="feature_search_no_result">No result for “%1$s” in %2$s.</string>
+    <!-- Results read from the local cache after the server was unreachable. -->
+    <string name="feature_search_stale">Saved results — they may be out of date.</string>
+    <!-- No cache could answer either: the search could not run. -->
+    <string name="feature_search_offline">Offline: the search cannot be refreshed. Try again later.</string>
 </resources>

@@ -126,6 +126,26 @@ class VodRepository @Inject internal constructor(
         }
     }
 
+    /** One page of the local cache's search (S10-04). See [CatalogueRepository.searchCachePage]. */
+    suspend fun searchCachePage(
+        sourceId: String,
+        query: String,
+        page: Int,
+        size: Int,
+    ): SearchPage<VodItem> = withContext(io) {
+        SearchPage(
+            items = vodDao.searchPage(sourceId, query, size, page * size)
+                .map(VodItemEntity::asVodItem),
+            totalElements = vodDao.searchCount(sourceId, query).toLong(),
+            fromCache = true,
+        )
+    }
+
+    /** Whether this source's films are cached at all (S10-04). */
+    suspend fun hasCachedCatalogue(sourceId: String): Boolean = withContext(io) {
+        vodDao.countForSource(sourceId) > 0
+    }
+
     /**
      * Whether the source carries any film at all (S10-02). The film twin of
      * [CatalogueRepository.hasItems], whose argument this repeats.

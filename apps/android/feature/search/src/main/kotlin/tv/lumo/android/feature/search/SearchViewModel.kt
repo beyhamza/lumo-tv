@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import tv.lumo.android.core.data.ActiveSourceState
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.model.CataloguePresence
@@ -59,6 +60,13 @@ sealed interface SearchSection<out T> {
         /** The zero-based page these items are, and the size it was asked at. */
         val page: Int,
         val size: Int,
+        /**
+         * These items come from the local cache after the server could not be
+         * reached (S10-04). They are what was last synchronised, not the
+         * server's current answer, and the screen says so rather than passing
+         * them off as fresh (Q9).
+         */
+        val fromCache: Boolean = false,
         /** A next page is being fetched; the pages already here stay. */
         val loadingMore: Boolean = false,
         /** The last next-page request failed. The pages already here stay. */
@@ -83,6 +91,12 @@ data class SearchState(
     /** The raw text in the field. Not trimmed: that is what the person is typing. */
     val query: String = "",
     val filter: SearchFilter = SearchFilter.All,
+    /**
+     * The active source's label, so a "no result" line can name what was
+     * searched (S10-04). Null while the source list cannot be read, which is
+     * exactly when the name is unknown.
+     */
+    val sourceLabel: String? = null,
     /**
      * The text is longer than the contract's `q` allows. Refused rather than
      * truncated, on the way out *and* on the way in (Q9, SR-05). A screen renders
@@ -129,6 +143,55 @@ data class SearchState(
         SearchFilter.Films -> films
         SearchFilter.Series -> series
     }
+
+    /**
+     * A search that ran and matched nothing, anywhere it was asked to look (S10-04).
+     *
+     * Distinct from [invitation], and deliberately never true while a section is
+     * still loading or has failed. A failure is not an empty result (Q9), and an
+     * unanswered section means the search has not finished answering — saying "no
+     * result" then would be a claim nobody can make yet.
+     */
+    val noResults: Boolean
+        get() {
+            if (invitation || tooLong) return false
+            val asked = when (filter) {
+                SearchFilter.All -> buildList {
+                    if (presence.channels) add(channels)
+                    if (presence.films) add(films)
+                    if (presence.series) add(series)
+                }
+                SearchFilter.Channels -> listOf(channels)
+                SearchFilter.Films -> listOf(films)
+                SearchFilter.Series -> listOf(series)
+            }
+            if (asked.isEmpty()) return false
+            return asked.all { it is SearchSection.Loaded && it.items.isEmpty() }
+        }
+
+    /**
+     * At least one section answered from the local cache (S10-04).
+     *
+     * What a screen says "these may be out of date" for: the server could not be
+     * reached, and these are the last synchronised rows.
+     */
+    val someFromCache: Boolean
+        get() = listOf(channels, films, series).any {
+            it is SearchSection.Loaded && it.fromCache
+        }
+
+    /**
+     * A section could not be reached for lack of network, and no cache answered (S10-04).
+     *
+     * The screen says the search could not run rather than "no result": an
+     * offline failure is the one case a retry is the honest action for, and it is
+     * distinct from an empty answer (Q9). When the cache did answer, [someFromCache]
+     * is the state to render instead — the offline banner would be redundant.
+     */
+    val offline: Boolean
+        get() = !someFromCache && listOf(channels, films, series).any {
+            it is SearchSection.Failed && it.error is LumoError.Offline
+        }
 }
 
 /**
@@ -204,10 +267,14 @@ class SearchViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             combine(activeSource.accountId, activeSource.state) { account, active ->
-                account to active.selectedSourceId
+                Triple(
+                    account,
+                    active.selectedSourceId,
+                    (active as? ActiveSourceState.Selected)?.source?.label,
+                )
             }
                 .distinctUntilChanged()
-                .collect { (account, source) -> onIdentityChanged(account, source) }
+                .collect { (account, source, label) -> onIdentityChanged(account, source, label) }
         }
     }
 
@@ -324,8 +391,13 @@ class SearchViewModel @Inject constructor(
      * of account empties the context and must let nothing of the old one through.
      * Comparing the pair covers both without having to know which moved.
      */
-    private fun onIdentityChanged(account: String?, source: String?) {
-        if (account == accountId && source == sourceId) return
+    private fun onIdentityChanged(account: String?, source: String?, label: String?) {
+        if (account == accountId && source == sourceId) {
+            // Same search, a fresher label: the source list answered again. Only
+            // the name a "no result" line reads needs to move.
+            _state.update { it.copy(sourceLabel = label) }
+            return
+        }
         accountId = account
         sourceId = source
 
@@ -338,7 +410,9 @@ class SearchViewModel @Inject constructor(
         presenceJob?.cancel()
         presenceJob = null
         presence = null
-        _state.update { it.copy(filter = SearchFilter.All, presence = CataloguePresence.all) }
+        _state.update {
+            it.copy(filter = SearchFilter.All, presence = CataloguePresence.all, sourceLabel = label)
+        }
 
         if (source == null) return
         // A change of identity keeps the text and searches it again, but only once
@@ -578,5 +652,8 @@ private fun <T> LumoResult<SearchPage<T>>.toSection(
         totalElements = value.totalElements,
         page = page,
         size = size,
+        // A next page read from the cache means the whole list is cached, even if
+        // the first page came from the server a moment before the network dropped.
+        fromCache = value.fromCache || (append && previous is SearchSection.Loaded && previous.fromCache),
     )
 }

@@ -78,10 +78,15 @@ data class CataloguePresence(
  * @param totalElements total hits of this type for the query, not the size of
  *   [items]. It is what tells "Voir tous" whether it is worth offering, and it is
  *   read straight from the contract's `total_elements`.
+ * @param fromCache true when this page came from the device's cache because the
+ *   server could not be reached (S10-04). The items are what was last
+ *   synchronised, not the server's current answer, and a screen says so rather
+ *   than presenting them as fresh (Q9, "données potentiellement anciennes").
  */
 data class SearchPage<T>(
     val items: List<T>,
     val totalElements: Long,
+    val fromCache: Boolean = false,
 )
 
 /**

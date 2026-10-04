@@ -121,6 +121,15 @@ internal class FakeSeriesDao : SeriesDao {
         query: String,
     ): PagingSource<Int, SeriesEntity> = unreachable()
 
+    override suspend fun searchPage(
+        sourceId: String,
+        query: String,
+        size: Int,
+        offset: Int,
+    ): List<SeriesEntity> = unreachable()
+
+    override suspend fun searchCount(sourceId: String, query: String): Int = unreachable()
+
     private fun unreachable(): Nothing =
         throw AssertionError("Paging is Room's, and is not what these tests are about")
 }

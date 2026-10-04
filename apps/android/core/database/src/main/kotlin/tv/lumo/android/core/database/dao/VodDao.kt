@@ -52,6 +52,30 @@ interface VodDao {
     )
     fun pagedBySearch(sourceId: String, query: String): PagingSource<Int, VodItemEntity>
 
+    /** One page of the same local search, without a `Pager` (S10-04). See [ChannelDao.searchPage]. */
+    @Query(
+        """
+        SELECT * FROM vod_item
+        WHERE source_id = :sourceId AND name LIKE '%' || :query || '%'
+        ORDER BY position, name
+        LIMIT :size OFFSET :offset
+        """,
+    )
+    suspend fun searchPage(
+        sourceId: String,
+        query: String,
+        size: Int,
+        offset: Int,
+    ): List<VodItemEntity>
+
+    @Query(
+        """
+        SELECT count(*) FROM vod_item
+        WHERE source_id = :sourceId AND name LIKE '%' || :query || '%'
+        """,
+    )
+    suspend fun searchCount(sourceId: String, query: String): Int
+
     @Query("SELECT * FROM vod_item WHERE id = :id")
     fun observe(id: String): Flow<VodItemEntity?>
 

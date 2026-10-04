@@ -50,6 +50,30 @@ interface SeriesDao {
     )
     fun pagedBySearch(sourceId: String, query: String): PagingSource<Int, SeriesEntity>
 
+    /** One page of the same local search, without a `Pager` (S10-04). See [ChannelDao.searchPage]. */
+    @Query(
+        """
+        SELECT * FROM series
+        WHERE source_id = :sourceId AND name LIKE '%' || :query || '%'
+        ORDER BY position, name
+        LIMIT :size OFFSET :offset
+        """,
+    )
+    suspend fun searchPage(
+        sourceId: String,
+        query: String,
+        size: Int,
+        offset: Int,
+    ): List<SeriesEntity>
+
+    @Query(
+        """
+        SELECT count(*) FROM series
+        WHERE source_id = :sourceId AND name LIKE '%' || :query || '%'
+        """,
+    )
+    suspend fun searchCount(sourceId: String, query: String): Int
+
     @Query("SELECT * FROM series WHERE id = :id")
     fun observe(id: String): Flow<SeriesEntity?>
 

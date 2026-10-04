@@ -55,6 +55,37 @@ interface ChannelDao {
     )
     fun pagedBySearch(sourceId: String, query: String): PagingSource<Int, ChannelEntity>
 
+    /**
+     * One page of the same local search, read without a `Pager` (S10-04).
+     *
+     * The offline fallback needs a page and its total, not a scrolling
+     * `PagingData`; it asks SQLite directly for the window and the count, with
+     * the same `LIKE` and the same order as [pagedBySearch] so the two cannot
+     * disagree about what a stored match is.
+     */
+    @Query(
+        """
+        SELECT * FROM channel
+        WHERE source_id = :sourceId AND name LIKE '%' || :query || '%'
+        ORDER BY position, name
+        LIMIT :size OFFSET :offset
+        """,
+    )
+    suspend fun searchPage(
+        sourceId: String,
+        query: String,
+        size: Int,
+        offset: Int,
+    ): List<ChannelEntity>
+
+    @Query(
+        """
+        SELECT count(*) FROM channel
+        WHERE source_id = :sourceId AND name LIKE '%' || :query || '%'
+        """,
+    )
+    suspend fun searchCount(sourceId: String, query: String): Int
+
     @Query("SELECT * FROM channel WHERE id = :id")
     fun observe(id: String): Flow<ChannelEntity?>
 

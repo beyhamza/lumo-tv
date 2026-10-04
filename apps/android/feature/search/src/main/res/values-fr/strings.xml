@@ -19,4 +19,7 @@
     <string name="feature_search_error">La recherche n’a pas abouti.</string>
     <string name="feature_search_page_error">La page suivante n’a pas abouti.</string>
     <string name="feature_search_retry">Réessayer</string>
+    <string name="feature_search_no_result">Aucun résultat pour « %1$s » dans %2$s.</string>
+    <string name="feature_search_stale">Résultats enregistrés — ils peuvent être anciens.</string>
+    <string name="feature_search_offline">Hors ligne : la recherche ne peut pas être actualisée. Réessayez plus tard.</string>
 </resources>

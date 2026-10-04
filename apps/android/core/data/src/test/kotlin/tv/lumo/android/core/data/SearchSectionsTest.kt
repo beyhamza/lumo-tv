@@ -11,6 +11,7 @@ import tv.lumo.android.core.data.model.SearchPage
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.data.repository.cataloguePresenceOf
+import tv.lumo.android.core.data.repository.orLocalSearchPage
 import tv.lumo.android.core.data.repository.searchSections
 
 /**
@@ -23,7 +24,8 @@ import tv.lumo.android.core.data.repository.searchSections
  */
 class SearchSectionsTest {
 
-    private val failure = LumoResult.Failure(LumoError.Offline(IOException("no network")))
+    private val failure: LumoResult<SearchPage<Channel>> =
+        LumoResult.Failure(LumoError.Offline(IOException("no network")))
     private val channels = LumoResult.Success(SearchPage(emptyList<Channel>(), totalElements = 0L))
     private val films = LumoResult.Success(SearchPage(emptyList<VodItem>(), totalElements = 0L))
     private val series = LumoResult.Success(SearchPage(emptyList<Series>(), totalElements = 0L))
@@ -146,4 +148,61 @@ class SearchSectionsTest {
         // Fail-open: an outage never hides a filter (SR-11).
         assertThat(presence.series).isTrue()
     }
+
+    // ---- S10-04: the offline fallback, and only it --------------------------
+
+    @Test
+    fun `offline with a cache answers from it, marked as such`() = runTest {
+        val cached = SearchPage(listOf(channel("c1")), totalElements = 1L, fromCache = true)
+
+        val result = failure.orLocalSearchPage(hasCachedCatalogue = true) { cached }
+
+        assertThat(result).isEqualTo(LumoResult.Success(cached))
+        assertThat((result as LumoResult.Success).value.fromCache).isTrue()
+    }
+
+    @Test
+    fun `offline without a cache keeps the failure`() = runTest {
+        val result = failure.orLocalSearchPage(hasCachedCatalogue = false) {
+            error("an empty cache has no page to give")
+        }
+
+        // No local answer: the failure stands rather than becoming a false
+        // "no result" over an empty cache (SR-14).
+        assertThat(result).isEqualTo(failure)
+    }
+
+    @Test
+    fun `a server error is not papered over by the cache`() = runTest {
+        val serverError: LumoResult<SearchPage<Channel>> =
+            LumoResult.Failure(LumoError.UnknownCode("INTERNAL_ERROR"))
+
+        val result = serverError.orLocalSearchPage(hasCachedCatalogue = true) {
+            error("the server answered; the cache must not replace it")
+        }
+
+        assertThat(result).isEqualTo(serverError)
+    }
+
+    @Test
+    fun `a successful online page is left untouched`() = runTest {
+        val online = SearchPage(listOf(channel("c1")), totalElements = 1L)
+
+        val result = LumoResult.Success(online).orLocalSearchPage(hasCachedCatalogue = true) {
+            error("nothing failed, so the cache is not read")
+        }
+
+        assertThat(result).isEqualTo(LumoResult.Success(online))
+    }
+
+    private fun channel(id: String) = Channel(
+        id = id,
+        sourceId = "source-1",
+        categoryId = null,
+        name = "Falaise",
+        logoUrl = null,
+        number = null,
+        quality = null,
+        isAdult = false,
+    )
 }
