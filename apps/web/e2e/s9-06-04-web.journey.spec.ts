@@ -27,15 +27,26 @@ const M3U = process.env.QA_M3U_URL ?? "http://bench/playlist.m3u";
 const EPG = process.env.QA_EPG_URL ?? "http://bench/guide-transition.xml";
 
 async function createSource(page: Page): Promise<string> {
-  await page.goto("/fr/app/sources/new");
-  await page.getByLabel(fr.App.sourceLabelLabel).fill(LABEL);
-  await page.getByLabel(fr.App.sourceM3uUrlLabel).fill(M3U);
-  await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
-  await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
-  await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
-
+  // Idempotent. Playwright retries the whole `describe.serial` file, and the
+  // account is per file, so a retry runs this twice: creating a second source
+  // with the same label would leave the list ambiguous and eat into the free
+  // plan's source ceiling. The list is server-rendered, so reuse what a
+  // previous attempt already made.
   await page.goto("/fr/app/sources");
-  await page.getByRole("link", { name: LABEL, exact: true }).click();
+  const existing = page.getByRole("link", { name: LABEL, exact: true });
+  if ((await existing.count()) > 0) {
+    await existing.first().click();
+  } else {
+    await page.goto("/fr/app/sources/new");
+    await page.getByLabel(fr.App.sourceLabelLabel).fill(LABEL);
+    await page.getByLabel(fr.App.sourceM3uUrlLabel).fill(M3U);
+    await page.getByLabel(fr.App.sourceEpgUrlLabel).fill(EPG);
+    await page.getByRole("button", { name: fr.App.sourceSubmit }).click();
+    await expect(page.getByText(fr.App.sourceReadyTitle)).toBeVisible({ timeout: 60_000 });
+
+    await page.goto("/fr/app/sources");
+    await page.getByRole("link", { name: LABEL, exact: true }).click();
+  }
   await page.getByRole("link", { name: fr.App.sourceOpenCatalogue }).click();
   const url = new URL(page.url());
   const match = /\/sources\/([^/]+)\/channels/.exec(url.pathname);

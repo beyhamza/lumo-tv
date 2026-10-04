@@ -95,7 +95,24 @@ export const webBaseUrl =
  * real time, and GD-12 skips itself. `E2E_ANCHOR` pins it for the opt-in
  * anchored pass (`.github/workflows/web.yml`, `workflow_dispatch`).
  */
-export const ANCHOR = process.env.E2E_ANCHOR ?? new Date().toISOString();
+
+/**
+ * An instant as RFC 3339 UTC **to the second**.
+ *
+ * The bench parses `BENCH_EPG_ANCHOR` with BusyBox `date -D
+ * "%Y-%m-%dT%H:%M:%SZ"`, which rejects a fractional part. A value it could not
+ * parse used to fall back silently to the container's own start, and on a cold
+ * CI build (no cached API image) that start is minutes after this module ran:
+ * the guide was then anchored minutes away from `LUMO_NOW`, so the two-minute
+ * transition of S9-06-04 QA-06-04-04 was never crossed. Second precision is
+ * all the fixture needs, and it removes the ambiguity; the bench also refuses
+ * to guess an unparseable anchor now (`e2e/bench/entrypoint.sh`).
+ */
+export function toRfc3339Seconds(instant: string | number | Date): string {
+  return new Date(instant).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
+export const ANCHOR = toRfc3339Seconds(process.env.E2E_ANCHOR ?? new Date());
 
 /**
  * Secrets, generated per run and never written anywhere.
