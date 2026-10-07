@@ -345,7 +345,22 @@ private fun TvSearchField(
             color = LumoColors.OnDarkMuted,
         )
 
-        Box(modifier = Modifier.weight(1f)) {
+        // DOWN is read on the wrapper that owns the field, not on the field's own
+        // modifier: a `BasicTextField` creates its key handler deeper than the
+        // modifier passed to it, so an `onPreviewKeyEvent` put on the field itself
+        // is not guaranteed to sit before the field's handler on the root-to-focus
+        // path — this wrapper always is. LEFT and RIGHT are deliberately left to
+        // the field: they still move the cursor (S10-05, SR-13).
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .onPreviewKeyEvent { event ->
+                    if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                    if (event.key != Key.DirectionDown) return@onPreviewKeyEvent false
+                    onNavigateDown()
+                    true
+                },
+        ) {
             if (value.text.isEmpty()) {
                 Text(
                     text = stringResource(R.string.feature_search_hint),
@@ -365,17 +380,6 @@ private fun TvSearchField(
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
                     .onFocusChanged { focused = it.isFocused }
-                    // A single-line field keeps UP and DOWN for its own cursor and
-                    // never lets the focus walk out, so DOWN is read here, before
-                    // the field's own handler, and moves the focus to the tabs.
-                    // LEFT and RIGHT are deliberately left alone: they still move
-                    // the cursor (S10-05).
-                    .onPreviewKeyEvent { event ->
-                        if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                        if (event.key != Key.DirectionDown) return@onPreviewKeyEvent false
-                        onNavigateDown()
-                        true
-                    }
                     .semantics { contentDescription = description },
             )
         }
