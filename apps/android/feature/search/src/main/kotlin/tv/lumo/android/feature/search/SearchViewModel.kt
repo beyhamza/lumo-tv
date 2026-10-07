@@ -264,6 +264,16 @@ class SearchViewModel @Inject constructor(
      */
     private var searchWanted = false
 
+    /**
+     * Whether the last input event was still an input-method composition.
+     *
+     * A field that regains its focus can hand the same text back, and the end of
+     * a composition can hand back the text the composition last reported. The two
+     * look identical to [onQueryChanged]; this flag tells them apart so a replay
+     * does not drop the results a return is meant to show (SR-12).
+     */
+    private var inputComposing = false
+
     init {
         viewModelScope.launch {
             combine(activeSource.accountId, activeSource.state) { account, active ->
@@ -290,6 +300,14 @@ class SearchViewModel @Inject constructor(
      *   `TextFieldValue.composition != null`.
      */
     fun onQueryChanged(text: String, composing: Boolean) {
+        // A field that regains focus can replay the text it already holds — a
+        // return from a player or a fiche does exactly that. It is not a new
+        // request, and treating it as one emptied the sections the return was
+        // meant to restore (SR-12). The end of a composition is the one replay
+        // that must still run; [inputComposing] is what tells the two apart.
+        if (text == _state.value.query && !composing && !inputComposing) return
+        inputComposing = composing
+
         val tooLong = text.codePointCount(0, text.length) > MAX_QUERY_LENGTH
         _state.update { it.copy(query = text, tooLong = tooLong) }
 
