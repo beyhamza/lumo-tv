@@ -126,6 +126,47 @@ class SearchViewModelTest {
         assertThat(search.calls.map { it.query }).containsExactly("falaise")
     }
 
+    @Test
+    fun `the end of a composition on the unchanged text still searches`() = runTest(main) {
+        val search = FakeSearch()
+        val viewModel = viewModel(search)
+
+        // The method reports the text while composing it, then reports the very
+        // same text once it is validated. The second call is the one that starts
+        // the delay, so it must not be mistaken for a replay (SR-12).
+        viewModel.onQueryChanged("falaise", composing = true)
+        runCurrent()
+        viewModel.onQueryChanged("falaise", composing = false)
+        advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS)
+        runCurrent()
+
+        assertThat(search.calls.map { it.query }).containsExactly("falaise")
+    }
+
+    @Test
+    fun `a replay of the unchanged text keeps the results on screen`() = runTest(main) {
+        val search = FakeSearch()
+        val viewModel = viewModel(search)
+
+        viewModel.onQueryChanged("falaise", composing = false)
+        advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS)
+        runCurrent()
+        search.answer(0, allThree(channels = listOf(channel("c1", "Falaise 1"))))
+        runCurrent()
+        assertThat(loaded(viewModel.state.value.channels).items).hasSize(1)
+
+        // A return from a player or a fiche can make the field hand its text back
+        // unchanged. It is not a new search: emptying the sections here is exactly
+        // the SR-12 defect, the results were gone when the return landed.
+        viewModel.onQueryChanged("falaise", composing = false)
+        runCurrent()
+        advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS)
+        runCurrent()
+
+        assertThat(loaded(viewModel.state.value.channels).items).hasSize(1)
+        assertThat(search.calls).hasSize(1)
+    }
+
     // ---- SR-04 / SR-05: trim, empty and the hundred-character limit ----------
 
     @Test
