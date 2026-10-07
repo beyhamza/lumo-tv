@@ -1,0 +1,83 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="5" failures="4" errors="0" skipped="0" time="6.296" timestamp="2026-10-04T19:21:34" hostname="localhost">
+  <testsuite name="tv.lumo.android.feature.search.SearchTvFocusTest" tests="5" failures="4" errors="0" skipped="0" time="5.273" timestamp="2026-10-04T19:21:34" hostname="localhost">
+    <properties>
+      <property name="device" value="Television_1080p(AVD) - 16" />
+      <property name="flavor" value="" />
+      <property name="project" value=":feature:search" />
+    </properties>
+    <testcase name="onArrivalOnlyTheFieldHasTheFocus" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="2.162" />
+    <testcase name="downFromTheFieldReachesTheFirstFilterTab" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.775">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Focused = 'true')
+Semantics of the node:
+Node #30 at (l=54.0, t=296.0, r=210.0, b=393.0)px
+Focused = 'false'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 999.0.dp), topEnd = CornerSize(size = 999.0.dp), bottomEnd = CornerSize(size = 999.0.dp), bottomStart = CornerSize(size = 999.0.dp))'
+Text = '[All]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 3 siblings
+Selector used: (Text + InputText + EditableText contains 'All' (ignoreCase: false))
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertIsFocused(Assertions.kt:117)
+at tv.lumo.android.feature.search.SearchTvFocusTest.downFromTheFieldReachesTheFirstFilterTab(SearchTvFocusTest.kt:88)
+</failure>
+    </testcase>
+    <testcase name="okOnClearEmptiesTheQueryAndReturnsToTheField" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.802">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Focused = 'true')
+Semantics of the node:
+Node #57 at (l=54.0, t=546.0, r=521.0, b=643.0)px
+Focused = 'false'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 999.0.dp), topEnd = CornerSize(size = 999.0.dp), bottomEnd = CornerSize(size = 999.0.dp), bottomStart = CornerSize(size = 999.0.dp))'
+Text = '[Clear the search]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 3 siblings
+Selector used: (Text + InputText + EditableText contains 'Clear the search' (ignoreCase: false))
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertIsFocused(Assertions.kt:117)
+at tv.lumo.android.feature.search.SearchTvFocusTest.okOnClearEmptiesTheQueryAndReturnsToTheField(SearchTvFocusTest.kt:139)
+</failure>
+    </testcase>
+    <testcase name="upFromTheFirstFilterReturnsToTheField" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.756">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Focused = 'true')
+Semantics of the node:
+Node #70 at (l=54.0, t=296.0, r=210.0, b=393.0)px
+Focused = 'false'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 999.0.dp), topEnd = CornerSize(size = 999.0.dp), bottomEnd = CornerSize(size = 999.0.dp), bottomStart = CornerSize(size = 999.0.dp))'
+Text = '[All]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 3 siblings
+Selector used: (Text + InputText + EditableText contains 'All' (ignoreCase: false))
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertIsFocused(Assertions.kt:117)
+at tv.lumo.android.feature.search.SearchTvFocusTest.upFromTheFirstFilterReturnsToTheField(SearchTvFocusTest.kt:118)
+</failure>
+    </testcase>
+    <testcase name="downFromTheFirstFilterReachesClearTheSearch" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.778">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Focused = 'true')
+Semantics of the node:
+Node #90 at (l=54.0, t=296.0, r=210.0, b=393.0)px
+Focused = 'false'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 999.0.dp), topEnd = CornerSize(size = 999.0.dp), bottomEnd = CornerSize(size = 999.0.dp), bottomStart = CornerSize(size = 999.0.dp))'
+Text = '[All]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 3 siblings
+Selector used: (Text + InputText + EditableText contains 'All' (ignoreCase: false))
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertIsFocused(Assertions.kt:117)
+at tv.lumo.android.feature.search.SearchTvFocusTest.downFromTheFirstFilterReachesClearTheSearch(SearchTvFocusTest.kt:102)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>
