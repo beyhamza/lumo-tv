@@ -173,8 +173,34 @@ fun SearchTvScreen(
                 onSelect = viewModel::onFilterSelected,
             )
 
+            // A partial failure that fell back to the cache: say the data may be
+            // old rather than pass it off as the server's answer (S10-04).
+            if (state.someFromCache) {
+                TvNotice(stringResource(R.string.feature_search_stale))
+            }
+
+            // Nothing answered and there is no cache either: the search could not
+            // run, which is not the same as "nothing matched" (S10-04).
+            if (state.offline) {
+                TvNotice(stringResource(R.string.feature_search_offline))
+            }
+
             if (state.invitation) {
                 Invitation()
+            } else if (state.noResults) {
+                // A completed search that matched nothing: name the text and the
+                // source, and offer to clear rather than leave a blank screen
+                // (S10-04, S10-E04). The action clears and puts the focus back on
+                // the field, so the D-pad can type again without a detour.
+                TvNoResults(
+                    query = query,
+                    source = state.sourceLabel,
+                    onClear = {
+                        field = TextFieldValue("")
+                        viewModel.onQueryChanged("", composing = false)
+                        runCatching { fieldFocus.requestFocus() }
+                    },
+                )
             } else {
                 // The explicit way into the results (Q9). It is a control, not an
                 // automatic move: while the answer is in flight it keeps the
@@ -375,6 +401,46 @@ private fun Invitation() {
     Text(
         text = stringResource(R.string.feature_search_invitation),
         style = MaterialTheme.typography.bodyLarge,
+        color = LumoColors.OnDarkMuted,
+    )
+}
+
+/**
+ * A completed search that matched nothing anywhere (S10-04, S10-E04).
+ *
+ * It recalls the searched text and the source it was searched in, and offers to
+ * clear — never a blank screen that could be read as a source with no content.
+ * When the source's name could not be read it falls back to the per-query line
+ * rather than inventing a name.
+ */
+@Composable
+private fun TvNoResults(query: String, source: String?, onClear: () -> Unit) {
+    val text = if (source != null) {
+        stringResource(R.string.feature_search_no_result, query, source)
+    } else {
+        stringResource(R.string.feature_search_empty, query)
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.md)) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = LumoColors.OnDarkMuted,
+        )
+        LumoTvButton(
+            text = stringResource(R.string.feature_search_clear),
+            onClick = onClear,
+            primary = true,
+        )
+    }
+}
+
+/** A quiet status line: stale cache, or a search that could not run (S10-04). */
+@Composable
+private fun TvNotice(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
         color = LumoColors.OnDarkMuted,
     )
 }
