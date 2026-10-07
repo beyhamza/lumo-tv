@@ -6,7 +6,9 @@ import {
   filterFromParam,
   normalizeQuery,
   queryTooLong,
+  SEARCH_TYPES,
   type SearchSections,
+  type SearchType,
 } from "@/lib/search/search";
 
 /**
@@ -39,6 +41,14 @@ import {
  * way out (Q9, SR-05). An empty query is not a search at all — it answers
  * `invitation: true` with no section loaded, so the full catalogue is never
  * pulled by clearing the field (SR-04).
+ *
+ * <h2>S10-04: `only` retries one section, and nothing else</h2>
+ *
+ * A partial search keeps the sections that answered and offers a retry on the
+ * one that failed. `?only=films` asks the listings for that single type — at
+ * the size the current filter implies — and returns the other two as `null`.
+ * The screen merges that one field back into what it already had; no retry ever
+ * re-reads or resets the sections that were already on screen (Q9, SR-10).
  */
 export async function GET(
   request: Request,
@@ -53,10 +63,20 @@ export async function GET(
   const query = normalizeQuery(url.searchParams.get("q") ?? undefined);
   const filter = filterFromParam(url.searchParams.get("type") ?? undefined);
   const page = Math.max(0, Number.parseInt(url.searchParams.get("page") ?? "0", 10) || 0);
+  const only = onlyType(url.searchParams.get("only"));
 
   if (queryTooLong(query)) return problem(400, "VALIDATION_FAILED");
 
-  const types = await loadCatalogueTypes(session.accessToken, id);
+  // A single-section retry trusts the caller's type rather than probing the
+  // source again: the client only retries a section it already rendered, so it
+  // was present. The three-list probe is skipped, one section is read.
+  const types = only
+    ? {
+        channels: only === "channels",
+        films: only === "films",
+        series: only === "series",
+      }
+    : await loadCatalogueTypes(session.accessToken, id);
   const empty: SearchSections = { channels: null, films: null, series: null };
   const sections =
     query.length === 0
@@ -64,7 +84,7 @@ export async function GET(
       : await loadSearchSections(session.accessToken, id, query, filter, page, types);
 
   return NextResponse.json(
-    { query, filter, page, invitation: query.length === 0, types, sections },
+    { query, filter, page, only, invitation: query.length === 0, types, sections },
     {
       status: 200,
       headers: {
@@ -73,6 +93,13 @@ export async function GET(
       },
     },
   );
+}
+
+/** `?only=` accepts the three known types and nothing else. */
+function onlyType(value: string | null): SearchType | null {
+  return value && (SEARCH_TYPES as readonly string[]).includes(value)
+    ? (value as SearchType)
+    : null;
 }
 
 function problem(status: number, code: string) {

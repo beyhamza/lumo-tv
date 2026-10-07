@@ -396,6 +396,15 @@ private class FakeVodDao : VodDao {
         query: String,
     ): PagingSource<Int, VodItemEntity> = unreachable()
 
+    override suspend fun searchPage(
+        sourceId: String,
+        query: String,
+        size: Int,
+        offset: Int,
+    ): List<VodItemEntity> = unreachable()
+
+    override suspend fun searchCount(sourceId: String, query: String): Int = unreachable()
+
     private fun unreachable(): Nothing =
         throw AssertionError("Paging is Room's, and is not what these tests are about")
 }

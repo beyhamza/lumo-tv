@@ -3,6 +3,8 @@ import type { Channel, VodItem } from "@/lib/api/types";
 import {
   codePointLength,
   filterFromParam,
+  formatPageOf,
+  isOffline,
   normalizeQuery,
   openedFromSearch,
   PAGE_SIZE,
@@ -10,13 +12,17 @@ import {
   pageSizeFor,
   PREVIEW_SIZE,
   queryTooLong,
+  requestedTypes,
   runSection,
+  searchPath,
   searchResultPath,
   searchReturnPath,
   searchSections,
+  searchVerdict,
   SEARCH_ORIGIN,
   type CataloguePresent,
   type SearchFetchers,
+  type SearchSections,
 } from "./search";
 
 /**
@@ -230,5 +236,101 @@ describe("opening a result and coming back", () => {
     expect(openedFromSearch("Search")).toBe(false);
     expect(openedFromSearch("//evil.example/app/search")).toBe(false);
     expect(openedFromSearch(undefined)).toBe(false);
+  });
+});
+
+describe("the four states of a search (S10-04)", () => {
+  /** A source's catalogue, with only the named types present. */
+  function sourceCarrying(...types: (keyof CataloguePresent)[]): CataloguePresent {
+    return {
+      channels: types.includes("channels"),
+      films: types.includes("films"),
+      series: types.includes("series"),
+    };
+  }
+
+  it("requests only the types the filter and the source allow", () => {
+    expect(requestedTypes("all", ALL_PRESENT)).toEqual(["channels", "films", "series"]);
+    expect(requestedTypes("films", ALL_PRESENT)).toEqual(["films"]);
+    expect(requestedTypes("all", sourceCarrying("channels", "series"))).toEqual([
+      "channels",
+      "series",
+    ]);
+    // A type the source does not carry is never requested, even if open.
+    expect(requestedTypes("films", sourceCarrying("channels"))).toEqual([]);
+  });
+
+  it("calls a search with no matches empty only when every section answered", () => {
+    const sections: SearchSections = {
+      channels: { status: "ok", items: [], totalElements: 0 },
+      films: { status: "ok", items: [], totalElements: 0 },
+      series: { status: "ok", items: [], totalElements: 0 },
+    };
+    const verdict = searchVerdict(sections, "all", ALL_PRESENT);
+    expect(verdict.noResults).toBe(true);
+    expect(verdict.allFailed).toBe(false);
+    expect(verdict.total).toBe(0);
+  });
+
+  it("does not call a partial failure empty, and names the failed section", () => {
+    const sections: SearchSections = {
+      channels: { status: "ok", items: [{ id: "c1" } as Channel], totalElements: 1 },
+      films: { status: "failed", code: "INTERNAL_ERROR" },
+      series: { status: "failed" },
+    };
+    const verdict = searchVerdict(sections, "all", ALL_PRESENT);
+    expect(verdict.noResults).toBe(false);
+    expect(verdict.failed).toEqual(["films", "series"]);
+    expect(verdict.anyOk).toBe(true);
+    expect(verdict.allFailed).toBe(false);
+    expect(verdict.total).toBe(1);
+  });
+
+  it("calls a search where every section failed a total failure, not an empty set", () => {
+    const sections: SearchSections = {
+      channels: { status: "failed" },
+      films: { status: "failed" },
+      series: { status: "failed" },
+    };
+    const verdict = searchVerdict(sections, "all", ALL_PRESENT);
+    expect(verdict.allFailed).toBe(true);
+    expect(verdict.noResults).toBe(false);
+    expect(verdict.anyOk).toBe(false);
+  });
+
+  it("judges only the type a list filter opened", () => {
+    const sections: SearchSections = {
+      channels: null,
+      films: { status: "ok", items: [], totalElements: 0 },
+      series: null,
+    };
+    const verdict = searchVerdict(sections, "films", ALL_PRESENT);
+    expect(verdict.requested).toEqual(["films"]);
+    expect(verdict.noResults).toBe(true);
+  });
+});
+
+describe("searchPath", () => {
+  it("omits the grouped view and page zero, keeps a real filter and page", () => {
+    expect(searchPath({ q: "café" })).toBe("/app/search?q=caf%C3%A9");
+    expect(searchPath({ q: "café", type: "all", page: 0 })).toBe("/app/search?q=caf%C3%A9");
+    expect(searchPath({ q: "café", type: "films", page: 2 })).toBe(
+      "/app/search?q=caf%C3%A9&type=films&page=2",
+    );
+  });
+});
+
+describe("formatPageOf", () => {
+  it("fills both placeholders and leaves no braces", () => {
+    expect(formatPageOf("Page {page} sur {total}", 2, 5)).toBe("Page 2 sur 5");
+    expect(formatPageOf("Page {page} of {total}", 1, 1)).toBe("Page 1 of 1");
+  });
+});
+
+describe("isOffline", () => {
+  it("is true only when the browser says it is offline", () => {
+    expect(isOffline({ onLine: false })).toBe(true);
+    expect(isOffline({ onLine: true })).toBe(false);
+    expect(isOffline(undefined)).toBe(false);
   });
 });

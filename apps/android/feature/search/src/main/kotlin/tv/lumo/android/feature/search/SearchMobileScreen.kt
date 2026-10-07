@@ -129,8 +129,28 @@ fun SearchMobileScreen(
             onSelect = viewModel::onFilterSelected,
         )
 
+        // A partial failure that fell back to the cache: say the data may be old
+        // rather than pass it off as the server's answer (S10-04).
+        if (state.someFromCache) {
+            Notice(stringResource(R.string.feature_search_stale))
+        }
+
+        // Nothing could answer and there is no cache either: the search could not
+        // run, which is not the same as "nothing matched" (S10-04).
+        if (state.offline) {
+            Notice(stringResource(R.string.feature_search_offline))
+        }
+
         when {
             state.invitation -> Invitation()
+            state.noResults -> NoResults(
+                query = state.query.trim(),
+                source = state.sourceLabel,
+                onClear = {
+                    field = TextFieldValue("")
+                    viewModel.onQueryChanged("", composing = false)
+                },
+            )
             state.filter == SearchFilter.All ->
                 GroupedResults(state, viewModel, onPlayChannel, onOpenFilm, onOpenSeries)
             else -> TypeResults(state, viewModel, onPlayChannel, onOpenFilm, onOpenSeries)
@@ -254,6 +274,44 @@ private fun Invitation() {
     Text(
         text = stringResource(R.string.feature_search_invitation),
         style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/**
+ * A completed search that matched nothing anywhere (S10-04, S10-E04).
+ *
+ * It recalls the text that was searched and the source it was searched in, and
+ * offers to clear the text — never a blank screen that could be read as a source
+ * with no content. When the source's name could not be read it falls back to the
+ * per-query line rather than inventing a name.
+ */
+@Composable
+private fun NoResults(query: String, source: String?, onClear: () -> Unit) {
+    val text = if (source != null) {
+        stringResource(R.string.feature_search_no_result, query, source)
+    } else {
+        stringResource(R.string.feature_search_empty, query)
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TextButton(onClick = onClear) {
+            Text(stringResource(R.string.feature_search_clear))
+        }
+    }
+}
+
+/** A quiet status line: stale cache, or a search that could not run (S10-04). */
+@Composable
+private fun Notice(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }

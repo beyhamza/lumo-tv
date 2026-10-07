@@ -8,6 +8,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import tv.lumo.android.core.common.di.Dispatcher
 import tv.lumo.android.core.common.di.LumoDispatcher
+import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.model.CataloguePresence
 import tv.lumo.android.core.data.model.Channel
@@ -100,9 +101,9 @@ internal class DefaultSearchRepository @Inject constructor(
         searchSections(
             filter = filter,
             present = present,
-            channels = { channels.searchPage(sourceId, query, page, size) },
-            films = { films.searchPage(sourceId, query, page, size) },
-            series = { series.searchPage(sourceId, query, page, size) },
+            channels = { channels.searchWithFallback(sourceId, query, page, size) },
+            films = { films.searchWithFallback(sourceId, query, page, size) },
+            series = { series.searchWithFallback(sourceId, query, page, size) },
         )
     }
 
@@ -113,6 +114,74 @@ internal class DefaultSearchRepository @Inject constructor(
             series = { series.hasItems(sourceId) },
         )
     }
+}
+
+/**
+ * The server's page, or the cache's when the server cannot be reached (S10-04).
+ *
+ * <h2>Only an offline failure falls back</h2>
+ *
+ * A `5xx`, a `4xx` or an unreadable body is the server answering, and the cache
+ * is not the answer to it: the request reached the server, so the local rows
+ * would be a different, older answer to the same question. [LumoError.Offline]
+ * is the one case where the server did not answer at all — that type's own
+ * comment names it as the only read failure the cache is right for.
+ *
+ * <h2>And only when something is cached</h2>
+ *
+ * A local search over an empty cache would return nothing and be presented as
+ * "no result", which is the lie Q9 forbids. No cached row means no local answer:
+ * the failure stands, and the screen offers a retry.
+ */
+private suspend fun CatalogueRepository.searchWithFallback(
+    sourceId: String,
+    query: String,
+    page: Int,
+    size: Int,
+): LumoResult<SearchPage<Channel>> =
+    searchPage(sourceId, query, page, size).orLocalSearchPage(hasCachedCatalogue(sourceId)) {
+        searchCachePage(sourceId, query, page, size)
+    }
+
+/** The film twin of [searchWithFallback]. */
+private suspend fun VodRepository.searchWithFallback(
+    sourceId: String,
+    query: String,
+    page: Int,
+    size: Int,
+): LumoResult<SearchPage<VodItem>> =
+    searchPage(sourceId, query, page, size).orLocalSearchPage(hasCachedCatalogue(sourceId)) {
+        searchCachePage(sourceId, query, page, size)
+    }
+
+/** The series twin of [searchWithFallback]. */
+private suspend fun SeriesRepository.searchWithFallback(
+    sourceId: String,
+    query: String,
+    page: Int,
+    size: Int,
+): LumoResult<SearchPage<Series>> =
+    searchPage(sourceId, query, page, size).orLocalSearchPage(hasCachedCatalogue(sourceId)) {
+        searchCachePage(sourceId, query, page, size)
+    }
+
+/**
+ * The rule the three fallbacks share, extracted so it is testable without a server.
+ *
+ * The cache answers a read only when **both** hold: the failure was
+ * [LumoError.Offline] — the server did not answer — and the source has cached
+ * rows. Any other failure is the server's own answer, which the cache must not
+ * quietly replace; and an empty cache has no local answer to give, so the failure
+ * stands rather than becoming a false "no result" (Q9, SR-14). The returned page
+ * is always cache-backed when the fallback ran, which is what the screen marks as
+ * potentially old.
+ */
+internal suspend fun <T> LumoResult<SearchPage<T>>.orLocalSearchPage(
+    hasCachedCatalogue: Boolean,
+    local: suspend () -> SearchPage<T>,
+): LumoResult<SearchPage<T>> {
+    if (this !is LumoResult.Failure || error !is LumoError.Offline || !hasCachedCatalogue) return this
+    return LumoResult.Success(local())
 }
 
 /**

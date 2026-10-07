@@ -134,6 +134,26 @@ class SeriesRepository @Inject internal constructor(
         }
     }
 
+    /** One page of the local cache's search (S10-04). See [CatalogueRepository.searchCachePage]. */
+    suspend fun searchCachePage(
+        sourceId: String,
+        query: String,
+        page: Int,
+        size: Int,
+    ): SearchPage<Series> = withContext(io) {
+        SearchPage(
+            items = seriesDao.searchPage(sourceId, query, size, page * size)
+                .map(SeriesEntity::asSeries),
+            totalElements = seriesDao.searchCount(sourceId, query).toLong(),
+            fromCache = true,
+        )
+    }
+
+    /** Whether this source's series are cached at all (S10-04). */
+    suspend fun hasCachedCatalogue(sourceId: String): Boolean = withContext(io) {
+        seriesDao.countForSource(sourceId) > 0
+    }
+
     /**
      * Whether the source carries any series at all (S10-02). The series twin of
      * [CatalogueRepository.hasItems], whose argument this repeats.

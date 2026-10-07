@@ -157,6 +157,38 @@ class CatalogueRepository @Inject internal constructor(
     }
 
     /**
+     * One page of the local cache's search (S10-04).
+     *
+     * The offline fallback, and only that: the same `LIKE` the paged local search
+     * uses, read as a page with its count so the search screen can render it under
+     * the same [SearchPage] shape. Never called first — [searchPage] is the server,
+     * which sees the whole catalogue and honours the contract's `q`.
+     */
+    suspend fun searchCachePage(
+        sourceId: String,
+        query: String,
+        page: Int,
+        size: Int,
+    ): SearchPage<Channel> = withContext(io) {
+        SearchPage(
+            items = channelDao.searchPage(sourceId, query, size, page * size)
+                .map(ChannelEntity::asChannel),
+            totalElements = channelDao.searchCount(sourceId, query).toLong(),
+            fromCache = true,
+        )
+    }
+
+    /**
+     * Whether this source's channels are cached at all (S10-04).
+     *
+     * The offline fallback's condition: without any cached row there is nothing to
+     * search locally, and the honest answer is the failure, not an empty result.
+     */
+    suspend fun hasCachedCatalogue(sourceId: String): Boolean = withContext(io) {
+        channelDao.countForSource(sourceId) > 0
+    }
+
+    /**
      * Whether the source carries any channel at all (S10-02).
      *
      * One request of one row, and deliberately **no `q`**: the contract makes `q`

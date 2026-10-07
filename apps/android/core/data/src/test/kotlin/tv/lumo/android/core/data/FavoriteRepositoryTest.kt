@@ -354,6 +354,15 @@ private class FakeChannelDaoForFavorites : ChannelDao {
         query: String,
     ): PagingSource<Int, ChannelEntity> = unreachable()
 
+    override suspend fun searchPage(
+        sourceId: String,
+        query: String,
+        size: Int,
+        offset: Int,
+    ): List<ChannelEntity> = unreachable()
+
+    override suspend fun searchCount(sourceId: String, query: String): Int = unreachable()
+
     private fun unreachable(): Nothing =
         throw AssertionError("Not part of the favourites path")
 }

@@ -2,6 +2,7 @@ package tv.lumo.android.feature.search
 
 import com.google.common.truth.Truth.assertThat
 import java.io.IOException
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
@@ -32,6 +33,9 @@ import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.SearchRepository
+import tv.lumo.android.network.generated.model.Source
+import tv.lumo.android.network.generated.model.SourceKind
+import tv.lumo.android.network.generated.model.SourceStatus
 
 /**
  * The engine of the search screen (US-021, S10-01).
@@ -517,7 +521,97 @@ class SearchViewModelTest {
         assertThat(loaded(viewModel.state.value.series).items.map { it.id }).containsExactly("s1")
     }
 
+    // ---- S10-04: an error is not an empty set, and offline is its own state --
+
+    @Test
+    fun `a search that matched nothing anywhere is noResults`() = runTest(main) {
+        val search = FakeSearch()
+        val viewModel = viewModel(search)
+
+        viewModel.onQueryChanged("falaise", composing = false)
+        advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS)
+        runCurrent()
+        search.answer(0, allThree())
+        runCurrent()
+
+        assertThat(viewModel.state.value.noResults).isTrue()
+        assertThat(viewModel.state.value.offline).isFalse()
+        assertThat(viewModel.state.value.someFromCache).isFalse()
+    }
+
+    @Test
+    fun `a partial failure is neither no result nor complete`() = runTest(main) {
+        val search = FakeSearch()
+        val viewModel = viewModel(search)
+
+        viewModel.onQueryChanged("falaise", composing = false)
+        advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS)
+        runCurrent()
+        search.answer(
+            0,
+            SearchResults(
+                channels = LumoResult.Success(SearchPage(listOf(channel("c1", "Falaise")), 1L)),
+                films = LumoResult.Failure(LumoError.Offline(IOException("no network"))),
+                series = LumoResult.Success(SearchPage(emptyList(), 0L)),
+            ),
+        )
+        runCurrent()
+
+        // The films list failed: that is not "nothing matched", even though two of
+        // the three sections are empty (Q9, SR-10).
+        assertThat(viewModel.state.value.noResults).isFalse()
+        assertThat(viewModel.state.value.offline).isTrue()
+        assertThat(viewModel.state.value.someFromCache).isFalse()
+    }
+
+    @Test
+    fun `a cache-backed answer says it may be old and is not a plain result`() = runTest(main) {
+        val search = FakeSearch()
+        val viewModel = viewModel(search)
+
+        viewModel.onQueryChanged("falaise", composing = false)
+        advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS)
+        runCurrent()
+        search.answer(
+            0,
+            SearchResults(
+                channels = LumoResult.Success(
+                    SearchPage(listOf(channel("c1", "Falaise")), 1L, fromCache = true),
+                ),
+                films = LumoResult.Success(SearchPage(emptyList(), 0L, fromCache = true)),
+                series = LumoResult.Success(SearchPage(emptyList(), 0L, fromCache = true)),
+            ),
+        )
+        runCurrent()
+
+        assertThat(viewModel.state.value.someFromCache).isTrue()
+        assertThat(viewModel.state.value.offline).isFalse()
+        assertThat(loaded(viewModel.state.value.channels).fromCache).isTrue()
+    }
+
+    @Test
+    fun `the active source's label travels to the no-result line`() = runTest(main) {
+        val search = FakeSearch()
+        val active = FakeActiveSource()
+        active.active.value = ActiveSourceState.Selected(
+            "source-1",
+            source = source("Ma source"),
+            sources = emptyList(),
+        )
+        val viewModel = viewModel(search, active)
+
+        assertThat(viewModel.state.value.sourceLabel).isEqualTo("Ma source")
+    }
+
     // ---- helpers -------------------------------------------------------------
+
+    private fun source(label: String) = Source(
+        id = UUID.randomUUID(),
+        label = label,
+        kind = SourceKind.M3U_URL,
+        status = SourceStatus.READY,
+        autoSync = true,
+    )
 
     private fun TestScope.viewModel(
         search: SearchRepository,

@@ -159,6 +159,26 @@ export function searchReturnPath(values: {
   return `/app/search${queryParams(values)}`;
 }
 
+/**
+ * The search screen's own URL for a text, a filter and a page.
+ *
+ * The same three whitelisted parameters, built here rather than at the page's
+ * call site so the server render and the client retry can never drift (S10-04).
+ * `all` and page 0 are omitted, as in {@link contextParams}: absent values stay
+ * out of the URL, never sent empty.
+ */
+export function searchPath(values: {
+  q?: string;
+  type?: SearchFilter;
+  page?: number;
+}): string {
+  return `/app/search${queryParams({
+    q: values.q,
+    type: values.type && values.type !== "all" ? values.type : undefined,
+    page: values.page && values.page > 0 ? String(values.page) : undefined,
+  })}`;
+}
+
 /** The three search parameters, absent values omitted so `all`/page 0 stay out. */
 function contextParams(context: SearchContext): Record<string, string | undefined> {
   return {
@@ -267,4 +287,110 @@ export async function searchSections(
   ]);
 
   return { channels, films, series };
+}
+
+/** One typed section of a `SearchSections`, whatever the filter asked for. */
+export function searchSectionOf(
+  sections: SearchSections,
+  type: SearchType,
+): SearchSection<Channel | VodItem | Series> | null {
+  return type === "channels"
+    ? sections.channels
+    : type === "films"
+      ? sections.films
+      : sections.series;
+}
+
+/**
+ * The types a render actually asked the source for (S10-04).
+ *
+ * The filter and the source's catalogue, and nothing else: a type the source
+ * does not carry is never requested, and a type the filter does not open is not
+ * requested either. This is the list the four states below range over, so a
+ * section that was never asked can never be mistaken for an empty one (SR-11).
+ */
+export function requestedTypes(
+  filter: SearchFilter,
+  present: CataloguePresent,
+): SearchType[] {
+  return SEARCH_TYPES.filter((type) => present[type] && wants(filter, type));
+}
+
+/**
+ * What one search render has to say, before any of it is drawn (S10-04).
+ *
+ * <h2>An error is never an empty set</h2>
+ *
+ * `failed` lists the requested sections that did not answer, `noResults` is
+ * true only when **every** requested section answered `ok` and none of them
+ * held an item. A search whose films request failed while channels and series
+ * came back is neither empty nor complete — it is a partial result, and the
+ * screen keeps what it has (Q9, SR-10).
+ */
+export interface SearchVerdict {
+  /** The types this render asked the source for, in display order. */
+  requested: SearchType[];
+  /** Requested types whose section failed; never a type that was not asked. */
+  failed: SearchType[];
+  /** True when at least one requested section answered. */
+  anyOk: boolean;
+  /** True when every requested section failed (and at least one was asked). */
+  allFailed: boolean;
+  /** True when all requested sections answered and returned nothing. */
+  noResults: boolean;
+  /** Items held by the sections that answered; a partial total is not a total. */
+  total: number;
+}
+
+export function searchVerdict(
+  sections: SearchSections,
+  filter: SearchFilter,
+  present: CataloguePresent,
+): SearchVerdict {
+  const requested = requestedTypes(filter, present);
+  const failed = requested.filter(
+    (type) => searchSectionOf(sections, type)?.status === "failed",
+  );
+  const answered = requested.filter(
+    (type) => searchSectionOf(sections, type)?.status === "ok",
+  );
+
+  let total = 0;
+  for (const type of answered) {
+    const section = searchSectionOf(sections, type);
+    if (section?.status === "ok") total += section.items.length;
+  }
+
+  return {
+    requested,
+    failed,
+    anyOk: answered.length > 0,
+    allFailed: requested.length > 0 && failed.length === requested.length,
+    noResults: requested.length > 0 && answered.length === requested.length && total === 0,
+    total,
+  };
+}
+
+/**
+ * Whether the browser has no network, without touching `navigator` here.
+ *
+ * The web has no local catalogue to fall back to (see the module header): an
+ * offline search cannot be honest about a result it never read, so the screen
+ * says the search could not run rather than "nothing matched". Kept pure so the
+ * one branch that matters is testable without a DOM (S10-04).
+ */
+export function isOffline(browser: { onLine?: boolean } | undefined): boolean {
+  return browser?.onLine === false;
+}
+
+/**
+ * `"Page {page} sur {total}"` with the two placeholders filled in.
+ *
+ * The message catalogues hold the sentence with placeholders; the client retry
+ * can change a section's total without a server round-trip, so the one string
+ * that depends on it is built here rather than resolved once server-side
+ * (S10-04). Both placeholders must be replaced, or the raw braces would show.
+ */
+export function formatPageOf(template: string, page: number, total: number): string {
+  return template.replaceAll("{page}", String(page)).replaceAll("{total}", String(total));
 }
