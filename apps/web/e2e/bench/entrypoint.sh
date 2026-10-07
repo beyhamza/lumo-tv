@@ -139,8 +139,13 @@ echo "bench: oversized payload is ${BENCH_OVERSIZED_MB} MB, served gzipped as $(
 #
 #   BENCH_EPG_ANCHOR  RFC 3339 (YYYY-MM-DDTHH:MM:SSZ) or epoch seconds. Set it
 #                     to the same instant as the web's LUMO_NOW so the guide and
-#                     the controlled clock agree. Default: this container's
-#                     start, which is what an ordinary end-to-end run wants.
+#                     the controlled clock agree. A fractional part is accepted
+#                     and dropped (BusyBox date cannot parse it), but a value
+#                     that still cannot be read is fatal: silently anchoring to
+#                     this container's start would desynchronise the guide from
+#                     the app's clock by however long the build took. Default:
+#                     this container's start, which is what an ordinary
+#                     end-to-end run wants.
 #
 # The API's XmltvStreamParser keeps only [now - 1 day, now + 3 days], so an
 # anchor far from real time would import nothing; a session stays near real time.
@@ -153,7 +158,15 @@ echo "bench: oversized payload is ${BENCH_OVERSIZED_MB} MB, served gzipped as $(
 : "${BENCH_EPG_ANCHOR:=}"
 case "$BENCH_EPG_ANCHOR" in
     "")        anchor_epoch=$(date -u +%s) ;;
-    *[!0-9]*)  anchor_epoch=$(date -u -D "%Y-%m-%dT%H:%M:%SZ" -d "$BENCH_EPG_ANCHOR" +%s 2>/dev/null || date -u +%s) ;;
+    *[!0-9]*)  # BusyBox `date` rejects a fractional second, so drop it before
+               # parsing — the anchor is only ever needed to the second.
+               iso="$BENCH_EPG_ANCHOR"
+               case "$iso" in
+                   *.*Z) iso="${iso%%.*}Z" ;;
+                   *.*)  iso="${iso%%.*}" ;;
+               esac
+               anchor_epoch=$(date -u -D "%Y-%m-%dT%H:%M:%SZ" -d "$iso" +%s 2>/dev/null) \
+                   || { echo "bench: BENCH_EPG_ANCHOR='$BENCH_EPG_ANCHOR' is not an RFC 3339 UTC instant" >&2; exit 1; } ;;
     *)         anchor_epoch="$BENCH_EPG_ANCHOR" ;;
 esac
 echo "bench: EPG anchor is $(date -u -d "@$anchor_epoch" +%Y-%m-%dT%H:%M:%SZ)"

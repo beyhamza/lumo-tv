@@ -52,3 +52,16 @@ une saisie sans voir de résultats de l'ancienne. Provoquer l'échec d'une secti
 sans masquer les autres, puis réessayer. Le champ vide ne charge pas tout le catalogue.
 Tests pertinents : composition, réponses tardives et pagination ; checks Android/web.
 US-021 se clôture après recette sur les trois surfaces.
+
+## Avancement
+
+Mis à jour le 4 octobre 2026. Une case cochée signifie **recetté**, pas seulement écrit.
+
+- [x] S10-00 — contrat `q` : description des chaînes corrigée (sous-chaîne insensible à la casse, `pg_trgm` accélère sans approximer), test d'intégration `q` séries ajouté ; **Q9 `Done`**. Décision du 30/09.
+- [x] S10-01 — composer les recherches existantes, annuler les réponses obsolètes, préserver la sémantique partielle et la casse ; Android + web.
+- [x] S10-02 — sections/filtres Tous, Chaînes, Films, Séries et « Voir tous » sur les trois clients.
+- [x] S10-03 — lecture directe, fiches et retour avec saisie/filtre/position conservés, sur les trois surfaces ; fusionné dans `main` (dont PR #19, TV).
+- [ ] S10-04 — états vide / sans résultat / erreur partielle / hors ligne : web `0c38784`, mobile `9652e82`, TV `dc0f9d2` approuvés par le Tech Lead. **Correctif D-pad TV** `fix/S10-04-tv-search-dpad` @ `93fff2f` (`BUG-S10-05-01`) poussé et revu, puis **re-recetté le 04/10 : le correctif est insuffisant** — le banc instrumenté livré avec lui est 4/5 rouge et DOWN ne quitte pas le champ (voir S10-05). Note franche : `SearchTvFocusTest` est un `androidTest` non lancé par la CI — il ne remplace pas la recette TV.
+- [ ] S10-05 — recette : **web + mobile conformes** (`qa-evidence/s10-05-mobile-2026-10-04/`, réserves SR-14 sans cache global et pagination non exerçable) ; **TV rejouée le 04/10** (`qa-evidence/s10-05-tv-2026-10-04/RAPPORT-dpad.md`) → ✅ SR-10 (réessai local) et ✅ SR-04 espaces seuls, mais **`BUG-S10-05-01` NON fermé** (banc instrumenté du correctif 4/5 rouge, DOWN sans effet, seul TAB sort) et **SR-12 position NON CONFORME** → **`BUG-S10-05-03`** (`Backlog`, priorité haute). **S10-05 n'est pas terminal.**
+
+Point de sortie hors périmètre d'une story : la CI `web` de `main` est encore le run rouge. `fix/e2e-bench-anchor` @ `546dbdd` (test-only, vert en local) n'est **pas** fusionné dans `main`, et aucun run web vert sur PR n'existe à ce jour (`gh` absent côté agents ; ouverture de PR à la main par Hamza). Cause non corrigée dans `main` tant que ce n'est pas mergé.
