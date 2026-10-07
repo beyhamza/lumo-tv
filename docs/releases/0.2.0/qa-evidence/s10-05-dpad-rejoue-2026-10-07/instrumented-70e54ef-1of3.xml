@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="5" failures="0" errors="0" skipped="0" time="6.083" timestamp="2026-10-07T14:51:15" hostname="localhost">
+  <testsuite name="tv.lumo.android.feature.search.SearchTvFocusTest" tests="5" failures="0" errors="0" skipped="0" time="5.05" timestamp="2026-10-07T14:51:15" hostname="localhost">
+    <properties>
+      <property name="device" value="Television_1080p(AVD) - 16" />
+      <property name="flavor" value="" />
+      <property name="project" value=":feature:search" />
+    </properties>
+    <testcase name="onArrivalOnlyTheFieldHasTheFocus" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="1.82" />
+    <testcase name="downFromTheFieldReachesTheFirstFilterTab" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.621" />
+    <testcase name="okOnClearEmptiesTheQueryAndReturnsToTheField" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.906" />
+    <testcase name="upFromTheFirstFilterReturnsToTheField" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.954" />
+    <testcase name="downFromTheFirstFilterReachesClearTheSearch" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.749" />
+  </testsuite>
+</testsuites>
