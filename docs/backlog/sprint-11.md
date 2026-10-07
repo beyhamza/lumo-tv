@@ -1,6 +1,6 @@
 # Sprint 11 — Bibliothèque et liste à regarder
 
-Statut : proposé, non commencé. Taille relative : L.
+Statut : **objectif et sélection proposés à Hamza le 7 octobre 2026** — ouverture du cycle Plane en attente de sa validation. Taille relative : L.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 [Première proposition d’écrans](../design/0.2.0/library.md) préparée le
@@ -11,6 +11,29 @@ Suite : [À regarder — indisponibilité, hors ligne et conflits](../design/0.2
 pour S11-00/01/04/05/06. La carte d’un contenu disparu est conservée avec
 Indisponible et retrait manuel. Consultation seule hors ligne et dernière nouvelle
 action acceptée par le serveur retenues ; garanties de C2 à définir.
+
+## Cycle 11 — proposition d'ouverture (7 octobre 2026)
+
+Objectif proposé à Hamza, en une phrase : **organiser ses chaînes et retrouver sur
+un autre appareil ses films/séries enregistrés.**
+
+Sélection `Todo` proposée au cycle Plane « Sprint 11 — Bibliothèque » : les lots
+`S11-00` → `S11-06` et la story `US-022`. Ordre porté par le @Tech Lead :
+
+1. `S11-00` (garanties Q3/Q8 : états, écritures concurrentes, contenus disparus,
+   permutation filtrée) **avant tout code** ;
+2. `S11-01` (contrat de la liste À regarder, serveur, migrations, génération des
+   clients) **avant le branchement `S11-04`** — structurant : **ADR** si le protocole
+   client/serveur bouge.
+
+Reste rattaché à la story, hors découpe initiale : `fin US-020 hors EPG` et la
+`cascade finale US-024` (dépendances de clôture, pas des lots de code de ce cycle).
+
+Réserve de priorité en attente d'un mot de Hamza : la décision du 07/10 « option (a) »
+gelait une candidate 0.2.0 sur S8+S9+S10 et décalait S11–S13. La consigne « on finit
+sprint 10 et on passe au 11 » rouvre la suite roadmap ; à confirmer pour savoir si la
+candidate 0.2.0 reste gelée en parallèle ou si S11 est la prochaine ligne.
+Détail : [`DECISIONS-PRODUIT.md`](DECISIONS-PRODUIT.md).
 
 ## Objectif
 

@@ -1,7 +1,6 @@
 # US-021 — Rechercher dans ma source active
 
-Statut : parcours validé le 17 septembre 2026 ; interactions cadrées le 19 septembre,
-réalisation et recette non commencées.
+Statut : **clôturée le 7 octobre 2026 (S10)** — réalisée sur les trois surfaces et recettée ; la réserve SR-12 TV est levée par la preuve appareil (`qa-evidence/s10-05-03-sr12-2026-10-07/`).
 Version cible : 0.2.0. Surfaces : web, Android mobile, Android TV, même priorité.
 
 Première [proposition visuelle](../../design/0.2.0/unified-search.md) disponible
@@ -10,7 +9,7 @@ depuis le 19 septembre 2026 ; ses choix de densité et de clavier restent à rel
 ## Besoin
 
 Planification proposée : S10.
-Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation non commencée.
+Voir le [plan 0.2.0](../../roadmap/0.2.0/delivery-plan.md) ; réalisation livrée en S10, recettée le 7 octobre 2026.
 
 En tant qu'utilisateur, je veux rechercher une chaîne, un film ou une série depuis
 un seul champ, afin de retrouver rapidement un élément de ma source active.
