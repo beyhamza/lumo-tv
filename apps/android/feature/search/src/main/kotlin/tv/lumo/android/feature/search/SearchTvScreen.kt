@@ -32,6 +32,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -109,6 +114,10 @@ fun SearchTvScreen(
     // entry, so a return finds it; consumed the moment the focus is back on it.
     var chosen by rememberSaveable { mutableStateOf<String?>(null) }
     val fieldFocus = remember { FocusRequester() }
+    // The first filter tab, so DOWN can leave the field: a `BasicTextField`
+    // consumes the D-pad for its cursor, so the focus would otherwise never
+    // reach the controls drawn below it (S10-05, SR-13).
+    val filtersFocus = remember { FocusRequester() }
     val firstResultFocus = remember { FocusRequester() }
     val restoreFocus = remember { FocusRequester() }
 
@@ -155,6 +164,7 @@ fun SearchTvScreen(
                     field = TextFieldValue("")
                     viewModel.onQueryChanged("", composing = false)
                 },
+                onNavigateDown = { runCatching { filtersFocus.requestFocus() } },
                 focusRequester = fieldFocus,
             )
 
@@ -171,6 +181,7 @@ fun SearchTvScreen(
                 filters = state.filters,
                 selected = state.filter,
                 onSelect = viewModel::onFilterSelected,
+                firstFocus = filtersFocus,
             )
 
             // A partial failure that fell back to the cache: say the data may be
@@ -310,6 +321,7 @@ private fun TvSearchField(
     onValueChange: (TextFieldValue) -> Unit,
     onSubmit: () -> Unit,
     onClear: () -> Unit,
+    onNavigateDown: () -> Unit,
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
@@ -353,6 +365,17 @@ private fun TvSearchField(
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
                     .onFocusChanged { focused = it.isFocused }
+                    // A single-line field keeps UP and DOWN for its own cursor and
+                    // never lets the focus walk out, so DOWN is read here, before
+                    // the field's own handler, and moves the focus to the tabs.
+                    // LEFT and RIGHT are deliberately left alone: they still move
+                    // the cursor (S10-05).
+                    .onPreviewKeyEvent { event ->
+                        if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                        if (event.key != Key.DirectionDown) return@onPreviewKeyEvent false
+                        onNavigateDown()
+                        true
+                    }
                     .semantics { contentDescription = description },
             )
         }
@@ -378,6 +401,7 @@ private fun FilterTabs(
     filters: List<SearchFilter>,
     selected: SearchFilter,
     onSelect: (SearchFilter) -> Unit,
+    firstFocus: FocusRequester,
 ) {
     Row(
         modifier = Modifier
@@ -385,11 +409,15 @@ private fun FilterTabs(
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
     ) {
-        filters.forEach { filter ->
+        filters.forEachIndexed { index, filter ->
             LumoTvButton(
                 text = filter.label(),
                 onClick = { onSelect(filter) },
                 primary = filter == selected,
+                // Only the first tab carries the requester: DOWN from the field
+                // always lands on the first filter, and the rest of the row is
+                // the D-pad's own to walk.
+                focusRequester = if (index == 0) firstFocus else null,
             )
         }
     }
