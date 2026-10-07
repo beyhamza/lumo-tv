@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="6" failures="1" errors="0" skipped="0" time="6.805" timestamp="2026-10-07T18:46:56" hostname="localhost">
+  <testsuite name="tv.lumo.android.feature.search.SearchTvFocusTest" tests="5" failures="0" errors="0" skipped="0" time="5.02" timestamp="2026-10-07T18:46:56" hostname="localhost">
+    <properties>
+      <property name="device" value="Television_1080p(AVD) - 16" />
+      <property name="flavor" value="" />
+      <property name="project" value=":feature:search" />
+    </properties>
+    <testcase name="onArrivalOnlyTheFieldHasTheFocus" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="1.721" />
+    <testcase name="downFromTheFieldReachesTheFirstFilterTab" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.697" />
+    <testcase name="okOnClearEmptiesTheQueryAndReturnsToTheField" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.909" />
+    <testcase name="upFromTheFirstFilterReturnsToTheField" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.91" />
+    <testcase name="downFromTheFirstFilterReachesClearTheSearch" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.783" />
+  </testsuite>
+  <testsuite name="tv.lumo.android.feature.search.SearchTvReturnFocusTest" tests="1" failures="1" errors="0" skipped="0" time="0.991" timestamp="2026-10-07T18:46:56" hostname="localhost">
+    <properties>
+      <property name="device" value="Television_1080p(AVD) - 16" />
+      <property name="flavor" value="" />
+      <property name="project" value=":feature:search" />
+    </properties>
+    <testcase name="returningFromAChosenCardKeepsTheResultsAndPutsTheFocusBackOnIt" classname="tv.lumo.android.feature.search.SearchTvReturnFocusTest" time="0.991">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Focused = 'true')
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Beta TV' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:291)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertIsFocused(Assertions.kt:117)
+at tv.lumo.android.feature.search.SearchTvReturnFocusTest.returningFromAChosenCardKeepsTheResultsAndPutsTheFocusBackOnIt(SearchTvReturnFocusTest.kt:109)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>
