@@ -25,16 +25,21 @@ Statuts : ✅ **CONFORME** (preuve versionnée) · ⚠️ **PARTIEL** · ❌ **R
 |---|---|---|
 | **S8-07 a-t-elle été jouée ?** | ❌ **NON JOUÉE** | Le plan existe (`docs/backlog/sprint-08-recette.md`, rédigé le 24/09) mais `docs/backlog/sprint-08.md` porte toujours « Statut : **en cours** » et aucun rapport de session versionné n'existe. L'unique passe existante est la soirée **émulateur TV du 20/09**, marquée dans `sprint-08.md` : « Ce n'est pas la recette de S8-07 : ni télécommande réelle, ni téléphone, ni navigateur. » |
 | **S9-07 a-t-elle été jouée ?** | ❌ **NON JOUÉE** (intersurfaces réelles) | Décision du 27/09 (Hamza sans créneau matériel). Seul passage versionné : **automatisé partiel** `s9-07-automatise-2026-09-27/RAPPORT.md` (GD-07/08/11 + GD-10 initiale web, GD-12 minuit, GD-14 FR/EN web, bornage réseau, contrat API) ; GD-01/02/03/04/05/06/09/10-avec-données/11-ancien/13 et les deux volets matériels **non joués**. Le critère de sortie §7 (« aucun cas vu sur émulateur tenu pour vert ») reste **non atteint**. Résidu listé dans `docs/releases/0.2.0/s9-07-manuel.md`. |
-| **S10-05 — état réel par surface** | ⚠️ **PARTIEL** (voir tableau R020-05) | Web : conforme sur le périmètre joué (`s10-05-web-2026-10-04/`). Mobile : conforme sur le périmètre joué (`s10-05-mobile-2026-10-04/`). TV : conforme après rejoue sur D-pad / focus / SR-12 (`s10-05-dpad-rejoue-2026-10-07/`, `s10-05-03-sr12-2026-10-07/`), mais **SR-10 non exécuté** et **« deux sources » jamais jouées**. |
+| **S10-05 — état réel par surface** | ⚠️ **PARTIEL** (voir tableau R020-05) | Web : conforme sur le périmètre joué (`s10-05-web-2026-10-04/`). Mobile : conforme sur le périmètre joué (`s10-05-mobile-2026-10-04/`). TV : conforme sur le périmètre joué — **`SR-10` réessai local ✅** (`s10-05-tv-2026-10-04/RAPPORT-dpad.md` + preuve OkHttp `repro/SR10-okhttp-logcat.txt`) — et rejoue D-pad / focus / `SR-12` (`s10-05-dpad-rejoue-2026-10-07/`, `s10-05-03-sr12-2026-10-07/`), mais **« deux sources » jamais jouées**. |
 
 ### Écarts QA relevés à cette lecture (à ne pas maquiller)
 
-1. **`SR-10` côté TV** : le 04/10 il est `⏸️ NON EXÉCUTÉ` (capture `s1005-27-sr10.png`
-   = accueil, `s10-05-tv-2026-10-04/RAPPORT.md`). Le résumé de `docs/backlog/sprint-10.md`
-   écrit « ✅ SR-10 (réessai local) » pour la passe du 07/10, **mais le dossier
-   `s10-05-dpad-rejoue-2026-10-07/` ne contient aucune preuve SR-10** (vérifié : 0
-   occurrence de `SR-10`). Le ✅ du backlog est donc **sans chemin de preuve** ;
-   `SR-10` TV est `NON JOUÉ`.
+1. **`SR-10` côté TV — renvoi de backlog corrigé, cas `✅ CONFORME`.** Le résumé de
+   `docs/backlog/sprint-10.md` attribuait « ✅ SR-10 (réessai local) » à la passe du
+   **07/10** ; c'était un **renvoi faux**, corrigé sur `main` @ `e056aa3` (retiré de
+   l'écart lui-même, la preuve existe bel et bien ailleurs). La preuve est versionnée
+   dans la passe TV du **04/10** : `s10-05-tv-2026-10-04/RAPPORT-dpad.md` §2
+   « SR-10 TV — ✅ CONFORME », appuyé sur la preuve OkHttp
+   `repro/SR10-okhttp-logcat.txt` (le réessai ne rejoue que `/vod`, aucun appel
+   `channels`) et les dumps `dpad/sr10-tv-armed.xml`,
+   `dpad/sr10-tv-tryagain-focused.xml`, `dpad/sr10-tv-after-retry.xml`. La ligne de
+   `INDEX.md` pour ce rapport porte déjà « ✅ SR-10 ». **`SR-10` TV = CONFORME**,
+   pas `NON JOUÉ`.
 2. **`SR-01/02/03` (saisie rapide, debounce 350 ms)** : classés « N/A web — couvert
    Android » (`s10-05-web-2026-10-04/RAPPORT.md`), mais la phase **mobile** les
    exclut (« hors du périmètre de cette phase ») et la phase **TV** aussi
@@ -58,7 +63,7 @@ Chemins relatifs à `docs/releases/0.2.0/qa-evidence/` sauf mention contraire.
 | **R020-02** | Source active locale, accueil et navigation, retour/focus | S8/S12 | 3 surfaces | ⏸️ **NON JOUÉ** (fragments) | — | Fragments versionnés seulement : accueil à froid web `s9-04-07-cold-home-web-2026-09-26/RECETTE-FIXES-2026-09-26.md`, accueil à froid Android/TV `s9-04-04-217-cold-entries-android-2026-09-26/RECETTE-217-2026-09-26.md`, grilles/focus `s9-05-03-215-216-grid-tv-2026-09-26/RECETTE-215-r2-2026-09-26.md`, journée mobile `s9-05-04-mobile-channel-day-2026-09-26/RECETTE-S9-05-04-2026-09-26.md`. **Aucune recette du parcours vertical S8.** |
 | **R020-03** | Sources : ajout, états, ancienne donnée pendant sync, retry, suppression et remplacement | S8/S11 | 3 surfaces | ⏸️ **NON JOUÉ** | — | **Aucune.** Plan `sprint-08-recette.md` §5 (R-420→R-428), jamais exécuté. |
 | **R020-04** | Direct/Guide, filtres, dates, fiche, absence/ancienneté/erreurs, lecture groupée | S9 | TV + web + mobile | ⚠️ **PARTIEL** | 26–30/09 | ✅ automatisé web + Android **émulateur** : `s9-07-automatise-2026-09-27/RAPPORT.md` (GD-07/08/11, GD-10 initiale, GD-12 minuit, GD-14 web, I-4). ✅ story-level : `s9-05-02-214-grid-web-2026-09-26/`, `s9-05-03-215-216-grid-tv-2026-09-26/`, `s9-05-04-mobile-channel-day-2026-09-26/`, `s9-06-04-web-2026-09-26/`. ⏸️ **Non joués** : GD-01/02/03/09/10-avec-données/11-ancien/13, D-pad télécommande réelle, FR/EN visuel, volume réseau Android à l'écran (`s9-07-manuel.md`). |
-| **R020-05** | Recherche par type, saisie rapide, source changée, erreur partielle et retour | S10 | 3 surfaces | ⚠️ **PARTIEL** | 04–07/10 | ✅ web `s10-05-web-2026-10-04/RAPPORT.md` (SR-04/05/06/10/11-absent/12/14) ; ✅ mobile `s10-05-mobile-2026-10-04/RAPPORT.md` (SR-04/10/11/14 + S10-03) ; ✅ TV `s10-05-tv-2026-10-04/RAPPORT.md` (SR-04/11/13), `s10-05-dpad-rejoue-2026-10-07/RAPPORT.md` (BUG-S10-05-01), `s10-05-03-sr12-2026-10-07/RAPPORT.md` (SR-12) ; ⚠️ contrat `q` `s10-05-q-contract-2026-10-04/RAPPORT.md`. ⏸️ **Non joués** : saisie rapide SR-01/02/03, SR-07 échec de page, SR-09 source changée, **deux sources**, SR-10 TV, 2ᵉ moitié SR-11 web. Voir §1 (écarts). |
+| **R020-05** | Recherche par type, saisie rapide, source changée, erreur partielle et retour | S10 | 3 surfaces | ⚠️ **PARTIEL** | 04–07/10 | ✅ web `s10-05-web-2026-10-04/RAPPORT.md` (SR-04/05/06/10/11-absent/12/14) ; ✅ mobile `s10-05-mobile-2026-10-04/RAPPORT.md` (SR-04/10/11/14 + S10-03) ; ✅ TV `s10-05-tv-2026-10-04/RAPPORT-dpad.md` (**SR-10** réessai local, SR-04 espaces seuls), puis `s10-05-tv-2026-10-04/RAPPORT.md` (SR-04/11/13), `s10-05-dpad-rejoue-2026-10-07/RAPPORT.md` (BUG-S10-05-01), `s10-05-03-sr12-2026-10-07/RAPPORT.md` (SR-12) ; ⚠️ contrat `q` `s10-05-q-contract-2026-10-04/RAPPORT.md`. ⏸️ **Non joués** : saisie rapide SR-01/02/03, SR-07 échec de page, SR-09 source changée, **deux sources**, 2ᵉ moitié SR-11 web. Voir §1 (écarts). |
 | **R020-13** | FR/EN, clavier/focus TV, lisibilité, contenu volumineux, erreurs réseau | Tous | 3 surfaces | ⚠️ **PARTIEL** | 26–30/09 | ✅ web FR/EN + clavier + horloge : `s9-07-automatise-2026-09-27/RAPPORT.md` (GD-14, GD-12 minuit) ; ✅ lisibilité grilles web/TV : `s9-05-02-214-grid-web-2026-09-26/`, `s9-05-03-215-216-grid-tv-2026-09-26/` ; ✅ bornage réseau web + contrat API : `s9-07-automatise-2026-09-27/logs/web-network-bound-i4.log`, `phase0-api-grouped-epg.log` ; ⚠️ clavier Gboard ouvert = limite connue (`s10-05-dpad-rejoue-2026-10-07/RAPPORT.md` §2). ⏸️ **Non joués** : D-pad réel, troncature 320 px FR/EN, changement d'heure 25/10, appareil sur autre fuseau. |
 | **R020-14** | Aucun contenu réel ajouté, aucun secret/URL sensible dans les preuves et logs | Tous | livrable | ⏸️ **NON JOUÉ** (audit final) | — | Pas d'audit du livrable assemblé. **Garde-fous CI partiels** : `.github/workflows/contract.yml` rejette les `.env` commités **et** les URLs Xtream réelles (`player_api.php`, `m3u_plus`), vert sur `main` @ `73176d8` ; consigne de caviardage dans `INDEX.md` (§Sécurité : mots de passe QA retirés/redacted). **Le commit candidat n'a aucun run CI** (§4). |
 | **R020-15** | Pas de parcours Google/paiement non opérationnel exposé ; quotas existants non modifiés implicitement | S8/S14 | web + Android + TV | ⏸️ **NON JOUÉ** (audit final) | — | Pas de recette dédiée. **Garde-fous partiels** : S8-06 a retiré Google/Abonnement/Tarifs (livré) ; `.github/workflows/web.yml` vérifie que la zone marketing reste prérendue (« The marketing zone must still be prerendered »), vert sur `main` @ `73176d8`. La non-modification implicite des quotas n'est **pas** jouée. |
@@ -118,7 +123,7 @@ pas de canal de distribution.
    effleuré.
 5. **R020-04 / R020-05 / R020-13 partiels** au sens du §2 : `S9-07` intersurfaces
    non jouée (critère §7 non atteint), `S10-05` incomplet (saisie rapide, deux
-   sources, SR-07/09), TV `SR-10` non joué.
+   sources, SR-07/09).
 6. **Trou CI sur la preuve appareil** : `android.yml` ne joue que
    `testDebugUnitTest`, jamais les `androidTest` (`SearchTvFocusTest`,
    `SearchTvReturnFocusTest`). Le vert du tag ne prouvera donc **pas** SR-12 ni le
@@ -169,8 +174,13 @@ pas de canal de distribution.
 
 ## 6. Traçabilité
 
-- Ce document est la réponse à la demande @PO du 2026-10-08 ; il ne modifie aucun
-  verdict existant et n'ajoute aucune case verte sans preuve.
+- Ce document est la réponse à la demande @PO du 2026-10-08.
+- **Révision du 2026-10-08 (rework @PO)** : l'écart #1 « `SR-10` TV `NON JOUÉ` »
+  était faux — la preuve versionnée existe dans la passe TV du 04/10
+  (`s10-05-tv-2026-10-04/RAPPORT-dpad.md` §2), seul le renvoi de `sprint-10.md`
+  était erroné (corrigé sur `main` @ `e056aa3`). `SR-10` TV passe de `NON JOUÉ` à
+  `✅ CONFORME` ; le tableau §1, la ligne `R020-05` et le point (a)5 sont alignés sur
+  `INDEX.md`. Chaque case verte reste adossée à un chemin de preuve versionné.
 - Aucune écriture Plane dans ce passage.
 - Preuves citées : voir `INDEX.md` (passages conservés) ; plans :
   `docs/backlog/sprint-08-recette.md`, `docs/releases/0.2.0/s9-07-manuel.md`,
