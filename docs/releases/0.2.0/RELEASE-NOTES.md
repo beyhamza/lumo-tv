@@ -62,8 +62,11 @@ La recette de sortie S14 ([matrice R020-01 → R020-16](acceptance.md)) n'est
 - **SR-12 TV** : retour de fiche prouvé sur émulateur 1080p avec retour
   **modélisé** (`SaveableStateProvider`, pas un vrai `NavHost`) ; filtre non
   exercé côté TV (couvert par la recette mobile du 04/10).
-- **CI** : l'état du run `web` après les merges du 07/10 n'est pas confirmé par
-  un tiers ; à revérifier vert sur le commit taggé.
+- **CI** : `main` @ `73176d8` est vert sur les quatre workflows ; **aucun run
+  n'existe encore sur le commit de la candidate** (branche non poussée, et les
+  workflows ne se déclenchent que sur push `main`, pull request ou
+  `workflow_dispatch`). Le tag attend le vert CI obtenu via la PR
+  `release/0.2.0` → `main`.
 
 ## Hors périmètre de la 0.2.0 (repris en 0.3.0)
 
@@ -77,7 +80,10 @@ paiements Stripe restent hors périmètre, leurs dettes tracées.
    (test instrumenté + dossier QA).
 2. Versions `0.1.0 → 0.2.0` : `apps/web/package.json`,
    `packages/contracts/package.json`, `packages/contracts/openapi.yaml`
-   (`info.version`), Android (`AndroidApplicationConventionPlugin.kt`).
+   (`info.version`), Android (`AndroidApplicationConventionPlugin.kt`
+   `versionName` ; `versionCode` reste `1`, aucune publication store),
+   `apps/api/build.gradle.kts` (`version`) et `apps/web/src/lib/auth/web-device.ts`
+   (`app_version` — identité de device annoncée à l'API).
 3. Tag annoté **`v0.2.0`** sur `release/0.2.0`. Le tag est une **candidate**,
    pas une publication.
 4. `release/0.2.0` est reportée sur `main`, puis `main` est avancée en `0.3.0`
