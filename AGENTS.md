@@ -163,6 +163,20 @@ Tout cela est **v2**. Si une tâche t'y emmène, signale la sortie de périmètr
 jour de version de dépendance non demandée ; de `git push --force` ; de modification
 d'un ADR accepté.
 
+### Branches et sorties
+
+- `dev` est la branche d'intégration par défaut : **toute contribution passe par une
+  pull request vers `dev`**. `main` ne reçoit jamais de push direct, et un commit sur
+  `dev` doit être vert sans PR.
+- Une sortie se prépare sur `release/<version>` : `dev → release/<version>`, la
+  **recette approfondie se joue sur la candidate**, puis `release/<version> → main`.
+- Après le merge de la candidate sur `main`, `main` est reportée sur `dev` pour
+  récupérer les correctifs faits sur la branche de sortie.
+- Un tag de version ne se pose que sur un commit dont le run CI est **vert**. Un tag
+  de **pré-release** (`-rc.N`) sert à figer une candidate pour la recette
+  approfondie ; un tag **final** (`vX.Y.Z`) attend que la recette de sortie le
+  justifie et ne se pose jamais « au cas où ».
+
 ### Ce que la CI vérifie
 
 Quatre workflows dans `.github/workflows/`. Chacun garde une règle écrite ailleurs
