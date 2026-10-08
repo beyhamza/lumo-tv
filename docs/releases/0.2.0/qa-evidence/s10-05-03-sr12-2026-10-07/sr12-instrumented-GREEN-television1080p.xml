@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="6" failures="0" errors="0" skipped="0" time="6.897" timestamp="2026-10-07T18:47:29" hostname="localhost">
+  <testsuite name="tv.lumo.android.feature.search.SearchTvFocusTest" tests="5" failures="0" errors="0" skipped="0" time="5.165" timestamp="2026-10-07T18:47:29" hostname="localhost">
+    <properties>
+      <property name="device" value="Television_1080p(AVD) - 16" />
+      <property name="flavor" value="" />
+      <property name="project" value=":feature:search" />
+    </properties>
+    <testcase name="onArrivalOnlyTheFieldHasTheFocus" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="1.777" />
+    <testcase name="downFromTheFieldReachesTheFirstFilterTab" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.852" />
+    <testcase name="okOnClearEmptiesTheQueryAndReturnsToTheField" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.933" />
+    <testcase name="upFromTheFirstFilterReturnsToTheField" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.891" />
+    <testcase name="downFromTheFirstFilterReachesClearTheSearch" classname="tv.lumo.android.feature.search.SearchTvFocusTest" time="0.712" />
+  </testsuite>
+  <testsuite name="tv.lumo.android.feature.search.SearchTvReturnFocusTest" tests="1" failures="0" errors="0" skipped="0" time="0.959" timestamp="2026-10-07T18:47:29" hostname="localhost">
+    <properties>
+      <property name="device" value="Television_1080p(AVD) - 16" />
+      <property name="flavor" value="" />
+      <property name="project" value=":feature:search" />
+    </properties>
+    <testcase name="returningFromAChosenCardKeepsTheResultsAndPutsTheFocusBackOnIt" classname="tv.lumo.android.feature.search.SearchTvReturnFocusTest" time="0.959" />
+  </testsuite>
+</testsuites>
