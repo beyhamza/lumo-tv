@@ -4,13 +4,25 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 Versionnage sémantique : tant que la version majeure est `0`, rien n'est stable.
 
 **Deux numéros à ne pas confondre.** La version de ce dépôt — applications, contrat,
-paquets — est `0.1.0`. Le préfixe d'URL de l'API reste `/v1` : c'est la version
+paquets — est `0.2.0`. Le préfixe d'URL de l'API reste `/v1` : c'est la version
 majeure de la surface HTTP, elle ne bouge que sur rupture, et elle n'a rien à voir
 avec la maturité du produit.
 
 ---
 
 ## [Non publié]
+
+Rien pour l'instant.
+
+## [0.2.0] — 2026-10-08
+
+**Périmètre livré : S8 (accueil, navigation, sources), S9 (Direct et Guide) et
+S10 (recherche unifiée), sur web, Android mobile et Android TV.** Le détail des
+lots, des preuves et des réserves est dans
+[`docs/backlog/sprint-08.md`](./docs/backlog/sprint-08.md),
+[`sprint-09.md`](./docs/backlog/sprint-09.md) et
+[`sprint-10.md`](./docs/backlog/sprint-10.md), ainsi que dans les
+[notes de sortie](./docs/releases/0.2.0/RELEASE-NOTES.md).
 
 ### Ajouté
 
@@ -108,6 +120,33 @@ couvre pas ne s'invente pas (AGENTS.md §3). Décision à prendre, tracée dans
 
 Une instance sans clé Stripe reste un état supporté : les deux endpoints
 `/billing/*` répondent 503, tout le reste fonctionne.
+
+### Recette partielle — limites connues
+
+La 0.2.0 est une **candidate** : la recette de sortie S14
+([matrice R020-01 → R020-16](./docs/releases/0.2.0/acceptance.md)) n'est **pas
+jouée**. Les réserves suivantes sont assumées explicitement, pas oubliées :
+
+- Recette intersurfaces **S9-07** (matrice trois surfaces / deux sources) non
+  jouée ; recette appareil S8 non close.
+- `BUG-S10-05-02` (onglet « Séries » affiché hors ligne) : cosmétique, **parqué**
+  en `Backlog`.
+- Clavier Gboard ouvert : la touche DOWN est consommée par l'IME et n'atteint pas
+  le champ de recherche TV. Hors du critère écrit (rejoué clavier fermé) ; aucun
+  lot ouvert.
+- Web : GD-10 (pas de grille précédente à conserver) et GD-11 (pas de source
+  active de compte) restent des décisions produit documentées — voir
+  `docs/backlog/DECISIONS-PRODUIT.md` du 26 septembre 2026.
+- Recherche : insensibilité aux accents non promise ; insensibilité à la casse
+  garantie en ASCII sur Room et selon la collation PostgreSQL.
+- Preuve SR-12 TV : retour de fiche prouvé sur émulateur 1080p avec retour
+  **modélisé** (`SaveableStateProvider`), pas un vrai NavHost ; filtre non
+  exercé côté TV.
+
+**Hors périmètre de la 0.2.0** (repris en 0.3.0) : S11 bibliothèque / liste à
+regarder (`US-022`), S12 reprise, S13 lecteur et réglages, cascade finale
+`US-024`, fin `US-020` hors EPG. Google OAuth et les paiements Stripe restent
+hors périmètre, leurs dettes tracées.
 
 ---
 

@@ -32,7 +32,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 // not mean two release trains: a user with both installed should
                 // never be told the phone app is newer than the TV app.
                 versionCode = 1
-                versionName = "0.1.0"
+                versionName = "0.2.0"
             }
 
             // Release signing material never lives in the repository. Without a
