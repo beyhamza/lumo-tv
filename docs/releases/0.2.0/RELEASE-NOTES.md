@@ -1,7 +1,7 @@
 # Notes de sortie — 0.2.0
 
-Date de préparation : 8 octobre 2026. Statut : **candidate, recette de sortie non
-jouée.** Ce document décrit ce qui est réellement livré et ce qui ne l'est pas ;
+Date de préparation : 8 octobre 2026. Statut : **pré-release `v0.2.0-rc.1`,
+recette de sortie non jouée.** Ce document décrit ce qui est réellement livré et ce qui ne l'est pas ;
 il ne remplace ni le [changelog](../../../CHANGELOG.md) ni la
 [matrice de recette](acceptance.md).
 
@@ -10,9 +10,10 @@ il ne remplace ni le [changelog](../../../CHANGELOG.md) ni la
 | Champ | Valeur |
 |---|---|
 | Version | `0.2.0` |
-| Base | `main` @ `73176d8` + preuve SR-12 (`qa/S10-05-03-sr12-rejoue` @ `9efd635`) |
+| Base | `dev` = `main` @ `b4cb105` (preuve SR-12 entrée par la PR #31) |
 | Préfixe d'API | `/v1` (inchangé) |
-| Sortie | tag `v0.2.0` sur `release/0.2.0` ; **aucune publication** (pas de store, pas de déploiement) |
+| Pré-release | tag annoté `v0.2.0-rc.1` sur `b4cb105` (08/10/2026), CI 4/4 vert ; **aucune publication** (pas de store, pas de déploiement) |
+| Sortie finale | tag `v0.2.0` sur `release/0.2.0`, après la séance ciblée S8/S9 |
 
 ## Périmètre livré
 
@@ -62,11 +63,10 @@ La recette de sortie S14 ([matrice R020-01 → R020-16](acceptance.md)) n'est
 - **SR-12 TV** : retour de fiche prouvé sur émulateur 1080p avec retour
   **modélisé** (`SaveableStateProvider`, pas un vrai `NavHost`) ; filtre non
   exercé côté TV (couvert par la recette mobile du 04/10).
-- **CI** : `main` @ `73176d8` est vert sur les quatre workflows ; **aucun run
-  n'existe encore sur le commit de la candidate** (branche non poussée, et les
-  workflows ne se déclenchent que sur push `main`, pull request ou
-  `workflow_dispatch`). Le tag attend le vert CI obtenu via la PR
-  `release/0.2.0` → `main`.
+- **CI** : `b4cb105` (= `dev` = `main`) est vert sur les quatre workflows ; la
+  pré-release `v0.2.0-rc.1` est posée sur ce commit. `android.yml` ne joue pas les
+  `androidTest` : ce vert ne prouve ni SR-12 ni le D-pad, couverts par les rejeux
+  QA appareil, pas par le CI.
 
 ## Hors périmètre de la 0.2.0 (repris en 0.3.0)
 
@@ -76,16 +76,17 @@ paiements Stripe restent hors périmètre, leurs dettes tracées.
 
 ## Mécanique de sortie
 
-1. `release/0.2.0` est coupée de `73176d8` et intègre la preuve SR-12
-   (test instrumenté + dossier QA).
+1. `release/0.2.0` est coupée de `dev` (= `main` @ `b4cb105`) ; le contenu 0.2.0
+   (preuve SR-12 + dossier QA) y est déjà, absorbé par la PR #31.
 2. Versions `0.1.0 → 0.2.0` : `apps/web/package.json`,
    `packages/contracts/package.json`, `packages/contracts/openapi.yaml`
    (`info.version`), Android (`AndroidApplicationConventionPlugin.kt`
    `versionName` ; `versionCode` reste `1`, aucune publication store),
    `apps/api/build.gradle.kts` (`version`) et `apps/web/src/lib/auth/web-device.ts`
    (`app_version` — identité de device annoncée à l'API).
-3. Tag annoté **`v0.2.0`** sur `release/0.2.0`. Le tag est une **candidate**,
-   pas une publication.
-4. `release/0.2.0` est reportée sur `main`, puis `main` est avancée en `0.3.0`
-   pour la ligne S11–S13.
-5. `main` ne reçoit **aucun** tag 0.2.0 directement.
+3. Tag annoté **`v0.2.0-rc.1`** sur `b4cb105` (pré-release, pas une publication).
+   Il ouvre la séance ciblée S8/S9 sur `release/0.2.0`.
+4. Les correctifs de recette vont sur `release/0.2.0`, puis `release/0.2.0 → main`
+   après recette suffisante et CI vert ; tag final **`v0.2.0`** sur ce commit.
+5. `main` ne reçoit **aucun** tag de version directement ; `main` est reportée sur
+   `dev` après chaque sortie.
