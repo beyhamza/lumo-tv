@@ -1,5 +1,14 @@
 # Roadmap 0.2.0
 
+> **Bandeau du 8 octobre 2026 — nom de dossier ≠ version de sortie.**
+> Ce dossier garde le nom `0.2.0` pour ne pas casser les liens (il porte aussi les
+> livrables S8–S10 et les preuves gelées citées par `docs/releases/0.2.0/`). Depuis
+> l'arbitrage du 08/10/2026, la **0.2.0 est gelée sur S8 + S9 + S10** (`v0.2.0-rc.1`) ;
+> **S11 → S13 (+ `US-022`, reprise, lecteur/réglages) continuent sous la 0.3.0**. Les
+> renvois de `docs/backlog/sprint-11..14.md` et des stories vers `roadmap/0.2.0/` et
+> `design/0.2.0/` sont donc des **chemins de dossier**, pas des versions de sortie.
+> Détail : `docs/backlog/DECISIONS-PRODUIT.md` (entrées du 08/10/2026).
+
 Date de cadrage : 15 septembre 2026. Mise à jour : 17 septembre 2026.
 Statut : cadrage produit en cours.
 
