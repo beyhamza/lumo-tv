@@ -35,6 +35,27 @@ n'attaque qu'après `S11-00` (garanties Q3/Q8 **testables**) et l'ADR + approbat
 de `S11-01`. Branche S11 depuis `dev`.
 Détail : [`DECISIONS-PRODUIT.md`](DECISIONS-PRODUIT.md).
 
+## Avancement du cycle
+
+Vérifié dans Plane (API) et dans le dépôt le 8 octobre 2026 en fin de journée :
+
+- **Cycle ouvert dans Plane** (`Sprint 11 — Bibliothèque`, 8 → 14 octobre, version 0.3.0) ;
+  `S11-00` → `S11-06` et `US-022` sont en `Todo` et **tous rattachés à `US-022`**
+  (`parent=11f590a9…`), le trou structurel signalé par `@Dev` est fermé.
+- **`S11-00` en `In Progress`**, porté par le `@Tech Lead` — garanties Q3/Q8 **normatives** :
+  permutation filtrée = fonction pure `visibleSlot → fullIndex` ; échec intermédiaire = dernier
+  move réussi conservé ; concurrence = dernière action **acceptée serveur** gagne ; disparu ≠
+  panne, hors ligne sans file différée. **« Réessai ≠ nouvelle intention » (WL-10/11/12) n'est pas
+  garanti par le contrat actuel → ADR dans `S11-01`.**
+- **Fixture multi-sources** : `@Dev` la pose côté API, `@QA` l'étend (matrice d'isolation 2 comptes /
+  jetons, disparition ≠ panne, comptage des écritures serveur). Non gatée.
+- **Base des branches S11** : `dev`. `S11-04` n'attaque pas avant l'ADR (approbation C2).
+- **CI** : PR #32 mergée — les 4 workflows (contract/api/android/web) se déclenchent désormais
+  sur un push `dev` ; plus de « dev zéro-vérifié ».
+- **Hors cycle — 0.2.0** : `v0.2.0-rc.1` (tag annoté, pré-release sur `b4cb105`), `release/0.2.0` →
+  `main` (#33) puis report `main` → `dev` (#34). Verrous de sortie encore ouverts : `R020-01`
+  (fuite entre comptes) et `R020-16` (migration).
+
 ## Objectif
 
 Organiser ses chaînes et retrouver sur un autre appareil ses films/séries enregistrés.
