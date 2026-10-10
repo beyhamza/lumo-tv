@@ -161,7 +161,10 @@ candidate `v0.2.0-rc.2` puis séance ciblée `R020-01` / `R020-16` avant le tag 
 
 Mis à jour le 10 octobre 2026. Une case cochée signifie **recetté**, pas seulement écrit.
 
-- [ ] S10B-01 — SSRF par redirection — 0 % (ticket ouvert)
+- [ ] S10B-01 — SSRF par redirection — 80 % : code et tests livrés sur `fix/S10B-01-ssrf-redirect`
+  (redirections suivies à la main, garde à chaque saut, plafond de 5, pas de descente https → http,
+  `IngestionHttpClientRedirectTest` 5/5, rouge vérifié avec l'ancien `Redirect.NORMAL`, suite API 329/329).
+  Reste : revue et merge. Limite conservée et documentée : *DNS rebinding* (la connexion re-résout le nom).
 - [ ] S10B-02 — IP client et plafond par email — 0 % (ticket ouvert)
 - [ ] S10B-03 — pause en arrière-plan, décision `MediaSession` — 0 % (ticket ouvert)
 - [ ] S10B-04 — redirections et `BEHIND_LIVE_WINDOW` — 0 % (ticket ouvert)
