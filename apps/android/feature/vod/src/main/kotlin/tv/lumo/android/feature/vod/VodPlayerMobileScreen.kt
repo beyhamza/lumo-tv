@@ -34,8 +34,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.designsystem.component.LumoAcknowledgeDialog
@@ -45,6 +43,7 @@ import tv.lumo.android.core.player.PlaybackProgress
 import tv.lumo.android.core.player.PlaybackState
 import tv.lumo.android.core.player.SeekAvailability
 import tv.lumo.android.core.player.ui.LumoVideoSurface
+import tv.lumo.android.core.player.ui.PlayerLifecycleEffect
 import tv.lumo.android.core.player.ui.asChoices
 
 /**
@@ -90,7 +89,8 @@ fun VodPlayerMobileScreen(
     // Coming back to the foreground is one of the moments the product names for
     // noticing a source deleted elsewhere (C4, D5). The `ON_START` of opening
     // the player reaches nobody: the watch has not begun, and need not have.
-    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onForeground() }
+    // Leaving pauses what is playing (S10B-03); see PlayerLifecycleEffect.
+    PlayerLifecycleEffect(onForeground = viewModel::onForeground, onBackground = viewModel::onBackground)
 
     // Local to the screen. Which sheet is open is not something the player or
     // the view model has an opinion about, and a choice that survived a rotation

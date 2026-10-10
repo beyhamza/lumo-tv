@@ -23,6 +23,7 @@ import tv.lumo.android.core.data.repository.PlaybackRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.data.repository.SeriesRepository
 import tv.lumo.android.core.player.AudioTrack
+import tv.lumo.android.core.player.BackgroundPlayback
 import tv.lumo.android.core.player.LumoPlayer
 import tv.lumo.android.core.player.PlaybackError
 import tv.lumo.android.core.player.PlaybackProgress
@@ -246,6 +247,7 @@ class EpisodePlayerViewModel @Inject constructor(
         this.episodeId = episodeId
         this.currentTitle = title
         _failure.value = null
+        background.reset()
         _playing.value = Playing()
 
         viewModelScope.launch {
@@ -388,8 +390,23 @@ class EpisodePlayerViewModel @Inject constructor(
      */
     val sourceDeleted: StateFlow<Boolean> = sourceGuard.deleted
 
+    /** What leaving the screen and coming back do to the stream (S10B-03). */
+    private val background = BackgroundPlayback(player)
+
     /** The application is back in front of somebody: a reason to ask the server early. */
-    fun onForeground() = sourceGuard.onForeground()
+    fun onForeground() {
+        sourceGuard.onForeground()
+        if (!sourceGuard.deleted.value) background.onForeground(live = false)
+    }
+
+    /** HOME, the TV's input switch, the screen going off: nobody is watching. */
+    fun onBackground() {
+        // The most likely last position of the evening: kept now, not in thirty seconds.
+        if (background.onBackground()) saveNow()
+        // A countdown left running would open the next episode to an empty room,
+        // and play it there. Stopped like a key press would stop it: the offer stays.
+        if (countdown != null) keepWatching()
+    }
 
     /**
      * *Continue*. The active source is re-decided first — the one left, a question
@@ -414,6 +431,7 @@ class EpisodePlayerViewModel @Inject constructor(
     /** Leaving the screen. The player survives; the stream and its URL do not. */
     fun stop() {
         sourceGuard.stop()
+        background.reset()
         // Before `player.stop()`, which resets the position to zero. Saving after it
         // would write a viewer back to the beginning of every episode they leave.
         // Nothing to save once the source is gone: its progress went with it.

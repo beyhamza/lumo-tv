@@ -20,6 +20,7 @@ import tv.lumo.android.core.data.model.VodPlaybackTarget
 import tv.lumo.android.core.data.repository.PlaybackRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.player.AudioTrack
+import tv.lumo.android.core.player.BackgroundPlayback
 import tv.lumo.android.core.player.LumoPlayer
 import tv.lumo.android.core.player.PlaybackError
 import tv.lumo.android.core.player.PlaybackProgress
@@ -138,8 +139,20 @@ class VodPlayerViewModel @Inject constructor(
      */
     val sourceDeleted: StateFlow<Boolean> = sourceGuard.deleted
 
+    /** What leaving the screen and coming back do to the stream (S10B-03). */
+    private val background = BackgroundPlayback(player)
+
     /** The application is back in front of somebody: a reason to ask the server early. */
-    fun onForeground() = sourceGuard.onForeground()
+    fun onForeground() {
+        sourceGuard.onForeground()
+        if (!sourceGuard.deleted.value) background.onForeground(live = false)
+    }
+
+    /** HOME, the TV's input switch, the screen going off: nobody is watching. */
+    fun onBackground() {
+        // The most likely last position of the evening: kept now, not in thirty seconds.
+        if (background.onBackground()) saveNow()
+    }
 
     /**
      * *Continue*. The active source is re-decided first — the one left, a question
@@ -193,6 +206,7 @@ class VodPlayerViewModel @Inject constructor(
 
     private fun open(filmId: String, title: String?) {
         _failure.value = null
+        background.reset()
         currentTitle = title
 
         viewModelScope.launch {
@@ -231,6 +245,7 @@ class VodPlayerViewModel @Inject constructor(
      */
     fun stop() {
         sourceGuard.stop()
+        background.reset()
         // Nothing to save once the source is gone: its progress went with it.
         if (!sourceGuard.deleted.value) saveNow()
         saver?.cancel()

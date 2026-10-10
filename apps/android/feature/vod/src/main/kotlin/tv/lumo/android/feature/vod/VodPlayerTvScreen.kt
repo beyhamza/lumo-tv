@@ -40,8 +40,6 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -58,6 +56,7 @@ import tv.lumo.android.core.designsystem.component.LumoTvAudioTrackSheet
 import tv.lumo.android.core.player.PlaybackProgress
 import tv.lumo.android.core.player.SeekAvailability
 import tv.lumo.android.core.player.ui.LumoVideoSurface
+import tv.lumo.android.core.player.ui.PlayerLifecycleEffect
 import tv.lumo.android.core.player.ui.asChoices
 
 /**
@@ -109,7 +108,8 @@ fun VodPlayerTvScreen(
     // Coming back to the foreground is one of the moments the product names for
     // noticing a source deleted elsewhere (C4, D5). The `ON_START` of opening
     // the player reaches nobody: the watch has not begun, and need not have.
-    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onForeground() }
+    // Leaving pauses what is playing (S10B-03); see PlayerLifecycleEffect.
+    PlayerLifecycleEffect(onForeground = viewModel::onForeground, onBackground = viewModel::onBackground)
 
     LaunchedEffect(filmId) { viewModel.start(filmId, sourceId, title, resumeFromMs) }
 
