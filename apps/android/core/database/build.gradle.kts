@@ -6,6 +6,14 @@ plugins {
 
 android {
     namespace = "tv.lumo.android.core.database"
+
+    defaultConfig {
+        // The migrations are pinned by MigrationTestHelper on a device (S10B-06):
+        // it opens a real SQLite at each exported schema version and runs the
+        // hand-written steps against it. The Room plugin ships the committed
+        // schemas to the test APK as assets.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
 }
 
 dependencies {
@@ -18,4 +26,9 @@ dependencies {
     implementation(libs.androidx.paging.runtime)
 
     testImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    // The runner itself: feature modules get it through Compose's ui-test, this
+    // module has no Compose to bring it.
+    androidTestImplementation(libs.androidx.test.runner)
 }
