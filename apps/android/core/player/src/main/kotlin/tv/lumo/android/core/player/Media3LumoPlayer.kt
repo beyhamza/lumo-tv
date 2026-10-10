@@ -1,6 +1,7 @@
 package tv.lumo.android.core.player
 
 import android.content.Context
+import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -10,10 +11,12 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackGroup
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MediaSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -106,7 +109,7 @@ internal class Media3LumoPlayer @Inject constructor(
     private var liveEdgeRejoins: Int = 0
 
     override val exoPlayer: ExoPlayer = ExoPlayer.Builder(context)
-        .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(context, httpDataSourceFactory())))
+        .setMediaSourceFactory(mediaSourceFactory(context))
         .build()
         .apply {
             setAudioAttributes(
@@ -439,12 +442,21 @@ internal class Media3LumoPlayer @Inject constructor(
  * panel's first segment on a busy evening, and a hang longer than fifteen is
  * an outage the viewer should be told about.
  */
+// The HTTP source's setters and the media source factory are still marked
+// @UnstableApi in Media3 1.x — the opt-in is confined to these two functions,
+// as it is to LumoVideoSurface for the Compose surface.
+@OptIn(UnstableApi::class)
 internal fun httpDataSourceFactory(): DefaultHttpDataSource.Factory =
     DefaultHttpDataSource.Factory()
         .setAllowCrossProtocolRedirects(true)
         .setUserAgent(PLAYER_USER_AGENT)
         .setConnectTimeoutMs(PLAYER_CONNECT_TIMEOUT_MS)
         .setReadTimeoutMs(PLAYER_READ_TIMEOUT_MS)
+
+/** Every stream, progressive or HLS, goes through [httpDataSourceFactory]. */
+@OptIn(UnstableApi::class)
+private fun mediaSourceFactory(context: Context): MediaSource.Factory =
+    DefaultMediaSourceFactory(DefaultDataSource.Factory(context, httpDataSourceFactory()))
 
 /** Panels that reject the stock ExoPlayer agent exist; the API's ingestion uses the same name. */
 private const val PLAYER_USER_AGENT = "LumoTV/1.0"
