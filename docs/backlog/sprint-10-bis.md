@@ -173,7 +173,22 @@ Mis à jour le 10 octobre 2026. Une case cochée signifie **recetté**, pas seul
   transmettre l'IP du navigateur. Tous les utilisateurs web partagent donc la clé IP du serveur Next :
   inscription et mot de passe oublié à 5/min **pour tout le web**. À traiter avec S10B-05 ou dans un lot dédié
   (le BFF transmet `X-Forwarded-For`, son adresse va dans `LUMO_TRUSTED_PROXIES`).
-- [ ] S10B-03 — pause en arrière-plan, décision `MediaSession` — 0 % (ticket ouvert)
+- [ ] S10B-03 — pause en arrière-plan, décision `MediaSession` — 60 % : code et tests livrés sur
+  `fix/S10B-03-player-background`. Une règle commune `BackgroundPlayback` (`core:player`) est branchée sur les
+  trois ViewModels lecteur, via `PlayerLifecycleEffect` (`ON_START`/`ON_STOP`) dans les six écrans.
+  - En quittant l'app, ce qui joue ou charge est mis en pause et la position VOD/épisode est sauvegardée.
+  - Le décompte vers l'épisode suivant est arrêté.
+  - Au retour, le direct reprend au direct (`resumeAtLiveEdge`), alors qu'un film ou un épisode reste en pause.
+  - Une pause décidée par le spectateur n'est jamais relancée.
+
+  Tests : `BackgroundPlaybackTest` 6/6, tests unitaires Android 571/571, les deux APK compilent.
+  **Reste :**
+  - preuve à la télécommande (son coupé après HOME, reprise au direct). Non jouée le 10/10 : la source
+    du banc de l'émulateur est en erreur et la liste de chaînes est vide ;
+  - revue et merge.
+
+  **Décision `MediaSession` : reportée** (limite connue 0.2.0). Les touches média dédiées de la
+  télécommande (lecture/pause) ne pilotent pas le lecteur. La pause en arrière-plan ne dépend pas d'elle.
 - [ ] S10B-04 — redirections et `BEHIND_LIVE_WINDOW` — 0 % (ticket ouvert)
 - [ ] S10B-05 — session web concurrente et `/api/*` — 0 % (ticket ouvert)
 - [ ] S10B-06 — tests de migration Room — 0 % (ticket ouvert)

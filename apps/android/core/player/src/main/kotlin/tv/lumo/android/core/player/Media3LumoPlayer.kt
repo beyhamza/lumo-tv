@@ -200,6 +200,13 @@ internal class Media3LumoPlayer @Inject constructor(
         exoPlayer.playWhenReady = true
     }
 
+    override fun resumeAtLiveEdge() {
+        // The default position of a live window is its edge, minus the target
+        // offset set in play(). A no-op seek on a stream that is not live.
+        if (isLive) exoPlayer.seekToDefaultPosition()
+        exoPlayer.playWhenReady = true
+    }
+
     override fun stop() {
         stopTicker()
         exoPlayer.stop()
