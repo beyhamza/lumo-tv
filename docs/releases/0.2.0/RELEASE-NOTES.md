@@ -46,7 +46,16 @@ Les preuves de recette QA sont dans
 ## Recette partielle — limites connues et assumées
 
 La recette de sortie S14 ([matrice R020-01 → R020-16](acceptance.md)) n'est
-**pas jouée** ; toutes ses lignes sont à l'état `Non joué`. En particulier :
+**pas jouée en entier**. Seul le verrou vie privée `R020-01` (isolation entre comptes)
+a été joué, le 10/10/2026, sur l'API, la TV, le mobile et le web ; les autres lignes
+restent à l'état de la matrice. En particulier :
+
+- **Déconnexion : le jeton d'accès reste valable jusqu'à son expiration**, 15 minutes
+  au plus. La déconnexion révoque immédiatement la chaîne de refresh de l'appareil —
+  plus aucune nouvelle session ne peut en sortir — mais un jeton d'accès déjà émis
+  (JWT sans état) est accepté par l'API jusqu'à son échéance. Limite **acceptée** par
+  Hamza le 10/10/2026 ; la changer (durée plus courte, ou vérification de la session
+  à chaque requête) demanderait un ADR.
 
 - **S9-07 intersurfaces** (matrice trois surfaces / deux sources) non jouée ;
   **recette appareil S8** non close. Seul S10 a une recette appareil complète.

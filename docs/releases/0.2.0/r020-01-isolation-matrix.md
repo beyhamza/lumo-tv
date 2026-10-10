@@ -4,7 +4,9 @@
 - Objet : `R020-01` (« Email, session persistante, déconnexion, activation TV,
   **absence de fuite entre comptes** »). C'est un **verrou de sortie vie privée**
   porté par le @PO : aucun `v0.2.0` final tant qu'il n'est pas joué conforme.
-- Statut : `⚠️ PARTIEL` (10/10/2026) — §3.1 API **conforme** (automatisé, 9/9, rouge vu),
+- Statut : `✅ CONFORME` (10/10/2026, sous réserve du merge de `fix/BUG-R020-01-01-signout-purge` et
+  `fix/BUG-R020-01-02-web-signout-cookies`) ; jeton d'accès valable ≤ 15 min après déconnexion =
+  **limite connue acceptée** par Hamza (`RELEASE-NOTES.md`). Détail : §3.1 API **conforme** (automatisé, 9/9, rouge vu),
   §3.2 TV **conforme** — l'écart `BUG-R020-01-01` (le cache local de A survivait à la déconnexion)
   est corrigé et rejoué conforme le même jour
   ([rejoue](qa-evidence/r020-01-bug01-rejoue-2026-10-10/RAPPORT.md)) —, §3.3 mobile `W-3` **conforme**
