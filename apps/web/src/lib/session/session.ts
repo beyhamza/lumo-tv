@@ -12,11 +12,14 @@ import {
 } from "./cookie";
 
 /**
- * Reads the session in a Server Component, a Server Action or a Route Handler.
+ * Reads the session in a Server Component or a Server Action.
  *
  * Read-only on purpose. Refreshing happens in `proxy.ts`, before rendering
  * starts, because a Server Component cannot set a cookie — Next throws if it
  * tries. By the time this is called the cookie is already fresh.
+ *
+ * Not for a Route Handler under `/api`: the proxy does not run there, so the
+ * cookie may be stale. Those use `getRouteSession` (`./route-session`).
  */
 export async function getSession(): Promise<SessionPayload | null> {
   const store = await cookies();

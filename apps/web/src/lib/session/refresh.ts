@@ -43,16 +43,60 @@ export type RefreshResult =
  */
 const inFlight = new Map<string, Promise<RefreshResult>>();
 
-export function refreshSession(session: SessionPayload): Promise<RefreshResult> {
+/**
+ * How long a finished rotation is handed again to a request still carrying the
+ * token it spent.
+ *
+ * Deduplicating only what is in flight was not enough (S10B-05). A prefetch or
+ * a second tab that left with the old cookie a moment before the rotation, and
+ * arrives a moment after it, found nothing in flight, spent the old token again
+ * — and the server, seeing a reuse, revoked the whole chain. Within this window
+ * that request gets the same new pair instead.
+ *
+ * Short on purpose: the old token is a credential, and for these seconds this
+ * process will exchange it without the server's reuse check seeing it. The
+ * races this covers are a page and its requests, measured in milliseconds to a
+ * couple of seconds.
+ */
+export const ROTATION_GRACE_MS = 15_000;
+
+const recentlyRotated = new Map<string, { result: RefreshResult; until: number }>();
+
+export function refreshSession(
+  session: SessionPayload,
+  now: () => number = Date.now,
+): Promise<RefreshResult> {
+  forgetExpired(now());
+
+  const rotated = recentlyRotated.get(session.refreshToken);
+  if (rotated) return Promise.resolve(rotated.result);
+
   const existing = inFlight.get(session.refreshToken);
   if (existing) return existing;
 
-  const attempt = performRefresh(session).finally(() => {
-    inFlight.delete(session.refreshToken);
-  });
+  const attempt = performRefresh(session)
+    .then((result) => {
+      if (result.status === "rotated") {
+        recentlyRotated.set(session.refreshToken, {
+          result,
+          until: now() + ROTATION_GRACE_MS,
+        });
+      }
+      return result;
+    })
+    .finally(() => {
+      inFlight.delete(session.refreshToken);
+    });
 
   inFlight.set(session.refreshToken, attempt);
   return attempt;
+}
+
+/** Bounded by traffic: entries older than the window go on the next call. */
+function forgetExpired(nowMs: number): void {
+  for (const [token, entry] of recentlyRotated) {
+    if (entry.until <= nowMs) recentlyRotated.delete(token);
+  }
 }
 
 async function performRefresh(

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { api, problemCode } from "@/lib/api/client";
-import { getSession } from "@/lib/session/session";
+import { getRouteSession } from "@/lib/session/route-session";
 import { isUuid } from "@/lib/sources/active-source";
 import {
   EXISTENCE_CHECK_TIMEOUT_MS,
@@ -61,7 +61,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const session = await getSession();
+  const session = await getRouteSession();
 
   if (!session) {
     return problem(401, "UNAUTHENTICATED");

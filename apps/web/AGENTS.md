@@ -122,6 +122,13 @@ possible dans l'arbre.
 - **Le rafraîchissement se fait dans `proxy.ts`**, avant le rendu. Un Server
   Component ne peut pas écrire de cookie — Next lève une erreur s'il essaie —
   donc au moment où une page s'exécute, la session est déjà fraîche.
+- **Les Route Handlers sous `/api` rafraîchissent eux-mêmes** (`getRouteSession`,
+  `lib/session/route-session.ts`) : le matcher du proxy exclut `/api`, et un
+  Route Handler, lui, peut écrire le cookie. Refus → cookie vidé et 401, jamais
+  de redirection vers la connexion (S10B-05).
+- **Une rotation terminée est rendue quelques secondes** (`ROTATION_GRACE_MS`) à
+  une requête partie avec l'ancien cookie, au lieu de redépenser le token — ce
+  qui ferait révoquer l'appareil par le serveur (S10B-05).
 - Un refresh **refusé** (401/409) vide le cookie : côté serveur, la
   réutilisation d'un token a déjà révoqué toute la chaîne de l'appareil. Un
   refresh **indisponible** (API injoignable) ne touche à rien : déconnecter
