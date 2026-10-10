@@ -159,22 +159,27 @@ candidate `v0.2.0-rc.2` puis séance ciblée `R020-01` / `R020-16` avant le tag 
 
 ## Avancement
 
-Mis à jour le 10 octobre 2026. Une case cochée signifie **recetté**, pas seulement écrit.
+Mis à jour le 10 octobre 2026 (soir). Une case cochée signifie **recetté**, pas seulement écrit.
 
-- [ ] S10B-01 — SSRF par redirection — 80 % : code et tests livrés sur `fix/S10B-01-ssrf-redirect`
+**Les six lots sont fusionnés dans `dev` le 10/10 (PR #35 → #40).** Vérification sur `dev` @ `e5a8449` :
+API 350/350, web (Vitest 339/339, typecheck, lint, build : marketing toujours statique), contrat
+conforme. **Android : `lint` rouge** (4 `UnsafeOptInUsageError` introduits par S10B-04), corrigé sur
+`fix/S10B-04-lint-optin` (build, lint et tests verts), en attente de merge.
+
+- [x] S10B-01 — SSRF par redirection — fusionné (PR #36), preuve automatisée = DoD (aucune surface à recetter)
   (redirections suivies à la main, garde à chaque saut, plafond de 5, pas de descente https → http,
   `IngestionHttpClientRedirectTest` 5/5, rouge vérifié avec l'ancien `Redirect.NORMAL`, suite API 329/329).
-  Reste : revue et merge. Limite conservée et documentée : *DNS rebinding* (la connexion re-résout le nom).
-- [ ] S10B-02 — IP client et plafond par email — 80 % : code et tests livrés sur `fix/S10B-02-client-ip`
+  Limite conservée et documentée : *DNS rebinding* (la connexion re-résout le nom).
+- [x] S10B-02 — IP client et plafond par email — fusionné (PR #37), preuve automatisée = DoD
   (`X-Forwarded-For` lu seulement depuis `LUMO_TRUSTED_PROXIES`, vide par défaut, et parcouru par la droite ;
   plafond de 10 essais/min par email, toutes adresses confondues ; `ClientIpTest` 8/8,
   `LoginRateLimitIntegrationTest` 2/2, rouge vérifié sans le plafond ; suite API 339/339).
-  Reste : revue et merge. **Constat annexe, hors lot :** le BFF web (Next) appelle l'API côté serveur sans
+  **Constat annexe, hors lot :** le BFF web (Next) appelle l'API côté serveur sans
   transmettre l'IP du navigateur. Tous les utilisateurs web partagent donc la clé IP du serveur Next :
   inscription et mot de passe oublié à 5/min **pour tout le web**. À traiter avec S10B-05 ou dans un lot dédié
   (le BFF transmet `X-Forwarded-For`, son adresse va dans `LUMO_TRUSTED_PROXIES`).
-- [ ] S10B-03 — pause en arrière-plan, décision `MediaSession` — 60 % : code et tests livrés sur
-  `fix/S10B-03-player-background`. Une règle commune `BackgroundPlayback` (`core:player`) est branchée sur les
+- [ ] S10B-03 — pause en arrière-plan, décision `MediaSession` — 80 % : fusionné (PR #38 pile S10B-03/04).
+  En recette. Une règle commune `BackgroundPlayback` (`core:player`) est branchée sur les
   trois ViewModels lecteur, via `PlayerLifecycleEffect` (`ON_START`/`ON_STOP`) dans les six écrans.
   - En quittant l'app, ce qui joue ou charge est mis en pause et la position VOD/épisode est sauvegardée.
   - Le décompte vers l'épisode suivant est arrêté.
@@ -184,19 +189,17 @@ Mis à jour le 10 octobre 2026. Une case cochée signifie **recetté**, pas seul
   Tests : `BackgroundPlaybackTest` 6/6, tests unitaires Android 571/571, les deux APK compilent.
   **Reste :**
   - preuve à la télécommande (son coupé après HOME, reprise au direct). Non jouée le 10/10 : la source
-    du banc de l'émulateur est en erreur et la liste de chaînes est vide ;
-  - revue et merge.
+    du banc de l'émulateur est en erreur et la liste de chaînes est vide.
 
   **Décision `MediaSession` : reportée** (limite connue 0.2.0). Les touches média dédiées de la
   télécommande (lecture/pause) ne pilotent pas le lecteur. La pause en arrière-plan ne dépend pas d'elle.
-- [ ] S10B-04 — redirections et `BEHIND_LIVE_WINDOW` — 60 % : code et tests livrés sur
-  `fix/S10B-04-player-network`. La source HTTP du lecteur est explicite : redirections entre protocoles
+- [ ] S10B-04 — redirections et `BEHIND_LIVE_WINDOW` — 75 % : fusionné (PR #38) ; correctif lint en attente
+  (`fix/S10B-04-lint-optin`). En recette. La source HTTP du lecteur est explicite : redirections entre protocoles
   suivies, user-agent `LumoTV/1.0`, délais 10 s / 15 s. `BEHIND_LIVE_WINDOW` en direct rejoint le direct
   (`seekToDefaultPosition` + `prepare`), au plus 3 fois de suite. `LiveWindowRecoveryTest` 4/4 ; tests
   unitaires Android verts ; les deux APK compilent. Reste : preuve sur appareil (fixture neutre du banc
-  derrière une redirection `http → https`, chaîne mise en pause au-delà de la fenêtre), revue et merge.
-- [ ] S10B-05 — session web concurrente et `/api/*` — 80 % : code et tests livrés sur
-  `fix/S10B-05-web-session`.
+  derrière une redirection `http → https`, chaîne mise en pause au-delà de la fenêtre).
+- [ ] S10B-05 — session web concurrente et `/api/*` — 90 % : fusionné (PR #39). En recette.
   - Une rotation terminée est rendue pendant 15 s à une requête qui porte encore l'ancien refresh token,
     au lieu de le redépenser (`ROTATION_GRACE_MS`, côté web seulement : **pas d'ADR**, le modèle d'auth
     de l'API ne bouge pas).
@@ -208,16 +211,15 @@ Mis à jour le 10 octobre 2026. Une case cochée signifie **recetté**, pas seul
   Reste :
   - e2e « jeton d'accès expiré → Lecture » non écrit (il faut une durée de vie de jeton réglable dans la
     pile e2e) ;
-  - revue et merge ;
   - la déduplication reste propre à une instance.
 
   **Transmission de l'IP navigateur par le BFF (constat S10B-02) : non faite ici, décision de
   déploiement.** Le serveur Next ne voit pas l'IP de la socket du navigateur. Transmettre l'en-tête
   entrant n'est sûr que derrière un proxy qui l'écrase. À trancher avec la topologie de production.
-- [ ] S10B-06 — tests de migration Room — 85 % : livré sur `test/S10B-06-room-migrations`.
+- [x] S10B-06 — tests de migration Room — fusionné (PR #40).
   `LumoDatabaseMigrationTest` (instrumenté, `MigrationTestHelper` + schémas commités) vérifie chaque saut contre
   le schéma exporté de sa cible et le chemin complet 1 → 7 avec un catalogue conservé. Il vérifie aussi que la
   liste des migrations atteint le plus récent schéma exporté. **3/3 vert sur `Television_1080p`** ; une migration
   1 → 2 volontairement cassée fait tomber 2 tests sur 3. Ajout de `androidx.test:runner` 1.7.0 (test uniquement).
-  Reste : revue et merge. **Hors CI** (instrumenté, comme les tests de focus TV). Le passer en CI demanderait
+  **Hors CI** (instrumenté, comme les tests de focus TV). Le passer en CI demanderait
   Robolectric ou un job émulateur : à décider, non ouvert.
