@@ -95,11 +95,22 @@ public record LumoProperties(
      * @param manualSyncInterval how long a source waits between two synchronisations
      *                           its owner asked for. Protects the user's own panel,
      *                           not this server (ADR 0005)
+     * @param loginAttemptsPerEmailPerMinute sign-in attempts on one email, whatever
+     *                           the address they come from. The per-IP key alone
+     *                           lets a caller who spreads attempts over many
+     *                           addresses try passwords without limit (S10B-02)
+     * @param trustedProxies     IP literals or CIDR blocks of the reverse proxies in
+     *                           front of this API. {@code X-Forwarded-For} is read
+     *                           only on a request whose peer is one of them. Empty
+     *                           by default: the header is then ignored, because
+     *                           anyone can write it
      */
     public record RateLimit(
             @Positive int authAttemptsPerMinute,
             @Positive int deviceApproveAttemptsPerMinute,
-            @NotNull Duration manualSyncInterval
+            @NotNull Duration manualSyncInterval,
+            @DefaultValue("10") @Positive int loginAttemptsPerEmailPerMinute,
+            @DefaultValue List<String> trustedProxies
     ) {}
 
     /**

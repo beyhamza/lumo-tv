@@ -69,6 +69,7 @@ public class BillingController implements BillingApi {
     private final LumoProperties properties;
     /** Request-scoped proxy, as in {@code AuthController}. */
     private final HttpServletRequest request;
+    private final ClientIp clientIp;
 
     public BillingController(EntitlementService entitlements,
                              EntitlementRepository entitlementRows,
@@ -76,6 +77,7 @@ public class BillingController implements BillingApi {
                              UserRepository users,
                              RateLimiter rateLimiter,
                              LumoProperties properties,
+                             ClientIp clientIp,
                              HttpServletRequest request) {
         this.entitlements = entitlements;
         this.entitlementRows = entitlementRows;
@@ -83,6 +85,7 @@ public class BillingController implements BillingApi {
         this.users = users;
         this.rateLimiter = rateLimiter;
         this.properties = properties;
+        this.clientIp = clientIp;
         this.request = request;
     }
 
@@ -191,7 +194,7 @@ public class BillingController implements BillingApi {
      */
     private void limit(String action, UUID userId) {
         RateLimiter.Decision decision = rateLimiter.attempt(
-                "billing-" + action + ":" + userId + ":" + ClientIp.of(request), SESSIONS_PER_MINUTE);
+                "billing-" + action + ":" + userId + ":" + clientIp.of(request), SESSIONS_PER_MINUTE);
         if (!decision.allowed()) {
             throw new RateLimitedException(ErrorCode.RATE_LIMITED, decision.retryAfterSeconds(),
                     "Too many billing sessions opened; retry shortly");

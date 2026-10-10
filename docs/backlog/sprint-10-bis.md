@@ -165,7 +165,14 @@ Mis à jour le 10 octobre 2026. Une case cochée signifie **recetté**, pas seul
   (redirections suivies à la main, garde à chaque saut, plafond de 5, pas de descente https → http,
   `IngestionHttpClientRedirectTest` 5/5, rouge vérifié avec l'ancien `Redirect.NORMAL`, suite API 329/329).
   Reste : revue et merge. Limite conservée et documentée : *DNS rebinding* (la connexion re-résout le nom).
-- [ ] S10B-02 — IP client et plafond par email — 0 % (ticket ouvert)
+- [ ] S10B-02 — IP client et plafond par email — 80 % : code et tests livrés sur `fix/S10B-02-client-ip`
+  (`X-Forwarded-For` lu seulement depuis `LUMO_TRUSTED_PROXIES`, vide par défaut, et parcouru par la droite ;
+  plafond de 10 essais/min par email, toutes adresses confondues ; `ClientIpTest` 8/8,
+  `LoginRateLimitIntegrationTest` 2/2, rouge vérifié sans le plafond ; suite API 339/339).
+  Reste : revue et merge. **Constat annexe, hors lot :** le BFF web (Next) appelle l'API côté serveur sans
+  transmettre l'IP du navigateur. Tous les utilisateurs web partagent donc la clé IP du serveur Next :
+  inscription et mot de passe oublié à 5/min **pour tout le web**. À traiter avec S10B-05 ou dans un lot dédié
+  (le BFF transmet `X-Forwarded-For`, son adresse va dans `LUMO_TRUSTED_PROXIES`).
 - [ ] S10B-03 — pause en arrière-plan, décision `MediaSession` — 0 % (ticket ouvert)
 - [ ] S10B-04 — redirections et `BEHIND_LIVE_WINDOW` — 0 % (ticket ouvert)
 - [ ] S10B-05 — session web concurrente et `/api/*` — 0 % (ticket ouvert)

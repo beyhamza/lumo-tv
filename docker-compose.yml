@@ -127,6 +127,10 @@ services:
       # see the wait" keeps it; one that needs two refreshes in a row lowers it.
       LUMO_MANUAL_SYNC_INTERVAL: ${LUMO_MANUAL_SYNC_INTERVAL:-PT5M}
 
+      # Proxies whose X-Forwarded-For is believed (S10B-02). Empty here: nothing
+      # sits in front of the API in this file, so the header is ignored.
+      LUMO_TRUSTED_PROXIES: ${LUMO_TRUSTED_PROXIES:-}
+
       LUMO_CORS_ALLOWED_ORIGINS: ${LUMO_CORS_ALLOWED_ORIGINS:-http://localhost:3000}
 
       # Actuator: health only. Nothing else is exposed, in any environment.
