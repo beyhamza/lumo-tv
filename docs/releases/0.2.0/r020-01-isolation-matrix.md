@@ -7,7 +7,8 @@
 - Statut : `⚠️ PARTIEL` (10/10/2026) — §3.1 API **conforme** (automatisé, 9/9, rouge vu),
   §3.2 TV **conforme** — l'écart `BUG-R020-01-01` (le cache local de A survivait à la déconnexion)
   est corrigé et rejoué conforme le même jour
-  ([rejoue](qa-evidence/r020-01-bug01-rejoue-2026-10-10/RAPPORT.md)) —, §3.3 web/mobile **non joué**. Passage :
+  ([rejoue](qa-evidence/r020-01-bug01-rejoue-2026-10-10/RAPPORT.md)) —, §3.3 mobile `W-3` **conforme**
+  ([passage](qa-evidence/r020-01-mobile-2026-10-10/RAPPORT.md)), §3.3 web `W-1`/`W-2` **non joué**. Passage :
   [`qa-evidence/r020-01-tv-2026-10-10/RAPPORT.md`](qa-evidence/r020-01-tv-2026-10-10/RAPPORT.md).
 
 Règle tenue : **aucun vert sans rouge d'abord**. Chaque assertion ci-dessous est
