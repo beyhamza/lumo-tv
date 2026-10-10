@@ -1,6 +1,6 @@
 # Recette et critères de sortie — 0.2.0
 
-Plan de recette, créé le 17 septembre 2026. **Non exécuté.** Version gratuite,
+Plan de recette, créé le 17 septembre 2026. **Non exécuté à la rédaction.** Version gratuite,
 compte email et activation TV ; Google et paiements exclus par décision utilisateur.
 
 ## Préparation
@@ -19,27 +19,43 @@ le format des preuves et le dossier de livraison à assembler en S14.
 
 ## Matrice de clôture
 
-Chaque ligne exige une preuve par surface applicable ; le statut ci-dessous est
-celui de ce plan, pas une affirmation sur les recettes historiques.
+Chaque ligne exige une preuve par surface applicable. La matrice garde **deux
+colonnes distinctes** : l'état **du plan** (17/09) et l'état **réellement joué au
+08/10/2026** (source : [`qa-evidence/ETAT-RELEASE-0.2.0-2026-10-08.md`](qa-evidence/ETAT-RELEASE-0.2.0-2026-10-08.md)
+et [`qa-evidence/INDEX.md`](qa-evidence/INDEX.md), seule autorité de preuve).
 
-| ID | Parcours | Lots | État |
-|---|---|---|---|
-| R020-01 | Email, session persistante, déconnexion, activation TV, absence de fuite entre comptes | S8/S14, recettes 1/2 | Non joué |
-| R020-02 | Source active locale, accueil et navigation, retour/focus | S8/S12 | Non joué |
-| R020-03 | Sources : ajout, états, ancienne donnée pendant sync, retry, suppression et remplacement | S8/S11 | Non joué |
-| R020-04 | Direct/Guide, filtres, dates, fiche, absence/ancienneté/erreurs, lecture groupée | S9 | Non joué |
-| R020-05 | Recherche par type, saisie rapide, source changée, erreur partielle et retour | S10 | Non joué |
-| R020-06 | Favoris/groupes, ordre et dédoublonnage, gestes, propagation | S11 | Non joué |
-| R020-07 | À regarder : ajout/retrait, partage, tri, source supprimée | S11 | Non joué |
-| R020-08 | Continuer : lecture effective, seuil de fin, reprise, masquage et réapparition | S12 | Non joué |
-| R020-09 | Films et séries : fiches, seek disponible/indisponible, progression et erreurs | S12/S13, recettes 5/6 | Non joué |
-| R020-10 | Audio/sous-titres/qualité selon capacités et préférences locales | S13 | Non joué |
-| R020-11 | Épisode suivant, décompte annulé, mode manuel, saison/final et reprise | S13 | Non joué |
-| R020-12 | Réglages, langues, informations, réseau mobile et autoplay | S13 | Non joué |
-| R020-13 | FR/EN, clavier/focus TV, lisibilité, contenu volumineux, erreurs réseau | Tous | Non joué |
-| R020-14 | Aucun contenu réel ajouté, aucun secret/URL sensible dans les preuves et logs | Tous | Non joué |
-| R020-15 | Pas de parcours Google/paiement non opérationnel exposé ; quotas existants non modifiés implicitement | S8/S14 | Non joué |
-| R020-16 | Mise à jour depuis version précédente, migrations, données conservées, catalogue et lecture toujours accessibles | S14 | Non joué |
+> **Réconciliation du 08/10/2026.** La matrice listait « Non joué » pour les 16
+> lignes alors que deux passages versionnés (S9-07 automatisé, S10-05 par surface)
+> couvrent déjà une partie des lignes 04, 05 et 13. Dire « Non joué » partout
+> était faux ; dire « conforme » ailleurs eût aussi été faux. L'état réel est
+> donc ajouté ligne par ligne, et **la sortie 0.2.0 reste refusée** : les lignes
+> en périmètre 0.2.0 (01, 02, 03, 04, 05, 13, 14, 15, 16) ne sont pas toutes
+> conformes. Périmètre 0.2.0 gelé le 08/10 = S8+S9+S10 (`DECISIONS-PRODUIT.md`) :
+> les lignes **06→12 (S11/S12/S13) visent 0.3.0** et ne conditionnent plus cette
+> sortie.
+>
+> **Verrous de sortie vie privée (portés par le @PO) :** `R020-01` (fuite entre
+> comptes) et `R020-16` (mise à jour/migrations) sont **Non joué** — aucun
+> `v0.2.0` final tant qu'ils ne sont pas joués conformes.
+
+| ID | Parcours | Lots | État (plan 17/09) | État joué (08/10) |
+|---|---|---|---|---|
+| R020-01 | Email, session persistante, déconnexion, activation TV, absence de fuite entre comptes | S8/S14, recettes 1/2 | Non joué | ⏸️ **Non joué** — verrou de sortie |
+| R020-02 | Source active locale, accueil et navigation, retour/focus | S8/S12 | Non joué | ⏸️ **Fragments** (accueil à froid, focus grille), pas le parcours vertical S8 |
+| R020-03 | Sources : ajout, états, ancienne donnée pendant sync, retry, suppression et remplacement | S8/S11 | Non joué | ⏸️ **Non joué** |
+| R020-04 | Direct/Guide, filtres, dates, fiche, absence/ancienneté/erreurs, lecture groupée | S9 | Non joué | ⚠️ **Partiel** (web+émulateur ; résidu matériel — voir ETAT §2) |
+| R020-05 | Recherche par type, saisie rapide, source changée, erreur partielle et retour | S10 | Non joué | ⚠️ **Partiel** (web/mobile/TV ; saisie rapide SR-01/02/03 et « deux sources » non joués) |
+| R020-06 | Favoris/groupes, ordre et dédoublonnage, gestes, propagation | S11 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-07 | À regarder : ajout/retrait, partage, tri, source supprimée | S11 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-08 | Continuer : lecture effective, seuil de fin, reprise, masquage et réapparition | S12 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-09 | Films et séries : fiches, seek disponible/indisponible, progression et erreurs | S12/S13, recettes 5/6 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-10 | Audio/sous-titres/qualité selon capacités et préférences locales | S13 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-11 | Épisode suivant, décompte annulé, mode manuel, saison/final et reprise | S13 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-12 | Réglages, langues, informations, réseau mobile et autoplay | S13 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-13 | FR/EN, clavier/focus TV, lisibilité, contenu volumineux, erreurs réseau | Tous | Non joué | ⚠️ **Partiel** (FR/EN web, grilles ; D-pad réel et troncature 320 px non joués) |
+| R020-14 | Aucun contenu réel ajouté, aucun secret/URL sensible dans les preuves et logs | Tous | Non joué | ⏸️ **Non joué** (audit du livrable assemblé ; garde-fous CI partiels) |
+| R020-15 | Pas de parcours Google/paiement non opérationnel exposé ; quotas existants non modifiés implicitement | S8/S14 | Non joué | ⏸️ **Non joué** (audit final) |
+| R020-16 | Mise à jour depuis version précédente, migrations, données conservées, catalogue et lecture toujours accessibles | S14 | Non joué | ⏸️ **Non joué** — verrou de sortie (drill local jouable, pas de vraie MAJ) |
 
 R020-12 inclut la pause après perte du Wi-Fi pendant une lecture, lorsque Lecture
 sur données mobiles est désactivée (décision du 19 septembre 2026). Vérifier le
