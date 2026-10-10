@@ -4,9 +4,10 @@
 - Objet : `R020-01` (« Email, session persistante, déconnexion, activation TV,
   **absence de fuite entre comptes** »). C'est un **verrou de sortie vie privée**
   porté par le @PO : aucun `v0.2.0` final tant qu'il n'est pas joué conforme.
-- Statut : `⏸️ NON JOUÉ` — ce document est le **plan de test** et le **contrat de
-  fixture** partagé avec @Dev (fixture `feat/S11-fixture-multisources`), pas une
-  preuve.
+- Statut : `⚠️ PARTIEL` (10/10/2026) — §3.1 API **conforme** (automatisé, 9/9, rouge vu),
+  §3.2 TV **conforme à l'écran** avec un écart `BUG-R020-01-01` (le cache local de A survit à la
+  déconnexion), §3.3 web/mobile **non joué**. Passage :
+  [`qa-evidence/r020-01-tv-2026-10-10/RAPPORT.md`](qa-evidence/r020-01-tv-2026-10-10/RAPPORT.md).
 
 Règle tenue : **aucun vert sans rouge d'abord**. Chaque assertion ci-dessous est
 d'abord écrite comme test qui échoue sur la tête de référence (ou prouvée par
