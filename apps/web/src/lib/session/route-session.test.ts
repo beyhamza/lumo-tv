@@ -12,6 +12,7 @@ const refreshSession = vi.fn<(s: SessionPayload) => Promise<RefreshResult>>();
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (name: string) => (jar.has(name) ? { name, value: jar.get(name)!.value } : undefined),
+    getAll: () => [...jar.entries()].map(([name, { value }]) => ({ name, value })),
     set: (name: string, value: string, options: { maxAge?: number }) => {
       jar.set(name, { value, maxAge: options.maxAge });
     },
@@ -78,6 +79,19 @@ describe("getRouteSession", () => {
 
     expect(await getRouteSession()).toBeNull();
     expect(jar.get(await cookieName())).toEqual({ value: "", maxAge: 0 });
+  });
+
+  it("takes the account's preference cookies with a rejected session (BUG-R020-01-02)", async () => {
+    const { getRouteSession } = await import("./route-session");
+    await storeSession(base);
+    jar.set(`lumo_active_source_${base.userId}`, { value: "33333333-3333-3333-3333-333333333333" });
+    jar.set("NEXT_LOCALE", { value: "fr" });
+    refreshSession.mockResolvedValue({ status: "rejected" });
+
+    await getRouteSession();
+
+    expect(jar.get(`lumo_active_source_${base.userId}`)).toEqual({ value: "", maxAge: 0 });
+    expect(jar.get("NEXT_LOCALE")).toEqual({ value: "fr" });
   });
 
   it("keeps the session when the API is unavailable", async () => {
