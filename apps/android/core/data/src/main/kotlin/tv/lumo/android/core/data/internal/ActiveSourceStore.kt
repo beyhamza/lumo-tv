@@ -25,6 +25,9 @@ internal interface ActiveSourceStore {
     suspend fun write(accountId: String, sourceId: String)
 
     suspend fun clear(accountId: String)
+
+    /** Every account's choice: the session that held them has ended (BUG-R020-01-01). */
+    suspend fun clearAll()
 }
 
 /**
@@ -64,6 +67,10 @@ internal class DataStoreActiveSourceStore @Inject constructor(
 
     override suspend fun clear(accountId: String) = tolerating {
         preferences.edit { it.remove(keyFor(accountId)) }
+    }
+
+    override suspend fun clearAll() = tolerating {
+        preferences.edit { it.clear() }
     }
 
     /**

@@ -2,10 +2,12 @@ package tv.lumo.android.core.auth
 
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import tv.lumo.android.core.auth.store.SessionStore
 
 /**
@@ -33,6 +35,8 @@ import tv.lumo.android.core.auth.store.SessionStore
 class SessionManager @Inject constructor(
     private val store: SessionStore,
     private val refresher: TokenRefresher,
+    /** What else goes with the session; see [SessionEndCleaner]. Empty in most tests. */
+    private val cleaners: Set<@JvmSuppressWildcards SessionEndCleaner> = emptySet(),
 ) {
 
     private val refreshMutex = Mutex()
@@ -54,7 +58,34 @@ class SessionManager @Inject constructor(
      * (`POST /auth/logout`) first when it can — but a sign-out must succeed
      * locally even when the network does not.
      */
-    suspend fun signOut() = store.clear()
+    suspend fun signOut() {
+        store.clear()
+        endSession()
+    }
+
+    /**
+     * Session first, then the account's data: the screens leave for the
+     * activation page at once, and the purge is over before [signOut] returns, so
+     * nothing signs in on top of a half-cleaned device.
+     *
+     * Best effort, cleaner by cleaner. A sign-out must succeed locally whatever
+     * happens (a full disk, a locked database); one cleaner failing does not
+     * spare the others, and the next session's own data replaces what is left.
+     *
+     * **Not cancellable**, and that is what the device replay of 10 October
+     * showed: the sign-out is launched from the settings screen's scope, clearing
+     * the session navigates away from that screen, its scope is cancelled — and
+     * the purge stopped half-way, the database emptied but the preferences kept.
+     */
+    private suspend fun endSession() = withContext(NonCancellable) {
+        for (cleaner in cleaners) {
+            try {
+                cleaner.onSessionEnded()
+            } catch (_: Exception) {
+                // Not logged: what failed to be deleted is the previous account's data.
+            }
+        }
+    }
 
     /**
      * @param staleAccessToken the token whose request just came back 401, or
@@ -83,6 +114,7 @@ class SessionManager @Inject constructor(
 
             TokenRefreshResult.Rejected -> {
                 store.clear()
+                endSession()
                 RefreshOutcome.SignedOut
             }
 

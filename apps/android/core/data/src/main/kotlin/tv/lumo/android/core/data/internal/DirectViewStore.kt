@@ -29,6 +29,9 @@ internal interface DirectViewStore {
     suspend fun read(sourceId: String): DirectView?
 
     suspend fun write(sourceId: String, view: DirectView)
+
+    /** Every source's view: the account they belonged to has signed out (BUG-R020-01-01). */
+    suspend fun clearAll()
 }
 
 /**
@@ -63,6 +66,10 @@ internal class DataStoreDirectViewStore @Inject constructor(
 
     override suspend fun write(sourceId: String, view: DirectView) = tolerating {
         preferences.edit { it[keyFor(sourceId)] = view.name }
+    }
+
+    override suspend fun clearAll() = tolerating {
+        preferences.edit { it.clear() }
     }
 
     /**
