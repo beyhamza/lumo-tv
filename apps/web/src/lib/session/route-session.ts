@@ -2,6 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { sessionCookieName } from "@/lib/env";
+import { expireAccountCookies } from "./account-cookies";
 import {
   isAccessTokenStale,
   sealSession,
@@ -44,6 +45,10 @@ export async function getRouteSession(): Promise<SessionPayload | null> {
     case "rejected": {
       const { name, ...options } = sessionCookieOptions();
       store.set(name, "", { ...options, maxAge: 0 });
+      expireAccountCookies(
+        store.getAll().map((cookie) => cookie.name),
+        (cookieName, value, cookieOptions) => store.set(cookieName, value, cookieOptions),
+      );
       return null;
     }
     case "unavailable":

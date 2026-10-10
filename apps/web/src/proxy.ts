@@ -8,6 +8,7 @@ import {
 } from "@/lib/direct/view-memory";
 import { sessionCookieName, sessionCookieSecure } from "@/lib/env";
 import { PATHNAME_HEADER } from "@/lib/http/pathname-header";
+import { expireAccountCookies } from "@/lib/session/account-cookies";
 import {
   isAccessTokenStale,
   sealSession,
@@ -87,6 +88,11 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
       const { name, ...options } = sessionCookieOptions();
       const cleared = isProtected ? redirectToLogin(request, locale) : response;
       cleared.cookies.set(name, "", { ...options, maxAge: 0 });
+      // The session is over: the account's preference cookies go too (BUG-R020-01-02).
+      expireAccountCookies(
+        request.cookies.getAll().map((cookie) => cookie.name),
+        (cookieName, value, cookieOptions) => cleared.cookies.set(cookieName, value, cookieOptions),
+      );
       return cleared;
     }
 

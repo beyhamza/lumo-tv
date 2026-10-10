@@ -129,6 +129,9 @@ possible dans l'arbre.
 - **Une rotation terminée est rendue quelques secondes** (`ROTATION_GRACE_MS`) à
   une requête partie avec l'ancien cookie, au lieu de redépenser le token — ce
   qui ferait révoquer l'appareil par le serveur (S10B-05).
+- **Une fin de session emporte les cookies du compte** (`lib/session/account-cookies.ts`) :
+  déconnexion, refresh refusé dans le proxy ou dans un Route Handler expirent aussi
+  `lumo_active_source_*` et `lumo_direct_view_*` (`BUG-R020-01-02`, verrou `R020-01`).
 - Un refresh **refusé** (401/409) vide le cookie : côté serveur, la
   réutilisation d'un token a déjà révoqué toute la chaîne de l'appareil. Un
   refresh **indisponible** (API injoignable) ne touche à rien : déconnecter

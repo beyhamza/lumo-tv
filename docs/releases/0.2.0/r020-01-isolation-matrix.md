@@ -10,7 +10,7 @@
   ([rejoue](qa-evidence/r020-01-bug01-rejoue-2026-10-10/RAPPORT.md)) —, §3.3 mobile `W-3` **conforme**
   ([passage](qa-evidence/r020-01-mobile-2026-10-10/RAPPORT.md)), §3.3 web `W-1` **conforme**, `W-2` **conforme en production**
   ([passage](qa-evidence/r020-01-web-2026-10-10/RAPPORT.md)), écart faible `BUG-R020-01-02`
-  (cookies de préférence du compte après déconnexion web). Passage :
+  (cookies de préférence du compte après déconnexion web) corrigé le même jour. Passage :
   [`qa-evidence/r020-01-tv-2026-10-10/RAPPORT.md`](qa-evidence/r020-01-tv-2026-10-10/RAPPORT.md).
 
 Règle tenue : **aucun vert sans rouge d'abord**. Chaque assertion ci-dessous est

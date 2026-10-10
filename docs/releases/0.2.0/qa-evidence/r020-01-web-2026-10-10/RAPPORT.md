@@ -47,3 +47,27 @@ probable : effacer `lumo_active_source_*` et `lumo_direct_view_*` dans `signOut`
 
 - `W-4` (jeton A rejoué après déconnexion) : couvert côté API pour le refresh (A-7/A-8) ; le jeton
   d'accès reste accepté jusqu'à son expiration (≤ 15 min), observation toujours à arbitrer.
+
+## Correctif `BUG-R020-01-02` (même jour)
+
+Branche `fix/BUG-R020-01-02-web-signout-cookies`. `lib/session/account-cookies.ts` expire tous les
+cookies `lumo_active_source_*` et `lumo_direct_view_*` portés par la requête, aux **trois** endroits
+où une session se termine : `closeSession` (déconnexion), le refresh refusé du proxy, celui de
+`getRouteSession`. Les cookies du navigateur (`NEXT_LOCALE`…) ne sont pas touchés.
+
+Preuve (serveur de dev, chemin « refresh refusé » du proxy, rejoué par `curl` avec un cookie de session
+scellé sous le `SESSION_SECRET` local et un refresh token invalide) :
+
+```
+--- avant (proxy de dev @ HEAD)
+set-cookie: lumo_session=; Path=/; Max-Age=0; HttpOnly; SameSite=lax
+--- après
+set-cookie: lumo_session=; Path=/; Max-Age=0; HttpOnly; SameSite=lax
+set-cookie: lumo_active_source_11111111-…=; Path=/; Max-Age=0; HttpOnly; SameSite=lax
+set-cookie: lumo_direct_view_33333333-…=; Path=/; Max-Age=0; HttpOnly; SameSite=lax
+```
+
+Tests : `account-cookies.test.ts` (3), `route-session.test.ts` (+1, refus = cookies du compte expirés,
+`NEXT_LOCALE` intact) ; Vitest 343/343, typecheck, lint, `pnpm build` (marketing toujours `●`).
+Non observé dans un navigateur : le chemin « Se déconnecter » (Server Action) passe par le même
+utilitaire, mais le navigateur intégré masque les en-têtes `Set-Cookie`.
