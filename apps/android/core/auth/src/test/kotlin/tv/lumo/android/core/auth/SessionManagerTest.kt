@@ -2,12 +2,15 @@ package tv.lumo.android.core.auth
 
 import com.google.common.truth.Truth.assertThat
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import tv.lumo.android.core.auth.store.SessionStore
@@ -55,6 +58,105 @@ class SessionManagerTest {
 
         assertThat(refresher.calls.get()).isEqualTo(0)
         assertThat(outcome).isEqualTo(RefreshOutcome.Refreshed(store.current()!!))
+    }
+
+    @Test
+    fun `signing out runs every cleaner, after the session is gone`() = runTest {
+        val store = FakeSessionStore(session(access = "a", refresh = "r"))
+        val seen = mutableListOf<String?>()
+        val manager = SessionManager(
+            store,
+            CountingRefresher(TokenRefreshResult.Rejected),
+            setOf(
+                SessionEndCleaner { seen += "catalogue:" + store.current()?.accessToken },
+                SessionEndCleaner { seen += "preferences" },
+            ),
+        )
+
+        manager.signOut()
+
+        // BUG-R020-01-01: the account's data goes with its session, and the
+        // session is already gone when the purge runs.
+        assertThat(seen).containsExactly("catalogue:null", "preferences")
+        assertThat(store.current()).isNull()
+    }
+
+    @Test
+    fun `a refresh token the server refuses also purges the account's data`() = runTest {
+        val purged = AtomicInteger()
+        val manager = SessionManager(
+            FakeSessionStore(session(access = "expired", refresh = "revoked")),
+            CountingRefresher(TokenRefreshResult.Rejected),
+            setOf(SessionEndCleaner { purged.incrementAndGet() }),
+        )
+
+        assertThat(manager.refresh(staleAccessToken = "expired")).isEqualTo(RefreshOutcome.SignedOut)
+        assertThat(purged.get()).isEqualTo(1)
+    }
+
+    @Test
+    fun `a failing cleaner neither stops the others nor the sign-out`() = runTest {
+        val store = FakeSessionStore(session(access = "a", refresh = "r"))
+        val purged = AtomicInteger()
+        val manager = SessionManager(
+            store,
+            CountingRefresher(TokenRefreshResult.Rejected),
+            linkedSetOf(
+                SessionEndCleaner { throw IllegalStateException("database locked") },
+                SessionEndCleaner { purged.incrementAndGet() },
+            ),
+        )
+
+        manager.signOut()
+
+        assertThat(store.current()).isNull()
+        assertThat(purged.get()).isEqualTo(1)
+    }
+
+    @Test
+    fun `the purge finishes even when the caller is cancelled half-way`() = runTest {
+        // What the device showed: sign-out runs in the settings screen's scope,
+        // the cleared session navigates away, the scope is cancelled mid-purge.
+        val firstCleanerRunning = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val purged = AtomicInteger()
+        val manager = SessionManager(
+            FakeSessionStore(session(access = "a", refresh = "r")),
+            CountingRefresher(TokenRefreshResult.Rejected),
+            linkedSetOf(
+                SessionEndCleaner {
+                    firstCleanerRunning.complete(Unit)
+                    release.await()
+                },
+                // Suspends, as the DataStore write does: in a cancelled scope it would throw.
+                SessionEndCleaner {
+                    yield()
+                    purged.incrementAndGet()
+                },
+            ),
+        )
+
+        val caller = launch { manager.signOut() }
+        firstCleanerRunning.await()
+        caller.cancel()
+        release.complete(Unit)
+        caller.join()
+
+        assertThat(purged.get()).isEqualTo(1)
+    }
+
+    @Test
+    fun `a transient refresh failure purges nothing`() = runTest {
+        val purged = AtomicInteger()
+        val manager = SessionManager(
+            FakeSessionStore(session(access = "expired", refresh = "r1")),
+            CountingRefresher(TokenRefreshResult.Unavailable(java.io.IOException("offline"))),
+            setOf(SessionEndCleaner { purged.incrementAndGet() }),
+        )
+
+        manager.refresh(staleAccessToken = "expired")
+
+        assertThat(purged.get()).isEqualTo(0)
     }
 
     @Test

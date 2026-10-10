@@ -53,6 +53,19 @@ class DataStoreActiveSourceStoreTest {
     }
 
     @Test
+    fun `a session that ends takes every account's choice with it (BUG-R020-01-01)`() = runTest {
+        open { store ->
+            store.write("user-1", "source-a")
+            store.write("user-2", "source-b")
+
+            store.clearAll()
+
+            assertThat(store.read("user-1")).isNull()
+            assertThat(store.read("user-2")).isNull()
+        }
+    }
+
+    @Test
     fun `an account that never chose reads nothing`() = runTest {
         open { store -> assertThat(store.read("user-1")).isNull() }
     }

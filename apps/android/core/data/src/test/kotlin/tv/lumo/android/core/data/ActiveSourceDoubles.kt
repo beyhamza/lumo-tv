@@ -104,4 +104,8 @@ internal class InMemoryActiveSourceStore : ActiveSourceStore {
     override suspend fun clear(accountId: String) {
         entries.remove(accountId)
     }
+
+    override suspend fun clearAll() {
+        entries.clear()
+    }
 }
