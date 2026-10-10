@@ -11,6 +11,7 @@ import java.util.function.Function;
 import java.util.zip.GZIPInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import tv.lumo.api.generated.model.IngestionErrorCode;
 import tv.lumo.api.shared.config.LumoProperties;
@@ -39,19 +40,45 @@ public class IngestionHttpClient {
     /** Some panels reject the default Java client outright. */
     private static final String USER_AGENT = "LumoTV/1.0";
 
+    /** Hops followed after the first request: enough for a panel and its CDN, not a loop. */
+    static final int MAX_REDIRECTS = 5;
+
     private final HttpClient httpClient;
     private final HostConcurrencyLimiter limiter;
     private final LumoProperties properties;
+    private final HostGuard guard;
 
+    /**
+     * Decides whether a host may be fetched, and throws when it may not.
+     *
+     * <p>A seam for tests only: in production it is always
+     * {@link PrivateAddressGuard#requirePublic}. The redirect test needs a loopback
+     * panel that is allowed and a loopback target that is not, which the single
+     * {@code allow-private-hosts} switch cannot express.
+     */
+    @FunctionalInterface
+    interface HostGuard {
+        void requireAllowed(String host);
+    }
+
+    @Autowired
     public IngestionHttpClient(HostConcurrencyLimiter limiter, LumoProperties properties) {
+        this(limiter, properties,
+                host -> PrivateAddressGuard.requirePublic(host, properties.ingest().allowPrivateHosts()));
+    }
+
+    IngestionHttpClient(HostConcurrencyLimiter limiter, LumoProperties properties, HostGuard guard) {
         this.limiter = limiter;
         this.properties = properties;
+        this.guard = guard;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(properties.ingest().httpTimeout())
-                // Panels redirect between http and https constantly. NORMAL
-                // follows redirects but not https -> http, which would silently
-                // downgrade a credential-bearing request.
-                .followRedirects(HttpClient.Redirect.NORMAL)
+                // Never followed by the client itself. The guard checks a host
+                // before we connect to it, and a redirect is a new host the
+                // client would connect to without asking: a public URL answering
+                // 302 to 169.254.169.254 walked straight past the guard. Every
+                // hop is followed by hand in send(), and checked (S10B-01).
+                .followRedirects(HttpClient.Redirect.NEVER)
                 .build();
     }
 
@@ -83,18 +110,10 @@ public class IngestionHttpClient {
 
         // Before the connection, not after: a host that resolves into our own
         // network is refused rather than fetched (see PrivateAddressGuard).
-        PrivateAddressGuard.requirePublic(host, properties.ingest().allowPrivateHosts());
+        guard.requireAllowed(host);
 
         return limiter.onHost(host, () -> {
-            HttpRequest request = HttpRequest.newBuilder(uri)
-                    .timeout(properties.ingest().httpTimeout())
-                    .header("User-Agent", USER_AGENT)
-                    .header("Accept-Encoding", "gzip")
-                    .GET()
-                    .build();
-
-            HttpResponse<InputStream> response =
-                    httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            HttpResponse<InputStream> response = send(uri);
 
             try (InputStream body = decode(response)) {
                 int status = response.statusCode();
@@ -132,6 +151,78 @@ public class IngestionHttpClient {
                 }
             }
         });
+    }
+
+    /**
+     * Sends a GET and follows redirects by hand, checking every hop with the guard.
+     *
+     * <p>Panels redirect between http and https, and to another host, all the
+     * time, so redirects are still followed. What changes is that each new host
+     * goes through the same check as the URL the user typed. Two rules are kept
+     * from the client's former {@code Redirect.NORMAL}: https never downgrades to
+     * http (it would put an Xtream query's credentials on the wire in clear), and
+     * the chain is bounded.
+     *
+     * <p>The concurrency slot stays the first host's: in practice the redirect
+     * target is the same panel's CDN.
+     */
+    private HttpResponse<InputStream> send(URI first) throws IOException, InterruptedException {
+        URI current = first;
+        for (int hop = 0; ; hop++) {
+            HttpRequest request = HttpRequest.newBuilder(current)
+                    .timeout(properties.ingest().httpTimeout())
+                    .header("User-Agent", USER_AGENT)
+                    .header("Accept-Encoding", "gzip")
+                    .GET()
+                    .build();
+            HttpResponse<InputStream> response =
+                    httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+            URI next = redirectTarget(current, response);
+            if (next == null) {
+                return response;
+            }
+            response.body().close();
+            if (hop >= MAX_REDIRECTS) {
+                throw new IngestionException(IngestionErrorCode.SOURCE_UNREACHABLE,
+                        "The server redirected more than " + MAX_REDIRECTS + " times");
+            }
+            if (next.getHost() == null || !isHttp(next.getScheme())) {
+                throw new IngestionException(IngestionErrorCode.SOURCE_UNREACHABLE,
+                        "The server redirected to an address this server will not fetch");
+            }
+            if ("https".equalsIgnoreCase(current.getScheme()) && "http".equalsIgnoreCase(next.getScheme())) {
+                throw new IngestionException(IngestionErrorCode.SOURCE_UNREACHABLE,
+                        "The server redirected from https to http");
+            }
+            // The same check, and the same error, as a private URL typed by the
+            // user: from outside, a redirect into our network must not be
+            // distinguishable from any other refused host.
+            guard.requireAllowed(next.getHost().toLowerCase(java.util.Locale.ROOT));
+            current = next;
+        }
+    }
+
+    private static boolean isHttp(String scheme) {
+        return "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme);
+    }
+
+    /** The resolved {@code Location} of a redirect, or {@code null} when the response is not one. */
+    private static URI redirectTarget(URI current, HttpResponse<InputStream> response) {
+        int status = response.statusCode();
+        if (status != 301 && status != 302 && status != 303 && status != 307 && status != 308) {
+            return null;
+        }
+        String location = response.headers().firstValue("Location").orElse(null);
+        if (location == null || location.isBlank()) {
+            return null;
+        }
+        try {
+            return current.resolve(location.trim());
+        } catch (IllegalArgumentException e) {
+            throw new IngestionException(IngestionErrorCode.SOURCE_UNREACHABLE,
+                    "The server redirected to an invalid address");
+        }
     }
 
     private static String header(HttpResponse<InputStream> response, String name) {
