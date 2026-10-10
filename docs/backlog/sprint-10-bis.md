@@ -189,6 +189,11 @@ Mis à jour le 10 octobre 2026. Une case cochée signifie **recetté**, pas seul
 
   **Décision `MediaSession` : reportée** (limite connue 0.2.0). Les touches média dédiées de la
   télécommande (lecture/pause) ne pilotent pas le lecteur. La pause en arrière-plan ne dépend pas d'elle.
-- [ ] S10B-04 — redirections et `BEHIND_LIVE_WINDOW` — 0 % (ticket ouvert)
+- [ ] S10B-04 — redirections et `BEHIND_LIVE_WINDOW` — 60 % : code et tests livrés sur
+  `fix/S10B-04-player-network`. La source HTTP du lecteur est explicite : redirections entre protocoles
+  suivies, user-agent `LumoTV/1.0`, délais 10 s / 15 s. `BEHIND_LIVE_WINDOW` en direct rejoint le direct
+  (`seekToDefaultPosition` + `prepare`), au plus 3 fois de suite. `LiveWindowRecoveryTest` 4/4 ; tests
+  unitaires Android verts ; les deux APK compilent. Reste : preuve sur appareil (fixture neutre du banc
+  derrière une redirection `http → https`, chaîne mise en pause au-delà de la fenêtre), revue et merge.
 - [ ] S10B-05 — session web concurrente et `/api/*` — 0 % (ticket ouvert)
 - [ ] S10B-06 — tests de migration Room — 0 % (ticket ouvert)

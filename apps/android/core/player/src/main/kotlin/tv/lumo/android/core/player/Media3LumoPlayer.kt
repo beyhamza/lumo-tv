@@ -10,7 +10,10 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackGroup
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -99,7 +102,11 @@ internal class Media3LumoPlayer @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private var ticker: Job? = null
 
+    /** Consecutive rejoins of a live edge; see [shouldRejoinLiveEdge]. */
+    private var liveEdgeRejoins: Int = 0
+
     override val exoPlayer: ExoPlayer = ExoPlayer.Builder(context)
+        .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(context, httpDataSourceFactory())))
         .build()
         .apply {
             setAudioAttributes(
@@ -118,6 +125,7 @@ internal class Media3LumoPlayer @Inject constructor(
         isLive = request.isLive
         seekInFlight = false
         positionBeforeSeek = 0L
+        liveEdgeRejoins = 0
         // Both cleared before the new stream, not after. An override belongs to
         // the container it was chosen in: carried over, it would pick "the second
         // audio track" of the next episode, which is a different language or does
@@ -318,6 +326,13 @@ internal class Media3LumoPlayer @Inject constructor(
          * itself was playing perfectly a second ago.
          */
         override fun onPlayerError(error: PlaybackException) {
+            if (shouldRejoinLiveEdge(error.errorCode, isLive, liveEdgeRejoins)) {
+                liveEdgeRejoins++
+                exoPlayer.seekToDefaultPosition()
+                exoPlayer.prepare()
+                return
+            }
+
             val failure = error.toLumoError()
 
             if (seekInFlight && failure != PlaybackError.UNPLAYABLE) {
@@ -346,6 +361,7 @@ internal class Media3LumoPlayer @Inject constructor(
      */
     private fun onReady() {
         seekInFlight = false
+        liveEdgeRejoins = 0
 
         if (isLive) {
             _progress.update { it.copy(seek = SeekAvailability.LIVE) }
@@ -408,6 +424,32 @@ internal class Media3LumoPlayer @Inject constructor(
         const val TICK_MILLIS = 500L
     }
 }
+
+/**
+ * How the player reaches a stream, set explicitly rather than left to Media3.
+ *
+ * The stock HTTP source refuses a redirect that changes protocol, and Xtream
+ * panels redirect a stream from `http` to `https`, or to another host, all the
+ * time: the channel failed here while it played everywhere else (S10B-04). A
+ * downgrade from `https` to `http` is followed too — the same server's choice,
+ * on a URL the user typed, and cleartext to the user's own servers is already
+ * what ADR 0008 accepts.
+ *
+ * Timeouts fixed rather than inherited: Media3's eight seconds is short for a
+ * panel's first segment on a busy evening, and a hang longer than fifteen is
+ * an outage the viewer should be told about.
+ */
+internal fun httpDataSourceFactory(): DefaultHttpDataSource.Factory =
+    DefaultHttpDataSource.Factory()
+        .setAllowCrossProtocolRedirects(true)
+        .setUserAgent(PLAYER_USER_AGENT)
+        .setConnectTimeoutMs(PLAYER_CONNECT_TIMEOUT_MS)
+        .setReadTimeoutMs(PLAYER_READ_TIMEOUT_MS)
+
+/** Panels that reject the stock ExoPlayer agent exist; the API's ingestion uses the same name. */
+private const val PLAYER_USER_AGENT = "LumoTV/1.0"
+private const val PLAYER_CONNECT_TIMEOUT_MS = 10_000
+private const val PLAYER_READ_TIMEOUT_MS = 15_000
 
 /** Media3-aware view of [LumoPlayer], visible only inside `core:player`. */
 internal interface Media3Player : LumoPlayer {
