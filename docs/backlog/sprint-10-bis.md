@@ -214,4 +214,10 @@ Mis à jour le 10 octobre 2026. Une case cochée signifie **recetté**, pas seul
   **Transmission de l'IP navigateur par le BFF (constat S10B-02) : non faite ici, décision de
   déploiement.** Le serveur Next ne voit pas l'IP de la socket du navigateur. Transmettre l'en-tête
   entrant n'est sûr que derrière un proxy qui l'écrase. À trancher avec la topologie de production.
-- [ ] S10B-06 — tests de migration Room — 0 % (ticket ouvert)
+- [ ] S10B-06 — tests de migration Room — 85 % : livré sur `test/S10B-06-room-migrations`.
+  `LumoDatabaseMigrationTest` (instrumenté, `MigrationTestHelper` + schémas commités) vérifie chaque saut contre
+  le schéma exporté de sa cible et le chemin complet 1 → 7 avec un catalogue conservé. Il vérifie aussi que la
+  liste des migrations atteint le plus récent schéma exporté. **3/3 vert sur `Television_1080p`** ; une migration
+  1 → 2 volontairement cassée fait tomber 2 tests sur 3. Ajout de `androidx.test:runner` 1.7.0 (test uniquement).
+  Reste : revue et merge. **Hors CI** (instrumenté, comme les tests de focus TV). Le passer en CI demanderait
+  Robolectric ou un job émulateur : à décider, non ouvert.

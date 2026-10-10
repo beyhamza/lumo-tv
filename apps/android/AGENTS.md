@@ -273,5 +273,8 @@ Le scaffolding s'arrête volontairement là où le sprint 1 commence.
   web). `LUMO_GOOGLE_WEB_CLIENT_ID` n'existe plus : le bouton Google a quitté
   les écrans avec le périmètre 0.2.0 (US-025), le code serveur reste une dette
   documentée (`docs/backlog/dette.md` §1).
-- Aucun test instrumenté ni test d'UI Compose. La dépendance est en place.
+- Tests instrumentés : focus TV (`feature:live`, `feature:search`) et migrations Room
+  1 → 7 (`core:database`, `LumoDatabaseMigrationTest`, S10B-06). **La CI ne les lance
+  pas** : `./gradlew :core:database:connectedDebugAndroidTest` sur un émulateur avant
+  toute PR qui ajoute une version de base.
 - L'app TV n'a pas encore été pilotée à la télécommande sur un appareil réel.
