@@ -195,5 +195,23 @@ Mis à jour le 10 octobre 2026. Une case cochée signifie **recetté**, pas seul
   (`seekToDefaultPosition` + `prepare`), au plus 3 fois de suite. `LiveWindowRecoveryTest` 4/4 ; tests
   unitaires Android verts ; les deux APK compilent. Reste : preuve sur appareil (fixture neutre du banc
   derrière une redirection `http → https`, chaîne mise en pause au-delà de la fenêtre), revue et merge.
-- [ ] S10B-05 — session web concurrente et `/api/*` — 0 % (ticket ouvert)
+- [ ] S10B-05 — session web concurrente et `/api/*` — 80 % : code et tests livrés sur
+  `fix/S10B-05-web-session`.
+  - Une rotation terminée est rendue pendant 15 s à une requête qui porte encore l'ancien refresh token,
+    au lieu de le redépenser (`ROTATION_GRACE_MS`, côté web seulement : **pas d'ADR**, le modèle d'auth
+    de l'API ne bouge pas).
+  - Les cinq Route Handlers `/api/*` passent par `getRouteSession` : la session est rafraîchie, le
+    cookie réécrit, et un refus donne 401 sans redirection.
+
+  Tests : `refresh.test.ts` 4/4, `route-session.test.ts` 4/4, Vitest 339/339, typecheck vert, lint
+  propre sur les fichiers touchés (les erreurs du lint global viennent de `.next.keep/`, non suivi).
+  Reste :
+  - e2e « jeton d'accès expiré → Lecture » non écrit (il faut une durée de vie de jeton réglable dans la
+    pile e2e) ;
+  - revue et merge ;
+  - la déduplication reste propre à une instance.
+
+  **Transmission de l'IP navigateur par le BFF (constat S10B-02) : non faite ici, décision de
+  déploiement.** Le serveur Next ne voit pas l'IP de la socket du navigateur. Transmettre l'en-tête
+  entrant n'est sûr que derrière un proxy qui l'écrase. À trancher avec la topologie de production.
 - [ ] S10B-06 — tests de migration Room — 0 % (ticket ouvert)
