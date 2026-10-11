@@ -30,8 +30,10 @@ import tv.lumo.android.core.data.model.EpisodeProgress
 import tv.lumo.android.core.data.model.ResumableSeries
 import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.data.model.episodeAfter
+import tv.lumo.android.core.database.dao.CatalogueSyncDao
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.SeriesDao
+import tv.lumo.android.core.database.model.CatalogueSyncEntity
 import tv.lumo.android.core.database.model.CategoryEntity
 import tv.lumo.android.core.database.model.EpisodeEntity
 import tv.lumo.android.core.database.model.SeasonEntity
@@ -77,6 +79,7 @@ class SeriesRepository @Inject internal constructor(
     private val calls: ApiCaller,
     private val categoryDao: CategoryDao,
     private val seriesDao: SeriesDao,
+    private val syncs: CatalogueSyncDao,
     private val pager: SeriesPager,
     @Dispatcher(LumoDispatcher.IO) private val io: CoroutineDispatcher,
 ) {
@@ -308,6 +311,8 @@ class SeriesRepository @Inject internal constructor(
             (categories as LumoResult.Success).value.items.map { it.asEntity() },
         )
         seriesDao.replaceForSource(sourceId, rows)
+        // After the rows, never before: see CatalogueSyncEntity.
+        syncs.upsert(CatalogueSyncEntity(sourceId, ContentType.SERIES.value, System.currentTimeMillis()))
 
         staleness.update { it + (sourceId to null) }
         LumoResult.Success(Unit)
@@ -316,6 +321,14 @@ class SeriesRepository @Inject internal constructor(
     /** How many series the cache holds for a source. Drives the empty state. */
     suspend fun cachedSeriesCount(sourceId: String): Int =
         withContext(io) { seriesDao.countForSource(sourceId) }
+
+    /**
+     * Whether a whole series catalogue of this source was pulled on this device —
+     * not whether the cache holds rows: resolvers write single rows there too
+     * (BUG-R020-16-01). What decides a screen's first refresh.
+     */
+    suspend fun isSynchronised(sourceId: String): Boolean =
+        withContext(io) { syncs.isSynchronised(sourceId, ContentType.SERIES.value) }
 
     /** Several series from the cache, by id. For a rail. See [VodRepository.filmsByIds]. */
     suspend fun seriesByIds(ids: List<String>): List<Series> = withContext(io) {
@@ -438,6 +451,7 @@ class SeriesRepository @Inject internal constructor(
 
     /** Drops one source's series, for a source the user just deleted. */
     suspend fun forget(sourceId: String) = withContext(io) {
+        syncs.delete(sourceId, ContentType.SERIES.value)
         // Seasons and episodes cascade with their series.
         seriesDao.deleteBySource(sourceId)
         staleness.update { it - sourceId }

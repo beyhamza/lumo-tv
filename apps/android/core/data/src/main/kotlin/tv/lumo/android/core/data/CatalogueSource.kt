@@ -212,6 +212,24 @@ fun CatalogueSource.face(cachedItems: Int): CatalogueFace = when (this) {
     }
 }
 
+/**
+ * Whether a catalogue screen opening on this source pulls its catalogue
+ * (BUG-R020-16-01).
+ *
+ * Only a [CatalogueSource.Ready] source: one that never finished an ingestion
+ * answers `409`, and asking would put a "refresh failed" banner over a cache
+ * that is merely waiting. And only when that catalogue was never pulled whole on
+ * this device — **not** when the cache is empty. Favourites, recently watched
+ * channels, the "Continue" rail and a series opened from a link write single
+ * rows into the same tables; reading them as a catalogue left a television just
+ * paired to an account with favourites showing those favourites as the whole
+ * source, and never asking for the rest.
+ *
+ * @param synchronised the repository's `isSynchronised` for this source.
+ */
+fun CatalogueSource.needsFirstRefresh(synchronised: Boolean): Boolean =
+    this is CatalogueSource.Ready && !synchronised
+
 /** Whether the source is a playlist, for the one screen that words an absence with it. */
 val CatalogueSource.isPlaylist: Boolean
     get() = when (this) {

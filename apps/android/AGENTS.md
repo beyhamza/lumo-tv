@@ -169,6 +169,11 @@ est lisible par `adb` depuis n'importe quelle machine branchée en USB.
 - La `stream_url` n'est **pas** en cache dans Room, volontairement : elle porte
   les identifiants Xtream dans son chemin. Elle est demandée à la lecture, à
   `GET /channels/{id}/playback`, et jetée ensuite.
+- « Le cache a des lignes » ne veut **pas** dire « le catalogue est synchronisé » :
+  favoris, récentes, rail « Continuer » et fiche ouverte par lien écrivent des
+  lignes isolées dans `channel`, `vod_item`, `series`. La première synchro d'un
+  écran se décide sur `isSynchronised` (table `catalogue_sync`, écrite par un
+  `refresh` complet), jamais sur un compteur de lignes (`BUG-R020-16-01`).
 
 ---
 
@@ -274,7 +279,7 @@ Le scaffolding s'arrête volontairement là où le sprint 1 commence.
   les écrans avec le périmètre 0.2.0 (US-025), le code serveur reste une dette
   documentée (`docs/backlog/dette.md` §1).
 - Tests instrumentés : focus TV (`feature:live`, `feature:search`) et migrations Room
-  1 → 7 (`core:database`, `LumoDatabaseMigrationTest`, S10B-06). **La CI ne les lance
+  1 → 8 (`core:database`, `LumoDatabaseMigrationTest`, S10B-06). **La CI ne les lance
   pas** : `./gradlew :core:database:connectedDebugAndroidTest` sur un émulateur avant
   toute PR qui ajoute une version de base.
 - L'app TV n'a pas encore été pilotée à la télécommande sur un appareil réel.

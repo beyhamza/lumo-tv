@@ -62,6 +62,7 @@ class VodRepositoryTest {
 
     private val vodDao = FakeVodDao()
     private val categoryDao = FakeSharedCategoryDao()
+    private val syncs = FakeCatalogueSyncDao()
 
     private val sourceId = UUID.randomUUID().toString()
 
@@ -98,6 +99,24 @@ class VodRepositoryTest {
             .containsExactly("Sport", "Généralistes")
         assertThat(categoryDao.stored.value.filter { it.contentType == "VOD" }.map { it.name })
             .containsExactly("Action")
+    }
+
+    @Test
+    fun `films resolved for a rail are not a synchronised catalogue, a refresh is`() = runTest {
+        // What the "Continue" rail writes on a television just paired: one film,
+        // and no film catalogue behind it (BUG-R020-16-01).
+        vodDao.stored += entity("Le Voyage")
+        val repository = repository()
+
+        assertThat(repository.cachedFilmCount(sourceId)).isEqualTo(1)
+        assertThat(repository.isSynchronised(sourceId)).isFalse()
+
+        server.enqueue(json(categoryList(listOf("Action"))))
+        server.enqueue(json(vodPage(page = 0, totalPages = 1, names = listOf("Le Voyage", "Les Falaises"))))
+        repository.refresh(sourceId)
+
+        assertThat(repository.isSynchronised(sourceId)).isTrue()
+        assertThat(syncs.stored.keys).containsExactly(sourceId to "VOD")
     }
 
     @Test
@@ -287,6 +306,7 @@ class VodRepositoryTest {
         calls = ApiCaller(ProblemReader(Serializer.moshiBuilder.build())),
         categoryDao = categoryDao,
         vodDao = vodDao,
+        syncs = syncs,
         pager = VodPager(vodDao),
         io = UnconfinedTestDispatcher(),
     )

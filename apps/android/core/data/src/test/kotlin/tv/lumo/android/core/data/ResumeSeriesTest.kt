@@ -260,6 +260,7 @@ class ResumeSeriesTest {
         calls = ApiCaller(ProblemReader(Serializer.moshiBuilder.build())),
         categoryDao = categoryDao,
         seriesDao = seriesDao,
+        syncs = FakeCatalogueSyncDao(),
         pager = SeriesPager(seriesDao),
         io = UnconfinedTestDispatcher(),
     )

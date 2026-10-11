@@ -106,6 +106,23 @@ class CatalogueSourceTest {
     }
 
     @Test
+    fun `a first refresh is decided by the catalogue having been pulled, not by rows`() {
+        val ready = CatalogueSource.Ready("source-a", isPlaylist = true)
+
+        // A television just paired to an account with favourites: their channels
+        // are cached, the catalogue is not (BUG-R020-16-01).
+        assertThat(ready.needsFirstRefresh(synchronised = false)).isTrue()
+        assertThat(ready.needsFirstRefresh(synchronised = true)).isFalse()
+
+        // Nothing the server can list yet: asking would be a `409` and a
+        // "refresh failed" banner over a cache that is merely waiting.
+        val importing = CatalogueSource.FirstImport("source-a", isPlaylist = true, failed = false)
+        assertThat(importing.needsFirstRefresh(synchronised = false)).isFalse()
+        assertThat(CatalogueSource.NoSource.needsFirstRefresh(synchronised = false)).isFalse()
+        assertThat(CatalogueSource.Loading.needsFirstRefresh(synchronised = false)).isFalse()
+    }
+
+    @Test
     fun `a refresh moving through its steps does not restart a grid`() {
         val synced = java.time.OffsetDateTime.parse("2026-09-01T10:00:00Z")
         val connecting = a.copy(

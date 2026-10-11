@@ -45,9 +45,10 @@ class LumoDatabaseMigrationTest {
         MIGRATION_4_5,
         MIGRATION_5_6,
         MIGRATION_6_7,
+        MIGRATION_7_8,
     )
 
-    /** Each test starts from no file: a version 7 left by the previous one would be reopened, not created. */
+    /** Each test starts from no file: a version 8 left by the previous one would be reopened, not created. */
     @Before
     fun noDatabaseYet() {
         instrumentation.targetContext.deleteDatabase(TEST_DB)
@@ -89,11 +90,18 @@ class LumoDatabaseMigrationTest {
             row.step()
             assertEquals(1L, row.getLong(0))
         }
+        // 7 → 8 backfills no sync marker (BUG-R020-16-01): a cache from before
+        // cannot tell a catalogue from a few resolved favourites, so each screen
+        // pulls its catalogue once after the update.
+        migrated.prepare("SELECT COUNT(*) FROM catalogue_sync").use { row ->
+            row.step()
+            assertEquals(0L, row.getLong(0))
+        }
         migrated.close()
     }
 
     /**
-     * A version 8 exported without its migration in [migrations] fails here:
+     * A version 9 exported without its migration in [migrations] fails here:
      * the newest schema shipped to the test APK is the version the list must reach.
      */
     @Test
@@ -114,6 +122,6 @@ class LumoDatabaseMigrationTest {
         const val TEST_DB = "migration-test.db"
 
         /** `@Database(version = …)` of [LumoDatabase]. */
-        const val LATEST_VERSION = 7
+        const val LATEST_VERSION = 8
     }
 }

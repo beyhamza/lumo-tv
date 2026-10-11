@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
+import tv.lumo.android.core.database.dao.CatalogueSyncDao
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.ChannelDao
 import tv.lumo.android.core.database.dao.EpgDao
@@ -12,6 +13,7 @@ import tv.lumo.android.core.database.dao.FavoriteDao
 import tv.lumo.android.core.database.dao.RecentChannelDao
 import tv.lumo.android.core.database.dao.SeriesDao
 import tv.lumo.android.core.database.dao.VodDao
+import tv.lumo.android.core.database.model.CatalogueSyncEntity
 import tv.lumo.android.core.database.model.CategoryEntity
 import tv.lumo.android.core.database.model.ChannelEntity
 import tv.lumo.android.core.database.model.EpgImportStatusEntity
@@ -51,8 +53,9 @@ import tv.lumo.android.core.database.model.VodItemEntity
         EpisodeEntity::class,
         EpgProgrammeEntity::class,
         EpgImportStatusEntity::class,
+        CatalogueSyncEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class LumoDatabase : RoomDatabase() {
@@ -63,6 +66,7 @@ abstract class LumoDatabase : RoomDatabase() {
     abstract fun vodDao(): VodDao
     abstract fun seriesDao(): SeriesDao
     abstract fun epgDao(): EpgDao
+    abstract fun catalogueSyncDao(): CatalogueSyncDao
 }
 
 /**
@@ -368,6 +372,30 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
                 `generated_at` INTEGER NOT NULL,
                 `fetched_at` INTEGER NOT NULL,
                 PRIMARY KEY(`source_id`)
+            )
+            """.trimIndent(),
+        )
+    }
+}
+
+/**
+ * 7 → 8: which catalogues were pulled whole on this device (BUG-R020-16-01).
+ *
+ * One table, see [CatalogueSyncEntity]. **Nothing is backfilled, on purpose**:
+ * a cache written before this version cannot say whether it is a whole
+ * catalogue or a handful of favourites resolved one by one — that confusion is
+ * the bug. With no row, each screen refreshes its catalogue once at its first
+ * opening after the update, which is also what heals a cache the bug left short.
+ */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `catalogue_sync` (
+                `source_id` TEXT NOT NULL,
+                `content_type` TEXT NOT NULL,
+                `synced_at` INTEGER NOT NULL,
+                PRIMARY KEY(`source_id`, `content_type`)
             )
             """.trimIndent(),
         )

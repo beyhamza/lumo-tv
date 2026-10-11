@@ -24,8 +24,10 @@ import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.SearchPage
 import tv.lumo.android.core.data.model.VodItem
+import tv.lumo.android.core.database.dao.CatalogueSyncDao
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.VodDao
+import tv.lumo.android.core.database.model.CatalogueSyncEntity
 import tv.lumo.android.core.database.model.CategoryEntity
 import tv.lumo.android.core.database.model.VodItemEntity
 import tv.lumo.android.core.database.paging.VodPager
@@ -67,6 +69,7 @@ class VodRepository @Inject internal constructor(
     private val calls: ApiCaller,
     private val categoryDao: CategoryDao,
     private val vodDao: VodDao,
+    private val syncs: CatalogueSyncDao,
     private val pager: VodPager,
     @Dispatcher(LumoDispatcher.IO) private val io: CoroutineDispatcher,
 ) {
@@ -236,6 +239,8 @@ class VodRepository @Inject internal constructor(
         }
 
         vodDao.replaceForSource(sourceId, films)
+        // After the rows, never before: see CatalogueSyncEntity.
+        syncs.upsert(CatalogueSyncEntity(sourceId, ContentType.VOD.value, System.currentTimeMillis()))
 
         staleness.update { it + (sourceId to null) }
         LumoResult.Success(Unit)
@@ -333,6 +338,14 @@ class VodRepository @Inject internal constructor(
         withContext(io) { vodDao.countForSource(sourceId) }
 
     /**
+     * Whether a whole film catalogue of this source was pulled on this device —
+     * not whether the cache holds rows: resolvers write single rows there too
+     * (BUG-R020-16-01). What decides a screen's first refresh.
+     */
+    suspend fun isSynchronised(sourceId: String): Boolean =
+        withContext(io) { syncs.isSynchronised(sourceId, ContentType.VOD.value) }
+
+    /**
      * How many films the source carries, or null when that is not known.
      *
      * `Source` has no film counter, by decision (c4-previous-catalogue.md §P3):
@@ -358,6 +371,7 @@ class VodRepository @Inject internal constructor(
 
     /** Drops one source's films, for a source the user just deleted. */
     suspend fun forget(sourceId: String) = withContext(io) {
+        syncs.delete(sourceId, ContentType.VOD.value)
         vodDao.deleteBySource(sourceId)
         staleness.update { it - sourceId }
     }
