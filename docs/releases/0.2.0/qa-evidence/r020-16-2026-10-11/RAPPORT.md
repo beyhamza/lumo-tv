@@ -50,7 +50,7 @@
 
 | Étape | TV (`tv.lumo.androidtv.debug`) | Mobile (`tv.lumo.android.debug`) |
 |---|---|---|
-| 0.1.0 installée et lancée | ✅ `01-tv-v010-installee.png` (coquilles d'écran, pas de connexion) | ✅ `10-mobile-v010-installee.png` |
+| 0.1.0 installée et lancée | ✅ `01-tv-v010-installee.png` (coquilles d'écran, pas de connexion) | ✅ installée et lancée (`versionName=0.1.0-debug` ; capture inexploitable, écran en veille) |
 | Fichiers privés laissés par la 0.1.0 | `files/profileInstalled` seul : ni session, ni base Room (déclarée v1, jamais ouverte) | aucun |
 | `adb install -r` de la 0.2.0 | ✅ `firstInstallTime` conservé, `lastUpdateTime` changé, `versionName` 0.1.0 → 0.2.0 | ✅ idem |
 | Premier lancement | ✅ écran d'activation, aucun crash (`02-…`) | ✅ connexion, aucun crash |
