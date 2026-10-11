@@ -59,6 +59,7 @@ class CatalogueRepositoryTest {
 
     private val channelDao = FakeChannelDao()
     private val categoryDao = FakeCategoryDao()
+    private val syncs = FakeCatalogueSyncDao()
 
     private val sourceId = UUID.randomUUID().toString()
 
@@ -125,6 +126,61 @@ class CatalogueRepositoryTest {
     }
 
     @Test
+    fun `a whole refresh is what marks the catalogue synchronised`() = runTest {
+        server.enqueue(json(categoryList()))
+        server.enqueue(json(channelPage(page = 0, totalPages = 1, names = listOf("A"))))
+
+        val repository = repository()
+        assertThat(repository.isSynchronised(sourceId)).isFalse()
+
+        repository.refresh(sourceId)
+
+        assertThat(repository.isSynchronised(sourceId)).isTrue()
+        assertThat(syncs.stored.keys).containsExactly(sourceId to "LIVE")
+    }
+
+    @Test
+    fun `channels resolved one by one are not a synchronised catalogue`() = runTest {
+        // What `ChannelResolver` leaves after the home screen named a favourite
+        // and a recently watched channel on a television just paired.
+        channelDao.stored += entity("Favourite")
+        channelDao.stored += entity("Recently watched")
+
+        val repository = repository()
+
+        // BUG-R020-16-01: the screen used to read this count as "already
+        // synchronised", and showed these two channels as the whole source.
+        assertThat(repository.cachedChannelCount(sourceId)).isEqualTo(2)
+        assertThat(repository.isSynchronised(sourceId)).isFalse()
+    }
+
+    @Test
+    fun `a refresh that fails part-way does not mark the catalogue synchronised`() = runTest {
+        server.enqueue(json(categoryList()))
+        server.enqueue(json(channelPage(page = 0, totalPages = 2, names = listOf("A"))))
+        server.enqueue(MockResponse().setResponseCode(503).setBody("""{"code":"INTERNAL_ERROR"}"""))
+
+        val repository = repository()
+        repository.refresh(sourceId)
+
+        assertThat(repository.isSynchronised(sourceId)).isFalse()
+    }
+
+    @Test
+    fun `a forgotten source is no longer synchronised`() = runTest {
+        server.enqueue(json(categoryList()))
+        server.enqueue(json(channelPage(page = 0, totalPages = 1, names = listOf("A"))))
+
+        val repository = repository()
+        repository.refresh(sourceId)
+        repository.forget(sourceId)
+
+        // Deleted then added again, the same source starts from nothing: a
+        // marker left behind would skip its first refresh over an empty cache.
+        assertThat(repository.isSynchronised(sourceId)).isFalse()
+    }
+
+    @Test
     fun `before any refresh, the answer is the cache and says so`() = runTest {
         categoryDao.stored.value = listOf(categoryEntity("Sport"))
 
@@ -172,6 +228,7 @@ class CatalogueRepositoryTest {
         calls = ApiCaller(ProblemReader(Serializer.moshiBuilder.build())),
         categoryDao = categoryDao,
         channelDao = channelDao,
+        syncs = syncs,
         pager = CataloguePager(channelDao),
         io = UnconfinedTestDispatcher(),
     )

@@ -34,6 +34,7 @@ import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.data.model.EpisodeProgress
 import tv.lumo.android.core.data.model.ResumableSeries
+import tv.lumo.android.core.data.needsFirstRefresh
 import tv.lumo.android.core.data.notice
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.ContinueWatchingRepository
@@ -151,10 +152,11 @@ class SeriesViewModel @Inject constructor(
             launch { observeCategories(sourceId) }
             launch { loadContinueWatching(sourceId) }
 
-            // Only a source the server can list: one that never finished an
-            // ingestion answers `409`, and asking would put a "refresh failed"
-            // banner over a cache that is merely waiting.
-            if (cached == 0 && source is CatalogueSource.Ready) {
+            // Whether this catalogue was ever pulled whole on this device, not
+            // whether the cache holds rows: favourites and rails write single
+            // rows into it too (BUG-R020-16-01). Only a ready source — see
+            // `needsFirstRefresh`.
+            if (source.needsFirstRefresh(synchronised = series.isSynchronised(sourceId))) {
                 refresh()
             }
         }

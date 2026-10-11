@@ -85,6 +85,7 @@ class SourceCountsTest {
         calls = ApiCaller(ProblemReader(Serializer.moshiBuilder.build())),
         categoryDao = FakeSeriesCategoryDao(),
         seriesDao = seriesDao,
+        syncs = FakeCatalogueSyncDao(),
         pager = SeriesPager(seriesDao),
         io = UnconfinedTestDispatcher(),
     )

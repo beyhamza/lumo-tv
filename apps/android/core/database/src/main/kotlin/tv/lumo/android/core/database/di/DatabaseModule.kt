@@ -15,6 +15,8 @@ import tv.lumo.android.core.database.MIGRATION_3_4
 import tv.lumo.android.core.database.MIGRATION_4_5
 import tv.lumo.android.core.database.MIGRATION_5_6
 import tv.lumo.android.core.database.MIGRATION_6_7
+import tv.lumo.android.core.database.MIGRATION_7_8
+import tv.lumo.android.core.database.dao.CatalogueSyncDao
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.ChannelDao
 import tv.lumo.android.core.database.dao.EpgDao
@@ -45,6 +47,7 @@ object DatabaseModule {
                             MIGRATION_4_5,
                             MIGRATION_5_6,
                             MIGRATION_6_7,
+                            MIGRATION_7_8,
                         )
             .build()
 
@@ -68,6 +71,9 @@ object DatabaseModule {
 
     @Provides
     fun epgDao(database: LumoDatabase): EpgDao = database.epgDao()
+
+    @Provides
+    fun catalogueSyncDao(database: LumoDatabase): CatalogueSyncDao = database.catalogueSyncDao()
 
     @Provides
     @Singleton
