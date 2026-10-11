@@ -29,6 +29,15 @@ class VodPager @Inject constructor(
     private val vodDao: VodDao,
 ) {
 
+    private val live = LivePagingSources<VodItemEntity>()
+
+    /**
+     * Invalidates every list this pager has open, for the repository that has
+     * just replaced the catalogue underneath them. Not left to Room: see
+     * [LivePagingSources] for the change it drops (BUG-R020-16-02).
+     */
+    fun invalidate() = live.invalidateAll()
+
     fun filmsInCategory(sourceId: String, categoryId: String): Flow<PagingData<VodItemEntity>> =
         pager { vodDao.pagedByCategory(sourceId, categoryId) }
 
@@ -59,7 +68,7 @@ class VodPager @Inject constructor(
             // shifting everything below it.
             enablePlaceholders = true,
         ),
-        pagingSourceFactory = source,
+        pagingSourceFactory = { live.track(source()) },
     ).flow
 
     private companion object {

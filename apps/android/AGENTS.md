@@ -174,6 +174,10 @@ est lisible par `adb` depuis n'importe quelle machine branchée en USB.
   lignes isolées dans `channel`, `vod_item`, `series`. La première synchro d'un
   écran se décide sur `isSynchronised` (table `catalogue_sync`, écrite par un
   `refresh` complet), jamais sur un compteur de lignes (`BUG-R020-16-01`).
+- Un `refresh` qui remplace un catalogue appelle `pager.invalidate()` après
+  l'écriture. room-paging ignore les changements notifiés pendant le premier
+  chargement d'une liste : sans cet appel, une grille ouverte pendant la première
+  synchro reste vide sur un cache plein (`BUG-R020-16-02`).
 
 ---
 

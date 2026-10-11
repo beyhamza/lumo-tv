@@ -241,6 +241,9 @@ class VodRepository @Inject internal constructor(
         vodDao.replaceForSource(sourceId, films)
         // After the rows, never before: see CatalogueSyncEntity.
         syncs.upsert(CatalogueSyncEntity(sourceId, ContentType.VOD.value, System.currentTimeMillis()))
+        // A grid in its first load misses Room's own notice of this write and
+        // would stay empty (BUG-R020-16-02): tell the open lists directly.
+        pager.invalidate()
 
         staleness.update { it + (sourceId to null) }
         LumoResult.Success(Unit)

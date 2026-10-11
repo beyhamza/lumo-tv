@@ -170,6 +170,20 @@ class SeriesTreeStateTest {
     }
 
     @Test
+    fun `a refresh invalidates the series lists already open`() = runTest {
+        val repository = repository()
+        repository.series(sourceId).first()
+        val open = seriesDao.handedOut.single()
+
+        server.enqueue(json("""{"items":[]}"""))
+        server.enqueue(json(seriesPage()))
+        repository.refresh(sourceId)
+
+        // Same race as the channels (BUG-R020-16-02).
+        assertThat(open.invalid).isTrue()
+    }
+
+    @Test
     fun `a listing never claims a tree it has not got`() = runTest {
         server.enqueue(json("""{"items":[]}"""))
         server.enqueue(json(seriesPage()))
