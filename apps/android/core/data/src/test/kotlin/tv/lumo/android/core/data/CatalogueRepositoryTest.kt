@@ -181,6 +181,24 @@ class CatalogueRepositoryTest {
     }
 
     @Test
+    fun `a refresh invalidates the channel lists already open`() = runTest {
+        val repository = repository()
+        // The grid of a television opened on a source it never synchronised: its
+        // first page is read empty, before the refresh has written anything.
+        repository.channels(sourceId).first()
+        val open = channelDao.handedOut.single()
+
+        server.enqueue(json(categoryList()))
+        server.enqueue(json(channelPage(page = 0, totalPages = 1, names = listOf("A"))))
+        repository.refresh(sourceId)
+
+        // BUG-R020-16-02: Room drops its own notice of a write made during that
+        // first load, and an empty page never asks for another. Without this the
+        // grid stays empty over a full cache.
+        assertThat(open.invalid).isTrue()
+    }
+
+    @Test
     fun `before any refresh, the answer is the cache and says so`() = runTest {
         categoryDao.stored.value = listOf(categoryEntity("Sport"))
 
@@ -286,6 +304,9 @@ private class FakeChannelDao : ChannelDao {
 
     val stored = mutableListOf<ChannelEntity>()
 
+    /** Every list the pager opened over this table, in order. */
+    val handedOut = mutableListOf<EmptyPagingSource<ChannelEntity>>()
+
     override suspend fun upsert(channels: List<ChannelEntity>) {
         stored += channels
     }
@@ -314,7 +335,8 @@ private class FakeChannelDao : ChannelDao {
         categoryId: String,
     ): PagingSource<Int, ChannelEntity> = unreachable()
 
-    override fun pagedBySource(sourceId: String): PagingSource<Int, ChannelEntity> = unreachable()
+    override fun pagedBySource(sourceId: String): PagingSource<Int, ChannelEntity> =
+        EmptyPagingSource<ChannelEntity>().also { handedOut += it }
 
     override fun pagedBySearch(
         sourceId: String,

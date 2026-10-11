@@ -120,6 +120,20 @@ class VodRepositoryTest {
     }
 
     @Test
+    fun `a refresh invalidates the film lists already open`() = runTest {
+        val repository = repository()
+        repository.films(sourceId).first()
+        val open = vodDao.handedOut.single()
+
+        server.enqueue(json(categoryList(listOf("Action"))))
+        server.enqueue(json(vodPage(page = 0, totalPages = 1, names = listOf("Le Voyage"))))
+        repository.refresh(sourceId)
+
+        // Same race as the channels (BUG-R020-16-02), same poster wall left empty.
+        assertThat(open.invalid).isTrue()
+    }
+
+    @Test
     fun `a film already carrying its synopsis is not asked for again`() = runTest {
         vodDao.stored += entity("Le Voyage").copy(plot = "Un synopsis déjà en cache")
 
@@ -379,6 +393,9 @@ private class FakeVodDao : VodDao {
 
     val stored = mutableListOf<VodItemEntity>()
 
+    /** Every list the pager opened over this table, in order. */
+    val handedOut = mutableListOf<EmptyPagingSource<VodItemEntity>>()
+
     override suspend fun upsert(items: List<VodItemEntity>) {
         items.forEach { item ->
             stored.removeAll { it.id == item.id }
@@ -409,7 +426,8 @@ private class FakeVodDao : VodDao {
         categoryId: String,
     ): PagingSource<Int, VodItemEntity> = unreachable()
 
-    override fun pagedBySource(sourceId: String): PagingSource<Int, VodItemEntity> = unreachable()
+    override fun pagedBySource(sourceId: String): PagingSource<Int, VodItemEntity> =
+        EmptyPagingSource<VodItemEntity>().also { handedOut += it }
 
     override fun pagedBySearch(
         sourceId: String,
