@@ -1983,6 +1983,137 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
 
+  /me/watchlist:
+    get:
+      tags: [userdata]
+      operationId: listWatchlist
+      summary: Films and series this account saved to watch later
+      description: |
+        Ordered by `added_at`, most recent first, then by `id` — the order the
+        "My list" section shows. The order is the server's acceptance order
+        (`adr/0011`, ruling 5), never a device clock.
+
+        An item stays listed when its film or series disappears from the
+        catalogue: it comes back with `available: false`, its last known
+        `title`, and no `content_id` (`WL-01`, `WL-02`). Deleting the source
+        deletes its items (`WL-05`, US-024); they do not linger as unavailable.
+
+        Not to be confused with `GET /me/progress`. Progress is fed by playback;
+        this list is a deliberate selection, and watching an item neither
+        removes it nor changes its rank (`WL-13`).
+      parameters:
+        - name: sourceId
+          in: query
+          required: false
+          description: |
+            Restrict to one source — the active one, on every surface
+            (`WL-14`). Items of the other sources are kept, not shown.
+          schema:
+            type: string
+            format: uuid
+        - name: contentType
+          in: query
+          required: false
+          description: Restrict to films or to series. Does not narrow `content_types`.
+          schema:
+            $ref: '#/components/schemas/WatchlistContentType'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: One page of the list, most recently added first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistPage'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [userdata]
+      operationId: addWatchlistItem
+      summary: Add a film or a series to the list
+      description: |
+        `source_id` is not accepted: it is derived from the film or series,
+        exactly as on `AddFavoriteRequest`. A series is saved as a whole, never
+        episode by episode.
+
+        **A retry is not a new intention** (`adr/0011`, ruling 6). The request
+        carries an `Idempotency-Key` generated once per intention by the client.
+        Replaying the same key returns the outcome recorded the first time —
+        same status, same body — and changes nothing, even if the list has
+        changed since. That recorded body describes the moment the add was
+        accepted, not the present: a client that needs the present re-reads
+        the list.
+
+        Adding an item already in the list, under a new key, is accepted and
+        changes nothing either: the item keeps its `added_at` and its rank.
+        `200` instead of `201` tells the two apart.
+
+        Identity is the source's own identifier for the film or series, never
+        its title (`WL-15`, `WL-16`). An item whose content disappeared and
+        came back under the same identifier is the same item, with its rank.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddWatchlistItemRequest'
+      responses:
+        '201':
+          description: The item was added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistItem'
+        '200':
+          description: The item was already in the list. Nothing changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistItem'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: |
+            No such film or series on this account (`VOD_ITEM_NOT_FOUND`,
+            `SERIES_NOT_FOUND`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409': { $ref: '#/components/responses/IdempotencyKeyReused' }
+
+  /me/watchlist/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    delete:
+      tags: [userdata]
+      operationId: removeWatchlistItem
+      summary: Remove an item from the list
+      description: |
+        Addressed by the item's own `id`, so it works on an unavailable item
+        whose film or series no longer exists (`WL-03`). Leaves playback
+        progress alone.
+
+        Same `Idempotency-Key` rule as the add: replaying a removal that was
+        accepted answers `204` again, where a new removal of the same item
+        would answer `404`. That difference is the point — a lost response
+        followed by a retry must not read as "somebody else removed it".
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Item removed.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such item on this account (`WATCHLIST_ITEM_NOT_FOUND`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409': { $ref: '#/components/responses/IdempotencyKeyReused' }
+
   # ------------------------------------------------------------- billing ------
 
   /billing/checkout-session:
@@ -2116,6 +2247,23 @@ components:
         maximum: 200
         default: 50
 
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        One value per user intention, generated by the client and kept across
+        every retry of that intention (`adr/0011`, ruling 6). A new intention
+        takes a new key.
+
+        The server remembers a key for 24 hours, per account. Within that
+        window a replay returns the recorded outcome and changes nothing; after
+        it, the same key is a new request. A request that failed was not
+        accepted, so nothing is recorded and its retry runs normally.
+      schema:
+        type: string
+        format: uuid
+
   headers:
     RetryAfter:
       description: Seconds to wait before retrying.
@@ -2157,6 +2305,14 @@ components:
         device from another screen, or upgrade. It reads the ceiling from
         `Entitlement.max_devices` — never from a constant of its own
         (AGENTS.md §1).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    IdempotencyKeyReused:
+      description: |
+        This `Idempotency-Key` was already used, on this account, for a
+        different request (`IDEMPOTENCY_KEY_REUSED`). A client bug, not a
+        conflict with another device: keys are per intention.
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
@@ -2326,7 +2482,8 @@ components:
           `VOD_ITEM_NOT_FOUND`, `SERIES_NOT_FOUND`, `EPISODE_NOT_FOUND`,
           `FAVORITE_NOT_FOUND`, `FAVORITE_ALREADY_EXISTS`,
           `FAVORITE_GROUP_NOT_FOUND`, `FAVORITE_GROUP_ALREADY_EXISTS`,
-          `FAVORITE_GROUP_NOT_DELETABLE`.
+          `FAVORITE_GROUP_NOT_DELETABLE`, `WATCHLIST_ITEM_NOT_FOUND`,
+          `IDEMPOTENCY_KEY_REUSED`.
 
           The last one is only ever the default group. It is separate from a
           bare `CONFLICT` for the same reason as the quota codes below: a client
@@ -2392,6 +2549,8 @@ components:
         - FAVORITE_GROUP_NOT_FOUND
         - FAVORITE_GROUP_ALREADY_EXISTS
         - FAVORITE_GROUP_NOT_DELETABLE
+        - WATCHLIST_ITEM_NOT_FOUND
+        - IDEMPOTENCY_KEY_REUSED
         - EPG_WINDOW_TOO_LARGE
         - SOURCE_LIMIT_REACHED
         - DEVICE_LIMIT_REACHED
@@ -2586,6 +2745,14 @@ components:
         What a `playback_progress` row points at. Live channels have no
         progress, so there is no `LIVE` value here.
       enum: [VOD, EPISODE]
+
+    WatchlistContentType:
+      type: string
+      description: |
+        What a watchlist item points at. Films and series only: a live channel
+        is a favourite, not something to watch later, and a series is saved as
+        a whole, so there is no `EPISODE` either.
+      enum: [VOD, SERIES]
 
     # ---- auth --------------------------------------------------------------
 
@@ -4432,6 +4599,112 @@ components:
         channel_id:
           type: string
           format: uuid
+    WatchlistItem:
+      type: object
+      description: |
+        One film or series in the list.
+
+        Carries a display snapshot (`title`, `poster_url`) so the card renders
+        when the catalogue no longer has the content (`adr/0011`, ruling 3).
+        While the content is available, both are the catalogue's current
+        values; once it is gone, they are the values recorded when the item was
+        added.
+      required: [id, source_id, content_type, available, title, added_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The item's own identifier — what a removal addresses.
+        source_id:
+          type: string
+          format: uuid
+        content_type:
+          $ref: '#/components/schemas/WatchlistContentType'
+        content_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: |
+            `VodItem.id` or `Series.id`, to open the sheet. Null exactly when
+            `available` is false.
+
+            Resolved on every read rather than stored: a film that disappears
+            and comes back gets a new catalogue id, and the item must follow it
+            (`WL-15`).
+        available:
+          type: boolean
+          description: |
+            False only after a synchronisation of the source **completed** and
+            no longer listed the content (`WL-01`). A failed or interrupted
+            synchronisation keeps the previous catalogue, so it never makes an
+            item unavailable, and neither does a network error on the client
+            (`WL-04`).
+        title:
+          type: string
+        poster_url:
+          type: string
+          nullable: true
+          description: |
+            As served by the source. May stop loading, especially once
+            `available` is false; clients show a placeholder then.
+        added_at:
+          type: string
+          format: date-time
+          description: |
+            When the server accepted the add. The list's order. Never changed by
+            a replay, a second add, playback, or the content disappearing and
+            coming back.
+
+    WatchlistPage:
+      type: object
+      description: |
+        One page of the list. Same envelope as `PlaybackProgressPage`, plus
+        `content_types`.
+      required: [items, page, size, total_elements, total_pages, content_types]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WatchlistItem'
+        page:
+          type: integer
+          format: int32
+          description: Zero-based index of this page.
+        size:
+          type: integer
+          format: int32
+          description: Requested page size, after the server-side cap.
+        total_elements:
+          type: integer
+          format: int64
+          description: Total items matching the filters.
+        total_pages:
+          type: integer
+          format: int32
+        content_types:
+          type: array
+          description: |
+            The types present in the list for the `sourceId` filter, ignoring
+            `contentType`, unavailable items included. What the Films / Series
+            filter is built from (`WL-17`): a page alone cannot say whether the
+            other type exists further on.
+          items:
+            $ref: '#/components/schemas/WatchlistContentType'
+
+    AddWatchlistItemRequest:
+      type: object
+      description: |
+        `source_id` is not accepted: it is derived from the content, exactly as
+        on `AddFavoriteRequest`.
+      required: [content_type, content_id]
+      properties:
+        content_type:
+          $ref: '#/components/schemas/WatchlistContentType'
+        content_id:
+          type: string
+          format: uuid
+          description: '`VodItem.id` for `VOD`, `Series.id` for `SERIES`.'
+
     SaveProgressRequest:
       type: object
       description: Upsert keyed on `(source_id, item_type, item_ref)` for the caller.
