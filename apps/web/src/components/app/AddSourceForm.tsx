@@ -173,7 +173,7 @@ function KindChoice({
   );
 }
 
-function Field({
+export function Field({
   name,
   label,
   hint,
@@ -217,7 +217,7 @@ function Field({
   );
 }
 
-function SubmitButton({
+export function SubmitButton({
   label,
   pendingLabel,
 }: {

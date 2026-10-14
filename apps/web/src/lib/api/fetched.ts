@@ -45,15 +45,55 @@ type ApiCall<T> = () => Promise<{
  * change here.
  */
 export async function fetched<T>(call: ApiCall<T>): Promise<Fetched<T>> {
-  let result: Awaited<ReturnType<ApiCall<T>>>;
+  const outcome = await settle(call);
+  return outcome.kind === "no-response" ? { state: "unavailable" } : classify(outcome.result);
+}
 
+/**
+ * {@link Fetched}, plus the one answer a page about **one resource** must not
+ * mistake for an outage: that resource is gone (BUG-R020-03-03).
+ *
+ * `gone` is a `404` carrying the resource's own code — `SOURCE_NOT_FOUND` for a
+ * source — and nothing else: the generic `NOT_FOUND` stays "not built", and
+ * every other failure stays "unavailable". Without it the page of a source
+ * deleted from the phone, still open in a tab, told its visitor that the
+ * service was down and to try again in a minute — which would never work.
+ *
+ * A separate function rather than a fourth state of {@link Fetched}: the ten
+ * other callers read lists or the account, where no such answer exists, and a
+ * state they would all have to handle for nothing is how one of them ends up
+ * handling it wrong.
+ */
+export type FetchedResource<T> = Fetched<T> | { state: "gone" };
+
+export async function fetchedResource<T>(
+  call: ApiCall<T>,
+  goneCode: string,
+): Promise<FetchedResource<T>> {
+  const outcome = await settle(call);
+  if (outcome.kind === "no-response") return { state: "unavailable" };
+
+  const { response, error } = outcome.result;
+  if (response.status === 404 && problemCode(error) === goneCode) {
+    return { state: "gone" };
+  }
+  return classify(outcome.result);
+}
+
+type Settled<T> =
+  | { kind: "no-response" }
+  | { kind: "response"; result: Awaited<ReturnType<ApiCall<T>>> };
+
+async function settle<T>(call: ApiCall<T>): Promise<Settled<T>> {
   try {
-    result = await call();
+    return { kind: "response", result: await call() };
   } catch {
     // No response at all: the API is down, or unreachable from this server.
-    return { state: "unavailable" };
+    return { kind: "no-response" };
   }
+}
 
+function classify<T>(result: Awaited<ReturnType<ApiCall<T>>>): Fetched<T> {
   if (result.response.status === 404 && problemCode(result.error) === "NOT_FOUND") {
     return { state: "not-implemented" };
   }
