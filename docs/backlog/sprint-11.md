@@ -1,6 +1,6 @@
 # Sprint 11 — Bibliothèque et liste à regarder
 
-Statut : **en pause depuis le 10 octobre 2026** — cycle ouvert le 8 octobre sous la version **0.3.0**, suspendu au profit du [sprint 10-bis](sprint-10-bis.md) (correctifs de qualité, 10 → 16/10). Reprise prévue le **17 octobre 2026** (17 → 23/10) ; `S11-00` (garanties, documentaire) peut avancer en parallèle, aucun lot de code S11 ne démarre avant la clôture de 10-bis. Taille relative : L.
+Statut : **reprise le 15 octobre 2026** (15 → 21/10), version **0.3.0**, après la sortie de la 0.2.0 le 14/10. Le cycle, ouvert le 8 octobre, avait été mis en pause le 10/10 au profit du [sprint 10-bis](sprint-10-bis.md), clos avec la sortie. La 0.3.0 reprend aussi les limites connues de la 0.2.0 (lignes R020-02/04/05/13, preuves sur appareil de S10B-03/04) : voir les [notes de sortie](../releases/0.2.0/RELEASE-NOTES.md). Taille relative : L.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 [Première proposition d’écrans](../design/0.2.0/library.md) préparée le
