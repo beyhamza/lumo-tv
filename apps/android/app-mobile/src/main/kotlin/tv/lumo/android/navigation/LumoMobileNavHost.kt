@@ -40,6 +40,8 @@ import tv.lumo.android.feature.vod.VodPlayerDestination
 import tv.lumo.android.feature.vod.navigation.vodDetailMobileScreen
 import tv.lumo.android.feature.vod.navigation.vodMobileScreen
 import tv.lumo.android.feature.vod.navigation.vodPlayerMobileScreen
+import tv.lumo.android.feature.watchlist.navigation.WatchlistActions
+import tv.lumo.android.feature.watchlist.navigation.watchlistMobileScreen
 
 /**
  * Every destination the phone application can reach.
@@ -186,9 +188,29 @@ fun LumoMobileNavHost(
             onBack = { navController.popBackStack() },
             onOpenSources = leavePlayerForSources,
         )
-        // Same player, and the wire is held here rather than in either feature:
-        // favourites has no business knowing that feature:live exists.
-        favoritesMobileScreen(onPlay = playChannel)
+        // Library: two sections, built as Explore is (US-022). The favourites play
+        // through the same player, and the wire is held here rather than in either
+        // feature: favourites has no business knowing that feature:live exists.
+        navigation(
+            route = LibraryDestination.route,
+            startDestination = LibrarySections.first().route,
+        ) {
+            favoritesMobileScreen(onPlay = playChannel)
+            // "My list": a card opens the film's or the series' existing sheet; the
+            // empty state leads to the active source's two catalogues.
+            watchlistMobileScreen(
+                actions = WatchlistActions(
+                    onOpenFilm = { filmId ->
+                        navController.navigate(VodDetailDestination.routeFor(filmId))
+                    },
+                    onOpenSeries = { seriesId ->
+                        navController.navigate(SeriesDetailDestination.routeFor(seriesId))
+                    },
+                    onOpenFilms = { navController.switchTopLevelTo(VodDestination) },
+                    onOpenSeriesCatalogue = { navController.switchTopLevelTo(SeriesDestination) },
+                ),
+            )
+        }
         vodDetailMobileScreen(
             onPlay = { filmId, sourceId, title, atMs ->
                 navController.navigate(
@@ -294,6 +316,7 @@ fun mobileStartRoute(start: AppStart): String? = when (start) {
 val MobileDestinations: List<LumoDestination> = listOf(
     HomeDestination,
     ExploreDestination,
-    FavoritesDestination,
+    // A graph since US-022: favourite channels and My list, as two sections.
+    LibraryDestination,
     SettingsDestination,
 )

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_watchlist_title">À regarder</string>
+    <string name="feature_watchlist_loading">Chargement de votre liste…</string>
+
+    <string name="feature_watchlist_filter_all">Tous</string>
+    <string name="feature_watchlist_filter_films">Films</string>
+    <string name="feature_watchlist_filter_series">Séries</string>
+    <string name="feature_watchlist_filter_empty_films">Aucun film dans votre liste.</string>
+    <string name="feature_watchlist_filter_empty_series">Aucune série dans votre liste.</string>
+    <string name="feature_watchlist_show_all">Afficher tout</string>
+
+    <string name="feature_watchlist_type_film">Film</string>
+    <string name="feature_watchlist_type_series">Série</string>
+    <string name="feature_watchlist_unavailable">Indisponible</string>
+    <string name="feature_watchlist_card_description">%1$s, %2$s</string>
+    <string name="feature_watchlist_card_unavailable_description">%1$s, %2$s, indisponible</string>
+
+    <string name="feature_watchlist_empty_title">Votre liste est vide</string>
+    <string name="feature_watchlist_empty_body">Ajoutez des films et des séries depuis leur fiche pour les retrouver ici.</string>
+    <string name="feature_watchlist_open_films">Parcourir les films</string>
+    <string name="feature_watchlist_open_series">Parcourir les séries</string>
+
+    <string name="feature_watchlist_error_title">Votre liste n\'a pas pu être chargée</string>
+    <string name="feature_watchlist_error_body">Un problème est survenu en chemin. Réessayez.</string>
+    <string name="feature_watchlist_offline_title">Votre liste n\'est pas disponible hors ligne</string>
+    <string name="feature_watchlist_offline_body">Elle se chargera au retour de la connexion.</string>
+    <string name="feature_watchlist_retry">Réessayer</string>
+    <string name="feature_watchlist_no_source">Choisissez une source pour voir sa liste.</string>
+
+    <string name="feature_watchlist_offline_notice">Hors ligne : voici la liste déjà chargée. Ajouter et retirer sont indisponibles jusqu\'au retour de la connexion.</string>
+    <string name="feature_watchlist_refresh_failed">Votre liste n\'a pas pu être actualisée.</string>
+    <string name="feature_watchlist_load_more">Charger la suite</string>
+    <string name="feature_watchlist_load_more_failed">La suite de votre liste n\'a pas pu être chargée.</string>
+
+    <string name="feature_watchlist_panel_body">Ce titre n\'est plus dans le catalogue de votre source.</string>
+    <string name="feature_watchlist_remove">Retirer de ma liste</string>
+    <string name="feature_watchlist_removing">Retrait…</string>
+    <string name="feature_watchlist_close">Fermer</string>
+    <string name="feature_watchlist_unconfirmed">Modification non confirmée. Votre liste a été vérifiée ; réessayez pour le retirer.</string>
+    <string name="feature_watchlist_rejected">Cet élément n\'a pas pu être retiré.</string>
+    <string name="feature_watchlist_remove_offline">Retirer nécessite une connexion.</string>
+</resources>

@@ -3,6 +3,9 @@
     <!-- Voir values/strings.xml : le seul libellé qui appartient à la coquille. -->
     <string name="app_mobile_explore">Explorer</string>
 
+    <!-- Première section de Bibliothèque (US-022), à côté de « À regarder ». -->
+    <string name="app_mobile_library_favorites">Chaînes favorites</string>
+
     <!-- Le glyphe décoratif de l'accès Recherche ; le libellé vient de la feature.
          translatable="false" dans values/strings.xml. -->
 </resources>

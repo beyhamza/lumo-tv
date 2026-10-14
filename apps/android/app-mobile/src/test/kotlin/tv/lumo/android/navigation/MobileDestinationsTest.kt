@@ -14,6 +14,7 @@ import tv.lumo.android.feature.settings.SettingsDestination
 import tv.lumo.android.feature.source.SourceDestination
 import tv.lumo.android.feature.vod.VodDestination
 import tv.lumo.android.feature.vod.VodDetailDestination
+import tv.lumo.android.feature.watchlist.WatchlistDestination
 
 /**
  * What the bottom bar offers, and where the application opens (US-13, US-017).
@@ -44,9 +45,31 @@ class MobileDestinationsTest {
         assertThat(MobileDestinations.map { it.route }).containsExactly(
             HomeDestination.route,
             ExploreDestination.route,
-            FavoritesDestination.route,
+            LibraryDestination.route,
             SettingsDestination.route,
         ).inOrder()
+    }
+
+    @Test
+    fun `Library gathers favourite channels and My list, favourites first`() {
+        // US-022: two sections. Favourites keeps its route, so a "See all" from
+        // Home and a saved back stack still land where they always did.
+        assertThat(LibrarySections.map { it.route }).containsExactly(
+            FavoritesDestination.route,
+            WatchlistDestination.route,
+        ).inOrder()
+        LibrarySections.forEach { section ->
+            assertThat(MobileDestinations.map { it.route }).doesNotContain(section.route)
+        }
+    }
+
+    @Test
+    fun `a section of Library lights Library`() {
+        val onMyList = listOf(WatchlistDestination.route, LibraryDestination.route, null)
+        val onFavourites = listOf(FavoritesDestination.route, LibraryDestination.route, null)
+
+        assertThat(topLevelRouteOf(onMyList, MobileDestinations)).isEqualTo(LibraryDestination.route)
+        assertThat(topLevelRouteOf(onFavourites, MobileDestinations)).isEqualTo(LibraryDestination.route)
     }
 
     @Test

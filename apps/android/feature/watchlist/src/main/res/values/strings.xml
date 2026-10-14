@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- "My list" (US-022, S11-E05). The French screen is "À regarder". -->
+    <string name="feature_watchlist_title">My list</string>
+    <string name="feature_watchlist_loading">Loading your list…</string>
+
+    <!-- Filters, built from the types the list holds (WL-17). -->
+    <string name="feature_watchlist_filter_all">All</string>
+    <string name="feature_watchlist_filter_films">Films</string>
+    <string name="feature_watchlist_filter_series">Series</string>
+    <string name="feature_watchlist_filter_empty_films">No films in your list.</string>
+    <string name="feature_watchlist_filter_empty_series">No series in your list.</string>
+    <string name="feature_watchlist_show_all">Show all</string>
+
+    <!-- Cards. -->
+    <string name="feature_watchlist_type_film">Film</string>
+    <string name="feature_watchlist_type_series">Series</string>
+    <string name="feature_watchlist_unavailable">Unavailable</string>
+    <string name="feature_watchlist_card_description">%1$s, %2$s</string>
+    <string name="feature_watchlist_card_unavailable_description">%1$s, %2$s, unavailable</string>
+
+    <!-- Confirmed empty list. -->
+    <string name="feature_watchlist_empty_title">Your list is empty</string>
+    <string name="feature_watchlist_empty_body">Add films and series from their page to find them here.</string>
+    <string name="feature_watchlist_open_films">Browse films</string>
+    <string name="feature_watchlist_open_series">Browse series</string>
+
+    <!-- Loading failed, or offline with nothing loaded (WL-07). Never an empty list. -->
+    <string name="feature_watchlist_error_title">Your list couldn\'t be loaded</string>
+    <string name="feature_watchlist_error_body">Something went wrong on the way. Try again.</string>
+    <string name="feature_watchlist_offline_title">Your list isn\'t available offline</string>
+    <string name="feature_watchlist_offline_body">It will load once the connection is back.</string>
+    <string name="feature_watchlist_retry">Retry</string>
+    <string name="feature_watchlist_no_source">Choose a source to see its list.</string>
+
+    <!-- A list already on screen (WL-06, S11-E07). -->
+    <string name="feature_watchlist_offline_notice">Offline: this is the list already loaded. Adding and removing are unavailable until the connection is back.</string>
+    <string name="feature_watchlist_refresh_failed">Your list couldn\'t be refreshed.</string>
+    <string name="feature_watchlist_load_more">Load more</string>
+    <string name="feature_watchlist_load_more_failed">The rest of your list couldn\'t be loaded.</string>
+
+    <!-- Compact panel of an unavailable card (WL-03). Not a catalogue sheet. -->
+    <string name="feature_watchlist_panel_body">This title is no longer in your source\'s catalogue.</string>
+    <string name="feature_watchlist_remove">Remove from my list</string>
+    <string name="feature_watchlist_removing">Removing…</string>
+    <string name="feature_watchlist_close">Close</string>
+    <string name="feature_watchlist_unconfirmed">Change not confirmed. Your list was checked again; retry to remove it.</string>
+    <string name="feature_watchlist_rejected">This item could not be removed.</string>
+    <string name="feature_watchlist_remove_offline">Removing needs a connection.</string>
+</resources>

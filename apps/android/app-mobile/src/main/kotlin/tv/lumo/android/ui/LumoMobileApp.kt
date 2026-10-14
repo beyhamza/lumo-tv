@@ -38,11 +38,13 @@ import tv.lumo.android.feature.source.SourceDestination
 import tv.lumo.android.feature.source.switcher.SourceSwitcherMobile
 import tv.lumo.android.feature.vod.VodPlayerDestination
 import tv.lumo.android.navigation.ExploreSections
+import tv.lumo.android.navigation.LibrarySections
 import tv.lumo.android.navigation.LumoMobileNavHost
 import tv.lumo.android.navigation.MobileDestinations
 import tv.lumo.android.navigation.leaveDetailOfPreviousSource
 import tv.lumo.android.navigation.mobileStartRoute
 import tv.lumo.android.navigation.switchExploreSectionTo
+import tv.lumo.android.navigation.switchLibrarySectionTo
 import tv.lumo.android.navigation.switchTopLevelTo
 import tv.lumo.android.navigation.topLevelRouteOf
 
@@ -139,6 +141,17 @@ fun LumoMobileApp(
                     sections = ExploreSections,
                     selectedRoute = currentRoute,
                     onSelect = { navController.switchExploreSectionTo(it) },
+                )
+            }
+
+            // The two sections of Library (US-022): favourite channels and My
+            // list. The same strip as Explore's, for the same reason — it names
+            // two features, and only the application may.
+            if (LibrarySections.any { it.route == currentRoute }) {
+                LumoMobileSectionTabs(
+                    sections = LibrarySections,
+                    selectedRoute = currentRoute,
+                    onSelect = { navController.switchLibrarySectionTo(it) },
                 )
             }
 

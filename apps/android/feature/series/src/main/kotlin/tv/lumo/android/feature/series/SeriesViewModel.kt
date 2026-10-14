@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -25,6 +27,8 @@ import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.SourceNotice
+import tv.lumo.android.core.data.WatchlistToggle
+import tv.lumo.android.core.data.WatchlistToggleState
 import tv.lumo.android.core.data.asCatalogueSource
 import tv.lumo.android.core.data.face
 import tv.lumo.android.core.data.isPlaylist
@@ -34,12 +38,14 @@ import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.data.model.EpisodeProgress
 import tv.lumo.android.core.data.model.ResumableSeries
+import tv.lumo.android.core.data.model.WatchlistType
 import tv.lumo.android.core.data.needsFirstRefresh
 import tv.lumo.android.core.data.notice
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.ContinueWatchingRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.data.repository.SeriesRepository
+import tv.lumo.android.core.data.repository.WatchlistRepository
 import tv.lumo.android.core.data.repository.onFailureNaming
 import tv.lumo.android.core.data.sourceId
 
@@ -397,10 +403,22 @@ data class SeriesState(
 class SeriesDetailViewModel @Inject constructor(
     private val series: SeriesRepository,
     private val progress: ProgressRepository,
+    watchlistRepository: WatchlistRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SeriesDetailState())
     val state: StateFlow<SeriesDetailState> = _state
+
+    /**
+     * "Add to my list" / "In my list" (US-022). The series is saved **as a whole**,
+     * never episode by episode, and removing it leaves the episodes' progress alone.
+     */
+    private val watchlist = WatchlistToggle(watchlistRepository, viewModelScope)
+    val watchlistState: StateFlow<WatchlistToggleState> = watchlist.state
+
+    fun onWatchlistToggle() = watchlist.toggle()
+
+    fun onWatchlistRetry() = watchlist.retry()
 
     private var loaded: String? = null
 
@@ -411,6 +429,11 @@ class SeriesDetailViewModel @Inject constructor(
 
         viewModelScope.launch {
             series.one(seriesId).collect { row -> _state.update { it.copy(series = row) } }
+        }
+        viewModelScope.launch {
+            // The series' own source, read from the cached row, as the film sheet does.
+            val sourceId = series.one(seriesId).filterNotNull().first().sourceId
+            watchlist.start(sourceId, WatchlistType.Series, seriesId)
         }
         viewModelScope.launch {
             series.tree(seriesId).collect { tree -> _state.update { it.copy(tree = tree) } }
