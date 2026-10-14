@@ -66,6 +66,28 @@ internal class ApiCaller @Inject constructor(
             }
         }
 
+    /**
+     * For an operation whose success **status** means something on its own.
+     *
+     * `POST /me/watchlist` answers `201` for an add and `200` for "it was already
+     * there", with the same body: the two are different outcomes for the screen
+     * (ADR 0011), and [call] keeps only the body. Failures are read exactly as
+     * [call] reads them.
+     */
+    suspend fun <T : Any> answered(block: suspend () -> Response<T>): LumoResult<Answered<T>> =
+        when (val attempt = attempt(block)) {
+            is LumoResult.Failure -> attempt
+            is LumoResult.Success -> {
+                val response = attempt.value
+                when {
+                    !response.isSuccessful -> failure(response)
+                    else -> response.body()
+                        ?.let { LumoResult.Success(Answered(response.code(), it)) }
+                        ?: LumoResult.Failure(LumoError.Unreadable(response.code(), null))
+                }
+            }
+        }
+
     /** For an operation that answers `204 No Content`. */
     suspend fun empty(block: suspend () -> Response<Unit>): LumoResult<Unit> =
         when (val attempt = attempt(block)) {
@@ -127,3 +149,6 @@ internal class ApiCaller @Inject constructor(
         response.headers()["Retry-After"]?.trim()?.toIntOrNull()?.takeIf { it > 0 }
 
 }
+
+/** A successful answer whose status matters as much as its body. See [ApiCaller.answered]. */
+internal data class Answered<T>(val status: Int, val body: T)
