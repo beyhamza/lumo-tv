@@ -31,6 +31,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.designsystem.component.LumoPoster
+import tv.lumo.android.core.designsystem.component.LumoTvWatchlistButton
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
@@ -82,6 +83,7 @@ fun VodDetailTvScreen(
     viewModel: VodDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val watchlist by viewModel.watchlistState.collectAsStateWithLifecycle()
 
     LaunchedEffect(filmId) { viewModel.start(filmId) }
 
@@ -98,7 +100,13 @@ fun VodDetailTvScreen(
     // screen first draws — the position arrives from the server a moment later —
     // and the focus has to move to it when it appears rather than stay on the
     // button below.
-    LaunchedEffect(resumeAt) { runCatching { play.requestFocus() } }
+    //
+    // And on the film being there: the buttons are disabled — so not focusable —
+    // until the cached row arrives, and a request made before that fails quietly,
+    // leaving the arrival focus on the rail (seen on the emulator during S11-04).
+    LaunchedEffect(resumeAt, film != null) {
+        if (film != null) runCatching { play.requestFocus() }
+    }
 
     Row(
         modifier = modifier
@@ -157,6 +165,14 @@ fun VodDetailTvScreen(
                 // rather than two that could both fire.
                 focusRequester = if (resumeAt == null) play else null,
                 onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, 0L) } },
+            )
+
+            // One `DOWN` under the play button, in the column the remote already
+            // walks: reachable, never the arrival focus (US-022, S11-E06).
+            LumoTvWatchlistButton(
+                state = watchlist.asButtonState(),
+                onToggle = viewModel::onWatchlistToggle,
+                onRetry = viewModel::onWatchlistRetry,
             )
 
             Text(

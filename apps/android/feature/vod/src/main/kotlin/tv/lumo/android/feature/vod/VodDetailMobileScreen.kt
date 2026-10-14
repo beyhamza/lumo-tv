@@ -24,6 +24,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.designsystem.component.LumoPoster
+import tv.lumo.android.core.designsystem.component.LumoWatchlistButton
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 
 /**
@@ -70,6 +71,7 @@ fun VodDetailMobileScreen(
     viewModel: VodDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val watchlist by viewModel.watchlistState.collectAsStateWithLifecycle()
 
     LaunchedEffect(filmId) { viewModel.start(filmId) }
 
@@ -142,6 +144,15 @@ fun VodDetailMobileScreen(
                         ),
                     )
                 }
+
+                // Under the play buttons: a selection for later, never in the
+                // way of watching now (US-022, S11-E06).
+                LumoWatchlistButton(
+                    state = watchlist.asButtonState(),
+                    onToggle = viewModel::onWatchlistToggle,
+                    onRetry = viewModel::onWatchlistRetry,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
 

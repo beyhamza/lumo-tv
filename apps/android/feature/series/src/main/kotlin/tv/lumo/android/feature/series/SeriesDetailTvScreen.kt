@@ -43,6 +43,7 @@ import tv.lumo.android.core.data.model.Season
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.designsystem.component.LumoPoster
+import tv.lumo.android.core.designsystem.component.LumoTvWatchlistButton
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
@@ -102,6 +103,7 @@ fun SeriesDetailTvScreen(
     viewModel: SeriesDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val watchlist by viewModel.watchlistState.collectAsStateWithLifecycle()
 
     LaunchedEffect(seriesId) { viewModel.start(seriesId) }
 
@@ -124,6 +126,18 @@ fun SeriesDetailTvScreen(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
         ) {
+            // The series as a whole (US-022, S11-E06), at the head of the right
+            // column: `UP` from the seasons — or from the first episode when there
+            // is one season — reaches it. Not in the header on the left: the
+            // poster fills that column on a 1080p panel and pushed the button off
+            // screen, and `LEFT` from an episode lands on the rail first. Never
+            // the arrival focus — an episode is.
+            LumoTvWatchlistButton(
+                state = watchlist.asButtonState(),
+                onToggle = viewModel::onWatchlistToggle,
+                onRetry = viewModel::onWatchlistRetry,
+            )
+
             Tree(
                 tree = state.tree,
                 openSeason = state.openSeason,

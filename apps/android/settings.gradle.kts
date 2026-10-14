@@ -84,6 +84,7 @@ include(":feature:live")
 // the account and can hold channels from two sources, so it has no source id to
 // hang off (US-12).
 include(":feature:favorites")
+include(":feature:watchlist")
 include(":feature:vod")
 include(":feature:series")
 include(":feature:search")

@@ -7,4 +7,15 @@
       left with the programme guide (S9-03).
     -->
     <string name="lumo_mock_not_implemented">[mock] screen not implemented</string>
+    <!-- "My list" button of a film or series sheet (US-022, S11-E06). -->
+    <string name="lumo_watchlist_add">Add to my list</string>
+    <string name="lumo_watchlist_in">✓ In my list</string>
+    <string name="lumo_watchlist_checking">My list…</string>
+    <string name="lumo_watchlist_in_state">In my list. Press to remove it.</string>
+    <string name="lumo_watchlist_out_state">Not in my list.</string>
+    <string name="lumo_watchlist_unconfirmed">Change not confirmed. Check your list, then retry.</string>
+    <string name="lumo_watchlist_offline">Offline: your list can\'t be changed until the connection is back.</string>
+    <string name="lumo_watchlist_rejected">Your list could not be changed.</string>
+    <string name="lumo_watchlist_check_failed">Couldn\'t check your list.</string>
+    <string name="lumo_watchlist_retry">Retry</string>
 </resources>

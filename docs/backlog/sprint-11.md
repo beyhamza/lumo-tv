@@ -45,19 +45,29 @@ Une case cochée signifie **recetté**, pas seulement écrit.
   et tests G1, G2, G3, G5 fusionnés (PR #42) ; G6 → G8 (réessai ≠ nouvelle intention)
   ajoutées avec S11-01. Reste G4 (disparu, panne, hors ligne, suppression de source) sur
   appareil, qui attend les écrans de S11-04.
-- [ ] S11-01 — contrat À regarder, serveur, migration, clients — 90 % : ADR 0011
-  **acceptée** par Hamza le 14/10 ; `/me/watchlist` au contrat, migration `0021`,
-  `WatchlistService`, clients Kotlin et TypeScript régénérés ; `WatchlistIntegrationTest`
-  19/19, suite API 380/380, contrat conforme, web `typecheck` et Android `core:data`
-  compilent. Branche `feat/S11-01-watchlist`, en attente de merge.
+- [x] S11-01 — contrat À regarder, serveur, migration, clients — fusionné (PR #56), preuve
+  automatisée = DoD : ADR 0011 **acceptée** par Hamza le 14/10 ; `/me/watchlist` au
+  contrat, migration `0021`, `WatchlistService`, clients régénérés ; `WatchlistIntegrationTest`
+  19/19, suite API 380/380.
 - [ ] S11-02 — agrégation des favoris sans doublon — 0 %
 - [ ] S11-03 — gestes Ajouter / Organiser, retraits, réordonnancement — 0 %
-- [ ] S11-04 — écrans À regarder (trois clients), clé d'idempotence par intention — 0 %,
-  débloqué par S11-01
+- [ ] S11-04 — écrans À regarder (trois clients), clé d'idempotence par intention — 80 % :
+  - **Web** fusionné (PR #57) : `/app/watchlist`, filtres depuis `content_types`, carte
+    `Indisponible` retirable sans fiche, bouton sur les fiches film et série ; clé créée au
+    rendu du formulaire (une double soumission ne change rien), « Modification non
+    confirmée » puis relecture. Vitest 382/382, build : pages marketing toujours statiques.
+  - **Android** (`feat/S11-04-android-watchlist`) : `WatchlistRepository` sans cache
+    persistant, `WatchlistIntentions` (même clé pour chaque réessai d'une intention),
+    module `feature:watchlist`, section « Ma liste » de la Bibliothèque sur mobile, entrée
+    « Ma liste » du rail TV, panneau compact pour une carte indisponible, bouton sur les
+    fiches. Tests 676/676, lint et build verts, `WatchlistTvPanelFocusTest` 3/3 sur
+    `Television_1080p` ; parcours contrôlés sur les deux émulateurs.
+  - Reste : recette FR, retour réseau réel (relecture automatique), « charger plus » au-delà
+    du banc ; rendu web des états indisponible et échec non revus à l'écran.
 - [ ] S11-05 — propagation, erreurs partielles, suppression de source — 0 %
 - [ ] S11-06 — recette entre appareils — 0 %
 
-**Avancement global ≈ 24 %** (moyenne des sept lots).
+**Avancement global ≈ 37 %** (moyenne des sept lots).
 
 ### Point du 8 octobre 2026
 

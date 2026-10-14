@@ -26,6 +26,8 @@ import tv.lumo.android.core.data.ActiveSourceState
 import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.WatchlistToggle
+import tv.lumo.android.core.data.WatchlistToggleState
 import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.asCatalogueSource
 import tv.lumo.android.core.data.face
@@ -34,12 +36,14 @@ import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.ResumableFilm
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.data.model.WatchProgress
+import tv.lumo.android.core.data.model.WatchlistType
 import tv.lumo.android.core.data.needsFirstRefresh
 import tv.lumo.android.core.data.notice
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.ContinueWatchingRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.data.repository.VodRepository
+import tv.lumo.android.core.data.repository.WatchlistRepository
 import tv.lumo.android.core.data.repository.onFailureNaming
 import tv.lumo.android.core.data.sourceId
 
@@ -419,10 +423,22 @@ data class VodState(
 class VodDetailViewModel @Inject constructor(
     private val vod: VodRepository,
     private val progress: ProgressRepository,
+    watchlistRepository: WatchlistRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(VodDetailState())
     val state: StateFlow<VodDetailState> = _state
+
+    /**
+     * "Add to my list" / "In my list" (US-022). Held here, on this screen's scope,
+     * with the idempotency key of the change it may still be waiting on.
+     */
+    private val watchlist = WatchlistToggle(watchlistRepository, viewModelScope)
+    val watchlistState: StateFlow<WatchlistToggleState> = watchlist.state
+
+    fun onWatchlistToggle() = watchlist.toggle()
+
+    fun onWatchlistRetry() = watchlist.retry()
 
     private var loaded: String? = null
 
@@ -449,6 +465,10 @@ class VodDetailViewModel @Inject constructor(
             // it. Passing it down the route instead would make a deep link carry
             // a value the cache already holds.
             val sourceId = vod.film(filmId).filterNotNull().first().sourceId
+
+            // The film's own source: a sheet opened from a deep link is still the
+            // sheet of that source's film, whatever is being browsed.
+            watchlist.start(sourceId, WatchlistType.Film, filmId)
 
             // Once, on opening, with the three filters the contract says yield at
             // most one row. A finished film is offered no resume — that would be

@@ -37,6 +37,7 @@ import tv.lumo.android.core.data.model.Season
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.designsystem.component.LumoPoster
+import tv.lumo.android.core.designsystem.component.LumoWatchlistButton
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 
@@ -77,6 +78,7 @@ fun SeriesDetailMobileScreen(
     viewModel: SeriesDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val watchlist by viewModel.watchlistState.collectAsStateWithLifecycle()
 
     LaunchedEffect(seriesId) { viewModel.start(seriesId) }
 
@@ -88,7 +90,16 @@ fun SeriesDetailMobileScreen(
             .padding(LumoSpacing.md),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
     ) {
-        Header(state.series)
+        Header(
+            series = state.series,
+            watchlist = {
+                LumoWatchlistButton(
+                    state = watchlist.asButtonState(),
+                    onToggle = viewModel::onWatchlistToggle,
+                    onRetry = viewModel::onWatchlistRetry,
+                )
+            },
+        )
 
         Tree(
             tree = state.tree,
@@ -107,7 +118,7 @@ fun SeriesDetailMobileScreen(
 
 /** What the listing already carries. Drawn before anything is asked of the panel. */
 @Composable
-private fun Header(series: Series?) {
+private fun Header(series: Series?, watchlist: @Composable () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md)) {
         LumoPoster(
             posterUrl = series?.posterUrl,
@@ -132,6 +143,9 @@ private fun Header(series: Series?) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+
+            // The series as a whole, never an episode (US-022, S11-E06).
+            watchlist()
 
             // Arrives with the tree, so it is absent until one has been fetched —
             // unlike a film's, which is its own call. Nothing is said about it
