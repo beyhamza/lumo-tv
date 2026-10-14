@@ -54,3 +54,7 @@ export type EpgAttemptStatus = components["schemas"]["EpgAttemptStatus"];
 export type EpgMappingStatus = components["schemas"]["EpgMappingStatus"];
 export type EpgChannelProgrammes = components["schemas"]["EpgChannelProgrammes"];
 export type EpgGrid = components["schemas"]["EpgGrid"];
+export type WatchlistItem = components["schemas"]["WatchlistItem"];
+export type WatchlistPage = components["schemas"]["WatchlistPage"];
+export type WatchlistContentType = components["schemas"]["WatchlistContentType"];
+export type AddWatchlistItemRequest = components["schemas"]["AddWatchlistItemRequest"];
