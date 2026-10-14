@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="lumo_mock_not_implemented">[mock] écran non implémenté</string>
+    <!-- Bouton « Ma liste » d'une fiche de film ou de série (US-022, S11-E06). -->
+    <string name="lumo_watchlist_add">Ajouter à ma liste</string>
+    <string name="lumo_watchlist_in">✓ Dans ma liste</string>
+    <string name="lumo_watchlist_checking">Ma liste…</string>
+    <string name="lumo_watchlist_in_state">Dans ma liste. Appuyer pour le retirer.</string>
+    <string name="lumo_watchlist_out_state">Pas dans ma liste.</string>
+    <string name="lumo_watchlist_unconfirmed">Modification non confirmée. Vérifiez votre liste, puis réessayez.</string>
+    <string name="lumo_watchlist_offline">Hors ligne : votre liste ne peut pas être modifiée avant le retour de la connexion.</string>
+    <string name="lumo_watchlist_rejected">Votre liste n\'a pas pu être modifiée.</string>
+    <string name="lumo_watchlist_check_failed">Impossible de vérifier votre liste.</string>
+    <string name="lumo_watchlist_retry">Réessayer</string>
 </resources>
