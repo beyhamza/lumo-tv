@@ -57,6 +57,20 @@ Ces trois cas restent **« garantie à définir »** et ne sont pas automatisés
 des garanties. Le mécanisme (clé d'idempotence, a minima) est tranché par
 [ADR 0011](../../adr/0011-watchlist-protocol.md), en `Proposed`.
 
+**Mise à jour du 14/10/2026 — garanties G6 à G8, portées par S11-01.** L'ADR 0011 est
+acceptée par Hamza ; la liste À regarder a son contrat (`/me/watchlist`, en-tête
+`Idempotency-Key`). Ces trois cas deviennent des garanties, testées côté API par
+`WatchlistIntegrationTest` (19 tests ; retirer le rejeu fait tomber WL-11 et WL-12) :
+
+| ID | Garantie | Cas |
+|---|---|---|
+| G6 | Rejouer une écriture avec la même clé renvoie la réponse enregistrée la première fois et ne change rien : ni appartenance, ni `added_at`, ni rang. Un second ajout sous une **nouvelle** clé répond `200` et ne déplace pas l'élément. | WL-11 |
+| G7 | Un réessai retardé ne défait pas une action plus récente acceptée entre-temps : la réponse rejouée décrit le moment de l'acceptation, le client relit la liste. | WL-12 |
+| G8 | Une suppression rejouée répond de nouveau `204` ; une nouvelle suppression du même élément répond `404`. Une requête échouée n'enregistre pas sa clé. Les clés sont gardées 24 h par compte. | WL-10 |
+
+Côté clients, il reste à générer une clé par intention et à la garder d'un réessai à
+l'autre (S11-04).
+
 ## 4. Découpage (rappel du 8 octobre 2026)
 
 - `@Tech Lead` : ce référentiel + ADR 0011. Les garanties sont **normatives** ;
