@@ -4,6 +4,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import tv.lumo.android.feature.watchlist.WatchlistDestination
 import tv.lumo.android.feature.watchlist.WatchlistMobileScreen
+import tv.lumo.android.feature.watchlist.WatchlistTvScreen
 
 /**
  * Where "My list" leads. Every way out names another feature — a film's sheet, a
@@ -19,4 +20,8 @@ data class WatchlistActions(
 
 fun NavGraphBuilder.watchlistMobileScreen(actions: WatchlistActions) {
     composable(route = WatchlistDestination.route) { WatchlistMobileScreen(actions = actions) }
+}
+
+fun NavGraphBuilder.watchlistTvScreen(actions: WatchlistActions) {
+    composable(route = WatchlistDestination.route) { WatchlistTvScreen(actions = actions) }
 }

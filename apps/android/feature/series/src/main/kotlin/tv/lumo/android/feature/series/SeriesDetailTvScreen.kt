@@ -43,6 +43,7 @@ import tv.lumo.android.core.data.model.Season
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.designsystem.component.LumoPoster
+import tv.lumo.android.core.designsystem.component.LumoTvWatchlistButton
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
@@ -102,6 +103,7 @@ fun SeriesDetailTvScreen(
     viewModel: SeriesDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val watchlist by viewModel.watchlistState.collectAsStateWithLifecycle()
 
     LaunchedEffect(seriesId) { viewModel.start(seriesId) }
 
@@ -118,7 +120,16 @@ fun SeriesDetailTvScreen(
             .padding(LumoSpacing.xl),
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.xl),
     ) {
-        Header(state.series)
+        Header(
+            series = state.series,
+            watchlist = {
+                LumoTvWatchlistButton(
+                    state = watchlist.asButtonState(),
+                    onToggle = viewModel::onWatchlistToggle,
+                    onRetry = viewModel::onWatchlistRetry,
+                )
+            },
+        )
 
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -139,7 +150,7 @@ fun SeriesDetailTvScreen(
 
 /** The poster, and nothing focusable. What the listing already carries. */
 @Composable
-private fun Header(series: Series?) {
+private fun Header(series: Series?, watchlist: @Composable () -> Unit) {
     Column(
         modifier = Modifier.width(POSTER_WIDTH),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
@@ -165,6 +176,11 @@ private fun Header(series: Series?) {
                 color = LumoColors.OnDarkMuted,
             )
         }
+
+        // The series as a whole (US-022, S11-E06). The header column is the
+        // screen's left zone: `LEFT` from the episodes reaches it, `RIGHT` goes
+        // back. It is never the arrival focus — an episode is.
+        watchlist()
 
         // Capped, and it is the ruling `VodDetailTvScreen` already made and wrote
         // down: the complete answer is a scrolling block, which on a television is

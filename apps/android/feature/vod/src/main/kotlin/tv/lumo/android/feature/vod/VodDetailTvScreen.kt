@@ -31,6 +31,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.designsystem.component.LumoPoster
+import tv.lumo.android.core.designsystem.component.LumoTvWatchlistButton
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
@@ -82,6 +83,7 @@ fun VodDetailTvScreen(
     viewModel: VodDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val watchlist by viewModel.watchlistState.collectAsStateWithLifecycle()
 
     LaunchedEffect(filmId) { viewModel.start(filmId) }
 
@@ -157,6 +159,14 @@ fun VodDetailTvScreen(
                 // rather than two that could both fire.
                 focusRequester = if (resumeAt == null) play else null,
                 onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, 0L) } },
+            )
+
+            // One `DOWN` under the play button, in the column the remote already
+            // walks: reachable, never the arrival focus (US-022, S11-E06).
+            LumoTvWatchlistButton(
+                state = watchlist.asButtonState(),
+                onToggle = viewModel::onWatchlistToggle,
+                onRetry = viewModel::onWatchlistRetry,
             )
 
             Text(

@@ -34,6 +34,7 @@ dependencies {
     // surface for the favourites — until then a group was only a chip in the
     // channel grid's strip.
     implementation(projects.feature.favorites)
+    implementation(projects.feature.watchlist)
     implementation(projects.feature.vod)
     implementation(projects.feature.series)
     implementation(projects.feature.search)

@@ -43,6 +43,9 @@ import tv.lumo.android.feature.vod.navigation.KEY_RETURNED_FILM
 import tv.lumo.android.feature.vod.navigation.vodDetailTvScreen
 import tv.lumo.android.feature.vod.navigation.vodPlayerTvScreen
 import tv.lumo.android.feature.vod.navigation.vodTvScreen
+import tv.lumo.android.feature.watchlist.WatchlistDestination
+import tv.lumo.android.feature.watchlist.navigation.WatchlistActions
+import tv.lumo.android.feature.watchlist.navigation.watchlistTvScreen
 
 /**
  * The same features as the phone, each contributing its television surface
@@ -141,6 +144,21 @@ fun LumoTvNavHost(
         favoritesTvScreen(
             onPlay = playChannel,
             onOpenLive = { navController.switchTopLevelTo(LiveDestination) },
+        )
+        // "My list" (US-022), the rail entry right after "My library". A card opens
+        // the film's or the series' existing sheet; the empty state leads to the
+        // active source's two catalogues, by moves of the rail.
+        watchlistTvScreen(
+            actions = WatchlistActions(
+                onOpenFilm = { filmId ->
+                    navController.navigate(VodDetailDestination.routeFor(filmId))
+                },
+                onOpenSeries = { seriesId ->
+                    navController.navigate(SeriesDetailDestination.routeFor(seriesId))
+                },
+                onOpenFilms = { navController.switchTopLevelTo(VodDestination) },
+                onOpenSeriesCatalogue = { navController.switchTopLevelTo(SeriesDestination) },
+            ),
         )
         livePlayerTvScreen(
             onBack = { channelId ->
@@ -304,6 +322,10 @@ val TvDestinations: List<LumoDestination> = listOf(
     SeriesDestination,
     SearchDestination,
     FavoritesTvDestination,
+    // US-022: the second half of the library, beside the first. A rail entry
+    // rather than a tab inside "My library": the favourites screen is untouched,
+    // and a tab strip above a grid would be one more focus zone to cross.
+    WatchlistDestination,
     SettingsDestination,
 )
 

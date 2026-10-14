@@ -13,6 +13,7 @@ import tv.lumo.android.feature.series.SeriesDestination
 import tv.lumo.android.feature.settings.SettingsDestination
 import tv.lumo.android.feature.source.SourceDestination
 import tv.lumo.android.feature.vod.VodDestination
+import tv.lumo.android.feature.watchlist.WatchlistDestination
 
 /**
  * What the rail offers, and where the television opens (US-13, US-017).
@@ -39,12 +40,12 @@ import tv.lumo.android.feature.vod.VodDestination
  * <h2>And because every entry is a stop, the rail does not grow for free</h2>
  *
  * US-017 added Home and My library, S10-02 added Search. Each arrival was argued
- * for; the rail is seven entries and this file is what notices an eighth.
+ * for; US-022 added My list, the eighth, and this file is what notices a ninth.
  */
 class TvDestinationsTest {
 
     @Test
-    fun `the rail offers Home, the three catalogues, Search, My library and Settings, in that order`() {
+    fun `the rail offers Home, the three catalogues, Search, My library, My list and Settings, in that order`() {
         assertThat(TvDestinations.map { it.route }).containsExactly(
             HomeDestination.route,
             LiveDestination.route,
@@ -52,8 +53,17 @@ class TvDestinationsTest {
             SeriesDestination.route,
             SearchDestination.route,
             FavoritesDestination.route,
+            WatchlistDestination.route,
             SettingsDestination.route,
         ).inOrder()
+    }
+
+    @Test
+    fun `My list sits right after My library, the two halves of the library together`() {
+        val routes = TvDestinations.map { it.route }
+
+        assertThat(routes.indexOf(WatchlistDestination.route))
+            .isEqualTo(routes.indexOf(FavoritesDestination.route) + 1)
     }
 
     @Test
