@@ -419,7 +419,7 @@ private fun Card(
         LumoPoster(posterUrl = entry.cardPoster, title = entry.title)
         Text(
             text = entry.title,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.titleSmall,
             color = if (focused) LumoColors.OnDark else LumoColors.OnDarkMuted,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -430,8 +430,10 @@ private fun Card(
             } else {
                 stringResource(R.string.feature_watchlist_unavailable)
             },
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelMedium,
             color = if (entry.available) LumoColors.OnDarkMuted else LumoColors.Error,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -577,8 +579,8 @@ private fun UnavailablePanel(
 internal const val TITLE_TAG = "watchlist-title"
 internal const val PANEL_TAG = "watchlist-panel"
 
-/** Five posters across a 1080p panel, readable at three metres. */
-private const val GRID_COLUMNS = 5
+/** Four posters across a 1080p panel beside the rail, readable at three metres. */
+private const val GRID_COLUMNS = 4
 private val NOTICE_WIDTH = 900.dp
 private val MESSAGE_WIDTH = 900.dp
 private val PANEL_WIDTH = 640.dp

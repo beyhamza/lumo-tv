@@ -265,8 +265,9 @@ private fun Card(entry: WatchlistEntry, onSelect: (WatchlistEntry) -> Unit) {
     val description = cardDescription(entry)
 
     Column(
+        // No clip here: the poster rounds its own corners, and a rounded clip on
+        // the whole card bit the first letter of the type line.
         modifier = Modifier
-            .clip(LumoShapes.medium)
             .clickable { onSelect(entry) }
             .clearAndSetSemantics { contentDescription = description },
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),

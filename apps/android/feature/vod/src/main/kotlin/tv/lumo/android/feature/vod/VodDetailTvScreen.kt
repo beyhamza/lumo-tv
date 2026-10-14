@@ -100,7 +100,13 @@ fun VodDetailTvScreen(
     // screen first draws — the position arrives from the server a moment later —
     // and the focus has to move to it when it appears rather than stay on the
     // button below.
-    LaunchedEffect(resumeAt) { runCatching { play.requestFocus() } }
+    //
+    // And on the film being there: the buttons are disabled — so not focusable —
+    // until the cached row arrives, and a request made before that fails quietly,
+    // leaving the arrival focus on the rail (seen on the emulator during S11-04).
+    LaunchedEffect(resumeAt, film != null) {
+        if (film != null) runCatching { play.requestFocus() }
+    }
 
     Row(
         modifier = modifier

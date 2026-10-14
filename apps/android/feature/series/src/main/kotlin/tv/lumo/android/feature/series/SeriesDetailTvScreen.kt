@@ -120,21 +120,24 @@ fun SeriesDetailTvScreen(
             .padding(LumoSpacing.xl),
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.xl),
     ) {
-        Header(
-            series = state.series,
-            watchlist = {
-                LumoTvWatchlistButton(
-                    state = watchlist.asButtonState(),
-                    onToggle = viewModel::onWatchlistToggle,
-                    onRetry = viewModel::onWatchlistRetry,
-                )
-            },
-        )
+        Header(state.series)
 
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
         ) {
+            // The series as a whole (US-022, S11-E06), at the head of the right
+            // column: `UP` from the seasons — or from the first episode when there
+            // is one season — reaches it. Not in the header on the left: the
+            // poster fills that column on a 1080p panel and pushed the button off
+            // screen, and `LEFT` from an episode lands on the rail first. Never
+            // the arrival focus — an episode is.
+            LumoTvWatchlistButton(
+                state = watchlist.asButtonState(),
+                onToggle = viewModel::onWatchlistToggle,
+                onRetry = viewModel::onWatchlistRetry,
+            )
+
             Tree(
                 tree = state.tree,
                 openSeason = state.openSeason,
@@ -150,7 +153,7 @@ fun SeriesDetailTvScreen(
 
 /** The poster, and nothing focusable. What the listing already carries. */
 @Composable
-private fun Header(series: Series?, watchlist: @Composable () -> Unit) {
+private fun Header(series: Series?) {
     Column(
         modifier = Modifier.width(POSTER_WIDTH),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
@@ -176,11 +179,6 @@ private fun Header(series: Series?, watchlist: @Composable () -> Unit) {
                 color = LumoColors.OnDarkMuted,
             )
         }
-
-        // The series as a whole (US-022, S11-E06). The header column is the
-        // screen's left zone: `LEFT` from the episodes reaches it, `RIGHT` goes
-        // back. It is never the arrival focus — an episode is.
-        watchlist()
 
         // Capped, and it is the ruling `VodDetailTvScreen` already made and wrote
         // down: the complete answer is a scrolling block, which on a television is
