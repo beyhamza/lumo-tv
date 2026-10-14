@@ -118,3 +118,34 @@ jour. À trancher par Hamza :
   `qa-evidence/` ont été scannés.
 - Un APK de **release** (signature et URL `https://api.lumo.tv/v1`) : non construit ; même code que le
   debug, hors `BuildConfig`.
+
+## Correctifs (14/10/2026)
+
+Branche `fix/BUG-R020-15-01-free-unlimited` (sur `qa/R020-14-15-audits`), à la demande de Hamza
+(« on part sur (a), corrige aussi les deux écarts R020-14 »).
+
+- **`BUG-R020-15-01`** — FREE sans plafond par défaut : `LUMO_PLAN_FREE_MAX_SOURCES` et
+  `LUMO_PLAN_FREE_MAX_DEVICES` vides dans `application.yml` et `.env.example` ; la surcharge 1000 du
+  profil `dev` est retirée, pour que le développement voie ce que voit la production. Les tests ont
+  révélé un piège : un bloc dont toutes les valeurs sont vides est lié à `null`, et `limitsFor`
+  levait une `NullPointerException` (`/me/entitlement` en `500`, activation TV cassée). `Plans`
+  normalise désormais un plan absent en `Limits.UNLIMITED`. C'était déjà le cas pour qui suivait le
+  conseil de `.env.example` (« laisser vide pour illimité »).
+  - `FreePlanDefaultsIntegrationTest` (nouveau) : FREE tel que livré → `max_sources` et
+    `max_devices` nuls, 2 sources et 3 appareils acceptés. **Rouge** avec les anciens défauts (2/2
+    échouent), vert après.
+  - `PlanLimitsIntegrationTest` fixe désormais 1 / 2 lui-même : le mécanisme de plafond reste prouvé.
+  - API complète : 361 tests, 0 échec. API locale reconstruite : compte de recette `FREE`,
+    plafonds `null`, 3ᵉ source acceptée (`202`).
+- **`BUG-R020-14-01`** — noms fictifs dans `ChannelQualityTest` (« Chaîne 01 FHD », « Chaîne+ Sport
+  4K », « Découverte HD », « Chaîne 2 SD », « Ciel Sports UHD », « Aube fhd », « Jeunesse »,
+  « Chaîne 3 Nord »), la Javadoc de `ChannelQuality.java`, `FavoritesStateTest` (« Aube »,
+  « Rivage ») et `LiveDirectViewsTest` (« voyage », « aube »). Un second scan, avec une liste élargie
+  de chaînes et de marques, a trouvé « Discovery », « Nickelodeon » et « RMC », corrigés aussi ; il ne
+  reste que « TV5 », identifiant d'écran de maquette. Tests : `ChannelQualityTest` 27/27,
+  `feature:favorites` 11/11, `feature:live` 119/119, lint vert.
+- **`BUG-R020-14-02`** — les deux scripts exigent `QA_PASS` (même forme que `s90601-source.mjs`). Le
+  mot de passe restant dans l'historique git, le compte local `qa.mobile.cold.20260926@test.example`
+  a reçu un nouveau mot de passe (hors dépôt, `apps/api/.env.recette`) : l'ancien est refusé (`401`),
+  le nouveau accepté ; ses sessions ont été révoquées.
+
