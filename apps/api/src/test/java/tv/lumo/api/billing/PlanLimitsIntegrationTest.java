@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.TestPropertySource;
 import tv.lumo.api.auth.DeviceRepository;
 import tv.lumo.api.auth.SessionService;
 import tv.lumo.api.auth.UserRepository;
@@ -42,8 +43,17 @@ import tv.lumo.api.support.PostgresIntegrationTest;
  * device row. Signing out frees it. Without that, a two-device plan would refuse
  * its third sign-in forever, including from the same browser the user signed out
  * of last week.
+ *
+ * <p>The ceilings are set here, not read from {@code application.yml}: FREE ships
+ * without one since 0.2.0 (BUG-R020-15-01), and the enforcement path must stay
+ * proven for the deployment that sets one. {@code FreePlanDefaultsIntegrationTest}
+ * pins what ships.
  */
 @Import(PostgresContainerInitializer.class)
+@TestPropertySource(properties = {
+        "lumo.plans.free.max-sources=1",
+        "lumo.plans.free.max-devices=2",
+})
 class PlanLimitsIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired

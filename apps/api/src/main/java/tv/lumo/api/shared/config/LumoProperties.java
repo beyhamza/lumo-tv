@@ -141,15 +141,28 @@ public record LumoProperties(
      * computed client-side, which AGENTS.md §1 forbids outright. Clients read them
      * off {@code GET /me/entitlement}; the day the free plan allows two sources,
      * one line changes here and three applications follow with no release.
+     *
+     * <p>A tier with no value at all binds as {@code null}, not as an empty
+     * {@link Limits}: {@code max-sources: ${VAR:}} with the variable unset leaves
+     * nothing for the binder to build. That is FREE as shipped since 0.2.0
+     * (BUG-R020-15-01), and it means unlimited, so it is normalised here rather
+     * than left to every reader.
      */
-    public record Plans(@NotNull Limits free, @NotNull Limits premium) {}
+    public record Plans(Limits free, Limits premium) {
+        public Plans {
+            free = free == null ? Limits.UNLIMITED : free;
+            premium = premium == null ? Limits.UNLIMITED : premium;
+        }
+    }
 
     /**
      * @param maxSources null means unlimited, not unknown — the same meaning the
      *                   contract gives the property
      * @param maxDevices same rule
      */
-    public record Limits(Integer maxSources, Integer maxDevices) {}
+    public record Limits(Integer maxSources, Integer maxDevices) {
+        public static final Limits UNLIMITED = new Limits(null, null);
+    }
 
     /**
      * Stripe.
