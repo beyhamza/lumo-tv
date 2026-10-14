@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -347,9 +348,16 @@ private fun Grid(
         modifier = Modifier.fillMaxSize(),
     ) {
         itemsIndexed(state.items, key = { _, entry -> entry.id }) { index, entry ->
+            // One requester per composed card, registered by id while it is on
+            // screen: what the focus return looks up after a scroll.
+            val requester = remember { FocusRequester() }
+            DisposableEffect(entry.id, requester) {
+                requesters[entry.id] = requester
+                onDispose { if (requesters[entry.id] === requester) requesters.remove(entry.id) }
+            }
             Card(
                 entry = entry,
-                focusRequester = requesters.getOrPut(entry.id) { FocusRequester() },
+                focusRequester = requester,
                 onSelect = { onSelect(index, entry) },
             )
         }
