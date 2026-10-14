@@ -33,6 +33,14 @@ Détail par sprint : [`sprint-08.md`](../../backlog/sprint-08.md),
 [`sprint-09.md`](../../backlog/sprint-09.md),
 [`sprint-10.md`](../../backlog/sprint-10.md).
 
+
+**Version gratuite, sans plafond.** Le plan FREE n'a aucune limite de sources ni
+d'appareils, comme la 0.1.0 : la mise à jour ne retire rien aux comptes existants
+(`R020-15`, `BUG-R020-15-01`, décision de Hamza du 14/10/2026). Un déploiement peut en
+fixer par configuration (`LUMO_PLAN_FREE_MAX_SOURCES`, `LUMO_PLAN_FREE_MAX_DEVICES`) ;
+aucun ne l'est par défaut. Pas de paiement ni de connexion Google : les routes
+correspondantes de l'API répondent `503` « non configuré ».
+
 ## Preuves
 
 Les preuves de recette QA sont dans
