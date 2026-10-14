@@ -40,14 +40,14 @@ class FavoritesStateTest {
             activeSourceId = "source",
             favorites = listOf(
                 favorite("f1", "documentaire", channel("c1", "Zèbre"), position = 2),
-                favorite("f2", "documentaire", channel("c2", "Arte"), position = 0),
+                favorite("f2", "documentaire", channel("c2", "Aube"), position = 0),
                 favorite("f3", "cine", channel("c3", "Ciné+"), position = 0),
             ),
         )
 
         // By position, not by name: sorting alphabetically here would look right
         // and would make the reorder of S4-05 do nothing visible.
-        assertThat(state.visible.map { it.channel.name }).containsExactly("Arte", "Zèbre").inOrder()
+        assertThat(state.visible.map { it.channel.name }).containsExactly("Aube", "Zèbre").inOrder()
     }
 
     @Test
@@ -58,7 +58,7 @@ class FavoritesStateTest {
             groups = listOf(documentaire, cine),
             selectedGroupId = "cine",
             activeSourceId = "source",
-            favorites = listOf(favorite("f1", "documentaire", channel("c1", "Arte"))),
+            favorites = listOf(favorite("f1", "documentaire", channel("c1", "Aube"))),
         )
 
         assertThat(nothing.nothingAtAll).isTrue()
@@ -174,8 +174,8 @@ class FavoritesStateTest {
                 only,
                 // Three more favourites, in the other group. They must not make
                 // this one look movable: the visible list is one tab.
-                favorite("f2", "documentaire", channel("c2", "Arte"), position = 0),
-                favorite("f3", "documentaire", channel("c3", "RMC"), position = 1),
+                favorite("f2", "documentaire", channel("c2", "Aube"), position = 0),
+                favorite("f3", "documentaire", channel("c3", "Rivage"), position = 1),
             ),
         )
 
@@ -185,13 +185,13 @@ class FavoritesStateTest {
 
     @Test
     fun `the deletion count is the group's own, and the targets exclude it`() {
-        val favorite = favorite("f1", "documentaire", channel("c1", "Arte"))
+        val favorite = favorite("f1", "documentaire", channel("c1", "Aube"))
         val state = FavoritesState(
             loading = false,
             groups = listOf(documentaire, cine),
             favorites = listOf(
                 favorite,
-                favorite("f2", "documentaire", channel("c2", "RMC")),
+                favorite("f2", "documentaire", channel("c2", "Rivage")),
                 favorite("f3", "cine", channel("c3", "Ciné+")),
             ),
         )

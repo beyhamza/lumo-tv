@@ -23,7 +23,7 @@ name: web
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
     paths:
       - 'apps/web/**'

@@ -28,6 +28,9 @@ import tv.lumo.android.core.database.model.SeriesEntity
 internal class FakeSeriesDao : SeriesDao {
 
     val stored = mutableListOf<SeriesEntity>()
+
+    /** Every list the pager opened over this table, in order. */
+    val handedOut = mutableListOf<EmptyPagingSource<SeriesEntity>>()
     val seasons = mutableListOf<SeasonEntity>()
     val episodes = mutableListOf<EpisodeEntity>()
 
@@ -114,7 +117,8 @@ internal class FakeSeriesDao : SeriesDao {
         categoryId: String,
     ): PagingSource<Int, SeriesEntity> = unreachable()
 
-    override fun pagedBySource(sourceId: String): PagingSource<Int, SeriesEntity> = unreachable()
+    override fun pagedBySource(sourceId: String): PagingSource<Int, SeriesEntity> =
+        EmptyPagingSource<SeriesEntity>().also { handedOut += it }
 
     override fun pagedBySearch(
         sourceId: String,

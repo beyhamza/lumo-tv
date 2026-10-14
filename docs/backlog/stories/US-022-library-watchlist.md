@@ -1,7 +1,7 @@
 # US-022 — Retrouver ma bibliothèque et ma liste à regarder
 
 Statut : besoin validé le 17 septembre 2026 ; liste à regarder en attente de
-couverture contractuelle. Version cible : 0.2.0.
+couverture contractuelle. Version cible : 0.3.0 (cycle S11, ouvert le 8 octobre 2026).
 Surfaces : web, Android mobile, Android TV, même priorité.
 
 [Proposition visuelle](../../design/0.2.0/library.md) préparée le 19 septembre

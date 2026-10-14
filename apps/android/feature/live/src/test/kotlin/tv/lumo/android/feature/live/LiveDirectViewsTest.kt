@@ -39,7 +39,7 @@ class LiveDirectViewsTest {
         step = LiveStep.Browsing,
         sourceId = "source-a",
         filter = CatalogueFilter.Category("news"),
-        search = "tf1",
+        search = "voyage",
         view = DirectView.Guide,
     )
 
@@ -86,7 +86,7 @@ class LiveDirectViewsTest {
             step = LiveStep.Browsing,
             sourceId = "source-a",
             filter = CatalogueFilter.Recent,
-            search = "arte",
+            search = "aube",
             view = DirectView.Channels,
         )
 
@@ -136,7 +136,7 @@ class LiveDirectViewsTest {
             CatalogueSource.FirstImport("source-a", isPlaylist = false, failed = false),
         )
 
-        assertThat(importing.search).isEqualTo("tf1")
+        assertThat(importing.search).isEqualTo("voyage")
         assertThat(importing.filter).isEqualTo(CatalogueFilter.Category("news"))
         assertThat(importing.view).isEqualTo(DirectView.Guide)
     }
@@ -152,14 +152,14 @@ class LiveDirectViewsTest {
 
     @Test
     fun `a search still loading draws nothing, not a no-result sentence`() {
-        val state = LiveState(search = "tf1")
+        val state = LiveState(search = "voyage")
 
         assertThat(state.searchFoundNothing(itemCount = 0, loading = true)).isFalse()
     }
 
     @Test
     fun `a search that returned no channel is the state with the two ways out`() {
-        val state = LiveState(search = "tf1")
+        val state = LiveState(search = "voyage")
 
         assertThat(state.searchFoundNothing(itemCount = 0, loading = false)).isTrue()
         // A search that returned something is not that state.

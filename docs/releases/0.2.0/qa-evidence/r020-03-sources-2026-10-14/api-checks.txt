@@ -1,0 +1,34 @@
+account created (stored in .env.recette)
+PASS ajout M3U accepté — HTTP 202
+PASS ajout Xtream accepté — HTTP 202
+PASS compteurs nuls avant la première ingestion (inconnu, pas 0) — channel_count=None
+PASS M3U prête — READY
+PASS Xtream prête — READY
+  liste: {"Banc R020-03 M3U": {"status": "READY", "last_synced_at": true, "channel_count": 3, "film_count": null, "series_count": null}, "Banc R020-03 Xtream": {"status": "READY", "last_synced_at": true, "channel_count": 3, "film_count": null, "series_count": null}}
+PASS M3U : pas de compteur de séries (M3U n’en porte pas) — series_count=None
+PASS Banc R020-03 format : conservée en erreur — ERROR SOURCE_INVALID_FORMAT
+PASS Banc R020-03 injoignable : conservée en erreur — ERROR SOURCE_UNREACHABLE
+PASS Réessayer une source en erreur : même source, toujours en erreur — HTTP 202, ERROR SOURCE_INVALID_FORMAT
+PASS Réessayer ne crée pas de source
+PASS actualisation acceptée — HTTP 202
+PASS deuxième actualisation < 5 min : délai du serveur — HTTP 429, Retry-After=299, SOURCE_SYNC_RATE_LIMITED
+PASS SYNCING : catalogue précédent consultable — HTTP 200, 3 chaînes
+PASS SYNCING : lecture attend la fin — HTTP 409 SOURCE_NOT_READY
+PASS SYNCING : nouvelle demande refusée « en cours » — HTTP 409 SOURCE_SYNC_IN_PROGRESS
+PASS correction d’adresse acceptée malgré le délai — HTTP 200
+PASS échec : source en erreur — ERROR SOURCE_INVALID_FORMAT
+PASS échec : catalogue précédent consultable — HTTP 200
+PASS échec (format) : lecture possible — HTTP 200
+PASS échec 401 (forcé) : source en erreur « identifiants » — ERROR SOURCE_AUTH_FAILED
+PASS échec 401 (forcé) : catalogue précédent consultable — HTTP 200
+PASS échec 401 (forcé) : lecture refusée avec son code — HTTP 409 SOURCE_AUTH_FAILED
+PASS remplacement de l’adresse : M3U de nouveau prête — READY
+PASS remplacement des identifiants : Xtream de nouveau prête — READY
+PASS renommer + actualisation auto sur cette source seulement — label ok=True, M3U auto_sync=False, Xtream auto_sync=True
+PASS renommer ne relance pas d’ingestion — READY
+PASS suppression — HTTP 204
+PASS source supprimée : 404 SOURCE_NOT_FOUND — HTTP 404 SOURCE_NOT_FOUND
+PASS catalogue supprimé : 404 — HTTP 404 SOURCE_NOT_FOUND
+PASS il reste la M3U seule — ['Banc R020-03 M3U renommée']
+
+30/30 PASS

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getLocale } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
 import { sessionCookieName } from "@/lib/env";
+import { expireAccountCookies } from "./account-cookies";
 import {
   sealSession,
   sessionCookieOptions,
@@ -12,11 +13,14 @@ import {
 } from "./cookie";
 
 /**
- * Reads the session in a Server Component, a Server Action or a Route Handler.
+ * Reads the session in a Server Component or a Server Action.
  *
  * Read-only on purpose. Refreshing happens in `proxy.ts`, before rendering
  * starts, because a Server Component cannot set a cookie — Next throws if it
  * tries. By the time this is called the cookie is already fresh.
+ *
+ * Not for a Route Handler under `/api`: the proxy does not run there, so the
+ * cookie may be stale. Those use `getRouteSession` (`./route-session`).
  */
 export async function getSession(): Promise<SessionPayload | null> {
   const store = await cookies();
@@ -58,4 +62,9 @@ export async function closeSession(): Promise<void> {
   // deleting: the delete alone leaves the old value in place on some proxies
   // that cache Set-Cookie handling.
   store.set(name, "", { ...options, maxAge: 0 });
+  // And the account's preference cookies with it (BUG-R020-01-02).
+  expireAccountCookies(
+    store.getAll().map((cookie) => cookie.name),
+    (cookieName, value, cookieOptions) => store.set(cookieName, value, cookieOptions),
+  );
 }

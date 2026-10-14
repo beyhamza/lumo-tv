@@ -1,6 +1,6 @@
 # Recette et critères de sortie — 0.2.0
 
-Plan de recette, créé le 17 septembre 2026. **Non exécuté.** Version gratuite,
+Plan de recette, créé le 17 septembre 2026. **Non exécuté à la rédaction.** Version gratuite,
 compte email et activation TV ; Google et paiements exclus par décision utilisateur.
 
 ## Préparation
@@ -19,27 +19,51 @@ le format des preuves et le dossier de livraison à assembler en S14.
 
 ## Matrice de clôture
 
-Chaque ligne exige une preuve par surface applicable ; le statut ci-dessous est
-celui de ce plan, pas une affirmation sur les recettes historiques.
+Chaque ligne exige une preuve par surface applicable. La matrice garde **deux
+colonnes distinctes** : l'état **du plan** (17/09) et l'état **réellement joué au
+08/10/2026** (source : [`qa-evidence/ETAT-RELEASE-0.2.0-2026-10-08.md`](qa-evidence/ETAT-RELEASE-0.2.0-2026-10-08.md)
+et [`qa-evidence/INDEX.md`](qa-evidence/INDEX.md), seule autorité de preuve).
 
-| ID | Parcours | Lots | État |
-|---|---|---|---|
-| R020-01 | Email, session persistante, déconnexion, activation TV, absence de fuite entre comptes | S8/S14, recettes 1/2 | Non joué |
-| R020-02 | Source active locale, accueil et navigation, retour/focus | S8/S12 | Non joué |
-| R020-03 | Sources : ajout, états, ancienne donnée pendant sync, retry, suppression et remplacement | S8/S11 | Non joué |
-| R020-04 | Direct/Guide, filtres, dates, fiche, absence/ancienneté/erreurs, lecture groupée | S9 | Non joué |
-| R020-05 | Recherche par type, saisie rapide, source changée, erreur partielle et retour | S10 | Non joué |
-| R020-06 | Favoris/groupes, ordre et dédoublonnage, gestes, propagation | S11 | Non joué |
-| R020-07 | À regarder : ajout/retrait, partage, tri, source supprimée | S11 | Non joué |
-| R020-08 | Continuer : lecture effective, seuil de fin, reprise, masquage et réapparition | S12 | Non joué |
-| R020-09 | Films et séries : fiches, seek disponible/indisponible, progression et erreurs | S12/S13, recettes 5/6 | Non joué |
-| R020-10 | Audio/sous-titres/qualité selon capacités et préférences locales | S13 | Non joué |
-| R020-11 | Épisode suivant, décompte annulé, mode manuel, saison/final et reprise | S13 | Non joué |
-| R020-12 | Réglages, langues, informations, réseau mobile et autoplay | S13 | Non joué |
-| R020-13 | FR/EN, clavier/focus TV, lisibilité, contenu volumineux, erreurs réseau | Tous | Non joué |
-| R020-14 | Aucun contenu réel ajouté, aucun secret/URL sensible dans les preuves et logs | Tous | Non joué |
-| R020-15 | Pas de parcours Google/paiement non opérationnel exposé ; quotas existants non modifiés implicitement | S8/S14 | Non joué |
-| R020-16 | Mise à jour depuis version précédente, migrations, données conservées, catalogue et lecture toujours accessibles | S14 | Non joué |
+> **Réconciliation du 08/10/2026.** La matrice listait « Non joué » pour les 16
+> lignes alors que deux passages versionnés (S9-07 automatisé, S10-05 par surface)
+> couvrent déjà une partie des lignes 04, 05 et 13. Dire « Non joué » partout
+> était faux ; dire « conforme » ailleurs eût aussi été faux. L'état réel est
+> donc ajouté ligne par ligne, et **la sortie 0.2.0 reste refusée** : les lignes
+> en périmètre 0.2.0 (01, 02, 03, 04, 05, 13, 14, 15, 16) ne sont pas toutes
+> conformes. Périmètre 0.2.0 gelé le 08/10 = S8+S9+S10 (`DECISIONS-PRODUIT.md`) :
+> les lignes **06→12 (S11/S12/S13) visent 0.3.0** et ne conditionnent plus cette
+> sortie.
+>
+> **Verrous de sortie vie privée (portés par le @PO) :** `R020-01` (fuite entre
+> comptes) et `R020-16` (mise à jour/migrations) — **joués conformes** (R020-01 le
+> 10/10, R020-16 le 11/10, correctifs rejoués). Ils conditionnaient le `v0.2.0` final.
+>
+> **Décision de sortie du 14/10/2026 (Hamza).** La 0.2.0 sort sur cette matrice.
+> Les verrous et les lignes 03, 14, 15 sont conformes ; les lignes **02, 04, 05 et 13**
+> restent partielles et sortent comme **limites connues**, listées dans les
+> [notes de sortie](RELEASE-NOTES.md) et reportées en 0.3.0. Leur résidu demande
+> surtout un appareil réel (télécommande, troncature) : le rejouer sur émulateur ne
+> l'aurait pas fermé. Exclusion tracée dans `DECISIONS-PRODUIT.md`, comme le demande
+> la sortie de S14.
+
+| ID | Parcours | Lots | État (plan 17/09) | État joué (08/10) |
+|---|---|---|---|---|
+| R020-01 | Email, session persistante, déconnexion, activation TV, absence de fuite entre comptes | S8/S14, recettes 1/2 | Non joué | ✅ **Conforme (10/10)**, sous réserve du merge des correctifs ; jeton d'accès ≤ 15 min après déconnexion = **limite connue acceptée** — API conforme (A-1→A-9), TV conforme (`BUG-R020-01-01` corrigé et rejoué, [rejoue](qa-evidence/r020-01-bug01-rejoue-2026-10-10/RAPPORT.md)), mobile W-3 conforme ([passage](qa-evidence/r020-01-mobile-2026-10-10/RAPPORT.md)), web W-1 conforme et W-2 conforme en production ([passage](qa-evidence/r020-01-web-2026-10-10/RAPPORT.md)), `BUG-R020-01-02` corrigé  ([passage](qa-evidence/r020-01-tv-2026-10-10/RAPPORT.md)) |
+| R020-02 | Source active locale, accueil et navigation, retour/focus | S8/S12 | Non joué | ⏸️ **Fragments** (accueil à froid, focus grille), pas le parcours vertical S8 — **limite connue de la 0.2.0, reportée en 0.3.0** (décision du 14/10) |
+| R020-03 | Sources : ajout, états, ancienne donnée pendant sync, retry, suppression et remplacement | S8/S11 | Joué (14/10, 3 surfaces) | ✅ **Conforme (14/10)**, un écart faible au backlog — API 30/30 ; R-420 → R-428 sur web, mobile et TV (ancien catalogue pendant et après échec, délai serveur, remplacement sur mobile, suppression ailleurs en 47 s sur TV) ; `BUG-R020-03-01` (correction de source sur le web), `-03` (source supprimée affichée comme panne) et `-04` (bandeau d'échec invisible sur le Direct TV) **corrigés** ; `-02` (`auto_sync` ignoré à la création, faible) reste au backlog ([passage](qa-evidence/r020-03-sources-2026-10-14/RAPPORT.md)) |
+| R020-04 | Direct/Guide, filtres, dates, fiche, absence/ancienneté/erreurs, lecture groupée | S9 | Non joué | ⚠️ **Partiel** (web+émulateur ; résidu matériel — voir ETAT §2) — **limite connue de la 0.2.0, reportée en 0.3.0** (décision du 14/10) |
+| R020-05 | Recherche par type, saisie rapide, source changée, erreur partielle et retour | S10 | Non joué | ⚠️ **Partiel** (web/mobile/TV ; saisie rapide SR-01/02/03 et « deux sources » non joués) — **limite connue de la 0.2.0, reportée en 0.3.0** (décision du 14/10) |
+| R020-06 | Favoris/groupes, ordre et dédoublonnage, gestes, propagation | S11 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-07 | À regarder : ajout/retrait, partage, tri, source supprimée | S11 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-08 | Continuer : lecture effective, seuil de fin, reprise, masquage et réapparition | S12 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-09 | Films et séries : fiches, seek disponible/indisponible, progression et erreurs | S12/S13, recettes 5/6 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-10 | Audio/sous-titres/qualité selon capacités et préférences locales | S13 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-11 | Épisode suivant, décompte annulé, mode manuel, saison/final et reprise | S13 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-12 | Réglages, langues, informations, réseau mobile et autoplay | S13 | Non joué | ➖ **0.3.0** (hors périmètre 0.2.0) |
+| R020-13 | FR/EN, clavier/focus TV, lisibilité, contenu volumineux, erreurs réseau | Tous | Non joué | ⚠️ **Partiel** (FR/EN web, grilles ; D-pad réel et troncature 320 px non joués) — **limite connue de la 0.2.0, reportée en 0.3.0** (décision du 14/10) |
+| R020-14 | Aucun contenu réel ajouté, aucun secret/URL sensible dans les preuves et logs | Tous | Joué (audit 11 et 14/10) | ✅ **Conforme (14/10)** — 147 captures revues, 432 commits et artefacts (APK, bundle web, config API) sans secret ni URL de fournisseur ; `BUG-R020-14-01` (noms de vraies chaînes en fixtures) et `BUG-R020-14-02` (mot de passe de recette en clair, compte changé) **corrigés** ([audit](qa-evidence/r020-14-15-audits-2026-10-14/RAPPORT.md)) |
+| R020-15 | Pas de parcours Google/paiement non opérationnel exposé ; quotas existants non modifiés implicitement | S8/S14 | Joué (audit 14/10) | ✅ **Conforme (14/10)** — aucun écran Google ni paiement (web, mobile, TV), API en `503` « non configuré » sans effet sur le droit ; `BUG-R020-15-01` **corrigé** : FREE sans plafond par défaut, comme en 0.1.0 (décision de Hamza, option a) ([audit](qa-evidence/r020-14-15-audits-2026-10-14/RAPPORT.md)) |
+| R020-16 | Mise à jour depuis version précédente, migrations, données conservées, catalogue et lecture toujours accessibles | S14 | Joué (drill local 11/10) | ✅ **Conforme (11/10)**, deux écarts catalogue corrigés et rejoués — drill `v0.1.0` → `dev` @ `720f845` : Liquibase 44 → 90 sans erreur, compte/mot de passe/sources/identifiants chiffrés/catalogue conservés, APK TV et mobile mis à jour en place, lecture OK ; Room 1 → 7 couvert par `LumoDatabaseMigrationTest` (la 0.1.0 ne crée pas de base). Écarts **indépendants de la mise à jour** : `BUG-R020-16-01` (catalogue tronqué aux favoris/récentes au premier affichage) **corrigé et rejoué TV** ([rejoue](qa-evidence/r020-16-bug01-rejoue-2026-10-11/RAPPORT.md)), `BUG-R020-16-02` (TV, grille « All » vide après la 1re synchro) **corrigé et rejoué TV** ([rejoue](qa-evidence/r020-16-bug02-rejoue-2026-10-11/RAPPORT.md)) ; `versionCode` = 1 des deux côtés (refus store) ([passage](qa-evidence/r020-16-2026-10-11/RAPPORT.md)) |
 
 R020-12 inclut la pause après perte du Wi-Fi pendant une lecture, lorsque Lecture
 sur données mobiles est désactivée (décision du 19 septembre 2026). Vérifier le

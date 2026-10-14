@@ -62,6 +62,7 @@ class VodRepositoryTest {
 
     private val vodDao = FakeVodDao()
     private val categoryDao = FakeSharedCategoryDao()
+    private val syncs = FakeCatalogueSyncDao()
 
     private val sourceId = UUID.randomUUID().toString()
 
@@ -98,6 +99,38 @@ class VodRepositoryTest {
             .containsExactly("Sport", "Généralistes")
         assertThat(categoryDao.stored.value.filter { it.contentType == "VOD" }.map { it.name })
             .containsExactly("Action")
+    }
+
+    @Test
+    fun `films resolved for a rail are not a synchronised catalogue, a refresh is`() = runTest {
+        // What the "Continue" rail writes on a television just paired: one film,
+        // and no film catalogue behind it (BUG-R020-16-01).
+        vodDao.stored += entity("Le Voyage")
+        val repository = repository()
+
+        assertThat(repository.cachedFilmCount(sourceId)).isEqualTo(1)
+        assertThat(repository.isSynchronised(sourceId)).isFalse()
+
+        server.enqueue(json(categoryList(listOf("Action"))))
+        server.enqueue(json(vodPage(page = 0, totalPages = 1, names = listOf("Le Voyage", "Les Falaises"))))
+        repository.refresh(sourceId)
+
+        assertThat(repository.isSynchronised(sourceId)).isTrue()
+        assertThat(syncs.stored.keys).containsExactly(sourceId to "VOD")
+    }
+
+    @Test
+    fun `a refresh invalidates the film lists already open`() = runTest {
+        val repository = repository()
+        repository.films(sourceId).first()
+        val open = vodDao.handedOut.single()
+
+        server.enqueue(json(categoryList(listOf("Action"))))
+        server.enqueue(json(vodPage(page = 0, totalPages = 1, names = listOf("Le Voyage"))))
+        repository.refresh(sourceId)
+
+        // Same race as the channels (BUG-R020-16-02), same poster wall left empty.
+        assertThat(open.invalid).isTrue()
     }
 
     @Test
@@ -287,6 +320,7 @@ class VodRepositoryTest {
         calls = ApiCaller(ProblemReader(Serializer.moshiBuilder.build())),
         categoryDao = categoryDao,
         vodDao = vodDao,
+        syncs = syncs,
         pager = VodPager(vodDao),
         io = UnconfinedTestDispatcher(),
     )
@@ -359,6 +393,9 @@ private class FakeVodDao : VodDao {
 
     val stored = mutableListOf<VodItemEntity>()
 
+    /** Every list the pager opened over this table, in order. */
+    val handedOut = mutableListOf<EmptyPagingSource<VodItemEntity>>()
+
     override suspend fun upsert(items: List<VodItemEntity>) {
         items.forEach { item ->
             stored.removeAll { it.id == item.id }
@@ -389,7 +426,8 @@ private class FakeVodDao : VodDao {
         categoryId: String,
     ): PagingSource<Int, VodItemEntity> = unreachable()
 
-    override fun pagedBySource(sourceId: String): PagingSource<Int, VodItemEntity> = unreachable()
+    override fun pagedBySource(sourceId: String): PagingSource<Int, VodItemEntity> =
+        EmptyPagingSource<VodItemEntity>().also { handedOut += it }
 
     override fun pagedBySearch(
         sourceId: String,

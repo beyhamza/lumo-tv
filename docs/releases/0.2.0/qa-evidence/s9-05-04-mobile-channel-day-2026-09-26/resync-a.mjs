@@ -1,5 +1,6 @@
 const API="http://localhost:8080/v1";
-const email="qa.mobile.cold.20260926@test.example", password=process.env.QA_PASS??"lumo-qa-cold-2026!";
+const email="qa.mobile.cold.20260926@test.example", password=process.env.QA_PASS;
+if (!password) { console.error("QA_PASS requis dans l'environnement"); process.exit(1); }
 const j=r=>r.text().then(t=>({status:r.status,body:t?JSON.parse(t):null}));
 const l=await j(await fetch(`${API}/auth/login`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email,password,device:{platform:"ANDROID_MOBILE",name:"QA"}})}));
 const auth={authorization:`Bearer ${l.body.access_token??l.body.accessToken}`};

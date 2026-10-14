@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
+import { getFormatter, getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { deleteSource, syncSource, updateSource } from "@/actions/sources";
+import { CorrectSourceForm } from "@/components/app/CorrectSourceForm";
 import { Unavailable } from "@/components/app/Unavailable";
 import { UseSourceButton } from "@/components/app/UseSourceButton";
 import { Button } from "@/components/ui/button";
@@ -10,7 +12,7 @@ import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-message";
-import { fetched } from "@/lib/api/fetched";
+import { fetchedResource } from "@/lib/api/fetched";
 import type { Source, SyncStep } from "@/lib/api/types";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
@@ -102,14 +104,35 @@ export default async function SourcePage({
   const format = await getFormatter();
 
   const [source, activeSource] = await Promise.all([
-    fetched(() =>
-      api(session.accessToken).GET("/sources/{id}", { params: { path: { id } } }),
+    fetchedResource(
+      () => api(session.accessToken).GET("/sources/{id}", { params: { path: { id } } }),
+      "SOURCE_NOT_FOUND",
     ),
     // The layout asked the same question for the rail; this is the same answer,
     // not a second request (`loadActiveSource` is memoised per request).
     loadActiveSource(session.accessToken, session.userId),
   ]);
 
+  if (source.state === "gone") {
+    // Deleted — from the phone, another tab, the TV's owner. Saying so is the
+    // whole point (BUG-R020-03-03): "try again in a minute" would never work.
+    return (
+      <div className="max-w-2xl">
+        <div role="status" className="border-border rounded-xl border border-dashed px-5 py-6">
+          <p className="font-medium">{t("sourceGoneTitle")}</p>
+          <p className="text-muted-foreground mt-1 text-sm">{t("sourceGoneBody")}</p>
+          <p className="mt-4 text-sm">
+            <a
+              href={hrefFor(locale as Locale, "/app/sources")}
+              className="underline underline-offset-4"
+            >
+              {t("sourceBackToList")}
+            </a>
+          </p>
+        </div>
+      </div>
+    );
+  }
   if (source.state === "unavailable") {
     // Distinguished from "no such source" on purpose: one asks the user to come
     // back in a minute, the other tells them the source is gone. Collapsing them
@@ -143,6 +166,10 @@ export default async function SourcePage({
   const now = new Date();
   const limited = running ? null : syncLimitNotice(query.sync, query.retryAt, now.getTime());
   const syncFailed = !running && query.sync === "failed";
+  // The connection form (BUG-R020-03-01). Not while an import runs: what it
+  // would replace is being fetched right now, and the page refreshes itself.
+  const correcting = !running && query.edit === "connection";
+  const messages = correcting ? await getMessages() : null;
 
   return (
     <div className="max-w-2xl">
@@ -184,6 +211,7 @@ export default async function SourcePage({
         ) : row.status === "ERROR" ? (
           <ErrorPanel
             code={row.error_code ?? undefined}
+            kind={row.kind}
             since={row.last_error_at ?? null}
             id={row.id}
             refreshing={condition.browsable}
@@ -192,6 +220,31 @@ export default async function SourcePage({
             tErrors={tErrors}
             format={format}
           />
+        ) : null}
+
+        {correcting ? (
+          <section id="correct" className="border-border rounded-xl border px-5 py-4">
+            <h2 className="font-medium">{t("sourceCorrectTitle")}</h2>
+            <p className="text-muted-foreground mt-1 mb-4 text-sm">{t("sourceCorrectHint")}</p>
+            <NextIntlClientProvider messages={{ App: messages!.App, Errors: messages!.Errors }}>
+              <CorrectSourceForm
+                id={row.id}
+                kind={row.kind}
+                m3uUrl={row.m3u_url ?? ""}
+                host={row.host ?? ""}
+                username={row.username ?? ""}
+                epgUrl={row.epg_url ?? ""}
+              />
+            </NextIntlClientProvider>
+            <p className="mt-4 text-sm">
+              <a
+                href={hrefFor(locale as Locale, `/app/sources/${row.id}`)}
+                className="text-muted-foreground underline underline-offset-4"
+              >
+                {t("sourceCorrectCancel")}
+              </a>
+            </p>
+          </section>
         ) : null}
 
         {condition.browsable ? (
@@ -518,6 +571,7 @@ function ActivePanel({
  */
 function ErrorPanel({
   code,
+  kind,
   since,
   id,
   refreshing,
@@ -527,6 +581,7 @@ function ErrorPanel({
   format,
 }: {
   code?: string;
+  kind: Source["kind"];
   since: string | null;
   id: string;
   /** True when a previous catalogue exists: a refresh failed, not the import. */
@@ -559,14 +614,19 @@ function ErrorPanel({
         {/* Two different buttons, because the two failures need two different
             actions: one is "try the same thing again", the other is "the thing
             you typed is wrong". */}
-        {credentialFailure ? (
-          <a
-            href={hrefFor(locale, `/app/sources/${id}?confirm=none`)}
-            className="text-sm underline underline-offset-4"
-          >
-            {t("sourceFixCredentials")}
-          </a>
-        ) : null}
+        {/* Every failure gets its way out, worded after what is likely wrong —
+            the address of a playlist, the credentials of a panel, or the panel's
+            address (BUG-R020-03-01: this link used to reload the page). */}
+        <a
+          href={hrefFor(locale, `/app/sources/${id}?edit=connection#correct`)}
+          className="text-sm underline underline-offset-4"
+        >
+          {credentialFailure
+            ? t("sourceFixCredentials")
+            : kind === "XTREAM"
+              ? t("sourceFixConnection")
+              : t("sourceFixAddress")}
+        </a>
         <form action={syncSource}>
           <input type="hidden" name="id" value={id} />
           <Button type="submit" variant="secondary">

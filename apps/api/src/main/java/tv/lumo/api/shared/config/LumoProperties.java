@@ -95,11 +95,22 @@ public record LumoProperties(
      * @param manualSyncInterval how long a source waits between two synchronisations
      *                           its owner asked for. Protects the user's own panel,
      *                           not this server (ADR 0005)
+     * @param loginAttemptsPerEmailPerMinute sign-in attempts on one email, whatever
+     *                           the address they come from. The per-IP key alone
+     *                           lets a caller who spreads attempts over many
+     *                           addresses try passwords without limit (S10B-02)
+     * @param trustedProxies     IP literals or CIDR blocks of the reverse proxies in
+     *                           front of this API. {@code X-Forwarded-For} is read
+     *                           only on a request whose peer is one of them. Empty
+     *                           by default: the header is then ignored, because
+     *                           anyone can write it
      */
     public record RateLimit(
             @Positive int authAttemptsPerMinute,
             @Positive int deviceApproveAttemptsPerMinute,
-            @NotNull Duration manualSyncInterval
+            @NotNull Duration manualSyncInterval,
+            @DefaultValue("10") @Positive int loginAttemptsPerEmailPerMinute,
+            @DefaultValue List<String> trustedProxies
     ) {}
 
     /**
@@ -130,15 +141,28 @@ public record LumoProperties(
      * computed client-side, which AGENTS.md §1 forbids outright. Clients read them
      * off {@code GET /me/entitlement}; the day the free plan allows two sources,
      * one line changes here and three applications follow with no release.
+     *
+     * <p>A tier with no value at all binds as {@code null}, not as an empty
+     * {@link Limits}: {@code max-sources: ${VAR:}} with the variable unset leaves
+     * nothing for the binder to build. That is FREE as shipped since 0.2.0
+     * (BUG-R020-15-01), and it means unlimited, so it is normalised here rather
+     * than left to every reader.
      */
-    public record Plans(@NotNull Limits free, @NotNull Limits premium) {}
+    public record Plans(Limits free, Limits premium) {
+        public Plans {
+            free = free == null ? Limits.UNLIMITED : free;
+            premium = premium == null ? Limits.UNLIMITED : premium;
+        }
+    }
 
     /**
      * @param maxSources null means unlimited, not unknown — the same meaning the
      *                   contract gives the property
      * @param maxDevices same rule
      */
-    public record Limits(Integer maxSources, Integer maxDevices) {}
+    public record Limits(Integer maxSources, Integer maxDevices) {
+        public static final Limits UNLIMITED = new Limits(null, null);
+    }
 
     /**
      * Stripe.

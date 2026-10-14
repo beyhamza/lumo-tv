@@ -23,8 +23,10 @@ import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.SearchPage
+import tv.lumo.android.core.database.dao.CatalogueSyncDao
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.ChannelDao
+import tv.lumo.android.core.database.model.CatalogueSyncEntity
 import tv.lumo.android.core.database.model.CategoryEntity
 import tv.lumo.android.core.database.model.ChannelEntity
 import tv.lumo.android.core.database.paging.CataloguePager
@@ -66,6 +68,7 @@ class CatalogueRepository @Inject internal constructor(
     private val calls: ApiCaller,
     private val categoryDao: CategoryDao,
     private val channelDao: ChannelDao,
+    private val syncs: CatalogueSyncDao,
     private val pager: CataloguePager,
     @Dispatcher(LumoDispatcher.IO) private val io: CoroutineDispatcher,
 ) {
@@ -264,6 +267,11 @@ class CatalogueRepository @Inject internal constructor(
             (categories as LumoResult.Success).value.items.map { it.asEntity() },
         )
         channelDao.replaceForSource(sourceId, channels)
+        // After the rows, never before: see CatalogueSyncEntity.
+        syncs.upsert(CatalogueSyncEntity(sourceId, ContentType.LIVE.value, System.currentTimeMillis()))
+        // A grid in its first load misses Room's own notice of this write and
+        // would stay empty (BUG-R020-16-02): tell the open lists directly.
+        pager.invalidate()
 
         staleness.update { it + (sourceId to null) }
         LumoResult.Success(Unit)
@@ -272,6 +280,14 @@ class CatalogueRepository @Inject internal constructor(
     /** How many channels the cache holds for a source. Drives the empty state. */
     suspend fun cachedChannelCount(sourceId: String): Int =
         withContext(io) { channelDao.countForSource(sourceId) }
+
+    /**
+     * Whether a whole channel catalogue of this source was pulled on this device —
+     * not whether the cache holds rows: resolvers write single rows there too
+     * (BUG-R020-16-01). What decides a screen's first refresh.
+     */
+    suspend fun isSynchronised(sourceId: String): Boolean =
+        withContext(io) { syncs.isSynchronised(sourceId, ContentType.LIVE.value) }
 
     /** One channel from the cache, or null for an id a re-synchronisation dropped. */
     suspend fun channel(id: String): Channel? =
@@ -292,6 +308,7 @@ class CatalogueRepository @Inject internal constructor(
 
     /** Drops one source's cache, for a source the user just deleted. */
     suspend fun forget(sourceId: String) = withContext(io) {
+        syncs.delete(sourceId, ContentType.LIVE.value)
         channelDao.deleteBySource(sourceId)
         categoryDao.deleteBySource(sourceId)
         staleness.update { it - sourceId }

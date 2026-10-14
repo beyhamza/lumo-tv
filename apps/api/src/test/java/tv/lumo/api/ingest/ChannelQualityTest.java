@@ -21,11 +21,11 @@ class ChannelQualityTest {
 
     @ParameterizedTest
     @CsvSource({
-            "TF1 FHD,FHD",
-            "Canal+ Sport 4K,4K",
-            "Discovery HD,HD",
-            "France 2 SD,SD",
-            "Sky Sports UHD,UHD",
+            "Chaîne 01 FHD,FHD",
+            "Chaîne+ Sport 4K,4K",
+            "Découverte HD,HD",
+            "Chaîne 2 SD,SD",
+            "Ciel Sports UHD,UHD",
             "Cinema HEVC,HEVC",
     })
     @DisplayName("reads the token out of the name")
@@ -38,7 +38,7 @@ class ChannelQualityTest {
     void echoesVerbatim() {
         // Not upper-cased, not normalised. An enumeration would have to pick one
         // spelling; a free string does not, and the contract chose the free string.
-        assertThat(ChannelQuality.detect(null, "Arte fhd")).isEqualTo("fhd");
+        assertThat(ChannelQuality.detect(null, "Aube fhd")).isEqualTo("fhd");
     }
 
     @Test
@@ -50,7 +50,7 @@ class ChannelQualityTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"Chaîne 01", "SHDTV", "Nickelodeon", "France 3 Nord"})
+    @ValueSource(strings = {"Chaîne 01", "SHDTV", "Jeunesse", "Chaîne 3 Nord"})
     @DisplayName("says nothing when the source says nothing")
     void saysNothingWhenTheSourceSaysNothing(String name) {
         // SHDTV is the one that matters: the token has to be bounded, or every

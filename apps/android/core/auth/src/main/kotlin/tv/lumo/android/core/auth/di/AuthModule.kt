@@ -10,10 +10,12 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import dagger.multibindings.Multibinds
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.SupervisorJob
+import tv.lumo.android.core.auth.SessionEndCleaner
 import tv.lumo.android.core.auth.SessionTokens
 import tv.lumo.android.core.auth.store.DataStoreSessionStore
 import tv.lumo.android.core.auth.store.SessionSerializer
@@ -51,6 +53,10 @@ abstract class AuthBindingsModule {
     @Binds
     @Singleton
     abstract fun sessionStore(impl: DataStoreSessionStore): SessionStore
+
+    /** Declared so the set exists even in a graph where no module contributes a cleaner. */
+    @Multibinds
+    abstract fun sessionEndCleaners(): Set<SessionEndCleaner>
 }
 
 private fun Context.dataStoreFile(fileName: String) =

@@ -19,13 +19,13 @@ import java.util.regex.Pattern;
  *   <li>An explicit attribute, when the playlist carries one. Rare, and
  *       authoritative when present.</li>
  *   <li>The display name, which is where nearly every real playlist puts it —
- *       {@code "TF1 FHD"}, {@code "Canal+ Sport 4K"}. Without this second pass
+ *       {@code "Chaîne 01 FHD"}, {@code "Chaîne+ Sport 4K"}. Without this second pass
  *       the property would be null for essentially every source and the badge
  *       would never render.</li>
  * </ol>
  *
  * <p><b>The name is not modified.</b> The token is read out of it, not taken out
- * of it: {@code "TF1 FHD"} stays {@code "TF1 FHD"}, because that is the string
+ * of it: {@code "Chaîne 01 FHD"} stays {@code "Chaîne 01 FHD"}, because that is the string
  * the user sees in every other player they own, and a channel list that renames
  * their channels is a channel list they do not recognise.
  */
@@ -36,7 +36,7 @@ public final class ChannelQuality {
      * {@code FHD} is never read as an {@code HD} that happens to follow an F.
      *
      * <p>Bounded by a non-alphanumeric on both sides, which is what keeps
-     * {@code "Discovery HD"} a match and {@code "SHDTV"} not one. Deliberately
+     * {@code "Découverte HD"} a match and {@code "SHDTV"} not one. Deliberately
      * short: every entry here is a string sources actually write, and a
      * speculative one costs a wrong badge on somebody's channel.
      */

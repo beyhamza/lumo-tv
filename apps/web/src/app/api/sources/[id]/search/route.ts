@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/session/session";
+import { getRouteSession } from "@/lib/session/route-session";
 import { isUuid } from "@/lib/sources/active-source";
 import { loadCatalogueTypes, loadSearchSections } from "@/lib/search/load-search";
 import {
@@ -55,7 +55,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const session = await getSession();
+  const session = await getRouteSession();
   if (!session) return problem(401, "UNAUTHENTICATED");
   if (!isUuid(id)) return problem(400, "VALIDATION_FAILED");
 

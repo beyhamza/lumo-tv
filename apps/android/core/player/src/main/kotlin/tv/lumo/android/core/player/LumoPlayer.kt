@@ -70,6 +70,15 @@ interface LumoPlayer {
 
     fun resume()
 
+    /**
+     * Resumes a live stream at its edge rather than where the buffer stopped.
+     *
+     * What a channel left in the background does when the viewer comes back
+     * ([BackgroundPlayback]). The default is a plain [resume], for a player that
+     * has no notion of an edge.
+     */
+    fun resumeAtLiveEdge() = resume()
+
     /** Stops and clears the current stream, keeping the player alive. */
     fun stop()
 

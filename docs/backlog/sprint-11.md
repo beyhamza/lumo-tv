@@ -1,6 +1,6 @@
 # Sprint 11 — Bibliothèque et liste à regarder
 
-Statut : **objectif et sélection proposés à Hamza le 7 octobre 2026** — ouverture du cycle Plane en attente de sa validation. Taille relative : L.
+Statut : **reprise le 15 octobre 2026** (15 → 21/10), version **0.3.0**, après la sortie de la 0.2.0 le 14/10. Le cycle, ouvert le 8 octobre, avait été mis en pause le 10/10 au profit du [sprint 10-bis](sprint-10-bis.md), clos avec la sortie. La 0.3.0 reprend aussi les limites connues de la 0.2.0 (lignes R020-02/04/05/13, preuves sur appareil de S10B-03/04) : voir les [notes de sortie](../releases/0.2.0/RELEASE-NOTES.md). Taille relative : L.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 [Première proposition d’écrans](../design/0.2.0/library.md) préparée le
@@ -29,11 +29,32 @@ Sélection `Todo` proposée au cycle Plane « Sprint 11 — Bibliothèque » : l
 Reste rattaché à la story, hors découpe initiale : `fin US-020 hors EPG` et la
 `cascade finale US-024` (dépendances de clôture, pas des lots de code de ce cycle).
 
-Réserve de priorité en attente d'un mot de Hamza : la décision du 07/10 « option (a) »
-gelait une candidate 0.2.0 sur S8+S9+S10 et décalait S11–S13. La consigne « on finit
-sprint 10 et on passe au 11 » rouvre la suite roadmap ; à confirmer pour savoir si la
-candidate 0.2.0 reste gelée en parallèle ou si S11 est la prochaine ligne.
+Tranché le 08/10/2026 : la 0.2.0 est **gelée sur S8+S9+S10** (`v0.2.0-rc.1` posé) et
+S11→S13 poursuivent en **0.3.0**. S11 est la prochaine ligne de code, mais `@Dev`
+n'attaque qu'après `S11-00` (garanties Q3/Q8 **testables**) et l'ADR + approbation C2
+de `S11-01`. Branche S11 depuis `dev`.
 Détail : [`DECISIONS-PRODUIT.md`](DECISIONS-PRODUIT.md).
+
+## Avancement du cycle
+
+Vérifié dans Plane (API) et dans le dépôt le 8 octobre 2026 en fin de journée :
+
+- **Cycle ouvert dans Plane** (`Sprint 11 — Bibliothèque`, 8 → 14 octobre, version 0.3.0) ;
+  `S11-00` → `S11-06` et `US-022` sont en `Todo` et **tous rattachés à `US-022`**
+  (`parent=11f590a9…`), le trou structurel signalé par `@Dev` est fermé.
+- **`S11-00` en `In Progress`**, porté par le `@Tech Lead` — garanties Q3/Q8 **normatives** :
+  permutation filtrée = fonction pure `visibleSlot → fullIndex` ; échec intermédiaire = dernier
+  move réussi conservé ; concurrence = dernière action **acceptée serveur** gagne ; disparu ≠
+  panne, hors ligne sans file différée. **« Réessai ≠ nouvelle intention » (WL-10/11/12) n'est pas
+  garanti par le contrat actuel → ADR dans `S11-01`.**
+- **Fixture multi-sources** : `@Dev` la pose côté API, `@QA` l'étend (matrice d'isolation 2 comptes /
+  jetons, disparition ≠ panne, comptage des écritures serveur). Non gatée.
+- **Base des branches S11** : `dev`. `S11-04` n'attaque pas avant l'ADR (approbation C2).
+- **CI** : PR #32 mergée — les 4 workflows (contract/api/android/web) se déclenchent désormais
+  sur un push `dev` ; plus de « dev zéro-vérifié ».
+- **Hors cycle — 0.2.0** : `v0.2.0-rc.1` (tag annoté, pré-release sur `b4cb105`), `release/0.2.0` →
+  `main` (#33) puis report `main` → `dev` (#34). Verrous de sortie encore ouverts : `R020-01`
+  (fuite entre comptes) et `R020-16` (migration).
 
 ## Objectif
 

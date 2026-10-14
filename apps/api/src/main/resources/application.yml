@@ -139,6 +139,12 @@ lumo:
     # Sprint 1: 5 attempts per IP per minute on the sign-in surface (US-01, US-02).
     auth-attempts-per-minute: 5
     device-approve-attempts-per-minute: 5
+    # On top of the per-IP+email key: one email, all addresses together (S10B-02).
+    login-attempts-per-email-per-minute: 10
+    # Comma-separated IPs or CIDR blocks of the reverse proxies in front of the
+    # API. X-Forwarded-For is honoured only from them; empty, it is ignored and
+    # the socket peer is the client. Never 0.0.0.0/0: that trusts everyone.
+    trusted-proxies: ${LUMO_TRUSTED_PROXIES:}
     # One synchronisation asked for by the user, per source, per interval. The
     # wait that is left goes out as Retry-After with SOURCE_SYNC_RATE_LIMITED.
     # The automatic refresh and a change of credentials do not count.
@@ -157,9 +163,15 @@ lumo:
     # entitlements are computed server-side (ADR 0003), and a client that
     # carries its own copy of "FREE = 1 source" is an access right computed
     # client-side. Omit a value to mean unlimited.
+    #
+    # FREE is unlimited by default: 0.2.0 is free and 0.1.0 enforced no ceiling,
+    # so a ceiling here would be an update quietly taking something away from
+    # existing accounts (R020-15, BUG-R020-15-01, decision of 14/10/2026). A
+    # deployment that wants one sets the variable; the enforcement path is kept
+    # and tested (PlanLimitsIntegrationTest).
     free:
-      max-sources: ${LUMO_PLAN_FREE_MAX_SOURCES:1}
-      max-devices: ${LUMO_PLAN_FREE_MAX_DEVICES:2}
+      max-sources: ${LUMO_PLAN_FREE_MAX_SOURCES:}
+      max-devices: ${LUMO_PLAN_FREE_MAX_DEVICES:}
     # No limits: both properties are absent, which the contract types as
     # "unlimited" rather than "unknown". The empty map is what makes the tier
     # exist while saying nothing about it.

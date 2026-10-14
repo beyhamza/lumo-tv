@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { api, problemCode } from "@/lib/api/client";
-import { getSession } from "@/lib/session/session";
+import { getRouteSession } from "@/lib/session/route-session";
 
 /**
  * The stream URL of one film (S5-10), on the pattern of `S3-09`.
@@ -28,7 +28,7 @@ export async function GET(
   { params }: { params: Promise<{ filmId: string }> },
 ) {
   const { filmId } = await params;
-  const session = await getSession();
+  const session = await getRouteSession();
 
   if (!session) {
     return problem(401, "UNAUTHENTICATED");

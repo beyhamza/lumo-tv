@@ -13,15 +13,18 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import dagger.multibindings.IntoSet
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import tv.lumo.android.core.auth.SessionEndCleaner
 import tv.lumo.android.core.auth.SessionManager
 import tv.lumo.android.core.common.di.ApplicationScope
 import tv.lumo.android.core.common.di.Dispatcher
 import tv.lumo.android.core.common.di.LumoDispatcher
+import tv.lumo.android.core.data.internal.AccountDataCleaner
 import tv.lumo.android.core.data.internal.ActiveSourceStore
 import tv.lumo.android.core.data.internal.AndroidConnectivityMonitor
 import tv.lumo.android.core.data.internal.ConnectivityMonitor
@@ -90,6 +93,11 @@ internal abstract class ActiveSourceBindingsModule {
     @Binds
     @Singleton
     abstract fun activeSourceStore(impl: DataStoreActiveSourceStore): ActiveSourceStore
+
+    /** Purges this module's on-disk account data when the session ends (BUG-R020-01-01). */
+    @Binds
+    @IntoSet
+    abstract fun accountDataCleaner(impl: AccountDataCleaner): SessionEndCleaner
 
     /** What tells the playback watcher that the network came back (C4, D5). */
     @Binds

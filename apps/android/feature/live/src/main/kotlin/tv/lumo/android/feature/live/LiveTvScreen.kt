@@ -65,6 +65,7 @@ import tv.lumo.android.core.data.EpgDay
 import tv.lumo.android.core.data.EpgDayWindow
 import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.data.SourceNotice
+import tv.lumo.android.core.data.SourceNoticeWording
 import tv.lumo.android.core.data.emptyGridOf
 import tv.lumo.android.core.data.labelRes
 import tv.lumo.android.core.data.messageRes
@@ -381,6 +382,7 @@ private fun Browsing(
         // the exit is not lost. The search field is hidden for the same reason.
         val guideInitialError =
             state.view == DirectView.Guide && state.guideState() == GuideState.InitialError
+        val wording = state.notice?.wording()
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -403,26 +405,24 @@ private fun Browsing(
                 )
             }
 
-            // In the header line, compact: the grid below has the height of two
-            // rows of cards, and a notice of its own height would push the second
-            // off the panel. A refresh is text; a failure adds the one stop this
-            // line has — "My sources", reached by `UP` from the search field — and
-            // an outage two, "try again" then "change source", on the same line.
-            state.notice?.let { notice ->
-                val wording = notice.wording()
-                LumoTvSourceNotice(
-                    title = stringResource(wording.title),
-                    message = stringResource(wording.message),
-                    hint = wording.hint?.let { stringResource(it) },
-                    isError = wording.failed,
-                    actionLabel = stringResource(wording.action).takeIf { wording.actionable },
-                    onAction = onOpenSources,
-                    retryLabel = wording.retry?.let { stringResource(it) },
-                    onRetry = onRefreshSource,
-                    compact = true,
-                    modifier = Modifier.weight(1f),
-                )
+            // A refresh is text, and it fits in the header line, compact: the
+            // grid below has the height of two rows of cards, and a notice of its
+            // own height would push the second off the panel.
+            if (wording != null && !wording.actionable) {
+                SourceNoticeLine(wording, onOpenSources, onRefreshSource, Modifier.weight(1f))
             }
+        }
+
+        // A failure ("My sources") or an outage ("try again", "change source")
+        // gets its own line under the header. In it, next to the title and the
+        // Channels/Guide toggle, the buttons left the text no width at all on a
+        // 1080p panel: the television showed a lone "My sources", never that the
+        // refresh had failed nor that the catalogue may be out of date
+        // (BUG-R020-03-04). `UP` from the search field still reaches it.
+        if (wording != null && wording.actionable) {
+            // Title and message as one run: its last words, "may be out of date",
+            // are the point, and stacked lines would take the grid's height.
+            SourceNoticeLine(wording, onOpenSources, onRefreshSource, Modifier.fillMaxWidth(), runIn = true)
         }
 
         // A grid that failed to load is not an empty grid (US-024), and on a
@@ -948,3 +948,27 @@ private val CARD_HEIGHT = 140.dp
  * a category name does not grow with the panel.
  */
 private val FILTER_COLUMN_WIDTH = FILTER_COLUMN_WIDTH_DP.dp
+
+/** The source notice of the Direct, wherever [LiveTvScreen] places it. */
+@Composable
+private fun SourceNoticeLine(
+    wording: SourceNoticeWording,
+    onOpenSources: () -> Unit,
+    onRefreshSource: () -> Unit,
+    modifier: Modifier,
+    runIn: Boolean = false,
+) {
+    LumoTvSourceNotice(
+        title = stringResource(wording.title),
+        message = stringResource(wording.message),
+        hint = wording.hint?.let { stringResource(it) },
+        isError = wording.failed,
+        actionLabel = stringResource(wording.action).takeIf { wording.actionable },
+        onAction = onOpenSources,
+        retryLabel = wording.retry?.let { stringResource(it) },
+        onRetry = onRefreshSource,
+        compact = true,
+        runIn = runIn,
+        modifier = modifier,
+    )
+}

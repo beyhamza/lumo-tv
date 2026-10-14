@@ -53,6 +53,19 @@ class DirectViewStoreTest {
     }
 
     @Test
+    fun `clearing all forgets every source (BUG-R020-01-01)`() = runTest {
+        open { store, preferences ->
+            store.write("source-a", DirectView.Guide)
+            store.write("source-b", DirectView.Channels)
+
+            store.clearAll()
+
+            assertThat(store.read("source-a")).isNull()
+            assertThat(preferences.data.first().asMap()).isEmpty()
+        }
+    }
+
+    @Test
     fun `a source that was never opened reads nothing`() = runTest {
         open { store, _ -> assertThat(store.read("source-a")).isNull() }
     }

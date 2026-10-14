@@ -25,6 +25,15 @@ class SeriesPager @Inject constructor(
     private val seriesDao: SeriesDao,
 ) {
 
+    private val live = LivePagingSources<SeriesEntity>()
+
+    /**
+     * Invalidates every list this pager has open, for the repository that has
+     * just replaced the catalogue underneath them. Not left to Room: see
+     * [LivePagingSources] for the change it drops (BUG-R020-16-02).
+     */
+    fun invalidate() = live.invalidateAll()
+
     fun seriesInCategory(sourceId: String, categoryId: String): Flow<PagingData<SeriesEntity>> =
         pager { seriesDao.pagedByCategory(sourceId, categoryId) }
 
@@ -48,7 +57,7 @@ class SeriesPager @Inject constructor(
             maxSize = PAGE_SIZE * 6,
             enablePlaceholders = true,
         ),
-        pagingSourceFactory = source,
+        pagingSourceFactory = { live.track(source()) },
     ).flow
 
     private companion object {

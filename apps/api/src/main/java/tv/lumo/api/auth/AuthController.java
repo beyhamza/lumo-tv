@@ -45,6 +45,7 @@ public class AuthController implements AuthApi {
     private final GoogleIdentityService google;
     private final RateLimiter rateLimiter;
     private final LumoProperties properties;
+    private final ClientIp clientIp;
     private final HttpServletRequest request;
 
     public AuthController(AccountService accounts,
@@ -53,6 +54,7 @@ public class AuthController implements AuthApi {
                           GoogleIdentityService google,
                           RateLimiter rateLimiter,
                           LumoProperties properties,
+                          ClientIp clientIp,
                           HttpServletRequest request) {
         this.accounts = accounts;
         this.sessions = sessions;
@@ -60,6 +62,7 @@ public class AuthController implements AuthApi {
         this.google = google;
         this.rateLimiter = rateLimiter;
         this.properties = properties;
+        this.clientIp = clientIp;
         this.request = request;
     }
 
@@ -76,13 +79,21 @@ public class AuthController implements AuthApi {
         // Keyed on IP and email together. On IP alone, one office behind a single
         // NAT locks itself out; on email alone, an attacker sprays one password
         // across many accounts unthrottled.
-        String key = "login:" + ClientIp.of(request) + ":" + safeEmailKey(loginRequest.getEmail());
+        String email = safeEmailKey(loginRequest.getEmail());
+        String key = "login:" + clientIp.of(request) + ":" + email;
         limit(key, properties.rateLimit().authAttemptsPerMinute());
+        // And on the email alone, looser. Without it, attempts spread over many
+        // addresses are never throttled (S10B-02). The price is that someone
+        // hammering a victim's email can slow the victim's own sign-in for a
+        // minute; an account taken over costs more.
+        String emailKey = "login-email:" + email;
+        limit(emailKey, properties.rateLimit().loginAttemptsPerEmailPerMinute());
 
         AuthSession session = accounts.login(loginRequest);
         // A user who mistyped four times and then got it right should not stay
         // throttled.
         rateLimiter.reset(key);
+        rateLimiter.reset(emailKey);
         return ResponseEntity.ok(session);
     }
 
@@ -141,7 +152,7 @@ public class AuthController implements AuthApi {
         // The tightest limit in the application. user_code is 8 characters from a
         // 31-character alphabet and lives for ten minutes; without this, guessing
         // one is a matter of volume.
-        limit("device-approve:" + ClientIp.of(request),
+        limit("device-approve:" + clientIp.of(request),
                 properties.rateLimit().deviceApproveAttemptsPerMinute());
         return ResponseEntity.ok(
                 activation.approve(approveDeviceRequest.getUserCode(), CurrentUser.requireUserId()));
@@ -157,7 +168,7 @@ public class AuthController implements AuthApi {
     // ---- helpers ------------------------------------------------------------
 
     private void limitByIp(String action) {
-        limit(action + ":" + ClientIp.of(request), properties.rateLimit().authAttemptsPerMinute());
+        limit(action + ":" + clientIp.of(request), properties.rateLimit().authAttemptsPerMinute());
     }
 
     private void limit(String key, int perMinute) {
