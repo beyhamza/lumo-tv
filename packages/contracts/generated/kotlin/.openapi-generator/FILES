@@ -18,6 +18,7 @@ src/main/kotlin/tv/lumo/android/network/generated/infrastructure/Serializer.kt
 src/main/kotlin/tv/lumo/android/network/generated/infrastructure/URIAdapter.kt
 src/main/kotlin/tv/lumo/android/network/generated/infrastructure/UUIDAdapter.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/AddFavoriteRequest.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/AddWatchlistItemRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/ApproveDeviceRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/AuthSession.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/BillingSession.kt
@@ -93,3 +94,6 @@ src/main/kotlin/tv/lumo/android/network/generated/model/User.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/VodItem.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/VodItemPage.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/VodPlaybackInfo.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/WatchlistContentType.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/WatchlistItem.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/WatchlistPage.kt

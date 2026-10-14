@@ -7,6 +7,7 @@ src/main/java/tv/lumo/api/generated/api/CatalogApi.java
 src/main/java/tv/lumo/api/generated/api/SourcesApi.java
 src/main/java/tv/lumo/api/generated/api/UserdataApi.java
 src/main/java/tv/lumo/api/generated/model/AddFavoriteRequest.java
+src/main/java/tv/lumo/api/generated/model/AddWatchlistItemRequest.java
 src/main/java/tv/lumo/api/generated/model/ApproveDeviceRequest.java
 src/main/java/tv/lumo/api/generated/model/AuthSession.java
 src/main/java/tv/lumo/api/generated/model/BillingSession.java
@@ -82,3 +83,6 @@ src/main/java/tv/lumo/api/generated/model/User.java
 src/main/java/tv/lumo/api/generated/model/VodItem.java
 src/main/java/tv/lumo/api/generated/model/VodItemPage.java
 src/main/java/tv/lumo/api/generated/model/VodPlaybackInfo.java
+src/main/java/tv/lumo/api/generated/model/WatchlistContentType.java
+src/main/java/tv/lumo/api/generated/model/WatchlistItem.java
+src/main/java/tv/lumo/api/generated/model/WatchlistPage.java

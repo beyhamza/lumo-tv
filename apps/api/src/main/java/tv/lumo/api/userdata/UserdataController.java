@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import tv.lumo.api.auth.CurrentUser;
 import tv.lumo.api.generated.api.UserdataApi;
 import tv.lumo.api.generated.model.AddFavoriteRequest;
+import tv.lumo.api.generated.model.AddWatchlistItemRequest;
 import tv.lumo.api.generated.model.CreateFavoriteGroupRequest;
 import tv.lumo.api.generated.model.Favorite;
 import tv.lumo.api.generated.model.FavoriteGroup;
@@ -21,6 +22,9 @@ import tv.lumo.api.generated.model.RecordRecentChannelRequest;
 import tv.lumo.api.generated.model.SaveProgressRequest;
 import tv.lumo.api.generated.model.UpdateFavoriteGroupRequest;
 import tv.lumo.api.generated.model.UpdateFavoriteRequest;
+import tv.lumo.api.generated.model.WatchlistContentType;
+import tv.lumo.api.generated.model.WatchlistItem;
+import tv.lumo.api.generated.model.WatchlistPage;
 
 /**
  * Implements the generated {@code UserdataApi}.
@@ -33,9 +37,11 @@ import tv.lumo.api.generated.model.UpdateFavoriteRequest;
 public class UserdataController implements UserdataApi {
 
     private final UserdataService userdata;
+    private final WatchlistService watchlist;
 
-    public UserdataController(UserdataService userdata) {
+    public UserdataController(UserdataService userdata, WatchlistService watchlist) {
         this.userdata = userdata;
+        this.watchlist = watchlist;
     }
 
     @Override
@@ -109,5 +115,26 @@ public class UserdataController implements UserdataApi {
     public ResponseEntity<RecentChannel> recordRecentChannel(RecordRecentChannelRequest request) {
         return ResponseEntity.ok(userdata.recordRecentChannel(
                 CurrentUser.requireUserId(), request.getChannelId()));
+    }
+
+    @Override
+    public ResponseEntity<WatchlistPage> listWatchlist(UUID sourceId, WatchlistContentType contentType,
+                                                       Integer page, Integer size) {
+        return ResponseEntity.ok(watchlist.list(
+                CurrentUser.requireUserId(), sourceId, contentType, page, size));
+    }
+
+    @Override
+    public ResponseEntity<WatchlistItem> addWatchlistItem(UUID idempotencyKey,
+                                                          AddWatchlistItemRequest request) {
+        WatchlistService.Outcome outcome =
+                watchlist.add(CurrentUser.requireUserId(), idempotencyKey, request);
+        return ResponseEntity.status(outcome.status()).body(outcome.item());
+    }
+
+    @Override
+    public ResponseEntity<Void> removeWatchlistItem(UUID id, UUID idempotencyKey) {
+        watchlist.remove(CurrentUser.requireUserId(), idempotencyKey, id);
+        return ResponseEntity.noContent().build();
     }
 }

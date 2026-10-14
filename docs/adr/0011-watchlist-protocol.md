@@ -1,7 +1,7 @@
 # ADR 0011 — Watchlist protocol (C2)
 
 - **Date** : 2026-10-08
-- **Status** : Proposed
+- **Status** : Accepted (2026-10-14, Hamza)
 - **Deciders** : Tech Lead (proposes), Hamza (accepts)
 - **Supersedes** : none
 
@@ -112,6 +112,10 @@ client work, not a wrapper.
 records are `S11-01` implementation details, bounded by this ruling (bounded
 retention, no change to membership on replay). Whether an unavailable item's poster
 reference is a stored key or a re-resolution attempt is left to `S11-01`.
+
+*Settled by `S11-01` within these bounds (2026-10-14), recorded here for the reader,
+not as a change to the decision:* keys are kept 24 hours per account and purged on
+the account's next write; the poster is a stored URL snapshot taken at add time.
 
 ## Alternatives considered
 

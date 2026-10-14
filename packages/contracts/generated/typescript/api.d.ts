@@ -1121,6 +1121,89 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/watchlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Films and series this account saved to watch later
+         * @description Ordered by `added_at`, most recent first, then by `id` — the order the
+         *     "My list" section shows. The order is the server's acceptance order
+         *     (`adr/0011`, ruling 5), never a device clock.
+         *
+         *     An item stays listed when its film or series disappears from the
+         *     catalogue: it comes back with `available: false`, its last known
+         *     `title`, and no `content_id` (`WL-01`, `WL-02`). Deleting the source
+         *     deletes its items (`WL-05`, US-024); they do not linger as unavailable.
+         *
+         *     Not to be confused with `GET /me/progress`. Progress is fed by playback;
+         *     this list is a deliberate selection, and watching an item neither
+         *     removes it nor changes its rank (`WL-13`).
+         */
+        get: operations["listWatchlist"];
+        put?: never;
+        /**
+         * Add a film or a series to the list
+         * @description `source_id` is not accepted: it is derived from the film or series,
+         *     exactly as on `AddFavoriteRequest`. A series is saved as a whole, never
+         *     episode by episode.
+         *
+         *     **A retry is not a new intention** (`adr/0011`, ruling 6). The request
+         *     carries an `Idempotency-Key` generated once per intention by the client.
+         *     Replaying the same key returns the outcome recorded the first time —
+         *     same status, same body — and changes nothing, even if the list has
+         *     changed since. That recorded body describes the moment the add was
+         *     accepted, not the present: a client that needs the present re-reads
+         *     the list.
+         *
+         *     Adding an item already in the list, under a new key, is accepted and
+         *     changes nothing either: the item keeps its `added_at` and its rank.
+         *     `200` instead of `201` tells the two apart.
+         *
+         *     Identity is the source's own identifier for the film or series, never
+         *     its title (`WL-15`, `WL-16`). An item whose content disappeared and
+         *     came back under the same identifier is the same item, with its rank.
+         */
+        post: operations["addWatchlistItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/watchlist/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an item from the list
+         * @description Addressed by the item's own `id`, so it works on an unavailable item
+         *     whose film or series no longer exists (`WL-03`). Leaves playback
+         *     progress alone.
+         *
+         *     Same `Idempotency-Key` rule as the add: replaying a removal that was
+         *     accepted answers `204` again, where a new removal of the same item
+         *     would answer `404`. That difference is the point — a lost response
+         *     followed by a retry must not read as "somebody else removed it".
+         */
+        delete: operations["removeWatchlistItem"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/checkout-session": {
         parameters: {
             query?: never;
@@ -1289,7 +1372,8 @@ export interface components {
          *       `VOD_ITEM_NOT_FOUND`, `SERIES_NOT_FOUND`, `EPISODE_NOT_FOUND`,
          *       `FAVORITE_NOT_FOUND`, `FAVORITE_ALREADY_EXISTS`,
          *       `FAVORITE_GROUP_NOT_FOUND`, `FAVORITE_GROUP_ALREADY_EXISTS`,
-         *       `FAVORITE_GROUP_NOT_DELETABLE`.
+         *       `FAVORITE_GROUP_NOT_DELETABLE`, `WATCHLIST_ITEM_NOT_FOUND`,
+         *       `IDEMPOTENCY_KEY_REUSED`.
          *
          *       The last one is only ever the default group. It is separate from a
          *       bare `CONFLICT` for the same reason as the quota codes below: a client
@@ -1310,7 +1394,7 @@ export interface components {
          *       second: removing something, or upgrading.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "VOD_ITEM_NOT_FOUND" | "SERIES_NOT_FOUND" | "EPISODE_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_DELETABLE" | "EPG_WINDOW_TOO_LARGE" | "SOURCE_LIMIT_REACHED" | "DEVICE_LIMIT_REACHED" | "ALREADY_SUBSCRIBED" | "BILLING_CUSTOMER_NOT_FOUND";
+        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "VOD_ITEM_NOT_FOUND" | "SERIES_NOT_FOUND" | "EPISODE_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_DELETABLE" | "WATCHLIST_ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "EPG_WINDOW_TOO_LARGE" | "SOURCE_LIMIT_REACHED" | "DEVICE_LIMIT_REACHED" | "ALREADY_SUBSCRIBED" | "BILLING_CUSTOMER_NOT_FOUND";
         /**
          * @description UI language. FR and EN are supported from the first screen.
          * @enum {string}
@@ -1480,6 +1564,13 @@ export interface components {
          * @enum {string}
          */
         ProgressItemType: "VOD" | "EPISODE";
+        /**
+         * @description What a watchlist item points at. Films and series only: a live channel
+         *     is a favourite, not something to watch later, and a series is saved as
+         *     a whole, so there is no `EPISODE` either.
+         * @enum {string}
+         */
+        WatchlistContentType: "VOD" | "SERIES";
         /**
          * @description Identifies the installation opening the session. A `device` row is
          *     created or refreshed, and the issued refresh token is bound to it — that
@@ -2895,6 +2986,99 @@ export interface components {
             /** Format: uuid */
             channel_id: string;
         };
+        /**
+         * @description One film or series in the list.
+         *
+         *     Carries a display snapshot (`title`, `poster_url`) so the card renders
+         *     when the catalogue no longer has the content (`adr/0011`, ruling 3).
+         *     While the content is available, both are the catalogue's current
+         *     values; once it is gone, they are the values recorded when the item was
+         *     added.
+         */
+        WatchlistItem: {
+            /**
+             * Format: uuid
+             * @description The item's own identifier — what a removal addresses.
+             */
+            id: string;
+            /** Format: uuid */
+            source_id: string;
+            content_type: components["schemas"]["WatchlistContentType"];
+            /**
+             * Format: uuid
+             * @description `VodItem.id` or `Series.id`, to open the sheet. Null exactly when
+             *     `available` is false.
+             *
+             *     Resolved on every read rather than stored: a film that disappears
+             *     and comes back gets a new catalogue id, and the item must follow it
+             *     (`WL-15`).
+             */
+            content_id?: string | null;
+            /**
+             * @description False only after a synchronisation of the source **completed** and
+             *     no longer listed the content (`WL-01`). A failed or interrupted
+             *     synchronisation keeps the previous catalogue, so it never makes an
+             *     item unavailable, and neither does a network error on the client
+             *     (`WL-04`).
+             */
+            available: boolean;
+            title: string;
+            /**
+             * @description As served by the source. May stop loading, especially once
+             *     `available` is false; clients show a placeholder then.
+             */
+            poster_url?: string | null;
+            /**
+             * Format: date-time
+             * @description When the server accepted the add. The list's order. Never changed by
+             *     a replay, a second add, playback, or the content disappearing and
+             *     coming back.
+             */
+            added_at: string;
+        };
+        /**
+         * @description One page of the list. Same envelope as `PlaybackProgressPage`, plus
+         *     `content_types`.
+         */
+        WatchlistPage: {
+            items: components["schemas"]["WatchlistItem"][];
+            /**
+             * Format: int32
+             * @description Zero-based index of this page.
+             */
+            page: number;
+            /**
+             * Format: int32
+             * @description Requested page size, after the server-side cap.
+             */
+            size: number;
+            /**
+             * Format: int64
+             * @description Total items matching the filters.
+             */
+            total_elements: number;
+            /** Format: int32 */
+            total_pages: number;
+            /**
+             * @description The types present in the list for the `sourceId` filter, ignoring
+             *     `contentType`, unavailable items included. What the Films / Series
+             *     filter is built from (`WL-17`): a page alone cannot say whether the
+             *     other type exists further on.
+             */
+            content_types: components["schemas"]["WatchlistContentType"][];
+        };
+        /**
+         * @description `source_id` is not accepted: it is derived from the content, exactly as
+         *     on `AddFavoriteRequest`.
+         */
+        AddWatchlistItemRequest: {
+            content_type: components["schemas"]["WatchlistContentType"];
+            /**
+             * Format: uuid
+             * @description `VodItem.id` for `VOD`, `Series.id` for `SERIES`.
+             */
+            content_id: string;
+        };
         /** @description Upsert keyed on `(source_id, item_type, item_ref)` for the caller. */
         SaveProgressRequest: {
             /**
@@ -3082,6 +3266,19 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /**
+         * @description This `Idempotency-Key` was already used, on this account, for a
+         *     different request (`IDEMPOTENCY_KEY_REUSED`). A client bug, not a
+         *     conflict with another device: keys are per intention.
+         */
+        IdempotencyKeyReused: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description No such source on this account (`SOURCE_NOT_FOUND`). */
         SourceNotFound: {
             headers: {
@@ -3136,6 +3333,17 @@ export interface components {
         Page: number;
         /** @description Page size. Capped server-side so a large catalogue cannot be pulled in one call. */
         Size: number;
+        /**
+         * @description One value per user intention, generated by the client and kept across
+         *     every retry of that intention (`adr/0011`, ruling 6). A new intention
+         *     takes a new key.
+         *
+         *     The server remembers a key for 24 hours, per account. Within that
+         *     window a replay returns the recorded outcome and changes nothing; after
+         *     it, the same key is a new request. A request that failed was not
+         *     accepted, so nothing is recorded and its retry runs normally.
+         */
+        IdempotencyKey: string;
     };
     requestBodies: never;
     headers: {
@@ -4983,6 +5191,145 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+        };
+    };
+    listWatchlist: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Restrict to one source — the active one, on every surface
+                 *     (`WL-14`). Items of the other sources are kept, not shown.
+                 */
+                sourceId?: string;
+                /** @description Restrict to films or to series. Does not narrow `content_types`. */
+                contentType?: components["schemas"]["WatchlistContentType"];
+                /** @description Zero-based page index. */
+                page?: components["parameters"]["Page"];
+                /** @description Page size. Capped server-side so a large catalogue cannot be pulled in one call. */
+                size?: components["parameters"]["Size"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of the list, most recently added first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    addWatchlistItem: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description One value per user intention, generated by the client and kept across
+                 *     every retry of that intention (`adr/0011`, ruling 6). A new intention
+                 *     takes a new key.
+                 *
+                 *     The server remembers a key for 24 hours, per account. Within that
+                 *     window a replay returns the recorded outcome and changes nothing; after
+                 *     it, the same key is a new request. A request that failed was not
+                 *     accepted, so nothing is recorded and its retry runs normally.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddWatchlistItemRequest"];
+            };
+        };
+        responses: {
+            /** @description The item was already in the list. Nothing changed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistItem"];
+                };
+            };
+            /** @description The item was added. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistItem"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /**
+             * @description No such film or series on this account (`VOD_ITEM_NOT_FOUND`,
+             *     `SERIES_NOT_FOUND`).
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: components["responses"]["IdempotencyKeyReused"];
+        };
+    };
+    removeWatchlistItem: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description One value per user intention, generated by the client and kept across
+                 *     every retry of that intention (`adr/0011`, ruling 6). A new intention
+                 *     takes a new key.
+                 *
+                 *     The server remembers a key for 24 hours, per account. Within that
+                 *     window a replay returns the recorded outcome and changes nothing; after
+                 *     it, the same key is a new request. A request that failed was not
+                 *     accepted, so nothing is recorded and its retry runs normally.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Item removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description No such item on this account (`WATCHLIST_ITEM_NOT_FOUND`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: components["responses"]["IdempotencyKeyReused"];
         };
     };
     createCheckoutSession: {

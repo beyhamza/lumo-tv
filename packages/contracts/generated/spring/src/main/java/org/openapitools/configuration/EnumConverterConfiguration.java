@@ -14,6 +14,7 @@ import tv.lumo.api.generated.model.ProgressItemType;
 import tv.lumo.api.generated.model.SourceKind;
 import tv.lumo.api.generated.model.SourceStatus;
 import tv.lumo.api.generated.model.SyncStep;
+import tv.lumo.api.generated.model.WatchlistContentType;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -145,6 +146,15 @@ public class EnumConverterConfiguration {
             @Override
             public SyncStep convert(String source) {
                 return SyncStep.fromValue(source);
+            }
+        };
+    }
+    @Bean(name = "org.openapitools.configuration.EnumConverterConfiguration.watchlistContentTypeConverter")
+    Converter<String, WatchlistContentType> watchlistContentTypeConverter() {
+        return new Converter<String, WatchlistContentType>() {
+            @Override
+            public WatchlistContentType convert(String source) {
+                return WatchlistContentType.fromValue(source);
             }
         };
     }

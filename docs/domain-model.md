@@ -170,6 +170,27 @@ le même rail sur la TV ; ce n'est pas une raison pour partager une table.
 Fenêtre glissante par compte, purgée en silence : ça alimente un rail, pas un
 historique.
 
+### `watchlist_item`
+`id`, `user_id`, `source_id`, `content_type` (`VOD` | `SERIES`), `external_id`,
+`title`, `poster_url`, `added_at`. Unique sur
+`(user_id, source_id, content_type, external_id)` (ADR 0011).
+
+La liste « À regarder » : une sélection volontaire, distincte des favoris de
+chaînes et de la progression. L'identité est celle que la source donne au contenu,
+jamais son titre ni l'id de la ligne du catalogue — un film qui disparaît puis
+revient change d'id. Pas de clé étrangère vers le catalogue : la disponibilité se
+calcule à la lecture par jointure, et `title`/`poster_url` sont l'instantané pris à
+l'ajout, affiché quand le contenu n'existe plus. Supprimer la source supprime ses
+éléments.
+
+### `watchlist_intention`
+`user_id`, `idempotency_key`, `request_fingerprint`, `response_status`,
+`response_body`, `accepted_at`. Clé primaire `(user_id, idempotency_key)`.
+
+La réponse enregistrée pour chaque écriture acceptée sur la liste : rejouer une
+clé renvoie cette réponse sans rien changer (« un réessai n'est pas une nouvelle
+intention »). Gardée 24 h, purgée à l'écriture suivante du compte.
+
 ### `entitlement`
 `id`, `user_id`, `plan` (`FREE` | `PREMIUM`), `status` (`ACTIVE` | `TRIALING` |
 `PAST_DUE` | `CANCELED` | `EXPIRED`), `provider` (`STRIPE` | `PLAY` | `MANUAL`),
@@ -282,6 +303,9 @@ DELETE /me/favorites/{id}
 GET    /me/favorite-groups
 POST   /me/favorite-groups
 PUT    /me/progress
+GET    /me/watchlist
+POST   /me/watchlist            (en-tête Idempotency-Key)
+DELETE /me/watchlist/{id}       (en-tête Idempotency-Key)
 ```
 
 ### Format d'erreur

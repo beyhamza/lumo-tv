@@ -12,7 +12,22 @@ avec la maturité du produit.
 
 ## [Non publié]
 
-Rien pour l'instant.
+### Ajouté
+
+**Contrat — liste « À regarder » (S11-01, ADR 0011).** Touche les trois
+applications. `GET /me/watchlist`, `POST /me/watchlist` et
+`DELETE /me/watchlist/{id}` : films et séries enregistrés par le compte, partagés
+entre appareils, les plus récents d'abord. Un contenu disparu du catalogue reste
+listé, `available: false`, avec son titre ; supprimer la source supprime ses
+éléments. Les écritures portent un en-tête `Idempotency-Key` : un réessai renvoie
+la réponse enregistrée et ne change rien. Deux codes d'erreur :
+`WATCHLIST_ITEM_NOT_FOUND`, `IDEMPOTENCY_KEY_REUSED`. Serveur, migration et
+clients générés ; les écrans arrivent avec S11-04.
+
+### Corrigé
+
+- API : un en-tête obligatoire absent répond `400 VALIDATION_FAILED` au lieu de
+  `500`.
 
 ## [0.2.0] — 2026-10-14
 

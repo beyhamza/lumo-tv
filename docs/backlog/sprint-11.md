@@ -37,6 +37,30 @@ Détail : [`DECISIONS-PRODUIT.md`](DECISIONS-PRODUIT.md).
 
 ## Avancement du cycle
 
+### Checklist — mise à jour du 14 octobre 2026 (reprise)
+
+Une case cochée signifie **recetté**, pas seulement écrit.
+
+- [ ] S11-00 — garanties Q3/Q8 — 80 % : référentiel normatif écrit, fixture multi-sources
+  et tests G1, G2, G3, G5 fusionnés (PR #42) ; G6 → G8 (réessai ≠ nouvelle intention)
+  ajoutées avec S11-01. Reste G4 (disparu, panne, hors ligne, suppression de source) sur
+  appareil, qui attend les écrans de S11-04.
+- [ ] S11-01 — contrat À regarder, serveur, migration, clients — 90 % : ADR 0011
+  **acceptée** par Hamza le 14/10 ; `/me/watchlist` au contrat, migration `0021`,
+  `WatchlistService`, clients Kotlin et TypeScript régénérés ; `WatchlistIntegrationTest`
+  19/19, suite API 380/380, contrat conforme, web `typecheck` et Android `core:data`
+  compilent. Branche `feat/S11-01-watchlist`, en attente de merge.
+- [ ] S11-02 — agrégation des favoris sans doublon — 0 %
+- [ ] S11-03 — gestes Ajouter / Organiser, retraits, réordonnancement — 0 %
+- [ ] S11-04 — écrans À regarder (trois clients), clé d'idempotence par intention — 0 %,
+  débloqué par S11-01
+- [ ] S11-05 — propagation, erreurs partielles, suppression de source — 0 %
+- [ ] S11-06 — recette entre appareils — 0 %
+
+**Avancement global ≈ 24 %** (moyenne des sept lots).
+
+### Point du 8 octobre 2026
+
 Vérifié dans Plane (API) et dans le dépôt le 8 octobre 2026 en fin de journée :
 
 - **Cycle ouvert dans Plane** (`Sprint 11 — Bibliothèque`, 8 → 14 octobre, version 0.3.0) ;
