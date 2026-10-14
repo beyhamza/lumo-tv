@@ -23,6 +23,7 @@ const STAY: readonly string[] = [
   "/app/sources",
   "/app/sources/new",
   "/app/favorites",
+  "/app/watchlist",
   "/app/settings",
   ...SETTINGS_SECTIONS.map(settingsSectionPath),
 ];

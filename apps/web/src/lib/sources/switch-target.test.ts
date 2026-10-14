@@ -60,6 +60,7 @@ describe("sourceSwitchTarget", () => {
       ["/fr/app/sources", "/app/sources"],
       ["/fr/app/sources/new", "/app/sources/new"],
       ["/fr/app/favorites", "/app/favorites"],
+      ["/fr/app/watchlist", "/app/watchlist"],
       ["/fr/app/settings", "/app/settings"],
       ["/fr/app/settings/account", "/app/settings/account"],
       ["/fr/app/settings/application", "/app/settings/application"],

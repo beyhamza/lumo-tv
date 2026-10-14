@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { EpisodePlayer } from "@/components/app/EpisodePlayer";
 import { Unavailable } from "@/components/app/Unavailable";
+import { WatchlistToggle, WatchlistUnconfirmed } from "@/components/app/WatchlistControls";
 import { hrefFor } from "@/i18n/navigation";
 import type { Episode, Season, Series } from "@/lib/api/types";
 import { api, problemCode } from "@/lib/api/client";
@@ -10,6 +11,8 @@ import { asClock, isFinished } from "@/lib/playback/progress";
 import { openedFromSearch, searchReturnPath } from "@/lib/search/search";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
+import { loadMembership } from "@/lib/watchlist/load-membership";
+import { WRITE_NOTICE_PARAM, currentView, isUnconfirmed } from "@/lib/watchlist/write";
 
 /**
  * One series, its seasons and its episodes (US-15, S6-07).
@@ -75,7 +78,7 @@ export default async function SeriesDetailPage({
   const t = await getTranslations("App");
   const tErrors = await getTranslations("Errors");
 
-  const [detail, progress] = await Promise.all([
+  const [detail, progress, membership] = await Promise.all([
     api(session.accessToken).GET("/series/{id}", {
       params: { path: { id: seriesId } },
     }),
@@ -85,6 +88,9 @@ export default async function SeriesDetailPage({
     api(session.accessToken).GET("/me/progress", {
       params: { query: { sourceId: id, itemType: "EPISODE", size: 100 } },
     }),
+    // "My list" (S11-04), in parallel too. A series is saved as a whole, never
+    // episode by episode. Its failure costs the button, never the series.
+    loadMembership(session.accessToken, id, "SERIES", seriesId),
   ]);
 
   // From the search, the back link returns to that search — text, filter and
@@ -151,6 +157,10 @@ export default async function SeriesDetailPage({
   );
 
   const playing = single(query.play);
+
+  // This sheet as it was opened — season, episode, back-link context — for the
+  // "My list" form to come back to.
+  const sheetView = currentView(`/app/sources/${id}/series/${seriesId}`, query);
   const episode = open?.episodes.find((candidate) => candidate.id === playing);
   const resumeAt = episode ? startAt(positions.get(episode.id)) : 0;
 
@@ -171,6 +181,15 @@ export default async function SeriesDetailPage({
           ) : (
             <p className="text-muted-foreground mt-4 text-sm">{t("seriesSynopsisNone")}</p>
           )}
+
+          <WatchlistUnconfirmed show={isUnconfirmed(query[WRITE_NOTICE_PARAM])} />
+          <WatchlistToggle
+            membership={membership}
+            contentType="SERIES"
+            contentId={series.id}
+            returnTo={sheetView}
+            retryHref={hrefFor(locale as Locale, sheetView)}
+          />
         </div>
       </div>
 
