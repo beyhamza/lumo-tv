@@ -38,7 +38,11 @@ export function PlaybackRefusalMessage({
         <p className="mt-2 text-sm">
           {/* A plain anchor, like every link in this zone: a full navigation is
               the right thing when leaving a player. */}
-          <a href={sourceHref} className="underline underline-offset-4">
+          {/* "fix" opens the correction form, not just the page (BUG-R020-03-01). */}
+          <a
+            href={refusal.sourceLink === "fix" ? `${sourceHref}?edit=connection#correct` : sourceHref}
+            className="underline underline-offset-4"
+          >
             {refusal.sourceLink === "fix" ? t("playerFixSource") : t("playerFollowRefresh")}
           </a>
         </p>

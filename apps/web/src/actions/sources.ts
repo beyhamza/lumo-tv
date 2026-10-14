@@ -6,7 +6,12 @@ import { redirect } from "@/i18n/navigation";
 import { api, problemCode } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-message";
 import { fetched } from "@/lib/api/fetched";
-import type { CreateSourceRequest, FieldError, SourceKind } from "@/lib/api/types";
+import type {
+  CreateSourceRequest,
+  FieldError,
+  SourceKind,
+  UpdateSourceRequest,
+} from "@/lib/api/types";
 import { requireSession } from "@/lib/session/session";
 import { isUuid } from "@/lib/sources/active-source";
 import {
@@ -178,6 +183,95 @@ export async function updateSource(formData: FormData): Promise<void> {
   // same `GET /sources`, on every page of the zone.
   revalidatePath(`/${locale}/app`, "layout");
   redirect({ href: `/app/sources/${id}`, locale });
+}
+
+/**
+ * Corrects what a source fetches: the playlist address of an M3U, the host,
+ * username and password of an Xtream panel (R-424, BUG-R020-03-01).
+ *
+ * The web had no way to do this: "Correct the credentials" led back to the same
+ * page, and an M3U in error offered nothing at all, so the only fix was the
+ * phone. `PATCH /sources/{id}` always allowed it.
+ *
+ * <h2>What is sent</h2>
+ *
+ * Only the connection fields of the source's own kind, and the guide address.
+ * An empty password is **not sent**: the server keeps the one it holds, which is
+ * what "correct the address" means for a panel whose credentials were fine. Any
+ * of these fields sends the source back through ingestion on the server, and the
+ * source page this redirects to shows that import running. The manual-refresh
+ * delay does not apply: a correction is not a refresh (C4, `PATCH` uncounted).
+ *
+ * Like {@link createSource}, a rejected form echoes what was typed — never the
+ * password — and says per field what was wrong.
+ */
+export async function correctSource(
+  _previous: SourceFormState,
+  formData: FormData,
+): Promise<SourceFormState> {
+  const locale = await getLocale();
+  const t = await getTranslations({ locale, namespace: "Errors" });
+  const session = await requireSession();
+
+  const id = String(formData.get("id") ?? "");
+  const kind = String(formData.get("kind") ?? "") as SourceKind;
+  const values = {
+    kind,
+    host: text(formData, "host"),
+    username: text(formData, "username"),
+    m3u_url: text(formData, "m3u_url"),
+    epg_url: text(formData, "epg_url"),
+  };
+
+  if (!isUuid(id) || !CREATABLE_KINDS.includes(kind)) {
+    return { error: errorMessage("VALIDATION_FAILED", t), values };
+  }
+
+  const required = kind === "XTREAM" ? (["host", "username"] as const) : (["m3u_url"] as const);
+  const missing = required.filter((name) => values[name].length === 0);
+  if (missing.length > 0) {
+    return {
+      fieldErrors: Object.fromEntries(missing.map((name) => [name, t("VALIDATION_FAILED")])),
+      values,
+    };
+  }
+
+  const password = String(formData.get("password") ?? "");
+  const body: UpdateSourceRequest =
+    kind === "XTREAM"
+      ? {
+          host: values.host,
+          username: values.username,
+          ...(password.length > 0 ? { password } : {}),
+          epg_url: nullable(values.epg_url),
+        }
+      : { m3u_url: values.m3u_url, epg_url: nullable(values.epg_url) };
+
+  let result: { error?: unknown };
+  try {
+    result = await api(session.accessToken).PATCH("/sources/{id}", {
+      params: { path: { id } },
+      body,
+    });
+  } catch {
+    return { error: errorMessage("NETWORK", t), values };
+  }
+
+  if (result.error) {
+    const fieldErrors = fieldErrorsByName(result.error, t);
+    return {
+      error: Object.keys(fieldErrors).length > 0
+        ? undefined
+        : errorMessage(problemCode(result.error), t),
+      fieldErrors,
+      values,
+    };
+  }
+
+  revalidatePath(`/${locale}/app/sources/${id}`);
+  revalidatePath(`/${locale}/app`, "layout");
+  redirect({ href: `/app/sources/${id}`, locale });
+  return {};
 }
 
 /**

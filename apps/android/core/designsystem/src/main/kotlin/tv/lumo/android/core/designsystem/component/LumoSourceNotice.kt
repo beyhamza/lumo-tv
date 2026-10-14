@@ -17,7 +17,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.tv.material3.MaterialTheme as TvMaterialTheme
 import androidx.tv.material3.Text as TvText
 import tv.lumo.android.core.designsystem.theme.LumoColors
@@ -123,6 +126,10 @@ fun LumoSourceNotice(
  * it would push the second row off the panel — a row nobody sees is a row nobody
  * focuses. Compact drops the card and the padding, and says title, then message
  * and hint on one line, in the label size the header already uses.
+ *
+ * `runIn` sets title and message as one run of text, for a compact notice on a
+ * line of its own: the full message in two or three lines next to its buttons,
+ * where stacked lines would take the height of the grid below.
  */
 @Composable
 fun LumoTvSourceNotice(
@@ -136,6 +143,7 @@ fun LumoTvSourceNotice(
     compact: Boolean = false,
     retryLabel: String? = null,
     onRetry: () -> Unit = {},
+    runIn: Boolean = false,
 ) {
     Row(
         modifier = if (compact) {
@@ -154,37 +162,59 @@ fun LumoTvSourceNotice(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
         ) {
-            TvText(
-                text = title,
-                style = if (compact) {
-                    TvMaterialTheme.typography.labelLarge
-                } else {
-                    TvMaterialTheme.typography.titleLarge
-                },
-                color = if (isError) LumoColors.Error else LumoColors.OnDark,
-                maxLines = if (compact) 1 else Int.MAX_VALUE,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (compact) {
+            if (runIn) {
+                // Title and message as one run of text: a notice on a line of its
+                // own under a header, where two stacked lines plus a third for the
+                // message would take the height of the grid below
+                // (BUG-R020-03-04). Still the title's colour, so it reads first.
                 TvText(
-                    text = listOfNotNull(message, hint).joinToString(separator = " "),
-                    style = TvMaterialTheme.typography.labelLarge,
+                    text = buildAnnotatedString {
+                        withStyle(SpanStyle(color = if (isError) LumoColors.Error else LumoColors.OnDark)) {
+                            append(title)
+                        }
+                        append("  ")
+                        append(listOfNotNull(message, hint).joinToString(separator = " "))
+                    },
+                    // The body face, not the header's label: the label's tracking
+                    // is what pushed the end of the message past three lines.
+                    style = TvMaterialTheme.typography.bodyMedium,
                     color = LumoColors.OnDarkMuted,
-                    maxLines = 2,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                 )
             } else {
                 TvText(
-                    text = message,
-                    style = TvMaterialTheme.typography.bodyLarge,
-                    color = LumoColors.OnDark,
+                    text = title,
+                    style = if (compact) {
+                        TvMaterialTheme.typography.labelLarge
+                    } else {
+                        TvMaterialTheme.typography.titleLarge
+                    },
+                    color = if (isError) LumoColors.Error else LumoColors.OnDark,
+                    maxLines = if (compact) 1 else Int.MAX_VALUE,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                hint?.let {
+                if (compact) {
                     TvText(
-                        text = it,
+                        text = listOfNotNull(message, hint).joinToString(separator = " "),
                         style = TvMaterialTheme.typography.labelLarge,
                         color = LumoColors.OnDarkMuted,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
+                } else {
+                    TvText(
+                        text = message,
+                        style = TvMaterialTheme.typography.bodyLarge,
+                        color = LumoColors.OnDark,
+                    )
+                    hint?.let {
+                        TvText(
+                            text = it,
+                            style = TvMaterialTheme.typography.labelLarge,
+                            color = LumoColors.OnDarkMuted,
+                        )
+                    }
                 }
             }
         }

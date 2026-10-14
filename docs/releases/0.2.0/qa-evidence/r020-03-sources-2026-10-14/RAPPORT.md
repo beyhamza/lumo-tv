@@ -91,3 +91,37 @@ suppression `204` puis `404 SOURCE_NOT_FOUND` sur la source et son catalogue.
 - Chaque cas dans les deux langues : web en français, Android en anglais seulement.
 - Captures web : la fenêtre du navigateur intégré n'était pas affichée, les preuves web sont les textes
   de page cités ici.
+
+## Correctifs (14/10/2026)
+
+Branche `fix/BUG-R020-03-web-tv-sources` (sur `qa/R020-03-sources`), à la demande de Hamza
+(« corrige BUG-R020-03-01, 03 et 04 ») ; `BUG-R020-03-02` reste au backlog.
+
+- **`BUG-R020-03-01`** — formulaire web de correction. `correctSource` (Server Action) envoie
+  `PATCH /sources/{id}` avec l'adresse (M3U) ou l'hôte, l'identifiant et, s'il est saisi, le mot de passe
+  (Xtream) — **mot de passe vide = celui enregistré est gardé**, jamais renvoyé dans la page.
+  `CorrectSourceForm` reprend les champs du formulaire d'ajout, pré-remplis. La page de la source
+  l'ouvre par `?edit=connection#correct` depuis un lien adapté à l'erreur : « Corriger l'adresse »
+  (M3U), « Corriger les identifiants » (refus, expiration), « Corriger la source » (autre échec Xtream) ;
+  le lien « Corriger la source » du lecteur y mène aussi. Vérifié dans le navigateur : M3U
+  `not-a-playlist.html` → `mixed.m3u` → « Source prête » ; Xtream en `SOURCE_AUTH_FAILED` → hôte vidé :
+  refus au champ, sans appel ; hôte remis, mot de passe vide → « Source prête ».
+- **`BUG-R020-03-03`** — `fetchedResource(call, "SOURCE_NOT_FOUND")` ajoute l'état `gone` aux trois de
+  `fetched()`, pour la seule page d'une ressource ; la page d'une source supprimée dit « Cette source
+  n'existe plus » (FR) / « This source no longer exists » (EN) avec un lien vers Mes sources. Vérifié sur
+  la source supprimée pendant la recette. Tests : `fetched.test.ts` (5).
+- **`BUG-R020-03-04`** — sur le Direct TV, un bandeau qui porte des boutons (échec, panne) passe sur sa
+  propre ligne sous l'en-tête ; le bandeau sans bouton (actualisation) reste dans l'en-tête. Sur cette
+  ligne, titre et message forment un seul bloc (`runIn`, style de corps) pour tenir en deux lignes et
+  ne pas écraser la grille. Vérifié sur `Television_1080p` : « Your source has a problem — This address
+  does not return a usable playlist. This catalogue may be out of date. » en entier, *My sources* à
+  droite, première rangée de cartes visible (`t20-correctif-bandeau-echec.png`) ; au D-pad, `DOWN`
+  depuis *Channels* atteint *My sources*, puis la recherche.
+
+Tests : web `typecheck`, ESLint (`src`), Vitest 348/348, `pnpm build` (marketing toujours `●`) ;
+Android `assembleDebug`, `lint`, `testDebugUnitTest`.
+
+Observation : sur l'émulateur, `UP` depuis le champ de recherche du Direct ne quitte pas le champ (un
+champ texte d'une ligne garde haut/bas pour son curseur), avec ou sans bandeau ; non lié à ce correctif,
+à rejouer au D-pad réel avec `R020-13`.
+
