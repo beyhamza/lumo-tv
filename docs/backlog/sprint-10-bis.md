@@ -1,7 +1,9 @@
 # Sprint 10-bis — Correctifs de qualité avant la 0.2.0
 
-Statut : **cycle ouvert le 10 octobre 2026** (10 → 16 octobre 2026), cible **0.2.0**
-(candidate `v0.2.0-rc.2`). Taille relative : M. Décidé par Hamza le 10/10/2026 :
+Statut : **clos le 14 octobre 2026** avec la sortie de la 0.2.0 (cycle ouvert le 10/10,
+prévu jusqu'au 16/10). Pas de `v0.2.0-rc.2` : la 0.2.0 sort directement (décision du
+14/10). Les six lots sont fusionnés ; les preuves sur appareil de S10B-03/04 et l'e2e de
+S10B-05 sortent comme limites connues et passent en 0.3.0. Taille relative : M. Décidé par Hamza le 10/10/2026 :
 **S11 est mis en pause** et reprend après ce cycle (voir [`sprint-11.md`](sprint-11.md)
 et [`DECISIONS-PRODUIT.md`](DECISIONS-PRODUIT.md)).
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
@@ -158,6 +160,11 @@ Checks contract/API/Android/web verts. Les preuves de recette suivent la convent
 candidate `v0.2.0-rc.2` puis séance ciblée `R020-01` / `R020-16` avant le tag final.
 
 ## Avancement
+
+**Clôture du 14/10/2026 : 6/6 fusionnés, 3/6 recettés (≈ 91 %).** S10B-03 (80 %), S10B-04
+(75 %, le correctif lint est fusionné) et S10B-05 (90 %) restent `En recette` dans Plane ;
+leur reste est listé dans les [notes de sortie](../releases/0.2.0/RELEASE-NOTES.md) et
+repris en 0.3.0.
 
 Mis à jour le 10 octobre 2026 (soir). Une case cochée signifie **recetté**, pas seulement écrit.
 

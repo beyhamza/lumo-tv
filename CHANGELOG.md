@@ -14,7 +14,7 @@ avec la maturité du produit.
 
 Rien pour l'instant.
 
-## [0.2.0] — 2026-10-08
+## [0.2.0] — 2026-10-14
 
 **Périmètre livré : S8 (accueil, navigation, sources), S9 (Direct et Guide) et
 S10 (recherche unifiée), sur web, Android mobile et Android TV.** Le détail des
@@ -121,27 +121,31 @@ couvre pas ne s'invente pas (AGENTS.md §3). Décision à prendre, tracée dans
 Une instance sans clé Stripe reste un état supporté : les deux endpoints
 `/billing/*` répondent 503, tout le reste fonctionne.
 
-### Recette partielle — limites connues
+### Corrigé (sprint 10-bis et recette de sortie)
 
-La 0.2.0 est une **candidate** : la recette de sortie S14
-([matrice R020-01 → R020-16](./docs/releases/0.2.0/acceptance.md)) n'est **pas
-jouée**. Les réserves suivantes sont assumées explicitement, pas oubliées :
+- Sécurité de l'API : redirections suivies à la main et contrôlées à chaque saut
+  (SSRF), `X-Forwarded-For` lu seulement derrière un proxy de confiance, plafond de
+  connexion par email.
+- Android : la lecture se met en pause quand l'app passe en arrière-plan ; le lecteur
+  suit les redirections http ↔ https et rejoint le direct après `BEHIND_LIVE_WINDOW`.
+- Web : rafraîchissement de session robuste aux requêtes concurrentes et sur `/api/*`.
+- Déconnexion : le cache local (TV, mobile) et les cookies de préférence (web) du compte
+  précédent sont purgés.
+- Android : le premier affichage d'un catalogue n'est plus tronqué aux favoris et
+  récentes ; la grille « All » du Direct TV n'est plus vide après la première synchro.
+- Plan gratuit **sans plafond** de sources ni d'appareils par défaut, comme en 0.1.0.
+- Web : formulaire pour corriger l'adresse ou les identifiants d'une source ; une
+  source supprimée ailleurs n'est plus affichée comme une panne. TV : le bandeau
+  d'échec de source est visible sur le Direct.
 
-- Recette intersurfaces **S9-07** (matrice trois surfaces / deux sources) non
-  jouée ; recette appareil S8 non close.
-- `BUG-S10-05-02` (onglet « Séries » affiché hors ligne) : cosmétique, **parqué**
-  en `Backlog`.
-- Clavier Gboard ouvert : la touche DOWN est consommée par l'IME et n'atteint pas
-  le champ de recherche TV. Hors du critère écrit (rejoué clavier fermé) ; aucun
-  lot ouvert.
-- Web : GD-10 (pas de grille précédente à conserver) et GD-11 (pas de source
-  active de compte) restent des décisions produit documentées — voir
-  `docs/backlog/DECISIONS-PRODUIT.md` du 26 septembre 2026.
-- Recherche : insensibilité aux accents non promise ; insensibilité à la casse
-  garantie en ASCII sur Room et selon la collation PostgreSQL.
-- Preuve SR-12 TV : retour de fiche prouvé sur émulateur 1080p avec retour
-  **modélisé** (`SaveableStateProvider`), pas un vrai NavHost ; filtre non
-  exercé côté TV.
+### Recette — limites connues
+
+Les verrous de sortie (isolation entre comptes `R020-01`, mise à jour depuis la 0.1.0
+`R020-16`) et les lignes `R020-03`, `R020-14`, `R020-15` sont **conformes**. Les lignes
+`R020-02`, `R020-04`, `R020-05` et `R020-13` sont **partielles** et sortent comme limites
+connues, par décision du 14/10/2026 ; leur détail, avec les preuves sur appareil
+manquantes de `S10B-03`/`S10B-04`, est dans les
+[notes de sortie](./docs/releases/0.2.0/RELEASE-NOTES.md#limites-connues-et-assumées).
 
 **Hors périmètre de la 0.2.0** (repris en 0.3.0) : S11 bibliothèque / liste à
 regarder (`US-022`), S12 reprise, S13 lecteur et réglages, cascade finale
