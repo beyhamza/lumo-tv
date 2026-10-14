@@ -51,9 +51,9 @@ import { cn } from "@/lib/utils";
  * action: one path out of the account, and it asks first.
  *
  * "My library" is the favourites page under the name the product gave it: same
- * route, because a bookmark to `/app/favorites` is somebody's, and the watch
- * list that will join it (sprint 11) is not announced by an entry that cannot
- * open it yet. **Search** joined the menu with sprint 10 (US-021): it works
+ * route, because a bookmark to `/app/favorites` is somebody's. **My list**
+ * (`/app/watchlist`, US-022, S11-04) sits right after it: the films and series
+ * saved to watch later, for the active source. **Search** joined the menu with sprint 10 (US-021): it works
  * from the active source, so it sits beside Home rather than with the account
  * entries.
  *
@@ -155,6 +155,7 @@ export default async function AppLayout({
     entry("/app/search", t("navSearch")),
     ...catalogueLinks.map((link) => entry(link.href, link.label)),
     entry("/app/favorites", t("navLibrary")),
+    entry("/app/watchlist", t("navWatchlist")),
   ];
   const secondary = [
     entry("/app/sources", t("navSources")),

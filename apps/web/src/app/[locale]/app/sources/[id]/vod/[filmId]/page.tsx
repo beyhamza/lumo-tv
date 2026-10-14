@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { FilmPlayer } from "@/components/app/FilmPlayer";
 import { Unavailable } from "@/components/app/Unavailable";
+import { WatchlistToggle, WatchlistUnconfirmed } from "@/components/app/WatchlistControls";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api, problemCode } from "@/lib/api/client";
@@ -11,6 +12,8 @@ import { openedFromSearch, searchReturnPath } from "@/lib/search/search";
 import type { VodItem } from "@/lib/api/types";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
+import { loadMembership } from "@/lib/watchlist/load-membership";
+import { WRITE_NOTICE_PARAM, currentView, isUnconfirmed } from "@/lib/watchlist/write";
 
 /**
  * One film, and the player for it (US-13).
@@ -79,7 +82,7 @@ export default async function FilmPage({
   const t = await getTranslations("App");
   const tErrors = await getTranslations("Errors");
 
-  const [film, saved] = await Promise.all([
+  const [film, saved, membership] = await Promise.all([
     api(session.accessToken).GET("/vod/{id}", { params: { path: { id: filmId } } }),
     // The three filters together, because the contract says that combination
     // yields at most one row — and it is exactly why it exists. Asked once, when
@@ -90,6 +93,9 @@ export default async function FilmPage({
         query: { sourceId: id, itemType: "VOD", itemRef: filmId, size: 1 },
       },
     }),
+    // "My list" (S11-04): in parallel, for the same reason — the button is right
+    // on the first paint. Its failure costs the button, never the film.
+    loadMembership(session.accessToken, id, "VOD", filmId),
   ]);
 
   const failure = problemCode(film.error);
@@ -131,6 +137,9 @@ export default async function FilmPage({
         page: single(query.page),
       })}`;
 
+  // This sheet as it was opened, for the "My list" form to come back to.
+  const sheetView = currentView(`/app/sources/${id}/vod/${filmId}`, query);
+
   return (
     <div className="max-w-3xl">
       <p className="text-sm">
@@ -154,6 +163,15 @@ export default async function FilmPage({
           <p className="text-muted-foreground mt-2 text-sm">
             {facts(row, (count) => t("filmsMinutes", { count })).join(" · ")}
           </p>
+
+          <WatchlistUnconfirmed show={isUnconfirmed(query[WRITE_NOTICE_PARAM])} />
+          <WatchlistToggle
+            membership={membership}
+            contentType="VOD"
+            contentId={row.id}
+            returnTo={sheetView}
+            retryHref={hrefFor(locale as Locale, sheetView)}
+          />
 
           <NextIntlClientProvider
             messages={{ App: messages.App, Errors: messages.Errors }}
