@@ -200,14 +200,26 @@ public class FavoriteRepository {
     // ---- favourites ---------------------------------------------------------
 
     /** @param groupId null lists every group */
+    /**
+     * The favourites, by group then position.
+     *
+     * <p>{@code position} is <b>computed</b>, not read: the contract promises an
+     * index, contiguous from zero, and the stored column cannot keep that promise
+     * on its own. Rows leave a group behind this repository's back — a
+     * synchronisation that drops a channel, a deleted source — through
+     * {@code ON DELETE CASCADE}, and every one of them used to leave a hole a
+     * client then took for an index (S11-03).
+     */
     public List<Favorite> findFavorites(UUID userId, UUID groupId) {
         return jdbc.sql("""
-                SELECT f.id, f.group_id, f.source_id, f.channel_id, f.position
+                SELECT f.id, f.group_id, f.source_id, f.channel_id,
+                       row_number() OVER (PARTITION BY f.group_id ORDER BY f.position, f.id) - 1
+                           AS position
                   FROM favorite f
                   JOIN favorite_group g ON g.id = f.group_id
                  WHERE f.user_id = :userId
                    AND (:groupId::uuid IS NULL OR f.group_id = :groupId)
-                 ORDER BY g.position, f.position
+                 ORDER BY g.position, f.position, f.id
                 """)
                 .param("userId", userId)
                 .param("groupId", groupId)
@@ -245,10 +257,14 @@ public class FavoriteRepository {
                 .update();
     }
 
+    /** One favourite, its {@code position} computed as in {@link #findFavorites}. */
     public Optional<Favorite> findFavorite(UUID favoriteId, UUID userId) {
         return jdbc.sql("""
                 SELECT id, group_id, source_id, channel_id, position
-                  FROM favorite
+                  FROM (SELECT id, group_id, source_id, channel_id, user_id,
+                               row_number() OVER (ORDER BY position, id) - 1 AS position
+                          FROM favorite
+                         WHERE group_id = (SELECT group_id FROM favorite WHERE id = :id)) ranked
                  WHERE id = :id AND user_id = :userId
                 """)
                 .param("id", favoriteId)
@@ -262,24 +278,33 @@ public class FavoriteRepository {
                 .optional();
     }
 
+    /** The favourites of one group, in their order. */
+    public List<UUID> findGroupOrder(UUID groupId) {
+        return jdbc.sql("SELECT id FROM favorite WHERE group_id = :groupId ORDER BY position, id")
+                .param("groupId", groupId)
+                .query(UUID.class)
+                .list();
+    }
+
+    /** Stores {@code order} as the group's positions, 0 to n-1. Rows already in place are left alone. */
+    public void writeOrder(UUID groupId, List<UUID> order) {
+        for (int index = 0; index < order.size(); index++) {
+            jdbc.sql("""
+                    UPDATE favorite SET position = :position
+                     WHERE id = :id AND group_id = :groupId AND position <> :position
+                    """)
+                    .param("id", order.get(index))
+                    .param("groupId", groupId)
+                    .param("position", index)
+                    .update();
+        }
+    }
+
     /** @throws org.springframework.dao.DuplicateKeyException when the channel is already in the target group */
     public void moveFavorite(UUID favoriteId, UUID groupId, int position) {
         jdbc.sql("UPDATE favorite SET group_id = :groupId, position = :position WHERE id = :id")
                 .param("id", favoriteId)
                 .param("groupId", groupId)
-                .param("position", position)
-                .update();
-    }
-
-    /** Opens a gap at {@code position} so the moved favourite can take that index. */
-    public void shiftFavoritesFrom(UUID groupId, UUID excludedId, int position) {
-        jdbc.sql("""
-                UPDATE favorite
-                   SET position = position + 1
-                 WHERE group_id = :groupId AND id <> :excludedId AND position >= :position
-                """)
-                .param("groupId", groupId)
-                .param("excludedId", excludedId)
                 .param("position", position)
                 .update();
     }

@@ -1,5 +1,6 @@
 package tv.lumo.api.userdata;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
@@ -109,11 +110,14 @@ public class UserdataService {
         }
     }
 
+    /** Removes one membership, and closes the gap it leaves in its group. */
+    @Transactional
     public void removeFavorite(UUID userId, UUID favoriteId) {
-        if (favorites.delete(favoriteId, userId) == 0) {
-            throw ApiException.notFound(ErrorCode.FAVORITE_NOT_FOUND,
-                    "No such favourite on this account");
-        }
+        Favorite current = favorites.findFavorite(favoriteId, userId)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.FAVORITE_NOT_FOUND,
+                        "No such favourite on this account"));
+        favorites.delete(favoriteId, userId);
+        favorites.renumberFavorites(current.getGroupId());
     }
 
     public List<FavoriteGroup> listGroups(UUID userId) {
@@ -216,22 +220,33 @@ public class UserdataService {
         UUID sourceGroupId = current.getGroupId();
         boolean changesGroup = !targetGroupId.equals(sourceGroupId);
 
-        int position = request.getPosition() == null
-                ? (changesGroup ? favorites.countFavorites(targetGroupId) : current.getPosition())
-                : Math.max(0, request.getPosition());
+        // The move is computed on the group's order, not on stored positions:
+        // `position` is an index (contract), and a shift-then-renumber on stored
+        // values lands a favourite moved down one place short of it.
+        List<UUID> sourceOrder = favorites.findGroupOrder(sourceGroupId);
+        List<UUID> targetOrder = changesGroup
+                ? new ArrayList<>(favorites.findGroupOrder(targetGroupId))
+                : new ArrayList<>(sourceOrder);
+        int currentIndex = sourceOrder.indexOf(favoriteId);
+        targetOrder.remove(favoriteId);
 
-        favorites.shiftFavoritesFrom(targetGroupId, favoriteId, position);
+        int index = request.getPosition() == null
+                ? (changesGroup ? targetOrder.size() : currentIndex)
+                : Math.clamp(request.getPosition(), 0, targetOrder.size());
 
         try {
-            favorites.moveFavorite(favoriteId, targetGroupId, position);
+            favorites.moveFavorite(favoriteId, targetGroupId, index);
         } catch (DuplicateKeyException e) {
             throw ApiException.conflict(ErrorCode.FAVORITE_ALREADY_EXISTS,
                     "This channel is already in that group");
         }
 
-        favorites.renumberFavorites(targetGroupId);
+        targetOrder.add(index, favoriteId);
+        favorites.writeOrder(targetGroupId, targetOrder);
         if (changesGroup) {
-            favorites.renumberFavorites(sourceGroupId);
+            List<UUID> left = new ArrayList<>(sourceOrder);
+            left.remove(favoriteId);
+            favorites.writeOrder(sourceGroupId, left);
         }
 
         return favorites.findFavorite(favoriteId, userId).orElse(current);
