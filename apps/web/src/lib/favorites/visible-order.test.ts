@@ -131,49 +131,6 @@ describe("planVisibleStep", () => {
     expect(step.target).toEqual(["A2", "B1", "A1", "B2", "A3"]);
   });
 
-  it("renumbers first when a removal left a hole in the stored positions", () => {
-    // What the API does today: `position` is applied as a stored value
-    // (shift those >= p, set p, renumber), and a DELETE leaves holes.
-    type Row = { id: string; source_id: string; position: number };
-    const server = (rows: Row[], move: Move): Row[] => {
-      const next = rows.map((row) =>
-        row.id === move.id
-          ? { ...row, position: move.position }
-          : row.position >= move.position
-            ? { ...row, position: row.position + 1 }
-            : row,
-      );
-      return next
-        .sort((a, b) => a.position - b.position)
-        .map((row, index) => ({ ...row, position: index }));
-    };
-    // A1, A2, B1, A3 after removing the member at index 1: [0, 2, 3, 4].
-    const initial: Row[] = [
-      { id: "A1", source_id: "a", position: 0 },
-      { id: "A2", source_id: "a", position: 2 },
-      { id: "B1", source_id: "b", position: 3 },
-      { id: "A3", source_id: "a", position: 4 },
-    ];
-    // B1 is visible here (its source is the one moved): a plain list move.
-    const step = planVisibleStep(
-      initial.map((row) => ({ ...row, source_id: "a" })),
-      "A3",
-      "up",
-    );
-    if (step.kind !== "moves") throw new Error("expected moves");
-    expect(step.target).toEqual(["A1", "A2", "A3", "B1"]);
-    expect(step.moves[0]).toEqual({ id: "A1", position: 0 });
-
-    let rows = initial;
-    for (const move of step.moves) rows = server(rows, move);
-    expect(rows.map((row) => row.id)).toEqual(step.target);
-
-    // Without the renumbering move, the same plan lands elsewhere.
-    let unguarded = initial;
-    for (const move of step.moves.slice(1)) unguarded = server(unguarded, move);
-    expect(unguarded.map((row) => row.id)).not.toEqual(step.target);
-  });
-
   it("does nothing at either end of the visible list", () => {
     expect(planVisibleStep(group, "A1", "up")).toEqual({ kind: "nothing" });
     expect(planVisibleStep(group, "A3", "down")).toEqual({ kind: "nothing" });

@@ -154,22 +154,7 @@ export function planVisibleStep(
   const current = ordered.map((favorite) => favorite.id);
   const target = applyVisibleMove(ordered, visible, from, to).map((favorite) => favorite.id);
   const moves = planMoves(current, target);
-  // The plan speaks in indexes, as the contract does. The server applies
-  // `position` as a stored value, though, and a removal leaves a hole in those
-  // values (`DELETE /me/favorites/{id}` does not renumber the group, contrary
-  // to "positions are always contiguous"). Against `[0, 1, 3, 4]` a move to
-  // index 3 would land at index 2. Moving the first favourite to 0 changes no
-  // order and makes the server renumber the group, after which index and value
-  // agree again.
-  if (moves.length > 0 && !contiguous(ordered)) {
-    moves.unshift({ id: ordered[0].id, position: 0 });
-  }
   return { kind: "moves", target, moves };
-}
-
-/** Whether the stored positions are exactly 0..n-1 (the list is sorted). */
-function contiguous(ordered: readonly OrderedFavorite[]): boolean {
-  return ordered.every((favorite, index) => favorite.position === index);
 }
 
 /**
