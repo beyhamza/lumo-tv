@@ -220,11 +220,13 @@ private fun ActiveSourceTrigger(
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Two lines, as the plain label: a rail is 220 dp wide and a source name
+        // is the user's own, "Banc Xtr…" named nothing (BUG-S11-06-10).
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
             color = LumoColors.OnDark,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )

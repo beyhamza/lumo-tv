@@ -70,7 +70,11 @@ fun LumoTvNavRail(
             .background(LumoColors.Surface)
             .tvOverscanEdges(start = true, top = true, bottom = true)
             .padding(end = LumoSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+        // `xs` between entries, not `sm`: eight destinations at `sm` filled a
+        // 1080p panel and pushed the footer — the active source's name — off
+        // the bottom, clipped to "Banc Xtr…" or to an empty outline
+        // (BUG-S11-06-10). See [RAIL_ITEM_VERTICAL_PADDING] for the budget.
+        verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
     ) {
         destinations.forEach { destination ->
             LumoTvNavRailItem(
@@ -117,9 +121,20 @@ private fun LumoTvNavRailItem(
                 indication = null,
                 onClick = onSelect,
             )
-            .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.sm),
+            .padding(horizontal = LumoSpacing.md, vertical = RAIL_ITEM_VERTICAL_PADDING),
     )
 }
+
+/**
+ * The vertical padding of a destination, and the reason it is not `sm`.
+ *
+ * A 1080p panel is 540 dp tall, 486 dp inside the 5 % overscan. Eight entries of
+ * a 29 sp line with `sm` above and below, `sm` apart, took 416 dp and left the
+ * footer 54 dp: not enough for the "Source" heading and the source's name, which
+ * were clipped (BUG-S11-06-10). At 6 dp and `xs` apart they take 356 dp, which
+ * leaves the footer room for the heading and a name on two lines.
+ */
+private val RAIL_ITEM_VERTICAL_PADDING = 6.dp
 
 // Wide enough that the start overscan margin does not eat the label, and no
 // wider: the canvas has no rail at all, so every dp given to this column is a
