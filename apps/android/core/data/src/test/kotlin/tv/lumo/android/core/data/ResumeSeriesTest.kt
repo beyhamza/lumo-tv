@@ -253,6 +253,7 @@ class ResumeSeriesTest {
             episodeId = episodeId,
             positionMs = positionMs,
             durationMs = durationMs,
+            inContinue = serverSaysInContinue(positionMs, durationMs),
         )
 
     private fun repository() = SeriesRepository(

@@ -30,6 +30,7 @@ import tv.lumo.android.core.data.model.EpisodeProgress
 import tv.lumo.android.core.data.model.ResumableSeries
 import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.data.model.episodeAfter
+import tv.lumo.android.core.data.model.seriesPickOf
 import tv.lumo.android.core.database.dao.CatalogueSyncDao
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.SeriesDao
@@ -400,38 +401,42 @@ class SeriesRepository @Inject internal constructor(
                 .associateBy { it.id }
 
             // Insertion order is the server's order — most recently touched first —
-            // and `distinctBy` keeps the first it sees. That is the "one card per
-            // series" rule and the "most recent wins" rule in one step.
+            // and `groupBy` keeps the order in which it first sees each series. That
+            // is the "one card per series" rule and the "most recent wins" rule in
+            // one step; each group stays most recent first.
             rows.mapNotNull { row -> episodes[row.episodeId]?.let { row to it } }
-                .distinctBy { (_, episode) -> episode.seriesId }
-                .mapNotNull { (row, episode) -> card(row, episode) }
+                .groupBy({ (_, episode) -> episode.seriesId }, { (row, _) -> row })
+                .mapNotNull { (seriesId, seriesRows) -> card(seriesId, seriesRows, episodes) }
         }
 
-    private suspend fun card(row: EpisodeProgress, episode: EpisodeEntity): ResumableSeries? {
-        val series = seriesDao.byIds(listOf(episode.seriesId)).firstOrNull() ?: return null
+    /**
+     * One series' card, or none. The rule is [seriesPickOf], driven by the server's
+     * flags (S12-04): this only fetches what it needs from Room.
+     */
+    private suspend fun card(
+        seriesId: String,
+        rows: List<EpisodeProgress>,
+        entities: Map<String, EpisodeEntity>,
+    ): ResumableSeries? {
+        val series = seriesDao.byIds(listOf(seriesId)).firstOrNull() ?: return null
+        val ordered = assemble(
+            seasons = seriesDao.seasonsOf(seriesId),
+            episodes = seriesDao.episodesOf(seriesId),
+        ).flatMap { it.episodes }
 
-        // Under the threshold: this episode, where they left it.
-        if (!row.finished) {
-            return ResumableSeries(
-                series.asSeries(),
-                episode.asEpisode(),
-                row.positionMs,
-                row.updatedAtMillis,
-            )
-        }
-
-        // Past it: the next one, from the beginning. Null means the series is
-        // finished and leaves the rail.
-        val next = assemble(
-            seasons = seriesDao.seasonsOf(episode.seriesId),
-            episodes = seriesDao.episodesOf(episode.seriesId),
-        ).episodeAfter(episode.id) ?: return null
+        val pick = seriesPickOf(rows, ordered.map { it.id }) ?: return null
+        // The row's own episode from its cached row: an episode resolved for the
+        // rail may be held without the rest of its tree.
+        val episode = entities[pick.episodeId]?.asEpisode()
+            ?: ordered.firstOrNull { it.id == pick.episodeId }
+            ?: return null
 
         return ResumableSeries(
-            series.asSeries(),
-            next,
-            positionMs = 0L,
-            updatedAtMillis = row.updatedAtMillis,
+            series = series.asSeries(),
+            episode = episode,
+            positionMs = pick.positionMs,
+            updatedAtMillis = rows.first().updatedAtMillis,
+            rowEpisodeId = pick.row?.episodeId ?: episode.id,
         )
     }
 
