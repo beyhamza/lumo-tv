@@ -1,6 +1,7 @@
 import {
   createFavoriteGroup,
   deleteFavoriteGroup,
+  moveFavoriteGroup,
   renameFavoriteGroup,
 } from "@/actions/favorites";
 import type { FavoriteGroup } from "@/lib/api/types";
@@ -56,6 +57,7 @@ export function FavoriteGroups({
   defaultGroupName,
   labels,
   deleteWarning,
+  move,
 }: {
   groups: FavoriteGroup[];
   activeId?: string;
@@ -75,8 +77,15 @@ export function FavoriteGroups({
     name: string;
     rename: string;
     remove: string;
+    confirmRemove: string;
   };
   deleteWarning: (count: number) => string;
+  /**
+   * Labels for "Move earlier" / "Move later" on the open group, each given the
+   * group's name. Omitted, the bar does not offer to reorder groups — the
+   * channels page files, it does not organise.
+   */
+  move?: GroupMoveLabels;
 }) {
   if (groups.length === 0) return null;
 
@@ -133,20 +142,39 @@ export function FavoriteGroups({
               </button>
             </form>
 
+            {move ? (
+              <GroupMoves
+                group={active}
+                index={groups.findIndex((group) => group.id === active.id)}
+                count={groups.length}
+                returnTo={returnTo}
+                labels={move}
+                name={groupLabel(active, defaultGroupName)}
+              />
+            ) : null}
+
             {active.is_default ? null : (
-              <form action={deleteFavoriteGroup} className="space-y-1.5">
-                <input type="hidden" name="groupId" value={active.id} />
-                <input type="hidden" name="returnTo" value={returnTo} />
-                <p className="text-muted-foreground max-w-md text-xs">
-                  {deleteWarning(countInGroup(active.id))}
-                </p>
-                <button
-                  type="submit"
-                  className="border-destructive text-destructive h-9 rounded-lg border px-3 text-sm font-medium"
-                >
+              // Two steps, and the second is where the consequence is read
+              // (US-022: "the confirmation explains it"). A native disclosure,
+              // so that it needs no JavaScript.
+              <details>
+                <summary className="border-destructive text-destructive inline-flex h-9 cursor-pointer list-none items-center rounded-lg border px-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
                   {labels.remove}
-                </button>
-              </form>
+                </summary>
+                <form action={deleteFavoriteGroup} className="mt-2 space-y-1.5">
+                  <input type="hidden" name="groupId" value={active.id} />
+                  <input type="hidden" name="returnTo" value={returnTo} />
+                  <p className="text-muted-foreground max-w-md text-xs">
+                    {deleteWarning(countInGroup(active.id))}
+                  </p>
+                  <button
+                    type="submit"
+                    className="bg-destructive h-9 rounded-lg px-3 text-sm font-medium text-white"
+                  >
+                    {labels.confirmRemove}
+                  </button>
+                </form>
+              </details>
             )}
           </>
         ) : null}
@@ -178,6 +206,65 @@ export function FavoriteGroups({
         </form>
       </div>
     </section>
+  );
+}
+
+export type GroupMoveLabels = {
+  earlier: string;
+  later: string;
+  earlierOf: (group: string) => string;
+  laterOf: (group: string) => string;
+};
+
+/**
+ * Moving the open group one place earlier or later in the account's list
+ * (US-022, S11-03). Two forms, so that it works from the keyboard and without
+ * JavaScript; the end the group is already at is drawn disabled rather than
+ * hidden, so the pair does not jump around as the group moves.
+ */
+function GroupMoves({
+  group,
+  index,
+  count,
+  returnTo,
+  labels,
+  name,
+}: {
+  group: FavoriteGroup;
+  index: number;
+  count: number;
+  returnTo: string;
+  labels: GroupMoveLabels;
+  name: string;
+}) {
+  const steps = [
+    { direction: "up", label: labels.earlier, aria: labels.earlierOf(name), disabled: index <= 0 },
+    {
+      direction: "down",
+      label: labels.later,
+      aria: labels.laterOf(name),
+      disabled: index < 0 || index >= count - 1,
+    },
+  ] as const;
+
+  return (
+    <div className="flex items-end gap-2">
+      {steps.map((step) => (
+        <form key={step.direction} action={moveFavoriteGroup}>
+          <input type="hidden" name="groupId" value={group.id} />
+          <input type="hidden" name="direction" value={step.direction} />
+          <input type="hidden" name="returnTo" value={returnTo} />
+          <button
+            type="submit"
+            disabled={step.disabled}
+            aria-label={step.aria}
+            className="border-border h-9 rounded-lg border px-3 text-sm disabled:opacity-40"
+          >
+            {step.label}
+          </button>
+        </form>
+      ))}
+    </div>
   );
 }
 
