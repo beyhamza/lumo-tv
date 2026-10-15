@@ -123,17 +123,18 @@ public class FavoriteRepository {
                 .update();
     }
 
-    /** Opens a gap at {@code position} so the moved group can take that index. */
-    public void shiftGroupsFrom(UUID userId, UUID excludedId, int position) {
-        jdbc.sql("""
-                UPDATE favorite_group
-                   SET position = position + 1
-                 WHERE user_id = :userId AND id <> :excludedId AND position >= :position
-                """)
-                .param("userId", userId)
-                .param("excludedId", excludedId)
-                .param("position", position)
-                .update();
+    /** Stores {@code order} as the account's group positions, 0 to n-1. */
+    public void writeGroupOrder(UUID userId, List<UUID> order) {
+        for (int index = 0; index < order.size(); index++) {
+            jdbc.sql("""
+                    UPDATE favorite_group SET position = :position
+                     WHERE id = :id AND user_id = :userId AND position <> :position
+                    """)
+                    .param("id", order.get(index))
+                    .param("userId", userId)
+                    .param("position", index)
+                    .update();
+        }
     }
 
     /**

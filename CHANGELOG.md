@@ -32,6 +32,8 @@ clients générés ; les écrans arrivent avec S11-04.
   contrat. Un retrait, ou une chaîne effacée par une synchronisation ou avec sa
   source, laissait un trou ; un favori déplacé vers le bas dans son groupe
   atterrissait une place trop haut.
+- API : un groupe de favoris déplacé vers le bas atterrit exactement à l'index
+  demandé (il restait une place trop haut, ou ne bougeait pas d'un cran).
 
 ## [0.2.0] — 2026-10-14
 

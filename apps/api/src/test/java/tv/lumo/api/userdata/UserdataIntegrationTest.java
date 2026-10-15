@@ -209,6 +209,24 @@ class UserdataIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("position is an index: moving a group down lands it exactly there")
+    void movingAGroupDownLandsAtTheIndex() {
+        FavoriteGroup documentaire = userdata.createGroup(user.id(), new CreateFavoriteGroupRequest("Documentaire"));
+        userdata.createGroup(user.id(), new CreateFavoriteGroupRequest("Ciné"));
+        userdata.createGroup(user.id(), new CreateFavoriteGroupRequest("Sport"));
+
+        userdata.updateGroup(user.id(), documentaire.getId(), new UpdateFavoriteGroupRequest().position(1));
+        assertThat(userdata.listGroups(user.id())).extracting(FavoriteGroup::getName)
+                .containsExactly("Ciné", "Documentaire", "Sport");
+
+        userdata.updateGroup(user.id(), documentaire.getId(), new UpdateFavoriteGroupRequest().position(2));
+        assertThat(userdata.listGroups(user.id())).extracting(FavoriteGroup::getName)
+                .containsExactly("Ciné", "Sport", "Documentaire");
+        assertThat(userdata.listGroups(user.id())).extracting(FavoriteGroup::getPosition)
+                .containsExactly(0, 1, 2);
+    }
+
+    @Test
     @DisplayName("deleting a group keeps its favourites: they move to the default group")
     void deletingAGroupKeepsItsFavorites() {
         Favorite kept = userdata.addFavorite(user.id(), new AddFavoriteRequest(channelId));
