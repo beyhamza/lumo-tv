@@ -24,6 +24,15 @@ la réponse enregistrée et ne change rien. Deux codes d'erreur :
 `WATCHLIST_ITEM_NOT_FOUND`, `IDEMPOTENCY_KEY_REUSED`. Serveur, migration et
 clients générés ; les écrans arrivent avec S11-04.
 
+**Contrat — Continuer, C3 (S12-01, ADR 0012).** Touche les trois applications.
+`PUT /me/progress` accepte `watched_segments` (intervalles de lecture effective),
+`observed_at` et `session_started_at`, tous facultatifs ; `POST /me/progress/hide`
+masque une carte sur tous les appareils en gardant la progression ;
+`PlaybackProgress` porte `watched_ms`, `hidden` et `in_continue`, calculés par le
+serveur (30 s réellement regardées, cumulées entre appareils, secondes simultanées
+comptées une fois ; plus de 95 % = terminé). Les progressions enregistrées avant la
+mise à jour gardent leur place dans le rail.
+
 ### Corrigé
 
 - API : un en-tête obligatoire absent répond `400 VALIDATION_FAILED` au lieu de

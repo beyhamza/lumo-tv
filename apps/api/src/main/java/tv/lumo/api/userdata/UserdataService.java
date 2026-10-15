@@ -1,5 +1,6 @@
 package tv.lumo.api.userdata;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -12,6 +13,7 @@ import tv.lumo.api.generated.model.CreateFavoriteGroupRequest;
 import tv.lumo.api.generated.model.ErrorCode;
 import tv.lumo.api.generated.model.Favorite;
 import tv.lumo.api.generated.model.FavoriteGroup;
+import tv.lumo.api.generated.model.HideProgressRequest;
 import tv.lumo.api.generated.model.PlaybackProgress;
 import tv.lumo.api.generated.model.PlaybackProgressPage;
 import tv.lumo.api.generated.model.ProgressItemType;
@@ -19,6 +21,7 @@ import tv.lumo.api.generated.model.RecentChannel;
 import tv.lumo.api.generated.model.SaveProgressRequest;
 import tv.lumo.api.generated.model.UpdateFavoriteGroupRequest;
 import tv.lumo.api.generated.model.UpdateFavoriteRequest;
+import tv.lumo.api.generated.model.WatchedSegment;
 import tv.lumo.api.shared.error.ApiException;
 import tv.lumo.api.source.SourceRepository;
 
@@ -287,13 +290,60 @@ public class UserdataService {
      * filed under a source the caller does not own — which is the whole point of
      * the source being in the key.
      */
+    @Transactional
     public PlaybackProgress saveProgress(UUID userId, SaveProgressRequest request) {
-        sources.findOwned(request.getSourceId(), userId)
+        requireOwnedSource(userId, request.getSourceId());
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime observedAt = request.getObservedAt() == null
+                ? now
+                : min(request.getObservedAt(), now);
+        UUID id = progress.upsert(userId, request.getSourceId(), request.getItemType(),
+                request.getItemRef(), request.getPositionMs(), request.getDurationMs(),
+                observedAt, request.getSessionStartedAt());
+        progress.addWatched(id, watchedIntervals(request.getWatchedSegments(), now));
+        return progress.findById(id);
+    }
+
+    /**
+     * Hides an item from "Continue watching", progress kept (ADR 0012, ruling 3).
+     * Idempotent: an item already hidden, or with no progress, changes nothing.
+     */
+    @Transactional
+    public void hideProgress(UUID userId, HideProgressRequest request) {
+        requireOwnedSource(userId, request.getSourceId());
+        progress.hide(userId, request.getSourceId(), request.getItemType(), request.getItemRef());
+    }
+
+    private void requireOwnedSource(UUID userId, UUID sourceId) {
+        sources.findOwned(sourceId, userId)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.SOURCE_NOT_FOUND,
                         "No such source on this account"));
+    }
 
-        return progress.upsert(userId, request.getSourceId(), request.getItemType(),
-                request.getItemRef(), request.getPositionMs(), request.getDurationMs());
+    /**
+     * The segments a save may count: each clamped to the server's clock — device
+     * clocks drift, and a segment in the future would be watched time that has
+     * not happened — and dropped when empty once clamped.
+     */
+    static List<ProgressRepository.Interval> watchedIntervals(List<WatchedSegment> segments,
+                                                              OffsetDateTime now) {
+        if (segments == null) {
+            return List.of();
+        }
+        List<ProgressRepository.Interval> out = new ArrayList<>();
+        for (WatchedSegment segment : segments) {
+            OffsetDateTime start = min(segment.getStartedAt(), now);
+            OffsetDateTime end = min(segment.getEndedAt(), now);
+            if (end.isAfter(start)) {
+                out.add(new ProgressRepository.Interval(start, end));
+            }
+        }
+        return out;
+    }
+
+    private static OffsetDateTime min(OffsetDateTime a, OffsetDateTime b) {
+        return a.isAfter(b) ? b : a;
     }
 
     // ---- recently watched ---------------------------------------------------

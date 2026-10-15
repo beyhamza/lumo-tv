@@ -12,6 +12,7 @@ import tv.lumo.api.generated.model.Favorite;
 import tv.lumo.api.generated.model.FavoriteGroup;
 import tv.lumo.api.generated.model.FavoriteGroupList;
 import tv.lumo.api.generated.model.FavoriteList;
+import tv.lumo.api.generated.model.HideProgressRequest;
 import tv.lumo.api.generated.model.PlaybackProgress;
 import tv.lumo.api.generated.model.PlaybackProgressPage;
 import tv.lumo.api.generated.model.Problem;
@@ -138,6 +139,28 @@ public interface UserdataApi {
 
 
     /**
+     * POST /me/progress/hide : Remove an item from \&quot;Continue watching\&quot;, keeping its position
+     * Hides the item from the rail on every device (&#x60;adr/0012&#x60;, ruling 3; CW-10). The position and the watched time are kept: the sheet still offers to resume.  For an &#x60;EPISODE&#x60;, the whole series is hidden — the rail shows one card per series, and hiding the card must not let the next episode take its place.  The item comes back on the first save whose &#x60;session_started_at&#x60; is **after** the hide (CW-18, CW-22). A session already running when the card was hidden keeps saving without bringing it back (CW-31).  Idempotent: hiding a hidden item, or an item with no saved progress, answers &#x60;204&#x60; and changes nothing. 
+     *
+     * @param hideProgressRequest  (required)
+     * @return Hidden. (status code 204)
+     *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
+     *         or Missing, malformed or expired access token (&#x60;UNAUTHENTICATED&#x60;, &#x60;ACCESS_TOKEN_EXPIRED&#x60;). On &#x60;ACCESS_TOKEN_EXPIRED&#x60; the client refreshes once and replays the request.  (status code 401)
+     *         or No such source on this account (&#x60;SOURCE_NOT_FOUND&#x60;). (status code 404)
+     */
+    @RequestMapping(
+        method = RequestMethod.POST,
+        value = "/me/progress/hide",
+        produces = { "application/problem+json" },
+        consumes = { "application/json" }
+    )
+    
+    ResponseEntity<Void> hideProgress(
+         @Valid @RequestBody HideProgressRequest hideProgressRequest
+    );
+
+
+    /**
      * GET /me/favorite-groups : The user&#39;s favourite groups
      *
      * @return Groups ordered by &#x60;position&#x60;. (status code 200)
@@ -174,7 +197,7 @@ public interface UserdataApi {
 
     /**
      * GET /me/progress : Playback positions saved by this account
-     * Ordered by &#x60;updated_at&#x60;, most recent first — which is also the order a \&quot;Continue watching\&quot; rail wants.  Without this operation &#x60;PUT /me/progress&#x60; writes into a void: progress could be saved on the phone and never read back on the television, and \&quot;resume across screens\&quot; would be a promise no client could keep.  Passing &#x60;sourceId&#x60;, &#x60;itemType&#x60; and &#x60;itemRef&#x60; together narrows the page to the single matching row, which is how a player looks up one item before opening it. All three, because the key is all three: &#x60;item_ref&#x60; is opaque and nothing here constrains what a client puts in it.  There is deliberately no &#x60;/me/progress/{itemType}/{itemRef}&#x60; variant: &#x60;item_ref&#x60; is opaque and nothing stops it containing a slash or a percent sign. Filtering keeps it in a query parameter, where encoding is unambiguous, instead of a path segment, where it is not. 
+     * Ordered by &#x60;updated_at&#x60;, most recent first — which is also the order a \&quot;Continue watching\&quot; rail wants.  Which rows belong in that rail is the server&#39;s call, not the client&#39;s: &#x60;in_continue&#x60; (&#x60;adr/0012&#x60;, ruling 4). A client groups the episodes of a series into one card and keeps the order; it does not re-derive the 30-second or the 95 % rule.  Without this operation &#x60;PUT /me/progress&#x60; writes into a void: progress could be saved on the phone and never read back on the television, and \&quot;resume across screens\&quot; would be a promise no client could keep.  Passing &#x60;sourceId&#x60;, &#x60;itemType&#x60; and &#x60;itemRef&#x60; together narrows the page to the single matching row, which is how a player looks up one item before opening it. All three, because the key is all three: &#x60;item_ref&#x60; is opaque and nothing here constrains what a client puts in it.  There is deliberately no &#x60;/me/progress/{itemType}/{itemRef}&#x60; variant: &#x60;item_ref&#x60; is opaque and nothing stops it containing a slash or a percent sign. Filtering keeps it in a query parameter, where encoding is unambiguous, instead of a path segment, where it is not. 
      *
      * @param sourceId Restrict to one source. Part of an item&#39;s key, not a convenience. (optional)
      * @param itemType Restrict to one kind of item. (optional)
@@ -313,7 +336,7 @@ public interface UserdataApi {
 
     /**
      * PUT /me/progress : Save playback progress for a VOD item or an episode
-     * Idempotent upsert keyed on &#x60;(source_id, item_type, item_ref)&#x60; for the caller. The source is part of the key rather than a passenger — see &#x60;SaveProgressRequest.source_id&#x60;.  Live channels have no progress. &#x60;ProgressItemType&#x60; has no &#x60;LIVE&#x60; value, and sending one for a channel is a client bug rather than a supported case: a position means nothing on a continuous stream. What a channel gets instead is &#x60;PUT /me/recent-channels&#x60;. 
+     * Idempotent upsert keyed on &#x60;(source_id, item_type, item_ref)&#x60; for the caller. The source is part of the key rather than a passenger — see &#x60;SaveProgressRequest.source_id&#x60;.  **Continue watching (&#x60;adr/0012&#x60;).** Three optional fields make the rail right across devices; a client that sends none of them still saves a position.  - &#x60;watched_segments&#x60;: the wall-clock intervals of actual playback since   the previous save. The server keeps their union per item, so devices   add up, simultaneous seconds count once and a resent save adds nothing   (CW-17, CW-29, CW-33). - &#x60;observed_at&#x60;: when the position was read. The latest observation wins   the position, not the latest request (CW-30, CW-32). - &#x60;session_started_at&#x60;: when playback really started on this device.   Brings a hidden item back only if it is after the hide (CW-18, CW-31).  Live channels have no progress. &#x60;ProgressItemType&#x60; has no &#x60;LIVE&#x60; value, and sending one for a channel is a client bug rather than a supported case: a position means nothing on a continuous stream. What a channel gets instead is &#x60;PUT /me/recent-channels&#x60;. 
      *
      * @param saveProgressRequest  (required)
      * @return The stored progress. (status code 200)

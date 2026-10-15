@@ -40,6 +40,12 @@ public class PlaybackProgress {
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
   private OffsetDateTime updatedAt;
 
+  private Long watchedMs;
+
+  private Boolean hidden;
+
+  private Boolean inContinue;
+
   public PlaybackProgress() {
     super();
   }
@@ -47,13 +53,16 @@ public class PlaybackProgress {
   /**
    * Constructor with only required parameters
    */
-  public PlaybackProgress(UUID id, UUID sourceId, ProgressItemType itemType, String itemRef, Long positionMs, OffsetDateTime updatedAt) {
+  public PlaybackProgress(UUID id, UUID sourceId, ProgressItemType itemType, String itemRef, Long positionMs, OffsetDateTime updatedAt, Long watchedMs, Boolean hidden, Boolean inContinue) {
     this.id = id;
     this.sourceId = sourceId;
     this.itemType = itemType;
     this.itemRef = itemRef;
     this.positionMs = positionMs;
     this.updatedAt = updatedAt;
+    this.watchedMs = watchedMs;
+    this.hidden = hidden;
+    this.inContinue = inContinue;
   }
 
   public PlaybackProgress id(UUID id) {
@@ -191,6 +200,64 @@ public class PlaybackProgress {
     this.updatedAt = updatedAt;
   }
 
+  public PlaybackProgress watchedMs(Long watchedMs) {
+    this.watchedMs = watchedMs;
+    return this;
+  }
+
+  /**
+   * Time actually watched, summed across devices with simultaneous playback counted once (`adr/0012`, ruling 1). Not the position. 
+   * minimum: 0
+   * @return watchedMs
+   */
+  @NotNull @Min(0L) 
+  @JsonProperty("watched_ms")
+  public Long getWatchedMs() {
+    return watchedMs;
+  }
+
+  public void setWatchedMs(Long watchedMs) {
+    this.watchedMs = watchedMs;
+  }
+
+  public PlaybackProgress hidden(Boolean hidden) {
+    this.hidden = hidden;
+    return this;
+  }
+
+  /**
+   * Removed from \"Continue watching\" by the user, progress kept.
+   * @return hidden
+   */
+  @NotNull 
+  @JsonProperty("hidden")
+  public Boolean getHidden() {
+    return hidden;
+  }
+
+  public void setHidden(Boolean hidden) {
+    this.hidden = hidden;
+  }
+
+  public PlaybackProgress inContinue(Boolean inContinue) {
+    this.inContinue = inContinue;
+    return this;
+  }
+
+  /**
+   * Whether this item belongs in \"Continue watching\": not hidden, not finished (position strictly past 95 % of a known duration), and either 30 seconds actually watched or restarted after being hidden. 
+   * @return inContinue
+   */
+  @NotNull 
+  @JsonProperty("in_continue")
+  public Boolean getInContinue() {
+    return inContinue;
+  }
+
+  public void setInContinue(Boolean inContinue) {
+    this.inContinue = inContinue;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -206,12 +273,15 @@ public class PlaybackProgress {
         Objects.equals(this.itemRef, playbackProgress.itemRef) &&
         Objects.equals(this.positionMs, playbackProgress.positionMs) &&
         Objects.equals(this.durationMs, playbackProgress.durationMs) &&
-        Objects.equals(this.updatedAt, playbackProgress.updatedAt);
+        Objects.equals(this.updatedAt, playbackProgress.updatedAt) &&
+        Objects.equals(this.watchedMs, playbackProgress.watchedMs) &&
+        Objects.equals(this.hidden, playbackProgress.hidden) &&
+        Objects.equals(this.inContinue, playbackProgress.inContinue);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, sourceId, itemType, itemRef, positionMs, durationMs, updatedAt);
+    return Objects.hash(id, sourceId, itemType, itemRef, positionMs, durationMs, updatedAt, watchedMs, hidden, inContinue);
   }
 
   @Override
@@ -225,6 +295,9 @@ public class PlaybackProgress {
     sb.append("    positionMs: ").append(toIndentedString(positionMs)).append("\n");
     sb.append("    durationMs: ").append(toIndentedString(durationMs)).append("\n");
     sb.append("    updatedAt: ").append(toIndentedString(updatedAt)).append("\n");
+    sb.append("    watchedMs: ").append(toIndentedString(watchedMs)).append("\n");
+    sb.append("    hidden: ").append(toIndentedString(hidden)).append("\n");
+    sb.append("    inContinue: ").append(toIndentedString(inContinue)).append("\n");
     sb.append("}");
     return sb.toString();
   }

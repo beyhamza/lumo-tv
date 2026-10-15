@@ -13,6 +13,7 @@ import tv.lumo.api.generated.model.Favorite;
 import tv.lumo.api.generated.model.FavoriteGroup;
 import tv.lumo.api.generated.model.FavoriteGroupList;
 import tv.lumo.api.generated.model.FavoriteList;
+import tv.lumo.api.generated.model.HideProgressRequest;
 import tv.lumo.api.generated.model.PlaybackProgress;
 import tv.lumo.api.generated.model.PlaybackProgressPage;
 import tv.lumo.api.generated.model.ProgressItemType;
@@ -103,6 +104,12 @@ public class UserdataController implements UserdataApi {
     @Override
     public ResponseEntity<PlaybackProgress> saveProgress(SaveProgressRequest request) {
         return ResponseEntity.ok(userdata.saveProgress(CurrentUser.requireUserId(), request));
+    }
+
+    @Override
+    public ResponseEntity<Void> hideProgress(HideProgressRequest request) {
+        userdata.hideProgress(CurrentUser.requireUserId(), request);
+        return ResponseEntity.noContent().build();
     }
 
     @Override

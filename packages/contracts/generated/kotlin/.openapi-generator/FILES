@@ -59,6 +59,7 @@ src/main/kotlin/tv/lumo/android/network/generated/model/FavoriteList.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/FieldError.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/ForgotPasswordRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/GoogleSignInRequest.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/HideProgressRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/IngestionErrorCode.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Locale.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/LoginRequest.kt
@@ -94,6 +95,7 @@ src/main/kotlin/tv/lumo/android/network/generated/model/User.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/VodItem.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/VodItemPage.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/VodPlaybackInfo.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/WatchedSegment.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/WatchlistContentType.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/WatchlistItem.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/WatchlistPage.kt

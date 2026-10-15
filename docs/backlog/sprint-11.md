@@ -1,6 +1,6 @@
 # Sprint 11 — Bibliothèque et liste à regarder
 
-Statut : **reprise le 15 octobre 2026** (15 → 21/10), version **0.3.0**, après la sortie de la 0.2.0 le 14/10. Le cycle, ouvert le 8 octobre, avait été mis en pause le 10/10 au profit du [sprint 10-bis](sprint-10-bis.md), clos avec la sortie. La 0.3.0 reprend aussi les limites connues de la 0.2.0 (lignes R020-02/04/05/13, preuves sur appareil de S10B-03/04) : voir les [notes de sortie](../releases/0.2.0/RELEASE-NOTES.md). Taille relative : L.
+Statut : **clos le 15 octobre 2026** (≈ 89 %), version **0.3.0**. Code de S11-00 → S11-06 sur `dev` ; ce qui reste (recette sur une vraie TV et un vrai téléphone, `BUG-S11-06-03`/`-05` à rejouer sur le web, `-09` hors S11, G4 et FO non joués sur appareil) est reporté à la recette groupée de la 0.3.0 — décision de Hamza du 15/10 : moins de recette par sprint, plus de fonctionnalités.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 [Première proposition d’écrans](../design/0.2.0/library.md) préparée le
