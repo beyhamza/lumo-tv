@@ -7,7 +7,9 @@ import { PlaybackRefusalMessage } from "@/components/app/PlaybackRefusalMessage"
 import { SourceDeleted } from "@/components/app/SourceDeleted";
 import { advanceMs, audibility, browserDecodes } from "@/lib/playback/audibility";
 import { savableProgress } from "@/lib/playback/progress";
+import type { PlayerActions } from "@/lib/playback/sheet-action";
 import { useSourceGone } from "@/lib/playback/use-source-gone";
+import { WatchMeter, isActuallyPlaying } from "@/lib/playback/watch-meter";
 
 /**
  * Plays one film in the browser (US-13, ADR 0007).
@@ -71,6 +73,12 @@ import { useSourceGone } from "@/lib/playback/use-source-gone";
  * Every thirty seconds while playing, on pause, and when the page goes away —
  * never per frame: `PUT /me/progress` is an idempotent upsert, not a stream.
  *
+ * Since S12-02 each save also carries the time **actually watched** since the
+ * previous one — wall-clock intervals measured by `WatchMeter` while the element
+ * really plays, a seek, a pause or a stall producing none — with when the
+ * position was read and when this page session first really played. Whether
+ * that adds up to a card in Continue is decided by the server (`adr/0012`).
+ *
  * The page-going-away case is the one a browser makes hard. `beforeunload` is
  * unreliable on mobile and `unload` does not fire at all in some browsers, so
  * the listener is on `visibilitychange`, which is what actually fires when a tab
@@ -97,8 +105,7 @@ export function FilmPlayer({
   filmId,
   sourceId,
   name,
-  resumeFromMs,
-  resumeLabel,
+  actions,
   playbackPath = "vod",
   itemType = "VOD",
   audioCodec = null,
@@ -114,19 +121,15 @@ export function FilmPlayer({
   sourceId: string;
   name: string;
   /**
-   * Where to start, **chosen on the page around this component** and never by
-   * this component. Zero is the beginning, and it is somebody's answer to a
-   * question they were asked — resuming is offered, not imposed.
-   */
-  resumeFromMs: number;
-  /**
-   * "Resume at 20:14", or null when there is nothing to resume.
+   * The buttons that start playback and where each starts, **chosen on the page
+   * around this component** and never by it (S12-03): Watch, Resume at 20:14
+   * with Start over beside it, or Watch again. Resuming is offered, not imposed.
    *
-   * Formatted by the page rather than here: the position comes from the server
-   * with the film, and a client component asking for it again would be a second
-   * request for a number the page already has.
+   * Decided and worded by the page (`lib/playback/sheet-action.ts`): the position
+   * comes from the server with the film, and a client component asking for it
+   * again would be a second request for a number the page already has.
    */
-  resumeLabel: string | null;
+  actions: PlayerActions;
   /**
    * Which playback route to ask. `vod` or `episode`.
    *
@@ -184,7 +187,7 @@ export function FilmPlayer({
    * State rather than the prop, because "start over" changes it: the two buttons
    * are one player told two different things, not two players.
    */
-  const [startAtMs, setStartAtMs] = useState(resumeFromMs);
+  const [startAtMs, setStartAtMs] = useState(actions.primary.fromMs);
   // Only once playback has been asked for: a film page that is merely open is a
   // page, and pages find out about a deletion by being navigated.
   const gone = useSourceGone(sourceId, started);
@@ -196,7 +199,46 @@ export function FilmPlayer({
    * as state it would re-render the whole player on every timeupdate, over a
    * `<video>` that is drawing frames.
    */
-  const position = useRef({ positionMs: 0, durationMs: null as number | null });
+  const position = useRef({
+    positionMs: 0,
+    durationMs: null as number | null,
+    // When the position was read, for the server to tell the most recent
+    // playback across devices (`observed_at`, CW-30/32).
+    observedAt: null as string | null,
+  });
+
+  /**
+   * Time actually watched (S12-02): wall-clock intervals while the element is
+   * genuinely playing, sent with each save. A ref, created once per mount: the
+   * page session is the meter's lifetime, and its first real playback is the
+   * `session_started_at` the server compares with a hide (CW-18, CW-31).
+   */
+  const [watchMeter] = useState(() => new WatchMeter());
+
+  /**
+   * Opens or closes the current interval from what the element reports. Called
+   * on every media event that can change the answer, so no single event has to
+   * be trusted to arrive — a seek within the buffer, for instance, fires no
+   * `playing` when it ends.
+   */
+  const syncMeter = useCallback(() => {
+    const video = videoRef.current;
+    const now = Date.now();
+    if (
+      video &&
+      isActuallyPlaying({
+        paused: video.paused,
+        seeking: video.seeking,
+        ended: video.ended,
+        readyState: video.readyState,
+        visible: document.visibilityState === "visible",
+      })
+    ) {
+      watchMeter.start(now);
+    } else {
+      watchMeter.stop(now);
+    }
+  }, [watchMeter]);
 
   /**
    * Media that has genuinely played, and where it was when last looked at.
@@ -213,19 +255,36 @@ export function FilmPlayer({
     // written against a key the server cannot make sense of.
     if (!sourceId) return;
 
-    const { positionMs, durationMs } = position.current;
+    const { positionMs, durationMs, observedAt } = position.current;
     // `isLive` is false and stated rather than assumed: this component only ever
     // plays a file, and the guard is what keeps that true if it is ever reused.
     if (!savableProgress({ positionMs, isLive: false })) return;
 
+    // Every save carries what was watched since the previous one, the open
+    // interval cut here and left running. Saving starts with the first frame:
+    // whether 30 seconds are reached is the server's call, not this player's.
+    const watchedSegments = watchMeter.take(Date.now());
+    const extras = {
+      watchedSegments,
+      observedAt: observedAt ?? undefined,
+      sessionStartedAt: watchMeter.sessionStartedAt,
+    };
+
     // Two actions rather than one with a type argument, for the reason written on
     // them: the two ids come from two tables.
-    if (itemType === "EPISODE") {
-      void saveEpisodeProgress({ sourceId, episodeId: filmId, positionMs, durationMs });
-    } else {
-      void saveFilmProgress({ sourceId, filmId, positionMs, durationMs });
-    }
-  }, [filmId, sourceId, itemType]);
+    const sent =
+      itemType === "EPISODE"
+        ? saveEpisodeProgress({ sourceId, episodeId: filmId, positionMs, durationMs, ...extras })
+        : saveFilmProgress({ sourceId, filmId, positionMs, durationMs, ...extras });
+
+    // An interval that did not reach the server goes with the next save. Sent
+    // twice it adds nothing; lost, it would be watched time that never counted.
+    void sent
+      .then((outcome) => {
+        if (outcome === "retry") watchMeter.giveBack(watchedSegments);
+      })
+      .catch(() => watchMeter.giveBack(watchedSegments));
+  }, [filmId, sourceId, itemType, watchMeter]);
 
   useEffect(() => {
     if (!started || gone) return;
@@ -301,7 +360,10 @@ export function FilmPlayer({
     if (!started || gone) return;
 
     const timer = setInterval(save, SAVE_EVERY_MS);
+    // A hidden page closes the interval before the save that follows; a page
+    // shown again reopens it only if the element is still playing.
     const onHidden = () => {
+      syncMeter();
       if (document.visibilityState === "hidden") save();
     };
     document.addEventListener("visibilitychange", onHidden);
@@ -316,9 +378,10 @@ export function FilmPlayer({
       // were removed with the source. One refused request, and nothing to keep —
       // cheaper than threading a second flag through a cleanup that cannot see
       // the next value of `gone`.
+      watchMeter.stop(Date.now());
       save();
     };
-  }, [started, save, gone]);
+  }, [started, save, gone, syncMeter, watchMeter]);
 
   if (gone) {
     // The `<video>` is unmounted with everything else, which is what lets go of
@@ -330,34 +393,28 @@ export function FilmPlayer({
     <section className="mt-6">
       {!started ? (
         <div className="flex flex-wrap gap-3">
-          {/* Resume first, start-over beside it, both visible. Neither is pressed
-              on anybody's behalf — see the page's own documentation. */}
-          {resumeLabel ? (
-            <button
-              type="button"
-              onClick={() => {
-                setStartAtMs(resumeFromMs);
-                setStarted(true);
-              }}
-              className="bg-primary text-primary-foreground h-10 rounded-lg px-5 text-sm font-medium"
-            >
-              {resumeLabel}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              setStartAtMs(0);
-              setStarted(true);
-            }}
-            className={
-              resumeLabel
-                ? "bg-secondary text-secondary-foreground h-10 rounded-lg px-5 text-sm font-medium"
-                : "bg-primary text-primary-foreground h-10 rounded-lg px-5 text-sm font-medium"
-            }
-          >
-            {t(resumeLabel ? "filmsStartOver" : "filmsPlay")}
-          </button>
+          {/* Primary first — Watch, Resume at…, or Watch again — and Start over
+              beside a resume, both visible. Neither is pressed on anybody's
+              behalf — see the page's own documentation. */}
+          {[actions.primary, actions.secondary].map((action, index) =>
+            action ? (
+              <button
+                key={index}
+                type="button"
+                onClick={() => {
+                  setStartAtMs(action.fromMs);
+                  setStarted(true);
+                }}
+                className={
+                  index === 0
+                    ? "bg-primary text-primary-foreground focus-visible:ring-ring h-10 rounded-lg px-5 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none"
+                    : "bg-secondary text-secondary-foreground focus-visible:ring-ring h-10 rounded-lg px-5 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none"
+                }
+              >
+                {action.label}
+              </button>
+            ) : null,
+          )}
         </div>
       ) : null}
 
@@ -380,7 +437,11 @@ export function FilmPlayer({
           position.current = {
             positionMs,
             durationMs: Number.isFinite(video.duration) ? video.duration * 1000 : null,
+            observedAt: new Date().toISOString(),
           };
+          // A safety net for the meter: some transitions back to playing fire
+          // no event of their own. Cheap — an idempotent check.
+          syncMeter();
 
           // Asked here rather than on `loadedmetadata` because the reading
           // Chromium offers is a count of decoded bytes, which says nothing
@@ -409,15 +470,34 @@ export function FilmPlayer({
         }}
         // A pause is the single most likely moment for somebody to walk away, so
         // it is worth a write of its own rather than waiting up to thirty
-        // seconds for the next tick.
-        onPause={save}
-        onError={() =>
+        // seconds for the next tick. The interval closes first, so the save
+        // carries it.
+        onPause={() => {
+          syncMeter();
+          save();
+        }}
+        // Watched time (S12-02): every event that can start or stop real
+        // playback re-reads the element. Seeking, waiting and ending close the
+        // interval; playing and a finished seek reopen it if it really plays.
+        onPlaying={syncMeter}
+        onWaiting={syncMeter}
+        onSeeking={syncMeter}
+        onSeeked={syncMeter}
+        onStalled={syncMeter}
+        onEnded={() => {
+          syncMeter();
+          save();
+        }}
+        onEmptied={syncMeter}
+        onError={() => {
+          // A broken file plays nothing, whatever its other flags say.
+          watchMeter.stop(Date.now());
           setFailure((current) =>
             // Not overwritten: a named failure set above is more specific than
             // anything the element can report.
             current ?? { kind: "unplayable" },
-          )
-        }
+          );
+        }}
         className={started ? "mt-3 aspect-video w-full rounded-lg bg-black" : "hidden"}
       />
 

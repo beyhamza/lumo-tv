@@ -7,7 +7,8 @@ import { WatchlistToggle, WatchlistUnconfirmed } from "@/components/app/Watchlis
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api, problemCode } from "@/lib/api/client";
-import { asClock, isFinished } from "@/lib/playback/progress";
+import { asClock } from "@/lib/playback/progress";
+import { playerActions, sheetChoice } from "@/lib/playback/sheet-action";
 import { openedFromSearch, searchReturnPath } from "@/lib/search/search";
 import type { VodItem } from "@/lib/api/types";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -37,7 +38,9 @@ import { WRITE_NOTICE_PARAM, currentView, isUnconfirmed } from "@/lib/watchlist/
  * <h2>Resuming is offered, never imposed (S5-11)</h2>
  *
  * A film with a saved position shows **two** buttons — "Resume at 20:14" and
- * "Start over" — and neither is pressed on anybody's behalf. Automatic resume is
+ * "Start over" — and neither is pressed on anybody's behalf. Never started, it
+ * shows "Watch"; finished (strictly past 95 %), "Watch again" (S12-03,
+ * `lib/playback/sheet-action.ts`). Automatic resume is
  * a good idea right up until the day somebody wants to see the beginning again,
  * and then it is a feature with no way out.
  *
@@ -113,15 +116,16 @@ export default async function FilmPage({
   const messages = await getMessages();
   const row = film.data;
 
-  // Null both when nothing was ever watched and when the film is finished. Both
-  // mean one button rather than two: offering to carry on from the credits is
-  // not an offer. A failed lookup is also null — the page still plays the film,
-  // which is what somebody came for.
-  const progress = saved.data?.items?.[0];
-  const resumeFromMs =
-    progress && !isFinished(progress.position_ms, progress.duration_ms ?? null)
-      ? progress.position_ms
-      : 0;
+  // Watch, Resume at… with Start over, or Watch again (S12-03). A film removed
+  // from Continue still resumes here — the removal keeps its position (CW-10).
+  // A failed lookup reads as nothing saved: the page still plays the film, which
+  // is what somebody came for.
+  const actions = playerActions(sheetChoice(saved.data?.items?.[0]), {
+    watch: t("sheetWatch"),
+    resumeAt: (atMs) => t("filmsResumeAt", { at: asClock(atMs) }),
+    rewatch: t("sheetRewatch"),
+    restart: t("filmsStartOver"),
+  });
 
   // Where the back link goes. From the search, it returns to that search —
   // text, filter and page — rebuilt from a fixed path and three whitelisted
@@ -180,10 +184,7 @@ export default async function FilmPage({
               filmId={row.id}
               sourceId={row.source_id}
               name={row.name}
-              resumeFromMs={resumeFromMs}
-              resumeLabel={
-                resumeFromMs > 0 ? t("filmsResumeAt", { at: asClock(resumeFromMs) }) : null
-              }
+              actions={actions}
               sourceHref={hrefFor(locale as Locale, `/app/sources/${row.source_id}`)}
               continueHref={hrefFor(locale as Locale, "/app")}
             />

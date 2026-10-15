@@ -9,6 +9,7 @@ import type { EpgProgramme } from "@/lib/api/types";
 import { type DirectView, directViewHref } from "@/lib/direct/view-memory";
 import { epgNow } from "@/lib/epg/clock";
 import { clockTime } from "@/lib/epg/format";
+import { HIDE_NOTICE_PARAM, hideNoticeOf } from "@/lib/home/hide-continue";
 import { loadHomeRails, type HomeRails } from "@/lib/home/load-home-rails";
 import { homeState, type RailStatus } from "@/lib/home/rail-status";
 import { requireSession } from "@/lib/session/session";
@@ -64,8 +65,9 @@ import { sourceCondition } from "@/lib/sources/source-condition";
  *
  * <h2>What is deliberately absent</h2>
  *
- * No search (sprint 10), no watch list (sprint 11), no "remove from Continue"
- * (sprint 12). Each would be a control that leads nowhere today.
+ * No search (sprint 10) and no watch list (sprint 11) here. Each would be a
+ * control that leads nowhere on this page. "Remove from Continue watching" is
+ * here since S12-04: a form per card, its outcome back in `?cw=`.
  *
  * <h2>No client component</h2>
  *
@@ -73,8 +75,9 @@ import { sourceCondition } from "@/lib/sources/source-condition";
  * page; resuming is the URL the films and series rails already use. The players
  * live on those pages, so this one ships no script of its own.
  */
-export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
+export default async function HomePage({ params, searchParams }: PageProps<"/[locale]/app">) {
   const { locale: rawLocale } = await params;
+  const hideNotice = hideNoticeOf((await searchParams)[HIDE_NOTICE_PARAM]);
   const locale = rawLocale as Locale;
   setRequestLocale(locale);
 
@@ -201,6 +204,15 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
           catalogue pages since S8-05: same two facts, same sentences. */}
       <SourceNotice source={source} condition={condition} locale={locale} />
 
+      {/* The outcome of "Remove from Continue watching", above the rail: a rail
+          whose last card went is not drawn, and the sentence must still be.
+          Non-blocking, and never a success the server did not confirm (CW-26). */}
+      {hideNotice ? (
+        <p role="status" className="border-border mt-6 rounded-xl border px-4 py-3 text-sm">
+          {t(hideNotice === "hidden" ? "homeRemoveDone" : "homeRemoveUnconfirmed")}
+        </p>
+      ) : null}
+
       {rails ? (
         <>
           <ContinueRail
@@ -297,21 +309,27 @@ function continueEntries(
   t: Translate,
 ): ContinueRailEntry[] {
   return rails.continueWatching.map((card) => {
-    const progress = {
-      positionMs: card.row.position_ms,
-      durationMs: card.row.duration_ms ?? null,
+    const progress = { positionMs: card.positionMs, durationMs: card.durationMs };
+    const title = card.kind === "film" ? card.film.name : card.series.name;
+    const hide = {
+      sourceId,
+      itemType: card.hide.itemType,
+      itemRef: card.hide.itemRef,
+      text: t("homeRemove"),
+      label: t("homeRemoveOf", { title }),
     };
 
     if (card.kind === "film") {
       return {
         key: card.key,
-        title: card.film.name,
+        title,
         posterUrl: card.film.poster_url,
         ...progress,
         resume: {
           href: hrefFor(locale, `/app/sources/${sourceId}/vod/${card.film.id}`),
-          label: t("homeResume", { title: card.film.name }),
+          label: t("homeResume", { title }),
         },
+        hide,
       };
     }
 
@@ -339,6 +357,7 @@ function continueEntries(
         text: t("homeDetails"),
         label: t("homeDetailsOf", { title: card.series.name }),
       },
+      hide,
     };
   });
 }

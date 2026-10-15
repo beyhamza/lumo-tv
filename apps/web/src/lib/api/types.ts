@@ -35,6 +35,7 @@ export type EpisodePlaybackInfo = components["schemas"]["EpisodePlaybackInfo"];
 export type Favorite = components["schemas"]["Favorite"];
 export type FavoriteGroup = components["schemas"]["FavoriteGroup"];
 export type PlaybackProgress = components["schemas"]["PlaybackProgress"];
+export type ProgressItemType = components["schemas"]["ProgressItemType"];
 export type RecentChannel = components["schemas"]["RecentChannel"];
 export type Device = components["schemas"]["Device"];
 export type DeviceRegistration = components["schemas"]["DeviceRegistration"];

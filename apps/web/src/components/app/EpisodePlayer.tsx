@@ -1,6 +1,7 @@
 "use client";
 
 import { FilmPlayer } from "@/components/app/FilmPlayer";
+import type { PlayerActions } from "@/lib/playback/sheet-action";
 
 /**
  * Plays one episode in the browser (US-15, ADR 0007).
@@ -27,8 +28,7 @@ export function EpisodePlayer({
   episodeId,
   sourceId,
   name,
-  resumeFromMs,
-  resumeLabel,
+  actions,
   audioCodec,
   sourceHref,
   continueHref,
@@ -46,12 +46,11 @@ export function EpisodePlayer({
    */
   audioCodec: string | null;
   /**
-   * Where to start, **chosen on the page around this component**. Zero is the
-   * beginning, and it is somebody's answer to a question they were asked.
+   * The buttons that start this episode and where each starts, **chosen on the
+   * page around this component** (S12-03): Watch, Resume at… with Start over,
+   * or Watch again.
    */
-  resumeFromMs: number;
-  /** "Resume at 20:14", or null when there is nothing to resume. */
-  resumeLabel: string | null;
+  actions: PlayerActions;
   /** The source's own page, for a refusal that sends the user there. */
   sourceHref: string;
   /** Where "Continue" goes once the source is gone: the home page. */
@@ -62,8 +61,7 @@ export function EpisodePlayer({
       filmId={episodeId}
       sourceId={sourceId}
       name={name}
-      resumeFromMs={resumeFromMs}
-      resumeLabel={resumeLabel}
+      actions={actions}
       playbackPath="episode"
       itemType="EPISODE"
       audioCodec={audioCodec}

@@ -8,6 +8,13 @@ import { hrefFor } from "@/i18n/navigation";
 import type { Episode, Season, Series } from "@/lib/api/types";
 import { api, problemCode } from "@/lib/api/client";
 import { asClock, isFinished } from "@/lib/playback/progress";
+import {
+  type Continuation,
+  orderedEpisodeIds,
+  playerActions,
+  seriesContinuation,
+  sheetChoice,
+} from "@/lib/playback/sheet-action";
 import { openedFromSearch, searchReturnPath } from "@/lib/search/search";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { requireSession } from "@/lib/session/session";
@@ -162,7 +169,37 @@ export default async function SeriesDetailPage({
   // "My list" form to come back to.
   const sheetView = currentView(`/app/sources/${id}/series/${seriesId}`, query);
   const episode = open?.episodes.find((candidate) => candidate.id === playing);
-  const resumeAt = episode ? startAt(positions.get(episode.id)) : 0;
+  // Watch, Resume at… with Start over, or Watch again — for the episode chosen
+  // (S12-03). Starting one over leaves every other episode's position alone
+  // (CW-11): it is this episode's row that the next save rewrites.
+  const episodeActions = playerActions(sheetChoice(episode ? positions.get(episode.id) : null), {
+    watch: t("sheetWatch"),
+    resumeAt: (atMs) => t("filmsResumeAt", { at: asClock(atMs) }),
+    rewatch: t("sheetRewatch"),
+    restart: t("filmsStartOver"),
+  });
+
+  // Where the series carries on, for its primary action (CW-12, CW-19, CW-21):
+  // the latest episode if unfinished, otherwise the next one in order.
+  const order = orderedEpisodeIds(seasons);
+  const everyEpisode = new Map(
+    seasons.flatMap((season) => season.episodes).map((entry) => [entry.id, entry] as const),
+  );
+  const savedHere = (progress.data?.items ?? []).filter((row) => everyEpisode.has(row.item_ref));
+  const continuation = seriesContinuation(savedHere, order);
+  const primary = seriesPrimary(continuation, savedHere.length > 0, order, everyEpisode);
+  const primaryHref = (target: Episode) =>
+    hrefFor(
+      locale as Locale,
+      `/app/sources/${id}/series/${seriesId}${queryString({
+        categoryId: single(query.categoryId),
+        q: single(query.q),
+        page: single(query.page),
+        from: single(query.from),
+        season: String(target.season_number),
+        play: target.id,
+      })}`,
+    );
 
   return (
     <div className="max-w-3xl">
@@ -190,6 +227,23 @@ export default async function SeriesDetailPage({
             returnTo={sheetView}
             retryHref={hrefFor(locale as Locale, sheetView)}
           />
+
+          {/* The series' own primary action (S12-03): the episode to carry on
+              with, named, one link — it opens that episode's player, where
+              resuming or starting over is the visitor's choice. Not drawn while
+              that very episode is open: it would be a link to this page. */}
+          {primary && primary.episode.id !== playing ? (
+            <a
+              href={primaryHref(primary.episode)}
+              className="bg-primary text-primary-foreground focus-visible:ring-ring mt-4 inline-flex h-10 items-center rounded-lg px-5 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none"
+            >
+              {t(primary.key, {
+                season: primary.episode.season_number,
+                episode: primary.episode.episode_number,
+                at: asClock(primary.atMs),
+              })}
+            </a>
+          ) : null}
         </div>
       </div>
 
@@ -199,10 +253,7 @@ export default async function SeriesDetailPage({
             episodeId={episode.id}
             sourceId={id}
             name={episodeLabel(episode, t)}
-            resumeFromMs={resumeAt}
-            resumeLabel={
-              resumeAt > 0 ? t("filmsResumeAt", { at: asClock(resumeAt) }) : null
-            }
+            actions={episodeActions}
             audioCodec={episode.audio_codec ?? null}
             sourceHref={hrefFor(locale as Locale, `/app/sources/${id}`)}
             continueHref={hrefFor(locale as Locale, "/app")}
@@ -263,6 +314,14 @@ export default async function SeriesDetailPage({
                   >
                     {episodeLabel(row, t)}
                   </a>
+                  {/* Where this episode resumes, or that it was watched — read
+                      before choosing it; its player then offers Resume or Start
+                      over for this episode alone (S12-03, CW-11). */}
+                  {episodeStatus(positions.get(row.id), t) ? (
+                    <p className="text-muted-foreground mt-0.5 text-xs">
+                      {episodeStatus(positions.get(row.id), t)}
+                    </p>
+                  ) : null}
 
                   {/* Only where there is a position (S6-08). A bar at zero on every
                       row would say that everybody has started everything. */}
@@ -421,16 +480,51 @@ function single(value: string | string[] | undefined): string | undefined {
 }
 
 /**
- * Where to start an episode: the saved position, or its beginning (S6-08).
+ * The series' primary action and its words (S12-03).
  *
- * **A finished episode starts over.** Resuming somebody into the credits is not
- * resuming. The threshold is `isFinished`, shared with the films — the day it moves
- * it has to move for both, and a rail that dropped films at 95 % while advancing
- * series at 90 % would be two products.
+ * - The latest episode unfinished, or a next one already started: **Resume S1 E4
+ *   at 12:34** (CW-12).
+ * - The latest finished, a next one not started — or finished, replayed from the
+ *   start (CW-21): **Watch the next episode: S1 E5** (CW-19).
+ * - Every saved episode done up to the last (CW-15): **Watch again from** the
+ *   first episode.
+ * - Nothing saved: **Watch** the first episode.
+ *
+ * A series removed from Continue resumes here all the same (CW-10).
  */
-function startAt(row: ProgressRow | undefined): number {
-  if (!row) return 0;
-  return isFinished(row.position_ms, row.duration_ms ?? null) ? 0 : row.position_ms;
+function seriesPrimary(
+  continuation: Continuation | null,
+  anySaved: boolean,
+  order: readonly string[],
+  episodes: ReadonlyMap<string, Episode>,
+): {
+  episode: Episode;
+  atMs: number;
+  key: "seriesActionResume" | "seriesActionNext" | "seriesActionFirst" | "seriesActionRewatch";
+} | null {
+  if (continuation) {
+    const target = episodes.get(continuation.episodeId);
+    if (!target) return null;
+    return {
+      episode: target,
+      atMs: continuation.startMs,
+      key: continuation.startMs > 0 ? "seriesActionResume" : "seriesActionNext",
+    };
+  }
+  const first = order.length > 0 ? episodes.get(order[0]) : undefined;
+  if (!first) return null;
+  return { episode: first, atMs: 0, key: anySaved ? "seriesActionRewatch" : "seriesActionFirst" };
+}
+
+/** A short line under an episode: where it resumes, or that it was watched. */
+function episodeStatus(
+  row: ProgressRow | undefined,
+  t: (key: "seriesEpisodeResumeAt" | "seriesEpisodeFinished", values?: { at: string }) => string,
+): string | null {
+  const choice = sheetChoice(row);
+  if (choice.kind === "resume") return t("seriesEpisodeResumeAt", { at: asClock(choice.atMs) });
+  if (choice.kind === "rewatch") return t("seriesEpisodeFinished");
+  return null;
 }
 
 /**
