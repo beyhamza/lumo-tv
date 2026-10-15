@@ -54,6 +54,19 @@ internal fun typeLabel(type: WatchlistType): String = stringResource(
     },
 )
 
+/**
+ * The line under a card's title: its type, and for an unavailable item the state
+ * **and** the type — "Unavailable · Film". watchlist-states asks for at least the
+ * known title and the content type on an unavailable card (BUG-S11-06-06).
+ */
+@Composable
+internal fun cardStatusLabel(entry: WatchlistEntry): String =
+    if (entry.available) {
+        typeLabel(entry.type)
+    } else {
+        stringResource(R.string.feature_watchlist_unavailable_type, typeLabel(entry.type))
+    }
+
 @Composable
 internal fun filterLabel(filter: WatchlistFilter): String = stringResource(
     when (filter) {

@@ -291,6 +291,34 @@ class FavoritesViewModelTest {
         assertThat(vm.state.value.deleting).isNull()
     }
 
+    @Test
+    fun `BUG-S11-06-01 - a failed write's notice clears on the next successful write or read`() =
+        runTest(scheduler) {
+            val vm = ready()
+            library.writeResult = LumoResult.Failure(refused)
+            vm.onDeleteRequested(news)
+            vm.onDeleteConfirmed()
+            advanceUntilIdle()
+            assertThat(vm.state.value.writeError).isEqualTo(refused)
+
+            // A return to the screen that reads the list successfully: the notice
+            // was about a state the screen no longer shows.
+            vm.refresh()
+            advanceUntilIdle()
+            assertThat(vm.state.value.writeError).isNull()
+
+            vm.onRenameRequested(news)
+            vm.onRenameConfirmed("Infos")
+            advanceUntilIdle()
+            assertThat(vm.state.value.writeError).isEqualTo(refused)
+
+            library.writeResult = LumoResult.Success(Unit)
+            vm.onRenameRequested(news)
+            vm.onRenameConfirmed("Infos")
+            advanceUntilIdle()
+            assertThat(vm.state.value.writeError).isNull()
+        }
+
     // ---- offline ---------------------------------------------------------------
 
     @Test

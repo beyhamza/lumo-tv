@@ -33,6 +33,10 @@
     <string name="feature_series_retry">Try again</string>
     <string name="feature_series_tree_unavailable_title">Episodes unavailable</string>
     <string name="feature_series_tree_unavailable_body">Your provider did not answer. The series is still there — try again in a moment.</string>
+    <!-- Offline, the provider is not the one to blame (BUG-S11-06-04). -->
+    <string name="feature_series_offline_title">This series isn\'t available offline</string>
+    <string name="feature_series_episodes_offline_title">Episodes aren\'t available offline</string>
+    <string name="feature_series_offline_body">Everything will load once the connection is back.</string>
     <string name="feature_series_no_seasons_title">No episode listed</string>
     <string name="feature_series_no_seasons_body">Your provider lists this series but returned no season for it. Nothing is missing on our side.</string>
     <string name="feature_series_episode_count_mismatch">%1$d episodes listed, %2$d announced by your provider.</string>

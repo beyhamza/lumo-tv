@@ -290,6 +290,15 @@ internal fun FavoritesTvContent(
                                 favorites = favorites,
                                 gridState = gridState,
                                 requesters = cardRequesters,
+                                // `LEFT` from the first column returns to the
+                                // group on show, not to whichever entry of the
+                                // column happens to be level with the card
+                                // (BUG-S11-06-07). Read at the moment of the key
+                                // press: an entry scrolled out of the column has
+                                // no requester, and the default search applies.
+                                leftTarget = {
+                                    groupRequesters[groupKeyOf(state.selectedGroupId)] ?: FocusRequester.Default
+                                },
                                 arrivalId = launchedId,
                                 onPlay = { channel ->
                                     launchedId = channel.id
@@ -382,7 +391,7 @@ internal fun FavoritesTvContent(
             ?: stringResource(R.string.feature_favorites_default_group)
         LumoTvConfirmDialog(
             title = stringResource(R.string.feature_favorites_delete_title, group.displayName()),
-            message = pluralStringResource(R.plurals.feature_favorites_delete_body, count, count, defaultName),
+            message = groupDeletionMessage(count, defaultName),
             confirmLabel = stringResource(R.string.feature_favorites_delete_confirm),
             cancelLabel = stringResource(R.string.feature_favorites_cancel),
             onConfirm = actions.onDeleteConfirmed,
@@ -628,6 +637,7 @@ private fun Grid(
     favorites: List<FavoriteChannel>,
     gridState: LazyGridState,
     requesters: MutableMap<String, FocusRequester>,
+    leftTarget: () -> FocusRequester,
     arrivalId: String?,
     onPlay: (Channel) -> Unit,
     onOptions: (index: Int, FavoriteChannel) -> Unit,
@@ -669,6 +679,7 @@ private fun Grid(
                 // last stay in it rather than jumping to the rail.
                 firstRow = index < GRID_COLUMNS,
                 lastRow = index / GRID_COLUMNS == favorites.lastIndex / GRID_COLUMNS,
+                leftTarget = leftTarget.takeIf { returnsLeftToGroup(index) },
             )
         }
     }
@@ -683,6 +694,7 @@ private fun ChannelCard(
     onOptions: () -> Unit,
     firstRow: Boolean,
     lastRow: Boolean,
+    leftTarget: (() -> FocusRequester)?,
 ) {
     var focused by remember { mutableStateOf(false) }
 
@@ -694,6 +706,7 @@ private fun ChannelCard(
             .focusProperties {
                 if (firstRow) up = FocusRequester.Cancel
                 if (lastRow) down = FocusRequester.Cancel
+                leftTarget?.let { left = it() }
             }
             .onFocusChanged { focused = it.isFocused }
             .lumoTvFocus(focused)
@@ -1132,6 +1145,15 @@ private fun Empty(onOpenLive: () -> Unit) {
 }
 
 internal const val ALL_KEY = "favorites-all"
+
+/** The key of the group column's entry for [selectedGroupId]: "All favourites" when null. */
+internal fun groupKeyOf(selectedGroupId: String?): String = selectedGroupId ?: ALL_KEY
+
+/**
+ * Whether `LEFT` from the card at [index] leaves the grid for the group column:
+ * the first column only. From the others, `LEFT` is the card beside it.
+ */
+internal fun returnsLeftToGroup(index: Int): Boolean = index % GRID_COLUMNS == 0
 private const val NEW_KEY = "favorites-new-group"
 internal const val CARD_OPTIONS_TAG = "favorites-card-options"
 internal const val GROUP_OPTIONS_TAG = "favorites-group-options"

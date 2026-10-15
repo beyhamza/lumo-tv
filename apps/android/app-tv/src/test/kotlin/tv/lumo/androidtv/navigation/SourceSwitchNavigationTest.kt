@@ -5,6 +5,10 @@ import org.junit.Test
 import tv.lumo.android.feature.favorites.FavoritesTvDestination
 import tv.lumo.android.feature.home.HomeDestination
 import tv.lumo.android.feature.live.LiveDestination
+import tv.lumo.android.feature.live.PlayerDestination
+import tv.lumo.android.feature.series.EpisodePlayerDestination
+import tv.lumo.android.feature.vod.VodPlayerDestination
+import tv.lumo.android.feature.watchlist.WatchlistDestination
 import tv.lumo.android.feature.series.SeriesDestination
 import tv.lumo.android.feature.series.SeriesDetailDestination
 import tv.lumo.android.feature.settings.SettingsDestination
@@ -75,5 +79,38 @@ class SourceSwitchNavigationTest {
         // A detail sent to a route that is not a section would pop to nothing
         // and fall back to a navigation nobody can undo with the rail.
         assertThat(sections).containsAtLeastElementsIn(SourceScopedDetails.values)
+    }
+
+    // ---- BUG-S11-06-02: Continue after the played source was deleted ----------
+
+    @Test
+    fun `Continue leaves the player, the sheet and the catalogue of the deleted source`() {
+        val backStack = listOf(
+            HomeDestination.route,
+            VodDestination.route,
+            VodDetailDestination.route,
+            VodPlayerDestination.route,
+        )
+
+        // Not the sheet of the deleted film — that was the bug.
+        assertThat(backStackAfterSourceDeleted(backStack)).containsExactly(HomeDestination.route)
+    }
+
+    @Test
+    fun `Continue from a sheet opened from My list or Home also lands on Home`() {
+        listOf(
+            listOf(HomeDestination.route, WatchlistDestination.route, VodDetailDestination.route, VodPlayerDestination.route),
+            listOf(HomeDestination.route, SeriesDetailDestination.route, EpisodePlayerDestination.route),
+            listOf(HomeDestination.route, LiveDestination.route, PlayerDestination.route),
+        ).forEach { backStack ->
+            assertThat(backStackAfterSourceDeleted(backStack)).containsExactly(HomeDestination.route)
+        }
+    }
+
+    @Test
+    fun `Continue with no Home underneath replaces everything with Home`() {
+        val backStack = listOf(SourceDestination.route, VodDetailDestination.route, VodPlayerDestination.route)
+
+        assertThat(backStackAfterSourceDeleted(backStack)).containsExactly(HomeDestination.route)
     }
 }

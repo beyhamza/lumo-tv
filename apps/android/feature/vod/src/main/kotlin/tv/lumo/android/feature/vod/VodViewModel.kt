@@ -26,6 +26,7 @@ import tv.lumo.android.core.data.ActiveSourceState
 import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.SheetUnavailable
 import tv.lumo.android.core.data.valueOrNull
 import tv.lumo.android.core.data.WatchlistToggle
 import tv.lumo.android.core.data.WatchlistToggleState
@@ -426,7 +427,7 @@ data class VodState(
 class VodDetailViewModel @Inject constructor(
     private val vod: VodRepository,
     private val progress: ProgressRepository,
-    watchlistRepository: WatchlistRepository,
+    private val watchlistRepository: WatchlistRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(VodDetailState())
@@ -441,9 +442,14 @@ class VodDetailViewModel @Inject constructor(
 
     fun onWatchlistToggle() = watchlist.toggle()
 
-    fun onWatchlistRetry() = watchlist.retry()
+    /**
+     * "Retry" beside the button. A sheet that never loaded has no source to read
+     * the membership with, so its retry is the sheet's own (BUG-S11-06-04).
+     */
+    fun onWatchlistRetry() = if (_state.value.unavailable != null) retry() else watchlist.retry()
 
     private var loaded: String? = null
+    private var fetching = false
 
     /** Called once, with the film the screen was opened for. */
     fun start(filmId: String) {
@@ -453,14 +459,13 @@ class VodDetailViewModel @Inject constructor(
         viewModelScope.launch {
             vod.film(filmId).collect { film -> _state.update { it.copy(film = film) } }
         }
+        fetch(filmId)
         viewModelScope.launch {
-            // Fetching, not blocking: whatever the cache holds is already on
-            // screen, and this fills in the synopsis when it arrives. A failure
-            // is a film without a synopsis, which is an ordinary film — many
-            // sources carry none — so it is not said out loud.
-            _state.update { it.copy(loadingSynopsis = true) }
-            vod.refreshFilm(filmId)
-            _state.update { it.copy(loadingSynopsis = false) }
+            // A sheet that could not load offline loads when the network comes
+            // back, as the list does, rather than waiting for a press.
+            watchlistRepository.reconnections.collect {
+                if (_state.value.unavailable == SheetUnavailable.Offline) retry()
+            }
         }
         viewModelScope.launch {
             // The source id is part of the progress key and it comes from the
@@ -478,6 +483,28 @@ class VodDetailViewModel @Inject constructor(
             // "carry on from the credits" — so the screen shows one button.
             val row = progress.of(sourceId, filmId)
             _state.update { it.copy(resumeFrom = row?.takeUnless { it.finished }) }
+        }
+    }
+
+    /** "Retry" on a sheet that could not be loaded. */
+    fun retry() {
+        val filmId = loaded ?: return
+        fetch(filmId)
+    }
+
+    private fun fetch(filmId: String) {
+        if (fetching) return
+        fetching = true
+        viewModelScope.launch {
+            // Fetching, not blocking: whatever the cache holds is already on
+            // screen, and this fills in the synopsis when it arrives. A failure
+            // is a film without a synopsis, which is an ordinary film — many
+            // sources carry none — so it is not said out loud. Unless nothing
+            // is cached at all: then the sheet has nothing to show and says why.
+            _state.update { it.copy(loadingSynopsis = true, lastLoad = null) }
+            val result = vod.refreshFilm(filmId)
+            _state.update { it.copy(loadingSynopsis = false, lastLoad = result) }
+            fetching = false
         }
     }
 }
@@ -501,4 +528,13 @@ data class VodDetailState(
      * placeholder.
      */
     val loadingSynopsis: Boolean = false,
-)
+    /** The outcome of the last fetch of the film, or null while one is running. */
+    val lastLoad: LumoResult<Unit>? = null,
+) {
+    /**
+     * Why the sheet has nothing to show, or null when it has (BUG-S11-06-04):
+     * no cached row and a fetch that failed.
+     */
+    val unavailable: SheetUnavailable?
+        get() = SheetUnavailable.of(hasContent = film != null, lastLoad = lastLoad)
+}

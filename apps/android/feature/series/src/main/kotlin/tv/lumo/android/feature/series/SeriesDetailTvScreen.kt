@@ -133,13 +133,14 @@ fun SeriesDetailTvScreen(
             // screen, and `LEFT` from an episode lands on the rail first. Never
             // the arrival focus — an episode is.
             LumoTvWatchlistButton(
-                state = watchlist.asButtonState(),
+                state = watchlist.asButtonState(state.unavailable),
                 onToggle = viewModel::onWatchlistToggle,
                 onRetry = viewModel::onWatchlistRetry,
             )
 
             Tree(
                 tree = state.tree,
+                unavailableTitle = unavailableTitle(state),
                 openSeason = state.openSeason,
                 progress = state.progress,
                 focusEpisodeId = state.resumeEpisodeId,
@@ -200,6 +201,7 @@ private fun Header(series: Series?) {
 @Composable
 private fun Tree(
     tree: SeriesTree,
+    unavailableTitle: Pair<Int, Int>,
     openSeason: Season?,
     progress: Map<String, EpisodeProgress>,
     focusEpisodeId: String?,
@@ -219,7 +221,7 @@ private fun Tree(
             modifier = Modifier.padding(LumoSpacing.xl),
         )
 
-        SeriesTree.Unavailable -> Unavailable(onRetry = onRetry)
+        SeriesTree.Unavailable -> Unavailable(texts = unavailableTitle, onRetry = onRetry)
 
         is SeriesTree.Loaded -> if (tree.seasons.isEmpty()) {
             TvMessage(
@@ -253,18 +255,18 @@ private fun Tree(
  * that fills it in, and the two send somebody to two different places.
  */
 @Composable
-private fun Unavailable(onRetry: () -> Unit) {
+private fun Unavailable(texts: Pair<Int, Int>, onRetry: () -> Unit) {
     val retry = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { retry.requestFocus() } }
 
     Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.md)) {
         Text(
-            text = stringResource(R.string.feature_series_tree_unavailable_title),
+            text = stringResource(texts.first),
             style = MaterialTheme.typography.displayMedium,
             color = LumoColors.OnDark,
         )
         Text(
-            text = stringResource(R.string.feature_series_tree_unavailable_body),
+            text = stringResource(texts.second),
             style = MaterialTheme.typography.bodyLarge,
             color = LumoColors.OnDarkMuted,
         )

@@ -71,6 +71,7 @@ fun PlayerMobileScreen(
     channelName: String?,
     onBack: () -> Unit,
     onOpenSources: () -> Unit,
+    onSourceGone: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
@@ -124,7 +125,7 @@ fun PlayerMobileScreen(
             sourceDeleted -> LumoAcknowledgeDialog(
                 message = stringResource(DataR.string.core_data_source_deleted_message),
                 actionLabel = stringResource(DataR.string.core_data_source_deleted_continue),
-                onAcknowledge = { viewModel.onSourceDeletedAcknowledged(onBack) },
+                onAcknowledge = { viewModel.onSourceDeletedAcknowledged(onSourceGone) },
             )
 
             state.failure != null -> Failure(

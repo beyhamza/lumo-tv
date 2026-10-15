@@ -29,6 +29,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import tv.lumo.android.core.data.SheetUnavailable
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.designsystem.component.LumoPoster
 import tv.lumo.android.core.designsystem.component.LumoTvWatchlistButton
@@ -108,6 +109,14 @@ fun VodDetailTvScreen(
         if (film != null) runCatching { play.requestFocus() }
     }
 
+    // Nothing cached and the fetch failed (BUG-S11-06-04): the retry is the one
+    // enabled control, so it takes the focus — BACK must not be the only key left.
+    val retry = remember { FocusRequester() }
+    val unavailable = state.unavailable
+    LaunchedEffect(unavailable) {
+        if (unavailable != null) runCatching { retry.requestFocus() }
+    }
+
     Row(
         modifier = modifier
             .fillMaxSize()
@@ -133,6 +142,35 @@ fun VodDetailTvScreen(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+
+            if (unavailable != null) {
+                Text(
+                    text = stringResource(
+                        when (unavailable) {
+                            SheetUnavailable.Offline -> R.string.feature_vod_detail_offline_title
+                            SheetUnavailable.Failed -> R.string.feature_vod_detail_failed_title
+                        },
+                    ),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = LumoColors.OnDark,
+                )
+                Text(
+                    text = stringResource(
+                        when (unavailable) {
+                            SheetUnavailable.Offline -> R.string.feature_vod_detail_offline_body
+                            SheetUnavailable.Failed -> R.string.feature_vod_detail_failed_body
+                        },
+                    ),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = LumoColors.OnDarkMuted,
+                )
+                TvActionButton(
+                    label = stringResource(R.string.feature_vod_detail_retry),
+                    enabled = true,
+                    focusRequester = retry,
+                    onClick = viewModel::retry,
+                )
+            }
 
             film?.tvFacts()?.takeIf { it.isNotEmpty() }?.let { facts ->
                 Text(
@@ -170,7 +208,7 @@ fun VodDetailTvScreen(
             // One `DOWN` under the play button, in the column the remote already
             // walks: reachable, never the arrival focus (US-022, S11-E06).
             LumoTvWatchlistButton(
-                state = watchlist.asButtonState(),
+                state = watchlist.asButtonState(unavailable),
                 onToggle = viewModel::onWatchlistToggle,
                 onRetry = viewModel::onWatchlistRetry,
             )

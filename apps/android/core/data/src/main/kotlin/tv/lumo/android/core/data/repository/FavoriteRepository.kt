@@ -240,7 +240,7 @@ class FavoriteRepository @Inject internal constructor(
      * to the default group, which is why both lists are re-read afterwards.
      */
     override suspend fun deleteGroup(groupId: String): LumoResult<Unit> = withContext(io) {
-        when (val result = calls.call { api.deleteFavoriteGroup(UUID.fromString(groupId)) }) {
+        when (val result = calls.empty { api.deleteFavoriteGroup(UUID.fromString(groupId)) }) {
             is LumoResult.Failure -> result
             is LumoResult.Success -> when (val groups = pullGroups()) {
                 is LumoResult.Failure -> groups

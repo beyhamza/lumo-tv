@@ -12,7 +12,7 @@
 
     <string name="feature_watchlist_type_film">Film</string>
     <string name="feature_watchlist_type_series">Série</string>
-    <string name="feature_watchlist_unavailable">Indisponible</string>
+    <string name="feature_watchlist_unavailable_type">Indisponible · %1$s</string>
     <string name="feature_watchlist_card_description">%1$s, %2$s</string>
     <string name="feature_watchlist_card_unavailable_description">%1$s, %2$s, indisponible</string>
 

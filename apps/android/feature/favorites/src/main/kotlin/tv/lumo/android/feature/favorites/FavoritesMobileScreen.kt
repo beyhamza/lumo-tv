@@ -222,7 +222,7 @@ private fun Dialogs(state: FavoritesState, viewModel: FavoritesViewModel) {
         // this person does not already know.
         LumoConfirmDialog(
             title = stringResource(R.string.feature_favorites_delete_title, group.displayName()),
-            message = pluralStringResource(R.plurals.feature_favorites_delete_body, count, count, defaultName),
+            message = groupDeletionMessage(count, defaultName),
             confirmLabel = stringResource(R.string.feature_favorites_delete_confirm),
             cancelLabel = stringResource(R.string.feature_favorites_cancel),
             onConfirm = viewModel::onDeleteConfirmed,

@@ -22,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import tv.lumo.android.core.data.SheetUnavailable
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.designsystem.component.LumoPoster
 import tv.lumo.android.core.designsystem.component.LumoWatchlistButton
@@ -84,6 +85,12 @@ fun VodDetailMobileScreen(
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
     ) {
         val film = state.film
+
+        // Nothing cached and nothing coming: say so first, with the way out —
+        // an empty poster and greyed buttons alone explain nothing (BUG-S11-06-04).
+        state.unavailable?.let { reason ->
+            Unavailable(reason = reason, onRetry = viewModel::retry)
+        }
 
         Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md)) {
             LumoPoster(
@@ -148,7 +155,7 @@ fun VodDetailMobileScreen(
                 // Under the play buttons: a selection for later, never in the
                 // way of watching now (US-022, S11-E06).
                 LumoWatchlistButton(
-                    state = watchlist.asButtonState(),
+                    state = watchlist.asButtonState(state.unavailable),
                     onToggle = viewModel::onWatchlistToggle,
                     onRetry = viewModel::onWatchlistRetry,
                     modifier = Modifier.fillMaxWidth(),
@@ -160,6 +167,36 @@ fun VodDetailMobileScreen(
 
         TextButton(onClick = onBack) {
             Text(stringResource(R.string.feature_vod_back))
+        }
+    }
+}
+
+/** A sheet with nothing cached whose fetch failed: why, and a retry. */
+@Composable
+private fun Unavailable(reason: SheetUnavailable, onRetry: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
+        Text(
+            text = stringResource(
+                when (reason) {
+                    SheetUnavailable.Offline -> R.string.feature_vod_detail_offline_title
+                    SheetUnavailable.Failed -> R.string.feature_vod_detail_failed_title
+                },
+            ),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = stringResource(
+                when (reason) {
+                    SheetUnavailable.Offline -> R.string.feature_vod_detail_offline_body
+                    SheetUnavailable.Failed -> R.string.feature_vod_detail_failed_body
+                },
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Button(onClick = onRetry) {
+            Text(stringResource(R.string.feature_vod_detail_retry))
         }
     }
 }

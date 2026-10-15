@@ -266,6 +266,23 @@ class FavoriteRepositoryTest {
         assertThat(favoriteDao.favorites.map { it.id }).containsExactly(favoriteId)
     }
 
+    @Test
+    fun `BUG-S11-06-01 - deleting a group that answers 204 is a success, and both lists are re-read`() =
+        runTest {
+            // `DELETE /me/favorite-groups/{id}` answers 204 No Content. Reading that
+            // as "a body was expected" announced a failure the server never had.
+            server.enqueue(MockResponse().setResponseCode(204))
+            server.enqueue(json(groupList(name = "Favorites", isDefault = true)))
+            server.enqueue(json(favoriteList(count = 2)))
+
+            val result = repository().deleteGroup(groupId)
+
+            assertThat(result).isEqualTo(LumoResult.Success(Unit))
+            assertThat(server.takeRequest().method).isEqualTo("DELETE")
+            assertThat(favoriteDao.groups.value.map { it.name }).containsExactly("Favorites")
+            assertThat(favoriteDao.favorites).hasSize(2)
+        }
+
     // ---- S11-03: visible reorder and global removal --------------------------
 
     @Test

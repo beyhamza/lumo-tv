@@ -35,6 +35,12 @@
     <string name="feature_vod_minutes">%1$d min</string>
     <string name="feature_vod_synopsis_loading">Fetching the synopsis…</string>
     <string name="feature_vod_synopsis_none">This source gives no synopsis for this film.</string>
+    <!-- Nothing cached and the fetch failed (BUG-S11-06-04): never an empty skeleton. -->
+    <string name="feature_vod_detail_offline_title">This film isn\'t available offline</string>
+    <string name="feature_vod_detail_offline_body">It will load once the connection is back.</string>
+    <string name="feature_vod_detail_failed_title">This film couldn\'t be loaded</string>
+    <string name="feature_vod_detail_failed_body">Something went wrong on the way. Try again.</string>
+    <string name="feature_vod_detail_retry">Try again</string>
 
     <!-- ==== The player ==== -->
     <string name="feature_vod_position">%1$s / %2$s</string>

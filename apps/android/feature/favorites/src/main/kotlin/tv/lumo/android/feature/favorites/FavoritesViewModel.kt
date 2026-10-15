@@ -112,6 +112,9 @@ class FavoritesViewModel @Inject constructor(
                     loading = false,
                     // Only a failure is worth saying. A success is the list itself.
                     error = error,
+                    // A failed write's notice described a state this read has
+                    // just replaced: it does not outlive it (BUG-S11-06-01).
+                    writeError = if (error == null) null else it.writeError,
                     // A successful read is the only way back from offline.
                     offline = if (error == null) false else it.offline || error is LumoError.Offline,
                 )

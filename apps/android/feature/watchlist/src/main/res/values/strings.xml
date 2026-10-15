@@ -15,7 +15,8 @@
     <!-- Cards. -->
     <string name="feature_watchlist_type_film">Film</string>
     <string name="feature_watchlist_type_series">Series</string>
-    <string name="feature_watchlist_unavailable">Unavailable</string>
+    <!-- An unavailable card keeps its type (watchlist-states: title and type, BUG-S11-06-06). -->
+    <string name="feature_watchlist_unavailable_type">Unavailable · %1$s</string>
     <string name="feature_watchlist_card_description">%1$s, %2$s</string>
     <string name="feature_watchlist_card_unavailable_description">%1$s, %2$s, unavailable</string>
 
