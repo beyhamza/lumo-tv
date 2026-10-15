@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import type { ReactNode } from "react";
 import {
   addMembership,
   moveFavorite,
@@ -17,7 +18,7 @@ import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api } from "@/lib/api/client";
 import type { Channel, Favorite, FavoriteGroup } from "@/lib/api/types";
-import { resolveChannels } from "@/lib/catalogue/resolve-channels";
+import { channelStatus, resolveChannels } from "@/lib/catalogue/resolve-channels";
 import { stillRemaining } from "@/lib/favorites/global-removal";
 import {
   cleanView,
@@ -121,6 +122,22 @@ import { loadActiveSource } from "@/lib/sources/active-source-store";
  * Every action re-reads on the way back (G3) and reports only what it could not
  * confirm, in its redirect (`lib/favorites/notice.ts`). The decisions are in
  * `lib/favorites/`, pure and tested; this file draws them.
+ *
+ * <h2>A favourite whose channel could not be named stays on screen (S11-05)</h2>
+ *
+ * Names and logos come from a second request. When a batch of it fails, its
+ * favourites used to fall out of the list — an outage drawn as fewer
+ * favourites. Now every favourite has a row, whatever its lookup said
+ * (`channelStatus`):
+ *
+ * - **unavailable** — the batch did not answer: "Details unavailable", no play
+ *   link, and a banner above the list saying how many and offering to retry (a
+ *   plain link to this same view). Organise, move and remove still work: they
+ *   address favourites by their own ids, not by the channel.
+ * - **gone** — the batch answered without it: "No longer in this source", no
+ *   play link, removable. The server cascades a deleted channel's favourites,
+ *   so this only shows for a list read just before that cascade; no banner, as
+ *   retrying would not bring it back.
  */
 
 export async function generateMetadata({
@@ -217,7 +234,7 @@ export default async function FavoritesPage({
   // In batches of a hundred, in parallel. A group of three hundred channels is
   // not one request, and a `.slice()` here would truncate it with a `200` and
   // no error.
-  const byId = await resolveChannels(
+  const resolution = await resolveChannels(
     shown.map((favorite) => ({
       sourceId: favorite.source_id,
       channelId: favorite.channel_id,
@@ -226,9 +243,29 @@ export default async function FavoritesPage({
       const answer = await api(session.accessToken).GET("/sources/{id}/channels", {
         params: { path: { id: sourceId }, query: { ids, size } },
       });
-      return answer.data?.items ?? [];
+      // A refusal is a failure, not an empty answer: `[]` here would claim every
+      // channel of the batch is gone, and their rows would read as such.
+      if (!answer.data) throw new Error("channel lookup failed");
+      return answer.data.items;
     },
   );
+  const byId = resolution.byId;
+
+  // What one row can say about its channel. `position` names a row whose
+  // channel has no name, for the labels of its controls.
+  const rowOf = (channelId: string, position: number): Row => {
+    const status = channelStatus(resolution, channelId);
+    return status.state === "resolved"
+      ? { state: "resolved", channel: status.channel, name: status.channel.name }
+      : { state: status.state, name: t("favoritesUnnamedChannel", { position }) };
+  };
+  // Counted once per channel: the banner says how many favourites are shown
+  // without their details.
+  const unresolved = new Set(
+    shown
+      .map((favorite) => favorite.channel_id)
+      .filter((channelId) => resolution.failed.has(channelId)),
+  ).size;
 
   const activeGroup =
     view.kind === "group"
@@ -307,6 +344,20 @@ export default async function FavoritesPage({
         closeHref={here()}
       />
 
+      {unresolved > 0 ? (
+        // Partial, not empty: the rows are all below, some without their
+        // details. Retrying is reading this same view again.
+        <div role="status" className="border-border mt-6 rounded-xl border px-4 py-3">
+          <p className="font-medium">{t("favoritesPartialTitle")}</p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {t("favoritesPartialBody", { count: unresolved })}
+          </p>
+          <a href={here()} className="mt-2 inline-block text-sm underline underline-offset-4">
+            {t("favoritesRetry")}
+          </a>
+        </div>
+      ) : null}
+
       {shown.length === 0 ? (
         <div className="border-border mt-8 rounded-xl border border-dashed px-5 py-6">
           <p className="font-medium">
@@ -321,44 +372,43 @@ export default async function FavoritesPage({
         </div>
       ) : view.kind === "all" ? (
         <ul aria-label={t("favoritesListLabel")} className={listClass}>
-          {view.rows.map(({ favorite, memberships }) => {
-            const channel = byId.get(favorite.channel_id);
-            if (!channel) return null;
+          {view.rows.map(({ favorite, memberships }, index) => {
+            const channelId = favorite.channel_id;
+            const row = rowOf(channelId, index + 1);
             const groupNames = memberships.map((membership) => nameOf(membership.group_id));
             return (
-              <li key={favorite.channel_id} className="px-4 py-3">
+              <li key={channelId} className="px-4 py-3">
                 <div className="flex flex-wrap items-center gap-3">
-                  <Logo channel={channel} />
-                  <div className="min-w-0 flex-1">
-                    <ChannelLink locale={locale} favorite={favorite} channel={channel} />
+                  <RowHead locale={locale} favorite={favorite} row={row}>
                     <p className="text-muted-foreground truncate text-xs">
                       {t("favoritesInGroups", { groups: groupNames.join(", ") })}
                     </p>
-                  </div>
+                  </RowHead>
                   <Organise
-                    channel={channel}
+                    channelId={channelId}
+                    name={row.name}
                     memberships={memberships}
                     groups={favoriteGroups}
                     defaultName={defaultName}
                     returnTo={returnTo}
                   />
                   <a
-                    href={`${hrefFor(locale as Locale, confirmView(returnTo, channel.id))}#confirm-${channel.id}`}
-                    aria-label={t("favoritesRemoveAllOf", { channel: channel.name })}
+                    href={`${hrefFor(locale as Locale, confirmView(returnTo, channelId))}#confirm-${channelId}`}
+                    aria-label={t("favoritesRemoveAllOf", { channel: row.name })}
                     className={smallButton}
                   >
                     {t("favoritesRemoveAll")}
                   </a>
                 </div>
 
-                {confirming === channel.id ? (
+                {confirming === channelId ? (
                   <section
-                    id={`confirm-${channel.id}`}
-                    aria-labelledby={`confirm-title-${channel.id}`}
+                    id={`confirm-${channelId}`}
+                    aria-labelledby={`confirm-title-${channelId}`}
                     className="border-destructive mt-3 rounded-xl border px-4 py-3"
                   >
-                    <h2 id={`confirm-title-${channel.id}`} className="font-medium">
-                      {t("favoritesConfirmTitle", { channel: channel.name })}
+                    <h2 id={`confirm-title-${channelId}`} className="font-medium">
+                      {t("favoritesConfirmTitle", { channel: row.name })}
                     </h2>
                     <p className="text-muted-foreground mt-1 text-sm">
                       {t("favoritesConfirmBody", {
@@ -371,7 +421,7 @@ export default async function FavoritesPage({
                           one added from another device since is not what was
                           confirmed (FO-12). */}
                       <form action={removeFromAllFavorites}>
-                        <input type="hidden" name="channelId" value={channel.id} />
+                        <input type="hidden" name="channelId" value={channelId} />
                         {memberships.map((membership) => (
                           <input
                             key={membership.id}
@@ -384,7 +434,7 @@ export default async function FavoritesPage({
                         <PendingButton
                           label={t("favoritesConfirm")}
                           pendingLabel={t("favoritesConfirmPending")}
-                          ariaLabel={t("favoritesRemoveAllOf", { channel: channel.name })}
+                          ariaLabel={t("favoritesRemoveAllOf", { channel: row.name })}
                           className="bg-destructive h-9 rounded-lg px-3 text-sm font-medium text-white disabled:opacity-60"
                         />
                       </form>
@@ -408,8 +458,8 @@ export default async function FavoritesPage({
           ) : null}
           <ul aria-label={t("favoritesListLabel")} className={listClass}>
             {view.rows.map((favorite, index) => {
-              const channel = byId.get(favorite.channel_id);
-              if (!channel || !activeGroup) return null;
+              if (!activeGroup) return null;
+              const row = rowOf(favorite.channel_id, index + 1);
               const memberships = allFavorites.filter(
                 (candidate) =>
                   candidate.source_id === source.id &&
@@ -419,23 +469,20 @@ export default async function FavoritesPage({
                 {
                   direction: "up",
                   label: t("favoritesMoveUp"),
-                  aria: t("favoritesMoveUpOf", { channel: channel.name }),
+                  aria: t("favoritesMoveUpOf", { channel: row.name }),
                   disabled: index === 0,
                 },
                 {
                   direction: "down",
                   label: t("favoritesMoveDown"),
-                  aria: t("favoritesMoveDownOf", { channel: channel.name }),
+                  aria: t("favoritesMoveDownOf", { channel: row.name }),
                   disabled: index === view.rows.length - 1,
                 },
               ] as const;
 
               return (
                 <li key={favorite.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                  <Logo channel={channel} />
-                  <div className="min-w-0 flex-1">
-                    <ChannelLink locale={locale} favorite={favorite} channel={channel} />
-                  </div>
+                  <RowHead locale={locale} favorite={favorite} row={row} />
 
                   {steps.map((step) => (
                     <form key={step.direction} action={moveFavorite}>
@@ -455,7 +502,8 @@ export default async function FavoritesPage({
                   ))}
 
                   <Organise
-                    channel={channel}
+                    channelId={favorite.channel_id}
+                    name={row.name}
                     memberships={memberships}
                     groups={favoriteGroups}
                     defaultName={defaultName}
@@ -470,7 +518,7 @@ export default async function FavoritesPage({
                     <button
                       type="submit"
                       aria-label={t("favoritesRemoveFromGroupOf", {
-                        channel: channel.name,
+                        channel: row.name,
                         group: groupLabel(activeGroup, defaultName),
                       })}
                       className={smallButton}
@@ -485,6 +533,60 @@ export default async function FavoritesPage({
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * What a row knows about its channel (S11-05). `name` is the channel's, or a
+ * stand-in naming the row's position, for the labels of its controls.
+ */
+type Row =
+  | { state: "resolved"; channel: Channel; name: string }
+  | { state: "unavailable" | "gone"; name: string };
+
+/**
+ * The left part of a row: logo and name opening the player — or, for a channel
+ * that could not be named, a blank tile and a sentence, and no link at all: a
+ * play link to a channel nobody could confirm exists is a promise this page
+ * cannot keep. `children` goes under the name either way.
+ */
+async function RowHead({
+  locale,
+  favorite,
+  row,
+  children,
+}: {
+  locale: string;
+  favorite: Favorite;
+  row: Row;
+  children?: ReactNode;
+}) {
+  if (row.state === "resolved") {
+    return (
+      <>
+        <Logo channel={row.channel} />
+        <div className="min-w-0 flex-1">
+          <ChannelLink locale={locale} favorite={favorite} channel={row.channel} />
+          {children}
+        </div>
+      </>
+    );
+  }
+
+  const t = await getTranslations("App");
+  const [label, hint] =
+    row.state === "unavailable"
+      ? [t("favoritesDetailsUnavailable"), t("favoritesDetailsUnavailableHint")]
+      : [t("favoritesChannelGone"), t("favoritesChannelGoneHint")];
+  return (
+    <>
+      <div aria-hidden="true" className="bg-muted size-10 shrink-0 rounded-lg" />
+      <div className="min-w-0 flex-1">
+        <p className="text-muted-foreground truncate font-medium">{label}</p>
+        <p className="text-muted-foreground truncate text-xs">{hint}</p>
+        {children}
+      </div>
+    </>
   );
 }
 
@@ -520,13 +622,16 @@ function ChannelLink({
  * that membership only.
  */
 async function Organise({
-  channel,
+  channelId,
+  name: channelName,
   memberships,
   groups,
   defaultName,
   returnTo,
 }: {
-  channel: Channel;
+  /** By id: organising works on a row whose channel could not be named. */
+  channelId: string;
+  name: string;
   memberships: Favorite[];
   groups: FavoriteGroup[];
   defaultName: string;
@@ -538,7 +643,7 @@ async function Organise({
   return (
     <details className="relative shrink-0">
       <summary
-        aria-label={t("favoritesOrganiseOf", { channel: channel.name })}
+        aria-label={t("favoritesOrganiseOf", { channel: channelName })}
         className="text-muted-foreground hover:text-foreground cursor-pointer list-none rounded-lg border px-3 py-1.5 text-sm [&::-webkit-details-marker]:hidden"
       >
         {t("favoritesOrganise")}
@@ -555,7 +660,7 @@ async function Organise({
                     <input type="hidden" name="favoriteId" value={membership.id} />
                   ) : (
                     <>
-                      <input type="hidden" name="channelId" value={channel.id} />
+                      <input type="hidden" name="channelId" value={channelId} />
                       <input type="hidden" name="groupId" value={group.id} />
                     </>
                   )}
@@ -565,8 +670,8 @@ async function Organise({
                     aria-pressed={membership !== undefined}
                     aria-label={
                       membership
-                        ? t("favoritesMemberOf", { channel: channel.name, group: name })
-                        : t("favoritesNotMemberOf", { channel: channel.name, group: name })
+                        ? t("favoritesMemberOf", { channel: channelName, group: name })
+                        : t("favoritesNotMemberOf", { channel: channelName, group: name })
                     }
                     className="hover:bg-secondary/60 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm"
                   >

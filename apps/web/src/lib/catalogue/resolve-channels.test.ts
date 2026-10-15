@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Channel } from "@/lib/api/types";
-import { IDS_PER_REQUEST, resolveChannels } from "@/lib/catalogue/resolve-channels";
+import {
+  IDS_PER_REQUEST,
+  channelStatus,
+  resolveChannels,
+} from "@/lib/catalogue/resolve-channels";
 
 /**
  * Resolving favourites across sources (S6-09).
@@ -21,11 +25,12 @@ describe("resolveChannels", () => {
     const asked: string[][] = [];
     const refs = ids(120).map((channelId) => ({ sourceId: "a", channelId }));
 
-    const byId = await resolveChannels(refs, async (_source, batch) => {
+    const { byId, failed } = await resolveChannels(refs, async (_source, batch) => {
       asked.push(batch);
       return batch.map(channel);
     });
 
+    expect(failed.size).toBe(0);
     // Two requests, not one truncated to a hundred. A `.slice(0, 100)` here
     // would answer `200` and lose twenty channels without a word.
     expect(asked.map((batch) => batch.length)).toEqual([100, 20]);
@@ -105,13 +110,32 @@ describe("resolveChannels", () => {
       { sourceId: "down", channelId: "d1" },
     ];
 
-    const byId = await resolveChannels(refs, async (sourceId, batch) => {
+    const { byId, failed } = await resolveChannels(refs, async (sourceId, batch) => {
       if (sourceId === "down") throw new Error("unreachable");
       return batch.map(channel);
     });
 
     // One provider being unreachable is not the screen being unreachable.
     expect([...byId.keys()]).toEqual(["u1"]);
+    // And its channels are reported as unknown, not silently dropped (S11-05).
+    expect([...failed]).toEqual(["d1"]);
+  });
+
+  it("reports every id of a failed batch, and only those", async () => {
+    // 150 ids: batch one (c0…c99) answers, batch two (c100…c149) fails.
+    const refs = ids(150).map((channelId) => ({ sourceId: "a", channelId }));
+    let call = 0;
+
+    const resolution = await resolveChannels(refs, async (_source, batch) => {
+      call += 1;
+      if (call === 2) throw new Error("timeout");
+      return batch.map(channel);
+    });
+
+    expect(resolution.byId.size).toBe(100);
+    expect(resolution.failed.size).toBe(50);
+    expect(resolution.failed.has("c100")).toBe(true);
+    expect(resolution.failed.has("c99")).toBe(false);
   });
 
   it("leaves out an id the answer does not carry, rather than a gap", async () => {
@@ -120,24 +144,50 @@ describe("resolveChannels", () => {
       { sourceId: "a", channelId: "gone" },
     ];
 
-    const byId = await resolveChannels(refs, async (_source, batch) =>
+    const resolution = await resolveChannels(refs, async (_source, batch) =>
       batch.filter((id) => id !== "gone").map(channel),
     );
 
-    expect(byId.has("gone")).toBe(false);
-    expect(byId.has("here")).toBe(true);
+    expect(resolution.byId.has("gone")).toBe(false);
+    expect(resolution.byId.has("here")).toBe(true);
+    // Answered and absent is "gone", not "unavailable": a retry will not bring it back.
+    expect(resolution.failed.has("gone")).toBe(false);
   });
 
   it("asks nothing at all when there is nothing to resolve", async () => {
     let calls = 0;
 
-    const byId = await resolveChannels([], async () => {
+    const { byId, failed } = await resolveChannels([], async () => {
       calls += 1;
       return [];
     });
 
     expect(calls).toBe(0);
     expect(byId.size).toBe(0);
+    expect(failed.size).toBe(0);
+  });
+});
+
+describe("channelStatus", () => {
+  it("tells a resolved channel, an unknown one and a gone one apart", async () => {
+    const refs = [
+      { sourceId: "up", channelId: "here" },
+      { sourceId: "up", channelId: "gone" },
+      { sourceId: "down", channelId: "unknown" },
+    ];
+    const resolution = await resolveChannels(refs, async (sourceId, batch) => {
+      if (sourceId === "down") throw new Error("503");
+      return batch.filter((id) => id !== "gone").map(channel);
+    });
+
+    expect(channelStatus(resolution, "here")).toEqual({
+      state: "resolved",
+      channel: channel("here"),
+    });
+    // The batch failed: nothing is known, and in particular not that it is gone.
+    expect(channelStatus(resolution, "unknown")).toEqual({ state: "unavailable" });
+    // The batch answered without it: it left the catalogue.
+    expect(channelStatus(resolution, "gone")).toEqual({ state: "gone" });
   });
 });
 

@@ -46,25 +46,39 @@ const PAGE_SIZE = IDS_PER_REQUEST;
  * What is returned is a map, and the caller walks its own list against it — the
  * favourites' order, which the server maintains and the user arranged.
  *
- * <h2>A reference that resolves to nothing is simply absent</h2>
+ * <h2>Gone and unknown are two answers, not one (S11-05)</h2>
  *
- * The contract says an unknown id is left out of the answer rather than being an
- * error. In practice this is close to impossible for a favourite —
- * `favorite.channel_id` carries `REFERENCES channel(id) ON DELETE CASCADE`, and
- * re-synchronisation upserts on `(source_id, external_id)`, so a channel that
- * survives keeps its identifier and one that disappears takes its favourites with
- * it. The guard costs nothing and means a caller never renders a gap.
+ * An identifier can come back without a channel for two reasons, and a screen
+ * must not draw them the same way:
+ *
+ * - **gone** — its batch was answered, and the answer left it out. The contract
+ *   says an unknown id is omitted rather than being an error. For a favourite it
+ *   is close to impossible — `favorite.channel_id` carries `REFERENCES
+ *   channel(id) ON DELETE CASCADE`, and re-synchronisation upserts on
+ *   `(source_id, external_id)`, so a channel that disappears takes its
+ *   favourites with it — but a list read a moment before the cascade can still
+ *   name one.
+ * - **unavailable** — its batch did not answer: a refusal, a timeout, the API
+ *   restarting. Nothing is known about the channel, and in particular not that
+ *   it is gone. These are in {@link ChannelResolution.failed}.
+ *
+ * Collapsing the second into the first is what this module used to do: a failed
+ * batch contributed nothing, the rows fell out, and an outage looked like a
+ * shorter list of favourites — the one thing a partial error must never look
+ * like (`docs/design/0.2.0/watchlist-states.md`, US-024).
  *
  * @param fetchChannels one request. Injected so this can be tested without a
- *   server, and so the batching is the only thing under test.
+ *   server, and so the batching is the only thing under test. It must **throw**
+ *   when the request did not succeed — returning an empty list would claim that
+ *   every id of the batch is gone.
  * @param refs the identifiers to resolve, each with the source that holds it.
- * @returns channels by id. Never throws: a source that fails contributes nothing
- *   and the rest of the screen still renders.
+ * @returns the channels by id, and the ids whose batch failed. Never throws: a
+ *   source that fails is reported, and the rest of the screen still renders.
  */
 export async function resolveChannels(
   refs: readonly { sourceId: string; channelId: string }[],
   fetchChannels: (sourceId: string, ids: string[], size: number) => Promise<Channel[]>,
-): Promise<Map<string, Channel>> {
+): Promise<ChannelResolution> {
   const bySource = new Map<string, string[]>();
   for (const ref of refs) {
     // Deduplicated: the same channel can be starred into two groups, and asking
@@ -85,18 +99,53 @@ export async function resolveChannels(
     batches.map(async ({ sourceId, ids }) => {
       try {
         // `size` explicitly, every time. See PAGE_SIZE.
-        return await fetchChannels(sourceId, ids, PAGE_SIZE);
+        return { ids, channels: await fetchChannels(sourceId, ids, PAGE_SIZE) };
       } catch {
         // One source being unreachable is not the screen being unreachable. Its
-        // channels drop out; every other source still renders.
-        return [];
+        // ids are reported as unknown; every other source still renders.
+        return { ids, channels: null };
       }
     }),
   );
 
   const byId = new Map<string, Channel>();
-  for (const channels of answers) {
-    for (const channel of channels) byId.set(channel.id, channel);
+  const failed = new Set<string>();
+  for (const answer of answers) {
+    if (answer.channels === null) {
+      for (const id of answer.ids) failed.add(id);
+      continue;
+    }
+    for (const channel of answer.channels) byId.set(channel.id, channel);
   }
-  return byId;
+  return { byId, failed };
+}
+
+/** What {@link resolveChannels} learned. */
+export type ChannelResolution = {
+  /** The channels that came back, by id. */
+  byId: ReadonlyMap<string, Channel>;
+  /** The ids whose batch did not answer: unknown, **not** gone. */
+  failed: ReadonlySet<string>;
+};
+
+/**
+ * What a screen can say about one identifier after {@link resolveChannels}.
+ *
+ * - `resolved` — the channel, with its name and logo.
+ * - `unavailable` — its batch failed; nothing is known. A placeholder, never a
+ *   missing row.
+ * - `gone` — answered, and absent from the answer: no longer in the catalogue.
+ */
+export type ChannelStatus =
+  | { state: "resolved"; channel: Channel }
+  | { state: "unavailable" }
+  | { state: "gone" };
+
+export function channelStatus(resolution: ChannelResolution, channelId: string): ChannelStatus {
+  const channel = resolution.byId.get(channelId);
+  if (channel) return { state: "resolved", channel };
+  // An id asked twice — once in a batch that failed, once in one that answered —
+  // cannot happen (ids are deduplicated per source), so `failed` is decisive.
+  if (resolution.failed.has(channelId)) return { state: "unavailable" };
+  return { state: "gone" };
 }

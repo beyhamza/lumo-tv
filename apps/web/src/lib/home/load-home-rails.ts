@@ -207,7 +207,7 @@ export async function loadHomeRails(
   // last ingestion dropped is absent from the map and falls out.
   const named = (entries: readonly { channel_id: string }[]) =>
     entries
-      .map((entry) => channelsById.get(entry.channel_id))
+      .map((entry) => channelsById.byId.get(entry.channel_id))
       .filter((channel): channel is Channel => channel !== undefined);
 
   return {
