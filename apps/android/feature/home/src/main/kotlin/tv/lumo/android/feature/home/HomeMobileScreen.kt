@@ -420,15 +420,20 @@ private fun ContinueCard(item: ContinueItem, actions: HomeActions, onRemove: (Co
                     .weight(1f)
                     .semantics { contentDescription = detailsOf },
             ) {
-                Text(stringResource(R.string.feature_home_details), maxLines = 1)
+                Text(stringResource(R.string.feature_home_details))
             }
             Box {
-                TextButton(
-                    onClick = { menuOpen = true },
-                    contentPadding = PaddingValues(horizontal = LumoSpacing.xs),
-                    modifier = Modifier.semantics { contentDescription = optionsLabel },
+                // A plain 40dp target rather than a TextButton: its 58dp minimum
+                // width cut "Details" short on a 132dp card.
+                Box(
+                    modifier = Modifier
+                        .size(OPTIONS_TARGET)
+                        .clip(LumoShapes.small)
+                        .clickable { menuOpen = true }
+                        .semantics { contentDescription = optionsLabel },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Text("⋮")
+                    Text("⋮", color = MaterialTheme.colorScheme.primary)
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
@@ -693,6 +698,9 @@ private fun Centered(content: @Composable () -> Unit) {
  * third card is what says the row scrolls.
  */
 private val CONTINUE_CARD_WIDTH = 132.dp
+
+/** The card's "⋮": the smallest comfortable touch target that leaves "Details" whole. */
+private val OPTIONS_TARGET = 40.dp
 private val CHANNEL_CARD_WIDTH = 104.dp
 private val LOGO_SIZE = 56.dp
 private val POSITION_BAR_HEIGHT = 4.dp
