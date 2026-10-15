@@ -46,6 +46,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -85,7 +87,10 @@ fun WatchlistTvScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) { viewModel.refresh() }
+    // Each `ON_START` — arrival, return from a sheet, return from the background
+    // (S11-05) — re-reads in place: the grid is keyed by item, so the focused card
+    // keeps the focus if it is still there.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.refresh() }
 
     WatchlistTvContent(
         state = state,

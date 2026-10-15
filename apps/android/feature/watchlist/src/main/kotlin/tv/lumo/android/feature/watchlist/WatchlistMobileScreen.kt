@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -23,7 +24,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +37,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.lumo.android.core.data.model.WatchlistEntry
 import tv.lumo.android.core.designsystem.component.LumoPoster
@@ -64,14 +66,34 @@ fun WatchlistMobileScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     // Each arrival — including the return from a sheet where the item may just have
-    // been removed — re-reads quietly, keeping what is on screen.
-    LaunchedEffect(Unit) { viewModel.refresh() }
+    // been removed, and the return from the background (S11-05) — re-reads
+    // quietly, keeping what is on screen.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.refresh() }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
+        // No pull-to-refresh pattern in the application yet: a visible action.
+        if (state.sourceId != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = LumoSpacing.md),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (state.rereading) {
+                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(LumoSpacing.md))
+                } else {
+                    TextButton(onClick = viewModel::refresh) {
+                        Text(stringResource(R.string.feature_watchlist_refresh))
+                    }
+                }
+            }
+        }
+
         Notices(state = state, onRetry = viewModel::retry)
 
         if (state.filters.isNotEmpty() && state.phase != WatchlistPhase.NoSource) {
