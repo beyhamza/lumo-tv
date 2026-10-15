@@ -150,18 +150,23 @@ public class UserdataService {
         String name = request.getName() == null ? null : request.getName().trim();
         Integer position = request.getPosition();
 
-        if (position != null) {
-            favorites.shiftGroupsFrom(userId, groupId, Math.max(0, position));
-        }
-
         try {
-            favorites.updateGroup(groupId, userId, name, position == null ? null : Math.max(0, position));
+            favorites.updateGroup(groupId, userId, name, null);
         } catch (DuplicateKeyException e) {
             throw ApiException.conflict(ErrorCode.FAVORITE_GROUP_ALREADY_EXISTS,
                     "Another group already carries this name");
         }
 
-        favorites.renumberGroups(userId);
+        if (position != null) {
+            // Applied to the ordered list, as for a favourite: `position` is an
+            // index, and shifting stored values then renumbering landed a group
+            // moved down one place short (S11-03).
+            List<UUID> order = new ArrayList<>(favorites.findGroups(userId).stream()
+                    .map(FavoriteGroup::getId).toList());
+            order.remove(groupId);
+            order.add(Math.clamp(position, 0, order.size()), groupId);
+            favorites.writeGroupOrder(userId, order);
+        }
 
         return favorites.findGroup(groupId, userId).orElse(current);
     }
