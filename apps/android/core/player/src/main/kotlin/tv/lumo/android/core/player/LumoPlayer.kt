@@ -79,6 +79,18 @@ interface LumoPlayer {
      */
     fun resumeAtLiveEdge() = resume()
 
+    /**
+     * The time actually watched since the previous call, for a progress save (S12-02).
+     *
+     * Wall-clock intervals during which the stream was playing — not paused, not
+     * buffering, not seeking — closed at the moment of the call, at most twenty
+     * (`adr/0012`). Reset by [play] and [stop]: a caller that saves on the way out
+     * takes it **before** stopping, as it reads the position.
+     *
+     * The default is nothing, for a player that does not measure.
+     */
+    fun takeWatched(): WatchedTime = WatchedTime.NONE
+
     /** Stops and clears the current stream, keeping the player alive. */
     fun stop()
 
