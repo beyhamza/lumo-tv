@@ -11,6 +11,7 @@ import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -19,6 +20,8 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 import tv.lumo.android.core.data.internal.ApiCaller
 import tv.lumo.android.core.data.internal.ChannelResolver
 import tv.lumo.android.core.data.internal.ProblemReader
+import tv.lumo.android.core.data.model.FavoriteRemovalOutcome
+import tv.lumo.android.core.data.model.FavoriteReorderOutcome
 import tv.lumo.android.core.data.repository.FavoriteRepository
 import tv.lumo.android.core.database.dao.ChannelDao
 import tv.lumo.android.core.database.dao.FavoriteDao
@@ -208,7 +211,152 @@ class FavoriteRepositoryTest {
         assertThat(favoriteDao.favorites.map { it.id }).containsExactly(favoriteId)
     }
 
+    // ---- S11-03: visible reorder and global removal --------------------------
+
+    @Test
+    fun `FO-02 - a visible reorder reads the group, sends full-group moves and re-reads`() = runTest {
+        // A* in the active source, B* in another; the full group is interleaved.
+        val ids = listOf("A1", "B1", "A2", "B2", "A3").associateWith { UUID.randomUUID().toString() }
+        server.enqueue(json(groupOrder(ids.values.toList())))
+        repeat(3) { server.enqueue(json(favorite(UUID.randomUUID().toString()))) }
+        server.enqueue(json(favoriteList(count = 5)))
+
+        val outcome = repository().reorderVisible(groupId, listOf("A3", "A1", "A2").map(ids::getValue))
+
+        assertThat(outcome).isEqualTo(FavoriteReorderOutcome.Applied)
+        val read = server.takeRequest()
+        assertThat(read.method).isEqualTo("GET")
+        assertThat(read.requestUrl!!.queryParameter("groupId")).isEqualTo(groupId)
+        val moves = List(3) { server.takeRequest() }
+        // A3 to the head, then B1 and B2 back to the places they had: 1 and 3.
+        assertThat(moves.map { it.method }).containsExactly("PATCH", "PATCH", "PATCH")
+        assertThat(moves.map { it.path!!.substringAfterLast('/') })
+            .containsExactly(ids["A3"], ids["B1"], ids["B2"]).inOrder()
+        assertThat(moves.map { it.body.readUtf8() })
+            .containsExactly("""{"position":0}""", """{"position":1}""", """{"position":3}""").inOrder()
+        assertThat(server.takeRequest().method).isEqualTo("GET")
+        assertThat(favoriteDao.favorites).hasSize(5)
+    }
+
+    @Test
+    fun `a reorder that fails midway keeps the accepted moves, says so, and re-reads`() = runTest {
+        val ids = listOf("A1", "B1", "A2", "B2", "A3").associateWith { UUID.randomUUID().toString() }
+        server.enqueue(json(groupOrder(ids.values.toList())))
+        server.enqueue(json(favorite(UUID.randomUUID().toString())))
+        server.enqueue(MockResponse().setResponseCode(503).setBody("""{"code":"INTERNAL_ERROR"}"""))
+        server.enqueue(json(favoriteList(count = 5)))
+
+        val outcome = repository().reorderVisible(groupId, listOf("A3", "A1", "A2").map(ids::getValue))
+
+        // Never a success, and no third move after the failure.
+        assertThat(outcome).isInstanceOf(FavoriteReorderOutcome.NotFullyApplied::class.java)
+        outcome as FavoriteReorderOutcome.NotFullyApplied
+        assertThat(outcome.applied).isEqualTo(1)
+        assertThat(outcome.planned).isEqualTo(3)
+        assertThat(server.requestCount).isEqualTo(4)
+        // The cache is the server's re-read, not a guess at the half-done order.
+        assertThat(favoriteDao.favorites).hasSize(5)
+    }
+
+    @Test
+    fun `a reorder whose group cannot be read sends nothing`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(503).setBody("""{"code":"INTERNAL_ERROR"}"""))
+
+        val outcome = repository().reorderVisible(groupId, listOf(UUID.randomUUID().toString()))
+
+        assertThat(outcome).isInstanceOf(FavoriteReorderOutcome.NotApplied::class.java)
+        assertThat(server.requestCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `FO-05 - removing everywhere keeps the successes and names what remains`() = runTest {
+        val channelId = UUID.randomUUID().toString()
+        val (f1, f2, f3) = List(3) { UUID.randomUUID().toString() }
+        val other = UUID.randomUUID().toString()
+        server.enqueue(json(memberships(channelId, listOf(f1, f2, f3), other)))
+        server.enqueue(MockResponse().setResponseCode(204))
+        // Already removed elsewhere: a success, not a failure.
+        server.enqueue(MockResponse().setResponseCode(404).setBody("""{"code":"FAVORITE_NOT_FOUND"}"""))
+        server.enqueue(MockResponse().setResponseCode(503).setBody("""{"code":"INTERNAL_ERROR"}"""))
+        server.enqueue(json(memberships(channelId, listOf(f3), other)))
+
+        val outcome = repository().removeEverywhere(channelId)
+
+        assertThat(outcome).isInstanceOf(FavoriteRemovalOutcome.Incomplete::class.java)
+        assertThat((outcome as FavoriteRemovalOutcome.Incomplete).remaining.map { it.favoriteId })
+            .containsExactly(f3)
+        server.takeRequest()
+        val deletes = List(3) { server.takeRequest() }
+        assertThat(deletes.map { it.method }).containsExactly("DELETE", "DELETE", "DELETE")
+        // The other channel's favourite was never touched.
+        assertThat(deletes.map { it.path!!.substringAfterLast('/') }).containsExactly(f1, f2, f3).inOrder()
+        assertThat(favoriteDao.favorites.map { it.id }).containsExactly(f3, other)
+    }
+
+    @Test
+    fun `FO-06 - the retry targets only the remaining membership, re-read first`() = runTest {
+        val channelId = UUID.randomUUID().toString()
+        val f3 = UUID.randomUUID().toString()
+        val addedMeanwhile = UUID.randomUUID().toString()
+        server.enqueue(json(memberships(channelId, listOf(f3, addedMeanwhile))))
+        server.enqueue(MockResponse().setResponseCode(204))
+        server.enqueue(json(memberships(channelId, listOf(addedMeanwhile))))
+
+        val outcome = repository().removeEverywhere(channelId, restrictTo = setOf(f3))
+
+        assertThat(outcome).isEqualTo(FavoriteRemovalOutcome.Removed)
+        assertThat(server.takeRequest().method).isEqualTo("GET")
+        assertThat(server.takeRequest().path!!.substringAfterLast('/')).isEqualTo(f3)
+        assertThat(server.takeRequest().method).isEqualTo("GET")
+        assertThat(server.requestCount).isEqualTo(3)
+    }
+
+    @Test
+    fun `FO-08 - a lost answer with no re-read is unconfirmed, not removed`() = runTest {
+        val channelId = UUID.randomUUID().toString()
+        val f1 = UUID.randomUUID().toString()
+        server.enqueue(json(memberships(channelId, listOf(f1))))
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+
+        val outcome = repository().removeEverywhere(channelId)
+
+        assertThat(outcome).isInstanceOf(FavoriteRemovalOutcome.Unconfirmed::class.java)
+        assertThat((outcome as FavoriteRemovalOutcome.Unconfirmed).unconfirmed.map { it.favoriteId })
+            .containsExactly(f1)
+    }
+
+    @Test
+    fun `removing one membership that is already gone is a success`() = runTest {
+        val favoriteId = UUID.randomUUID().toString()
+        favoriteDao.favorites += favoriteEntity(favoriteId)
+        server.enqueue(MockResponse().setResponseCode(404).setBody("""{"code":"FAVORITE_NOT_FOUND"}"""))
+        server.enqueue(json(favoriteList(count = 0)))
+
+        val result = repository().remove(favoriteId)
+
+        assertThat(result).isEqualTo(LumoResult.Success(Unit))
+        assertThat(favoriteDao.favorites).isEmpty()
+    }
+
     // ---- helpers -----------------------------------------------------------
+
+    private fun groupOrder(ids: List<String>): String {
+        val items = ids.mapIndexed { position, id ->
+            """{"id":"$id","group_id":"$groupId","source_id":"$sourceId","channel_id":"${UUID.randomUUID()}","position":$position}"""
+        }
+        return """{"items":[${items.joinToString(",")}]}"""
+    }
+
+    private fun memberships(channelId: String, ids: List<String>, otherChannelFavorite: String? = null): String {
+        val mine = ids.mapIndexed { position, id ->
+            """{"id":"$id","group_id":"${UUID.randomUUID()}","source_id":"$sourceId","channel_id":"$channelId","position":$position}"""
+        }
+        val other = listOfNotNull(otherChannelFavorite).map { id ->
+            """{"id":"$id","group_id":"$groupId","source_id":"$sourceId","channel_id":"${UUID.randomUUID()}","position":0}"""
+        }
+        return """{"items":[${(mine + other).joinToString(",")}]}"""
+    }
 
     private fun repository() = FavoriteRepository(
         api = userdata,
