@@ -382,7 +382,7 @@ internal fun FavoritesTvContent(
             ?: stringResource(R.string.feature_favorites_default_group)
         LumoTvConfirmDialog(
             title = stringResource(R.string.feature_favorites_delete_title, group.displayName()),
-            message = pluralStringResource(R.plurals.feature_favorites_delete_body, count, count, defaultName),
+            message = groupDeletionMessage(count, defaultName),
             confirmLabel = stringResource(R.string.feature_favorites_delete_confirm),
             cancelLabel = stringResource(R.string.feature_favorites_cancel),
             onConfirm = actions.onDeleteConfirmed,

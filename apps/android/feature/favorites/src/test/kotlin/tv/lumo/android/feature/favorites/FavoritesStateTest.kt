@@ -32,6 +32,13 @@ class FavoritesStateTest {
     private val cine = group("cine", "Ciné")
 
     @Test
+    fun `BUG-S11-06-08 - deleting an empty group has its own sentence, never a count of zero`() {
+        assertThat(GroupDeletionMessage.of(0)).isEqualTo(GroupDeletionMessage.Empty)
+        assertThat(GroupDeletionMessage.of(1)).isEqualTo(GroupDeletionMessage.Moves(1))
+        assertThat(GroupDeletionMessage.of(4)).isEqualTo(GroupDeletionMessage.Moves(4))
+    }
+
+    @Test
     fun `the open tab lists its own favourites, in the user's order`() {
         val state = FavoritesState(
             loading = false,
