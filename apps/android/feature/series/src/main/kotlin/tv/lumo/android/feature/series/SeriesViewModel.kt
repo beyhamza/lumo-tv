@@ -42,6 +42,9 @@ import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.data.model.EpisodeProgress
 import tv.lumo.android.core.data.model.ResumableSeries
 import tv.lumo.android.core.data.model.WatchlistType
+import tv.lumo.android.core.data.model.Episode
+import tv.lumo.android.core.data.model.SheetPlay
+import tv.lumo.android.core.data.model.seriesSheetPlayOf
 import tv.lumo.android.core.data.needsFirstRefresh
 import tv.lumo.android.core.data.notice
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
@@ -490,6 +493,15 @@ class SeriesDetailViewModel @Inject constructor(
         }
     }
 
+    /**
+     * The sheet is back in view — from the player, most often. Positions are asked
+     * again so that the main button says where the episode just left actually is
+     * (S12-03); a failure keeps what was there.
+     */
+    fun onShown() {
+        if (loaded != null) loadProgress()
+    }
+
     /** Retrying after a provider that did not answer. The only failure worth a button. */
     fun retry() {
         val seriesId = loaded ?: return
@@ -528,6 +540,14 @@ data class SeriesDetailState(
      */
     val unavailable: SheetUnavailable?
         get() = SheetUnavailable.of(hasContent = series != null, lastLoad = lastLoad)
+
+    /**
+     * The sheet's main action: which episode, and Watch / Resume at… / Watch again,
+     * with Start over beside Resume (S12-03). Hidden or not (CW-10). Null until the
+     * tree lists an episode.
+     */
+    val sheetPlay: Pair<Episode, SheetPlay>?
+        get() = (tree as? SeriesTree.Loaded)?.seasons?.let { seriesSheetPlayOf(it, progress) }
 
     /** The last fetch failed for want of a network: the episodes say so, not "your provider". */
     val loadOffline: Boolean

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.ActiveSourceState
 import tv.lumo.android.core.data.OnAirTracker
+import tv.lumo.android.core.data.model.ContinueItem
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.ContinueWatchingRepository
 import tv.lumo.android.core.data.repository.EpgRepository
@@ -172,6 +173,24 @@ class HomeViewModel @Inject constructor(
     fun refreshSource() {
         if (activeSource.state.value is ActiveSourceState.Loading) return
         viewModelScope.launch { activeSource.refresh() }
+    }
+
+    /**
+     * "Remove from Continue watching" on [item] (S12-04, CW-10).
+     *
+     * Not optimistic: the card leaves when the server confirms, because a removal
+     * that silently came back on the next launch is worse than one that took a
+     * moment. Either way the rail is read again — after a refusal, so that what is
+     * drawn is what the server holds (CW-26).
+     */
+    fun removeFromContinue(item: ContinueItem) {
+        val sourceId = _state.value.sourceId ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(removeFailed = false) }
+            val result = continueWatching.hide(item)
+            _state.update { it.afterRemoval(sourceId, item.key, result) }
+            reload()
+        }
     }
 
     private fun reload() {

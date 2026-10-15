@@ -1,5 +1,8 @@
 package tv.lumo.android.core.data.repository
 
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -8,11 +11,14 @@ import tv.lumo.android.core.data.internal.ApiCaller
 import tv.lumo.android.core.data.map
 import tv.lumo.android.core.data.model.EpisodeProgress
 import tv.lumo.android.core.data.model.WatchProgress
+import tv.lumo.android.core.data.model.WatchReport
 import tv.lumo.android.core.data.valueOrNull
 import tv.lumo.android.network.generated.api.UserdataApi
+import tv.lumo.android.network.generated.model.HideProgressRequest
 import tv.lumo.android.network.generated.model.PlaybackProgress
 import tv.lumo.android.network.generated.model.ProgressItemType
 import tv.lumo.android.network.generated.model.SaveProgressRequest
+import tv.lumo.android.network.generated.model.WatchedSegment
 
 /**
  * Where the user stopped watching (US-13, S5-11).
@@ -65,15 +71,10 @@ class ProgressRepository @Inject internal constructor(
         filmId: String,
         positionMs: Long,
         durationMs: Long?,
+        report: WatchReport = WatchReport(),
     ): LumoResult<Unit> = calls.call {
         userdata.saveProgress(
-            SaveProgressRequest(
-                sourceId = UUID.fromString(sourceId),
-                itemType = ProgressItemType.VOD,
-                itemRef = filmId,
-                positionMs = positionMs,
-                durationMs = durationMs,
-            ),
+            saveRequest(sourceId, ProgressItemType.VOD, filmId, positionMs, durationMs, report),
         )
     }.map { }
 
@@ -93,17 +94,39 @@ class ProgressRepository @Inject internal constructor(
         episodeId: String,
         positionMs: Long,
         durationMs: Long?,
+        report: WatchReport = WatchReport(),
     ): LumoResult<Unit> = calls.call {
         userdata.saveProgress(
-            SaveProgressRequest(
-                sourceId = UUID.fromString(sourceId),
-                itemType = ProgressItemType.EPISODE,
-                itemRef = episodeId,
-                positionMs = positionMs,
-                durationMs = durationMs,
-            ),
+            saveRequest(sourceId, ProgressItemType.EPISODE, episodeId, positionMs, durationMs, report),
         )
     }.map { }
+
+    /**
+     * Removes a film's card from "Continue watching" on every device (S12-04, CW-10).
+     *
+     * The position is kept — the sheet still offers to resume. The result is
+     * returned and not swallowed: a removal the server did not confirm keeps the
+     * card on screen and says so (CW-26), never a success announced on its own.
+     */
+    suspend fun hideFilm(sourceId: String, filmId: String): LumoResult<Unit> =
+        hide(sourceId, ProgressItemType.VOD, filmId)
+
+    /**
+     * Removes a series' card: the server hides **every** episode of the series from
+     * any one of them, so that the next episode does not take the card's place.
+     * [episodeId] must have a saved row — see ResumableSeries.rowEpisodeId.
+     */
+    suspend fun hideEpisode(sourceId: String, episodeId: String): LumoResult<Unit> =
+        hide(sourceId, ProgressItemType.EPISODE, episodeId)
+
+    private suspend fun hide(sourceId: String, type: ProgressItemType, ref: String): LumoResult<Unit> =
+        // `204 No Content`: `empty`, not `call` — the latter reads a missing body as
+        // an unreadable answer, and a confirmed removal would be shown as refused.
+        calls.empty {
+            userdata.hideProgress(
+                HideProgressRequest(sourceId = UUID.fromString(sourceId), itemType = type, itemRef = ref),
+            )
+        }
 
     /**
      * The saved position of one film, or null.
@@ -128,10 +151,9 @@ class ProgressRepository @Inject internal constructor(
      *
      * The server returns them most recently updated first — *"which is also the
      * order a 'Continue watching' rail wants"* — so nothing is re-sorted here.
-     * What is filtered is [WatchProgress.finished], and that filter belongs on
-     * this side: the threshold is a product decision, not a storage one, and the
-     * server keeps the row so a client that changes its mind about 95 % does not
-     * need a migration.
+     * What is filtered is [WatchProgress.inContinue], the server's verdict
+     * (S12-04, `adr/0012` ruling 4). The 30-second and 95 % rules used to be
+     * applied here; three clients copying them is what the ADR removed.
      *
      * @param sourceId the source whose rows are wanted, or null for the account's.
      *   Asked of the server rather than filtered afterwards (US-018): a page of the
@@ -150,12 +172,14 @@ class ProgressRepository @Inject internal constructor(
             userdata.listProgress(
                 sourceId = sourceId?.let(UUID::fromString),
                 itemType = ProgressItemType.VOD,
-                size = limit * 2,
+                size = limit * PAGE_FACTOR,
             )
         }.map { page ->
             page.items
                 .map { it.asWatchProgress() }
-                .filterNot { it.finished }
+                // The server's verdict, and nothing else (S12-04, dr/0012 ruling 4):
+                // hidden, finished and not-yet-30-seconds are all out.
+                .filter { it.inContinue }
                 .take(limit)
         }
 
@@ -184,7 +208,7 @@ class ProgressRepository @Inject internal constructor(
             userdata.listProgress(
                 sourceId = sourceId?.let(UUID::fromString),
                 itemType = ProgressItemType.EPISODE,
-                size = limit * 2,
+                size = limit * PAGE_FACTOR,
             )
         }.map { page -> page.items.map { it.asEpisodeProgress() } }
 
@@ -198,8 +222,44 @@ class ProgressRepository @Inject internal constructor(
          * and makes that ordinary case invisible.
          */
         const val RAIL_SIZE = 12
+
+        /**
+         * Rows asked for per card. Four since S12-04: rows the server does not put
+         * in the rail — hidden, finished, under 30 s — still come back, and a page of
+         * them must not leave the rail short.
+         */
+        const val PAGE_FACTOR = 4
     }
 }
+
+private fun saveRequest(
+    sourceId: String,
+    type: ProgressItemType,
+    ref: String,
+    positionMs: Long,
+    durationMs: Long?,
+    report: WatchReport,
+) = SaveProgressRequest(
+    sourceId = UUID.fromString(sourceId),
+    itemType = type,
+    itemRef = ref,
+    positionMs = positionMs,
+    durationMs = durationMs,
+    // Empty is omitted rather than sent: the field is optional, and an older
+    // server reads its absence the way it always did.
+    watchedSegments = report.segments
+        .take(MAX_SEGMENTS)
+        .map { (start, end) -> WatchedSegment(startedAt = start.asDateTime(), endedAt = end.asDateTime()) }
+        .ifEmpty { null },
+    observedAt = report.observedAtMs?.asDateTime(),
+    sessionStartedAt = report.sessionStartedAtMs?.asDateTime(),
+)
+
+/** SaveProgressRequest.watched_segments.maxItems. */
+private const val MAX_SEGMENTS = 20
+
+private fun Long.asDateTime(): OffsetDateTime =
+    OffsetDateTime.ofInstant(Instant.ofEpochMilli(this), ZoneOffset.UTC)
 
 private fun PlaybackProgress.asWatchProgress() = WatchProgress(
     sourceId = sourceId.toString(),
@@ -207,6 +267,8 @@ private fun PlaybackProgress.asWatchProgress() = WatchProgress(
     positionMs = positionMs,
     durationMs = durationMs,
     updatedAtMillis = updatedAt.toInstant().toEpochMilli(),
+    inContinue = inContinue,
+    hidden = hidden,
 )
 
 private fun PlaybackProgress.asEpisodeProgress() = EpisodeProgress(
@@ -217,4 +279,6 @@ private fun PlaybackProgress.asEpisodeProgress() = EpisodeProgress(
     positionMs = positionMs,
     durationMs = durationMs,
     updatedAtMillis = updatedAt.toInstant().toEpochMilli(),
+    inContinue = inContinue,
+    hidden = hidden,
 )

@@ -19,6 +19,7 @@ import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.PlaybackSourceGuard
 import tv.lumo.android.core.data.model.Episode
 import tv.lumo.android.core.data.model.EpisodePlaybackTarget
+import tv.lumo.android.core.data.model.WatchReport
 import tv.lumo.android.core.data.repository.PlaybackRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.data.repository.SeriesRepository
@@ -244,6 +245,10 @@ class EpisodePlayerViewModel @Inject constructor(
     }
 
     private fun open(episodeId: String, title: String?) {
+        // The episode being left keeps its own watched time and its last position
+        // (the end, when advancing): taken now, before the next `play()` resets the
+        // measure. Time is never carried from one episode to the next.
+        if (_target.value != null && !sourceGuard.deleted.value) saveNow()
         this.episodeId = episodeId
         this.currentTitle = title
         _failure.value = null
@@ -353,6 +358,14 @@ class EpisodePlayerViewModel @Inject constructor(
         val episode = _playing.value.episode ?: return
         val snapshot = player.progress.value
         if (!snapshot.savable()) return
+        // Read with the position, synchronously: `stop()` and the next episode's
+        // `play()` reset both right after (S12-02).
+        val watched = player.takeWatched()
+        val report = WatchReport(
+            observedAtMs = System.currentTimeMillis(),
+            sessionStartedAtMs = watched.sessionStartedAtMs,
+            segments = watched.segments.map { it.startedAtMs to it.endedAtMs },
+        )
 
         viewModelScope.launch {
             progress.saveEpisode(
@@ -364,6 +377,7 @@ class EpisodePlayerViewModel @Inject constructor(
                 episodeId = episode.id,
                 positionMs = snapshot.positionMs,
                 durationMs = snapshot.durationMs,
+                report = report,
             )
         }
     }

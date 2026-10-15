@@ -108,6 +108,9 @@ internal class Media3LumoPlayer @Inject constructor(
     /** Consecutive rejoins of a live edge; see [shouldRejoinLiveEdge]. */
     private var liveEdgeRejoins: Int = 0
 
+    /** Actual playback of the current stream (S12-02); see [takeWatched]. */
+    private val watched = WatchedSegmentTracker()
+
     override val exoPlayer: ExoPlayer = ExoPlayer.Builder(context)
         .setMediaSourceFactory(mediaSourceFactory(context))
         .build()
@@ -129,6 +132,9 @@ internal class Media3LumoPlayer @Inject constructor(
         seekInFlight = false
         positionBeforeSeek = 0L
         liveEdgeRejoins = 0
+        // A new stream is a new session: the previous one's intervals were taken
+        // by its own last save, and must not be credited to this one.
+        watched.reset()
         // Both cleared before the new stream, not after. An override belongs to
         // the container it was chosen in: carried over, it would pick "the second
         // audio track" of the next episode, which is a different language or does
@@ -173,6 +179,8 @@ internal class Media3LumoPlayer @Inject constructor(
 
         positionBeforeSeek = exoPlayer.currentPosition
         seekInFlight = true
+        // The jump is not watching (CW-04).
+        watched.onSeek()
         exoPlayer.seekTo(positionMs.coerceAtLeast(0L))
         // Optimistic, so the scrubber lands under the thumb rather than snapping
         // back for the frame before ExoPlayer reports its new position.
@@ -218,8 +226,11 @@ internal class Media3LumoPlayer @Inject constructor(
         exoPlayer.playWhenReady = true
     }
 
+    override fun takeWatched(): WatchedTime = watched.take()
+
     override fun stop() {
         stopTicker()
+        watched.reset()
         exoPlayer.stop()
         exoPlayer.clearMediaItems()
         currentTitle = null
@@ -249,6 +260,7 @@ internal class Media3LumoPlayer @Inject constructor(
 
     override fun release() {
         stopTicker()
+        watched.reset()
         exoPlayer.release()
         _state.value = PlaybackState.Idle
         _progress.value = PlaybackProgress()
@@ -311,6 +323,9 @@ internal class Media3LumoPlayer @Inject constructor(
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
+            // Before the failure guard: a failed stream stops playing, and that
+            // closes its interval whatever the screen is told (CW-05).
+            watched.onPlaying(isPlaying)
             if (_state.value is PlaybackState.Failed) return
             _state.value = if (isPlaying) PlaybackState.Playing(currentTitle) else PlaybackState.Paused
         }
@@ -341,6 +356,7 @@ internal class Media3LumoPlayer @Inject constructor(
             if (seekInFlight && failure != PlaybackError.UNPLAYABLE) {
                 seekInFlight = false
                 _progress.update { it.copy(seek = SeekAvailability.REFUSED) }
+                watched.onSeek()
                 exoPlayer.seekTo(positionBeforeSeek)
                 exoPlayer.prepare()
                 return

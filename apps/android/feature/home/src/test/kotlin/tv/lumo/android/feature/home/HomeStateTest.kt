@@ -288,6 +288,55 @@ class HomeStateTest {
         assertThat(shown.withContinue("another-source", LumoResult.Success(emptyList()))).isEqualTo(shown)
     }
 
+    // ---- "Remove from Continue watching" (S12-04) ------------------------------
+
+    @Test
+    fun `a confirmed removal takes the card out, and only that card`() {
+        val shown = browsing(continueWatching = listOf(film("film-a"), film("film-b")))
+
+        val after = shown.afterRemoval(SOURCE, film("film-a").key, LumoResult.Success(Unit))
+
+        assertThat(after.continueWatching.map { it.key }).containsExactly(film("film-b").key)
+        assertThat(after.removeFailed).isFalse()
+    }
+
+    @Test
+    fun `CW-26 a removal not confirmed keeps the card and says so`() {
+        val shown = browsing(continueWatching = listOf(film("film-a")))
+
+        val after = shown.afterRemoval(
+            SOURCE,
+            film("film-a").key,
+            LumoResult.Failure(LumoError.Offline(java.io.IOException("down"))),
+        )
+
+        assertThat(after.continueWatching.map { it.key }).containsExactly(film("film-a").key)
+        assertThat(after.removeFailed).isTrue()
+    }
+
+    @Test
+    fun `removing the last card removes the rail`() {
+        val after = browsing(continueWatching = listOf(film("film-a")))
+            .afterRemoval(SOURCE, film("film-a").key, LumoResult.Success(Unit))
+
+        assertThat(after.sections.filterIsInstance<HomeSection.Continue>()).isEmpty()
+    }
+
+    @Test
+    fun `a removal answered for another source changes nothing`() {
+        val shown = browsing(continueWatching = listOf(film("film-a")))
+
+        assertThat(shown.afterRemoval("another-source", film("film-a").key, LumoResult.Success(Unit))).isEqualTo(shown)
+    }
+
+    @Test
+    fun `changing source forgets a failed removal`() {
+        val failed = browsing(continueWatching = listOf(film("film-a")))
+            .afterRemoval(SOURCE, film("film-a").key, LumoResult.Failure(LumoError.Unreadable(502, null)))
+
+        assertThat(failed.showing(HomeSource(HomeStep.Browsing, "another-source")).removeFailed).isFalse()
+    }
+
     @Test
     fun `an unresolved favourite stays in the rail, named unavailable`() {
         val state = browsing(

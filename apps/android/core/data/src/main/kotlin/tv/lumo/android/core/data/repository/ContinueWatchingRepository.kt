@@ -66,6 +66,19 @@ class ContinueWatchingRepository @Inject internal constructor(
     }
 
     /**
+     * "Remove from Continue watching" (S12-04, CW-10): hidden on every device, the
+     * position kept. A series card names the episode of the row it was built from —
+     * the server hides the whole series from it.
+     *
+     * A failure stays one: the caller keeps the card and says the removal was not
+     * confirmed (CW-26).
+     */
+    suspend fun hide(item: ContinueItem): LumoResult<Unit> = when (item) {
+        is ContinueItem.Film -> progress.hideFilm(item.sourceId, item.resume.film.id)
+        is ContinueItem.Show -> progress.hideEpisode(item.sourceId, item.resume.rowEpisodeId)
+    }
+
+    /**
      * Films and series merged into the home screen's rail.
      *
      * The two requests leave together: they are independent, and the home screen

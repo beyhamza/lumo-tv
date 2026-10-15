@@ -78,7 +78,7 @@ fun resumableFilms(rows: List<WatchProgress>, films: List<VodItem>): List<Resuma
     val byId = films.associateBy { it.id }
 
     return rows
-        .filterNot { it.finished }
+        .filter { it.inContinue }
         .mapNotNull { row -> byId[row.filmId]?.let { film -> ResumableFilm(film, row) } }
 }
 
@@ -113,7 +113,7 @@ fun continueWatchingOf(
     if (sourceId == null) return emptyList()
 
     val filmCards = films
-        .filterNot { it.progress.finished }
+        .filter { it.progress.inContinue }
         .distinctBy { it.film.id }
         .map(ContinueItem::Film)
 

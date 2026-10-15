@@ -36,7 +36,9 @@ import tv.lumo.android.core.data.face
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.ResumableFilm
+import tv.lumo.android.core.data.model.SheetPlay
 import tv.lumo.android.core.data.model.VodItem
+import tv.lumo.android.core.data.model.sheetPlayOf
 import tv.lumo.android.core.data.model.WatchProgress
 import tv.lumo.android.core.data.model.WatchlistType
 import tv.lumo.android.core.data.needsFirstRefresh
@@ -479,10 +481,26 @@ class VodDetailViewModel @Inject constructor(
             watchlist.start(sourceId, WatchlistType.Film, filmId)
 
             // Once, on opening, with the three filters the contract says yield at
-            // most one row. A finished film is offered no resume — that would be
-            // "carry on from the credits" — so the screen shows one button.
+            // most one row. Kept whole, finished or hidden: [VodDetailState.play]
+            // decides the buttons (S12-03).
+            this@VodDetailViewModel.sourceId = sourceId
             val row = progress.of(sourceId, filmId)
-            _state.update { it.copy(resumeFrom = row?.takeUnless { it.finished }) }
+            _state.update { it.copy(resumeFrom = row) }
+        }
+    }
+
+    private var sourceId: String? = null
+
+    /**
+     * The sheet is back in view — from the player, most often. The position is
+     * asked again so that "Resume at…" says where the film was just left (S12-03).
+     * No answer keeps the one on screen: a failed read is not "never watched".
+     */
+    fun onShown() {
+        val filmId = loaded ?: return
+        val sourceId = sourceId ?: return
+        viewModelScope.launch {
+            progress.of(sourceId, filmId)?.let { row -> _state.update { it.copy(resumeFrom = row) } }
         }
     }
 
@@ -512,12 +530,9 @@ class VodDetailViewModel @Inject constructor(
 data class VodDetailState(
     val film: VodItem? = null,
     /**
-     * Where to offer to resume, or null.
-     *
-     * Null both when nothing was ever watched and when the film is finished:
-     * both mean the screen offers one button rather than two. **Resuming is
-     * offered, never imposed** — a player that started twenty minutes in on its
-     * own is a good idea right up until somebody wants to see the beginning.
+     * The saved position of this film, or null when there is none — hidden from
+     * "Continue watching" or not: the sheet is where a hidden film's position is
+     * found again (CW-10). What it means for the buttons is [play].
      */
     val resumeFrom: WatchProgress? = null,
     /**
@@ -537,4 +552,15 @@ data class VodDetailState(
      */
     val unavailable: SheetUnavailable?
         get() = SheetUnavailable.of(hasContent = film != null, lastLoad = lastLoad)
+
+    /**
+     * Watch, Resume at…, or Watch again, and Start over beside Resume (S12-03).
+     * **Resuming is offered, never imposed** — a player that started twenty minutes
+     * in on its own is a good idea right up until somebody wants the beginning.
+     */
+    val play: SheetPlay
+        get() = sheetPlayOf(
+            positionMs = resumeFrom?.positionMs,
+            durationMs = resumeFrom?.durationMs ?: film?.durationSeconds?.let { it * 1_000L },
+        )
 }

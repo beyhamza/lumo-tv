@@ -7,19 +7,27 @@ groupée avant la sortie 0.3.0.
 
 ## Avancement
 
-- [ ] S12-00 — règles CW-17→22 et CW-29→33 — 80 % : portées par l'[ADR 0012](../adr/0012-continue-watching-protocol.md),
-  acceptée par Hamza le 15/10 ; il reste l'application côté clients (S12-02/04).
-- [ ] S12-01 — contrat C3, serveur, génération — 90 % : `PUT /me/progress` accepte
-  `watched_segments`, `observed_at`, `session_started_at` ; `POST /me/progress/hide` ;
-  `PlaybackProgress` porte `watched_ms`, `hidden`, `in_continue` calculés par le serveur ;
-  migration `0022` (les progressions existantes gardent leur place) ;
-  `ContinueWatchingIntegrationTest` 14/14. Branche `feat/S12-01-continue-watching`.
-- [ ] S12-02 — mesure de la lecture effective dans les lecteurs — 0 %
-- [ ] S12-03 — fiches Regarder / Reprendre / Recommencer / Revoir — 0 %
-- [ ] S12-04 — rail Continuer unifié par série, masquage partagé — 0 %
+- [ ] S12-00 — règles CW-17→22 et CW-29→33 — 90 % : [ADR 0012](../adr/0012-continue-watching-protocol.md)
+  acceptée le 15/10 ; appliquées par le serveur et les trois clients.
+- [x] S12-01 — contrat C3, serveur, génération — fusionné (PR #70) : `ContinueWatchingIntegrationTest`
+  14/14, suite API 398/398.
+- [ ] S12-02 — mesure de la lecture effective — 85 % : compteur de segments réels sur le web
+  (`WatchMeter`) et sur Android (`WatchedSegmentTracker`, Media3), envoyé avec chaque sauvegarde avec
+  `observed_at` et `session_started_at`. Reste : lecture réelle sur appareil (les flux du banc ne sont
+  pas joignables depuis l'émulateur), renvoi des segments d'une sauvegarde échouée sur Android (S12-05).
+- [ ] S12-03 — fiches Regarder / Reprendre / Recommencer / Revoir — 85 % : web et Android (mobile, TV),
+  épisode à poursuivre sur la fiche série. Parcours série non vérifié (banc sans progression de série).
+- [ ] S12-04 — rail Continuer unifié, masquage partagé — 80 % : rail piloté par `in_continue`, une carte
+  par série avec l'épisode suivant (CW-12/15/19/21), « Retirer de Continuer » (web, mobile, appui long OK
+  sur TV). Reste : la carte d'accueil reprend directement (US-019) au lieu d'ouvrir la fiche.
 - [ ] S12-05 — contenus disparus, conflits, hors ligne — 0 %
 
-**Avancement global ≈ 28 %**.
+Branches : `feat/S12-web-continue` (Vitest 484/484, vérifié sur un film contre l'API) et
+`feat/S12-android-continue` (tests 806/806, rail, retrait et fiches vérifiés sur émulateur).
+Question produit en attente : un épisode « terminé » par une simple avance passe-t-il la main au
+suivant dans Continuer ?
+
+**Avancement global ≈ 73 %**.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 ## Objectif

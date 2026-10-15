@@ -167,6 +167,12 @@ data class HomeState(
      * be out of date. Never an empty rail for an outage.
      */
     val continueFailed: Boolean = false,
+    /**
+     * The last "Remove from Continue watching" was not confirmed by the server
+     * (CW-26). The card is still there, and the screen says the removal did not go
+     * through rather than leaving somebody to wonder.
+     */
+    val removeFailed: Boolean = false,
     val favoritesLoaded: Boolean = false,
     val recentLoaded: Boolean = false,
     /**
@@ -247,6 +253,24 @@ data class HomeState(
             }
         }
 
+    /**
+     * The server's answer to removing the card [key] for [asked] (S12-04).
+     *
+     * Confirmed: the card goes now, before the re-read that follows confirms it —
+     * a re-read that fails must not bring it back. Not confirmed: the card stays and
+     * [removeFailed] says so (CW-26). An answer for another source changes nothing.
+     */
+    fun afterRemoval(asked: String, key: String, result: LumoResult<Unit>): HomeState =
+        if (asked != sourceId) {
+            this
+        } else {
+            when (result) {
+                is LumoResult.Success ->
+                    copy(continueWatching = continueWatching.filterNot { it.key == key }, removeFailed = false)
+                is LumoResult.Failure -> copy(removeFailed = true)
+            }
+        }
+
     /** Still waiting for the first answers, with nothing to draw in the meantime. */
     val waiting: Boolean
         get() = step == HomeStep.Browsing && !settled && sections.isEmpty()
@@ -271,6 +295,7 @@ data class HomeState(
                 continueWatching = emptyList(),
                 continueLoaded = false,
                 continueFailed = false,
+                removeFailed = false,
                 // The old source's guide under the new source's cards would be
                 // the GD-03 failure; the tracker answers again for the new one.
                 onAir = emptyMap(),

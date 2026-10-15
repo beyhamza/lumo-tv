@@ -23,6 +23,15 @@ data class WatchProgress(
      * cannot disagree about which of them was watched last.
      */
     val updatedAtMillis: Long = 0L,
+    /**
+     * Whether the server puts this film in "Continue watching" (`adr/0012`,
+     * ruling 4): not hidden, not finished, and 30 seconds actually watched or
+     * restarted after a hide. The rail reads this and nothing else; it no longer
+     * re-derives the 30-second or the 95 % rule (S12-04).
+     */
+    val inContinue: Boolean = false,
+    /** Removed from the rail by the user, position kept (CW-10). The sheet still resumes. */
+    val hidden: Boolean = false,
 ) {
 
     /**
@@ -64,6 +73,10 @@ data class EpisodeProgress(
     val durationMs: Long?,
     /** When the server last wrote this row. See [WatchProgress.updatedAtMillis]. */
     val updatedAtMillis: Long = 0L,
+    /** The server's verdict for the rail. See [WatchProgress.inContinue]. */
+    val inContinue: Boolean = false,
+    /** Hidden from the rail. For an episode, the server hides every row of its series. */
+    val hidden: Boolean = false,
 ) {
 
     /** Close enough to the end that resuming it would be absurd. See [watched]. */
@@ -92,7 +105,9 @@ data class EpisodeProgress(
 internal fun watched(positionMs: Long, durationMs: Long?): Boolean =
     durationMs != null &&
         durationMs > 0L &&
-        positionMs >= durationMs * FINISHED_FRACTION
+        // Strictly past (CW-06): exactly 95 minutes of a 100-minute film is not
+        // finished yet. The server makes the same comparison for `in_continue`.
+        positionMs * 100 > durationMs * FINISHED_PERCENT
 
 /**
  * 95 %.
@@ -101,4 +116,4 @@ internal fun watched(positionMs: Long, durationMs: Long?): Boolean =
  * puts a finished film back in the rail on most of them — and, for a series, stops
  * the one thing somebody actually wants next.
  */
-private const val FINISHED_FRACTION = 0.95
+private const val FINISHED_PERCENT = 95L

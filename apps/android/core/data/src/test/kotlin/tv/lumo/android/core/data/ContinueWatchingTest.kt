@@ -187,7 +187,7 @@ class ContinueWatchingTest {
     // ---- fixtures ------------------------------------------------------------
 
     private fun row(filmId: String, positionMs: Long = 1_000, durationMs: Long? = null) =
-        WatchProgress(sourceId = SOURCE, filmId = filmId, positionMs = positionMs, durationMs = durationMs)
+        WatchProgress(sourceId = SOURCE, filmId = filmId, positionMs = positionMs, durationMs = durationMs, inContinue = serverSaysInContinue(positionMs, durationMs))
 
     private fun vodItem(id: String, source: String = SOURCE) = VodItem(
         id = id,
@@ -210,7 +210,7 @@ class ContinueWatchingTest {
         durationMs: Long? = null,
     ) = ResumableFilm(
         film = vodItem(id, source),
-        progress = WatchProgress(source, id, positionMs, durationMs, updatedAtMillis = updatedAt),
+        progress = WatchProgress(source, id, positionMs, durationMs, updatedAtMillis = updatedAt, inContinue = serverSaysInContinue(positionMs, durationMs)),
     )
 
     private fun show(
@@ -251,3 +251,6 @@ class ContinueWatchingTest {
         const val OTHER = "source-b"
     }
 }
+
+/** What the server answers for a row with 30 s watched and never hidden: in the rail unless finished. */
+internal fun serverSaysInContinue(positionMs: Long, durationMs: Long?) = !tv.lumo.android.core.data.model.watched(positionMs, durationMs)

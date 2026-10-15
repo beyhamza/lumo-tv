@@ -204,10 +204,14 @@ fun List<Season>.episodeAfter(episodeId: String): Episode? {
  *   The row's and not [episode]'s: a card offering the *next* episode is as recent
  *   as the episode somebody just finished, which is what places it among the films
  *   of a merged rail (US-017).
+ * @param rowEpisodeId the episode of that row — what "Remove from Continue" names
+ *   (S12-04). Not always [episode]: a card offering the next one has no row of its
+ *   own, and hiding an item with no row changes nothing on the server.
  */
 data class ResumableSeries(
     val series: Series,
     val episode: Episode,
     val positionMs: Long,
     val updatedAtMillis: Long = 0L,
+    val rowEpisodeId: String = episode.id,
 )

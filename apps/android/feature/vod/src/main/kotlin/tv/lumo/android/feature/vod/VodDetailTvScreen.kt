@@ -26,10 +26,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import tv.lumo.android.core.data.SheetUnavailable
+import tv.lumo.android.core.data.model.PrimaryPlay
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.designsystem.component.LumoPoster
 import tv.lumo.android.core.designsystem.component.LumoTvWatchlistButton
@@ -87,6 +90,8 @@ fun VodDetailTvScreen(
     val watchlist by viewModel.watchlistState.collectAsStateWithLifecycle()
 
     LaunchedEffect(filmId) { viewModel.start(filmId) }
+    // Back from the player: "Resume at…" follows where the film was left (S12-03).
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onShown() }
 
     // BACK returns to the grid **and says which film was being looked at**, so the
     // remote comes back on that card rather than at the head of thirty thousand.
@@ -95,7 +100,8 @@ fun VodDetailTvScreen(
 
     val play = remember { FocusRequester() }
     val film = state.film
-    val resumeAt = state.resumeFrom?.positionMs
+    val sheetPlay = state.play
+    val resumeAt = (sheetPlay.primary as? PrimaryPlay.Resume)?.positionMs
 
     // Keyed on the offer: the resume button does not exist on the frame this
     // screen first draws — the position arrives from the server a moment later —
@@ -180,30 +186,23 @@ fun VodDetailTvScreen(
                 )
             }
 
-            if (resumeAt != null) {
+            // Watch, Resume at…, or Watch again, focused on arrival; Start over one
+            // `DOWN` under Resume, in the column the remote already walks (S12-03).
+            TvActionButton(
+                label = primaryLabel(sheetPlay.primary) { it.asTvClock() },
+                enabled = film != null,
+                focusRequester = play,
+                onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, sheetPlay.primary.startMs) } },
+            )
+
+            if (sheetPlay.startOver) {
                 TvActionButton(
-                    label = stringResource(R.string.feature_vod_resume_at, resumeAt.asTvClock()),
+                    label = stringResource(R.string.feature_vod_start_over),
                     enabled = film != null,
-                    focusRequester = play,
-                    onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, resumeAt) } },
+                    focusRequester = null,
+                    onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, 0L) } },
                 )
             }
-
-            TvActionButton(
-                label = stringResource(
-                    if (resumeAt != null) {
-                        R.string.feature_vod_start_over
-                    } else {
-                        R.string.feature_vod_play
-                    },
-                ),
-                enabled = film != null,
-                // The requester goes to whichever button is the arrival target:
-                // resume when there is one, play otherwise. One requester, moved,
-                // rather than two that could both fire.
-                focusRequester = if (resumeAt == null) play else null,
-                onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, 0L) } },
-            )
 
             // One `DOWN` under the play button, in the column the remote already
             // walks: reachable, never the arrival focus (US-022, S11-E06).
