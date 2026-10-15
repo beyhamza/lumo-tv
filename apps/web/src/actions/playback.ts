@@ -1,7 +1,21 @@
 "use server";
 
 import { api } from "@/lib/api/client";
+import { type SaveOutcome, saveOutcomeOf } from "@/lib/playback/save-outcome";
+import { sanitizeWatchExtras, type WatchedSegment } from "@/lib/playback/watch-meter";
 import { getSession } from "@/lib/session/session";
+
+/**
+ * What a player measured since its previous save (S12-02, `adr/0012`): the
+ * intervals of actual playback, when the position was read, and when this page
+ * session really started playing. Re-checked before sending — a Server Action
+ * is a public endpoint, and what arrives is whatever a browser posted.
+ */
+type WatchExtras = {
+  watchedSegments?: WatchedSegment[];
+  observedAt?: string;
+  sessionStartedAt?: string | null;
+};
 
 /**
  * Records that a channel was actually watched.
@@ -55,23 +69,8 @@ export async function saveFilmProgress(input: {
   filmId: string;
   positionMs: number;
   durationMs: number | null;
-}): Promise<void> {
-  const session = await getSession();
-  if (!session) return;
-
-  try {
-    await api(session.accessToken).PUT("/me/progress", {
-      body: {
-        source_id: input.sourceId,
-        item_type: "VOD",
-        item_ref: input.filmId,
-        position_ms: Math.round(input.positionMs),
-        duration_ms: input.durationMs == null ? null : Math.round(input.durationMs),
-      },
-    });
-  } catch {
-    // See above: nothing to tell the user, and nothing for them to do.
-  }
+} & WatchExtras): Promise<SaveOutcome> {
+  return save(input, "VOD", input.filmId);
 }
 
 /**
@@ -97,21 +96,41 @@ export async function saveEpisodeProgress(input: {
   episodeId: string;
   positionMs: number;
   durationMs: number | null;
-}): Promise<void> {
+} & WatchExtras): Promise<SaveOutcome> {
+  return save(input, "EPISODE", input.episodeId);
+}
+
+/**
+ * The one `PUT /me/progress` both actions share. Not exported: a `"use server"`
+ * module's exports are endpoints, and this one would take any item type.
+ *
+ * <p>What it answers is for the player's own bookkeeping only — whether the
+ * watched intervals it carried must be sent again (S12-02). The user is told
+ * nothing either way, for the reason `recordWatched` gives.
+ */
+async function save(
+  input: { sourceId: string; positionMs: number; durationMs: number | null } & WatchExtras,
+  itemType: "VOD" | "EPISODE",
+  itemRef: string,
+): Promise<SaveOutcome> {
   const session = await getSession();
-  if (!session) return;
+  if (!session) return "drop";
 
   try {
-    await api(session.accessToken).PUT("/me/progress", {
+    const { response } = await api(session.accessToken).PUT("/me/progress", {
       body: {
         source_id: input.sourceId,
-        item_type: "EPISODE",
-        item_ref: input.episodeId,
+        item_type: itemType,
+        item_ref: itemRef,
         position_ms: Math.round(input.positionMs),
         duration_ms: input.durationMs == null ? null : Math.round(input.durationMs),
+        ...sanitizeWatchExtras(input),
       },
     });
+    return saveOutcomeOf(response.status);
   } catch {
-    // See above: nothing to tell the user, and nothing for them to do.
+    // No answer at all. The intervals are kept and resent with the next save —
+    // a resent interval adds nothing on the server (CW-33).
+    return "retry";
   }
 }

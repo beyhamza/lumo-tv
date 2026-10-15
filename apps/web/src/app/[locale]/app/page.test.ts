@@ -78,7 +78,10 @@ beforeEach(() => {
 });
 
 async function render(): Promise<Date | undefined> {
-  await HomePage({ params: Promise.resolve({ locale: "fr" }) } as never);
+  await HomePage({
+    params: Promise.resolve({ locale: "fr" }),
+    searchParams: Promise.resolve({}),
+  } as never);
   return loadHomeRails.mock.calls[0]?.[2];
 }
 

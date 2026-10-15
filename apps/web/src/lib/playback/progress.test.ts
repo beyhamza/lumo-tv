@@ -63,6 +63,11 @@ describe("isFinished", () => {
   it("is not finished just under it", () => {
     expect(isFinished(5_076_000, 5_400_000)).toBe(false);
   });
+
+  it("is not finished exactly at ninety-five per cent (CW-06)", () => {
+    expect(isFinished(5_700_000, 6_000_000)).toBe(false);
+    expect(isFinished(5_700_001, 6_000_000)).toBe(true);
+  });
 });
 
 describe("asClock", () => {

@@ -5,7 +5,6 @@ import type {
   Channel,
   Episode,
   EpgProgramme,
-  PlaybackProgress,
   Series,
   VodItem,
 } from "@/lib/api/types";
@@ -14,10 +13,13 @@ import { epgNow } from "@/lib/epg/clock";
 import { NOW_WINDOW_MS, loadEpgWindow } from "@/lib/epg/load-epg-window";
 import { onAirByChannel } from "@/lib/epg/now";
 import { aggregateFavorites, recentChannelsOf } from "./channels";
+import { orderedEpisodeIds } from "@/lib/playback/sheet-action";
 import {
   continueCards,
+  continueRows,
   onePerSeries,
-  resumableRows,
+  resolveTargets,
+  seriesNeedingTree,
   type ContinueCard,
 } from "./continue-watching";
 import { channelRailStatus, lookupOf, railStatus, type RailStatus } from "./rail-status";
@@ -78,7 +80,7 @@ const EPISODE_ROWS = HOME_RAIL_SIZE * 4;
 const IDS_MAX = 100;
 
 export type HomeRails = {
-  continueWatching: ContinueCard<PlaybackProgress, Episode>[];
+  continueWatching: ContinueCard<Episode>[];
   favorites: Channel[];
   recents: Channel[];
   /**
@@ -117,7 +119,7 @@ export async function loadHomeRails(
     // Two requests rather than one unfiltered page, although the contract would
     // merge them for us: in one window of rows, a night of episodes pushes every
     // film out. Asked apart, each kind has its own window, and the merge is a
-    // sort (`resumableRows`).
+    // sort (`continueRows`).
     quiet(
       client.GET("/me/progress", {
         params: { query: { sourceId, itemType: "VOD", size: FILM_ROWS } },
@@ -137,7 +139,7 @@ export async function loadHomeRails(
     quiet(client.GET("/me/recent-channels", { params: { query: { limit: 50 } } })),
   ]);
 
-  const rows = resumableRows(
+  const rows = continueRows(
     [...(filmRows?.items ?? []), ...(episodeRows?.items ?? [])],
     sourceId,
   );
@@ -206,17 +208,47 @@ export async function loadHomeRails(
 
   const seriesIds = unique(
     candidates.flatMap((candidate) =>
-      candidate.kind === "episode" ? [candidate.episode.series_id] : [],
+      candidate.kind === "film" ? [] : [candidate.episode.series_id],
     ),
   ).slice(0, HOME_RAIL_SIZE * 2);
-  const series =
+  // The trees of the series whose latest episode is finished (S12-04): what
+  // comes next is only known from the tree (CW-19, CW-21). One call per such
+  // series, in parallel with the series lookup — a few at most, since a rail
+  // holds twelve cards, and the server caches each tree.
+  const treeIds = seriesNeedingTree(candidates).slice(0, HOME_RAIL_SIZE);
+  const [series, treeAnswers] = await Promise.all([
     seriesIds.length > 0
-      ? await quiet(
+      ? quiet(
           client.GET("/sources/{id}/series", {
             params: { path: { id: sourceId }, query: { ids: seriesIds, size: seriesIds.length } },
           }),
         )
-      : undefined;
+      : undefined,
+    Promise.all(
+      treeIds.map((id) => quiet(client.GET("/series/{id}", { params: { path: { id } } }))),
+    ),
+  ]);
+
+  const trees = new Map<string, Episode[]>();
+  treeIds.forEach((id, index) => {
+    const detail = treeAnswers[index];
+    if (!detail) return;
+    const inTree = byId<Episode>(detail.seasons.flatMap((season) => season.episodes));
+    trees.set(
+      id,
+      orderedEpisodeIds(detail.seasons).flatMap((episodeId) => {
+        const entry = inTree.get(episodeId);
+        return entry ? [entry] : [];
+      }),
+    );
+  });
+  const targets = resolveTargets(
+    candidates,
+    trees,
+    // Every episode row of the source, hidden or under the threshold: the next
+    // episode's own position lives there (CW-12).
+    (episodeRows?.items ?? []).filter((entry) => entry.source_id === sourceId),
+  );
 
   // Walked against the account's order, never the answers': the lookups come
   // back in the catalogue's order, and these lists are the user's. A channel the
@@ -228,7 +260,7 @@ export async function loadHomeRails(
 
   return {
     continueWatching: continueCards(
-      candidates,
+      targets,
       byId<VodItem>(films?.items),
       byId<Series>(series?.items),
       HOME_RAIL_SIZE,
@@ -243,6 +275,9 @@ export async function loadHomeRails(
         lookupOf(episodeIds.length > 0, episodes),
         lookupOf(filmIds.length > 0, films),
         lookupOf(seriesIds.length > 0, series),
+        // A tree that could not be read drops its series from this rendering:
+        // reported, never presented as a series that is done.
+        ...treeAnswers.map((answer) => lookupOf(true, answer)),
       ),
       favorites: channelRailStatus(
         lookupOf(true, favorites),

@@ -8,7 +8,6 @@ import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-message";
-import { isFinished } from "@/lib/playback/progress";
 import type { Category, VodItem } from "@/lib/api/types";
 import { attempt, outcomeOf } from "@/lib/catalogue/attempt";
 import { cataloguePageState } from "@/lib/catalogue/page-state";
@@ -160,7 +159,9 @@ export default async function VodPage({
   // exactly RAIL_SIZE rows can come back half empty for no visible reason.
   const resumable = (progress.data?.items ?? [])
     .filter((row) => row.source_id === id)
-    .filter((row) => !isFinished(row.position_ms, row.duration_ms ?? null))
+    // In Continue by the server's rule (`in_continue`, adr/0012): 30 s actually
+    // watched, not finished, not removed by the user. Not re-derived here.
+    .filter((row) => row.in_continue)
     .slice(0, RAIL_SIZE);
 
   // `/me/progress` carries identifiers and positions, not posters and titles —

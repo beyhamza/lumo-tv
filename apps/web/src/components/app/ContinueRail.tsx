@@ -1,3 +1,4 @@
+import { hideFromContinue } from "@/actions/continue";
 import { RailFailureLine, type RailFailure } from "./RailFailure";
 
 /**
@@ -15,8 +16,10 @@ import { RailFailureLine, type RailFailure } from "./RailFailure";
  *   destination are two stops for a keyboard and two announcements for a screen
  *   reader, for nothing.
  *
- * **No "remove from Continue".** That is sprint 12 and needs a contract lot of
- * its own; a control drawn before it works is worse than its absence.
+ * - **Remove from Continue watching** (S12-04): a small form under each card,
+ *   posted to a Server Action. The card hides on every device and its position
+ *   is kept (CW-10); the outcome is shown by the page, above the rail, because a
+ *   rail whose last card was removed is not drawn at all.
  *
  * <h2>Presentational, and ignorant of films and series</h2>
  *
@@ -38,6 +41,18 @@ export type ContinueRailEntry = {
   durationMs: number | null;
   resume: { href: string; label: string };
   details?: { href: string; label: string; text: string };
+  /**
+   * "Remove from Continue watching" (S12-04): the item the server hides, and the
+   * words. For a series, the episode holding the card's progress — the server
+   * hides the whole series from it.
+   */
+  hide: {
+    sourceId: string;
+    itemType: "VOD" | "EPISODE";
+    itemRef: string;
+    text: string;
+    label: string;
+  };
 };
 
 export function ContinueRail({
@@ -85,6 +100,21 @@ export function ContinueRail({
                   {entry.details.text}
                 </a>
               ) : null}
+              {/* A form, not a script: it works without JavaScript and keeps the
+                  token on the server. Visible without hovering, and a separate
+                  stop for the keyboard after the resume link (S12-E01). */}
+              <form action={hideFromContinue} className="mt-1">
+                <input type="hidden" name="sourceId" value={entry.hide.sourceId} />
+                <input type="hidden" name="itemType" value={entry.hide.itemType} />
+                <input type="hidden" name="itemRef" value={entry.hide.itemRef} />
+                <button
+                  type="submit"
+                  aria-label={entry.hide.label}
+                  className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded text-left text-xs underline underline-offset-4 focus-visible:ring-2 focus-visible:outline-none"
+                >
+                  {entry.hide.text}
+                </button>
+              </form>
             </li>
           ))}
         </ul>

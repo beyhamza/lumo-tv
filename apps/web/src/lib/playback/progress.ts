@@ -46,7 +46,9 @@ export function savableProgress(input: {
  */
 export function isFinished(positionMs: number, durationMs: number | null): boolean {
   if (durationMs == null || durationMs <= 0) return false;
-  return positionMs >= durationMs * FINISHED_FRACTION;
+  // Strictly past: exactly 95 minutes of a 100-minute film is not finished
+  // (CW-06), the server's rule to the letter (`adr/0012`).
+  return positionMs > durationMs * FINISHED_FRACTION;
 }
 
 const FINISHED_FRACTION = 0.95;

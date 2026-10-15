@@ -183,7 +183,9 @@ export default async function SeriesPage({
   const rail = await continueWatching({
     token,
     sourceId: id,
-    rows: progress.data?.items ?? [],
+    // A series removed from Continue (adr/0012) stays out of this rail too: the
+    // removal is shared, and a card back on the next page would contradict it.
+    rows: (progress.data?.items ?? []).filter((row) => !row.hidden),
     onPage: listed,
   });
   const context = { categoryId, q: search, page: page > 0 ? String(page) : undefined };
