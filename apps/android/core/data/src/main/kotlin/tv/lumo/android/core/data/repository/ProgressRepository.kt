@@ -138,24 +138,26 @@ class ProgressRepository @Inject internal constructor(
      *   account's rows, cut at [limit] and *then* reduced to one source, comes back
      *   short — or empty — for somebody whose other subscription is the one they
      *   watched last night.
+     * @return a failure as a failure (S11-05): an outage is not "nothing in
+     *   progress", and a rail that turned one into the other emptied itself on
+     *   every blip of the network.
      */
     suspend fun continueWatching(
         sourceId: String? = null,
         limit: Int = RAIL_SIZE,
-    ): List<WatchProgress> =
+    ): LumoResult<List<WatchProgress>> =
         calls.call {
             userdata.listProgress(
                 sourceId = sourceId?.let(UUID::fromString),
                 itemType = ProgressItemType.VOD,
                 size = limit * 2,
             )
+        }.map { page ->
+            page.items
+                .map { it.asWatchProgress() }
+                .filterNot { it.finished }
+                .take(limit)
         }
-            .valueOrNull()
-            ?.items
-            ?.map { it.asWatchProgress() }
-            ?.filterNot { it.finished }
-            ?.take(limit)
-            .orEmpty()
 
     /**
      * Every episode somebody has started, most recently touched first (S6-08).
@@ -172,22 +174,19 @@ class ProgressRepository @Inject internal constructor(
      * successor. That is the whole reason this returns rows rather than cards.
      *
      * @param sourceId as for [continueWatching], and for the same reason.
+     * @return a failure as a failure, as [continueWatching] does.
      */
     suspend fun episodesInProgress(
         sourceId: String? = null,
         limit: Int = RAIL_SIZE,
-    ): List<EpisodeProgress> =
+    ): LumoResult<List<EpisodeProgress>> =
         calls.call {
             userdata.listProgress(
                 sourceId = sourceId?.let(UUID::fromString),
                 itemType = ProgressItemType.EPISODE,
                 size = limit * 2,
             )
-        }
-            .valueOrNull()
-            ?.items
-            ?.map { it.asEpisodeProgress() }
-            .orEmpty()
+        }.map { page -> page.items.map { it.asEpisodeProgress() } }
 
     private companion object {
         /**

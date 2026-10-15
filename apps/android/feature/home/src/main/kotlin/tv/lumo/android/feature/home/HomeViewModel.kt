@@ -140,8 +140,11 @@ class HomeViewModel @Inject constructor(
     /**
      * The screen has come (back) into view.
      *
-     * Called by both surfaces each time they enter composition — on launch, on
-     * return from a player, on return from another section. A home screen is the
+     * Called by both surfaces at each `ON_START` — on launch, on return from a
+     * player or another section, and when the application comes back from the
+     * background, which is when another device's changes are worth picking up
+     * (S11-05). Everything is refreshed in place: nothing on screen is cleared
+     * while the answers are on their way. A home screen is the
      * one place where what is shown goes stale by *using the application*: the
      * film just watched has a new position, the channel just played is the most
      * recent one. Reloading on the way back in is what keeps "Continue" honest.
@@ -184,15 +187,9 @@ class HomeViewModel @Inject constructor(
 
             val cards = continueWatching.all(sourceId)
 
-            _state.update {
-                // The answer belongs to the source that asked, which may no
-                // longer be the one on screen.
-                if (it.sourceId == sourceId) {
-                    it.copy(continueWatching = cards, continueLoaded = true)
-                } else {
-                    it
-                }
-            }
+            // The answer belongs to the source that asked, which may no longer be
+            // the one on screen; a failure keeps the cards (S11-05).
+            _state.update { it.withContinue(sourceId, cards) }
         }
     }
 }
