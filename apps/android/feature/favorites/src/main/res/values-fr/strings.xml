@@ -26,9 +26,6 @@
     <string name="feature_favorites_move_right">Déplacer à droite</string>
     <string name="feature_favorites_move_up">Monter</string>
     <string name="feature_favorites_move_down">Descendre</string>
-    <string name="feature_favorites_move_to_group">Déplacer vers un autre groupe…</string>
-    <string name="feature_favorites_move_title">Vers quel groupe ?</string>
-    <string name="feature_favorites_remove">Retirer des favoris</string>
 
     <string name="feature_favorites_delete_title">Supprimer « %1$s » ?</string>
     <string name="feature_favorites_delete_confirm">Supprimer le groupe</string>
@@ -43,4 +40,53 @@
     <string name="feature_favorites_tv_loading">Chargement…</string>
     <string name="feature_favorites_tv_empty_body">Dans Direct, maintenez OK sur une chaîne pour l\'ajouter à vos favoris. Elle apparaîtra ici.</string>
     <string name="feature_favorites_tv_open_live">Ouvrir Direct</string>
+
+    <!-- Bibliothèque : organiser les chaînes favorites (US-022, S11-E01 → S11-E04). -->
+    <string name="feature_favorites_all">Tous les favoris</string>
+    <string name="feature_favorites_groups">Groupes</string>
+    <string name="feature_favorites_new_group">Nouveau groupe</string>
+    <string name="feature_favorites_new_group_title">Créer un groupe</string>
+    <string name="feature_favorites_create">Créer</string>
+    <string name="feature_favorites_default_not_deletable">Le groupe par défaut peut être renommé, pas supprimé.</string>
+    <string name="feature_favorites_move_before">Déplacer avant</string>
+    <string name="feature_favorites_move_after">Déplacer après</string>
+    <string name="feature_favorites_drag_handle">Glisser pour réordonner « %1$s »</string>
+    <string name="feature_favorites_saving">Enregistrement…</string>
+
+    <string name="feature_favorites_organize">Organiser…</string>
+    <string name="feature_favorites_organize_title">Groupes de « %1$s »</string>
+    <string name="feature_favorites_organize_last_group">Une chaîne favorite reste dans au moins un groupe. Pour la retirer partout, utilisez « Retirer de tous mes favoris » dans Tous les favoris.</string>
+    <string name="feature_favorites_done">Terminé</string>
+
+    <string name="feature_favorites_remove_from_group">Retirer de ce groupe</string>
+    <string name="feature_favorites_remove_everywhere">Retirer de tous mes favoris</string>
+    <string name="feature_favorites_remove_everywhere_title">Retirer « %1$s » de tous vos favoris ?</string>
+    <plurals name="feature_favorites_remove_everywhere_body">
+        <item quantity="one">Elle sera retirée de %1$d groupe. Vous pourrez l\'ajouter de nouveau depuis Direct.</item>
+        <item quantity="many">Elle sera retirée de ses %1$d groupes. Vous pourrez l\'ajouter de nouveau depuis Direct.</item>
+        <item quantity="other">Elle sera retirée de ses %1$d groupes. Vous pourrez l\'ajouter de nouveau depuis Direct.</item>
+    </plurals>
+    <string name="feature_favorites_remove_everywhere_confirm">Retirer partout</string>
+    <string name="feature_favorites_removing">Retrait en cours…</string>
+    <string name="feature_favorites_removal_incomplete_title">Retrait incomplet</string>
+    <plurals name="feature_favorites_removal_incomplete_body">
+        <item quantity="one">Cette chaîne est encore dans %1$d groupe : %2$s. Les autres retraits sont faits.</item>
+        <item quantity="many">Cette chaîne est encore dans %1$d groupes : %2$s. Les autres retraits sont faits.</item>
+        <item quantity="other">Cette chaîne est encore dans %1$d groupes : %2$s. Les autres retraits sont faits.</item>
+    </plurals>
+    <string name="feature_favorites_removal_unconfirmed_title">Retrait non confirmé</string>
+    <string name="feature_favorites_removal_unconfirmed_body">La connexion a été perdue avant que chaque retrait soit confirmé. Rien n\'est supposé : réessayez pour vérifier et terminer.</string>
+    <string name="feature_favorites_removal_not_started_title">Rien n\'a été retiré</string>
+    <string name="feature_favorites_removal_not_started_body">Vos favoris n\'ont pas pu être joints. La chaîne est toujours dans vos favoris.</string>
+    <string name="feature_favorites_removal_offline_body">Vous êtes hors ligne. La chaîne est toujours dans vos favoris.</string>
+    <string name="feature_favorites_removed_everywhere">« %1$s » a été retirée de tous vos favoris.</string>
+    <string name="feature_favorites_retry">Réessayer</string>
+    <string name="feature_favorites_close">Fermer</string>
+
+    <string name="feature_favorites_reorder_not_applied">L\'ordre n\'a pas pu être modifié. La liste montre l\'ordre enregistré.</string>
+    <string name="feature_favorites_reorder_not_fully_applied">Le nouvel ordre n\'a pas été entièrement appliqué. La liste montre l\'ordre réellement enregistré.</string>
+    <string name="feature_favorites_offline">Vous êtes hors ligne. Vos favoris restent consultables, mais ne peuvent pas être modifiés avant le retour de la connexion.</string>
+    <string name="feature_favorites_write_failed">Cette modification n\'a pas pu être enregistrée. La liste montre vos favoris tels qu\'ils sont.</string>
+    <string name="feature_favorites_dismiss">OK</string>
+    <string name="feature_favorites_tv_hint">Maintenez OK sur une chaîne ou un groupe pour plus d\'options.</string>
 </resources>

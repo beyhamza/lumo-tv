@@ -200,9 +200,30 @@ class FavoritesStateTest {
         // predict the state they will be in.
         assertThat(state.countIn(documentaire)).isEqualTo(2)
         assertThat(state.countIn(cine)).isEqualTo(1)
-        // A favourite cannot be moved into the group it is already in — the entry
-        // is absent rather than disabled.
-        assertThat(state.moveTargets(favorite).map { it.id }).containsExactly("cine")
+        // Organise lists the channel's memberships across the account.
+        assertThat(state.membershipsOf("c1").map { it.groupId }).containsExactly("documentaire")
+    }
+
+    @Test
+    fun `the library opens on All favourites, each channel once, and offers no reorder there`() {
+        val shared = channel("c1", "Aube")
+        val state = FavoritesState(
+            loading = false,
+            groups = listOf(documentaire, cine.copy(position = 1)),
+            activeSourceId = "source",
+            favorites = listOf(
+                favorite("f1", "documentaire", shared, position = 0),
+                favorite("f2", "cine", shared, position = 0),
+                favorite("f3", "cine", channel("c3", "Rivage"), position = 1),
+            ),
+        )
+
+        assertThat(state.isAllView).isTrue()
+        assertThat(state.visible.map { it.channel.id }).containsExactly("c1", "c3").inOrder()
+        // All favourites has no order of its own to change.
+        assertThat(state.canMoveFavorite(state.visible.last(), -1)).isFalse()
+        // Two memberships: the global removal will remove both.
+        assertThat(state.membershipsOf("c1").map { it.favoriteId }).containsExactly("f1", "f2")
     }
 
     // ---- helpers -----------------------------------------------------------
