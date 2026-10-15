@@ -430,11 +430,7 @@ private fun Card(
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = if (entry.available) {
-                typeLabel(entry.type)
-            } else {
-                stringResource(R.string.feature_watchlist_unavailable)
-            },
+            text = cardStatusLabel(entry),
             style = MaterialTheme.typography.labelMedium,
             color = if (entry.available) LumoColors.OnDarkMuted else LumoColors.Error,
             maxLines = 1,
@@ -539,7 +535,7 @@ private fun UnavailablePanel(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = "${stringResource(R.string.feature_watchlist_unavailable)} · ${typeLabel(entry.type)}",
+                text = cardStatusLabel(entry),
                 style = MaterialTheme.typography.titleMedium,
                 color = LumoColors.Error,
             )

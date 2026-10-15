@@ -303,11 +303,7 @@ private fun Card(entry: WatchlistEntry, onSelect: (WatchlistEntry) -> Unit) {
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = if (entry.available) {
-                typeLabel(entry.type)
-            } else {
-                stringResource(R.string.feature_watchlist_unavailable)
-            },
+            text = cardStatusLabel(entry),
             style = MaterialTheme.typography.labelMedium,
             color = if (entry.available) {
                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -337,7 +333,7 @@ private fun UnavailablePanel(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
                 Text(
-                    text = "${stringResource(R.string.feature_watchlist_unavailable)} · ${typeLabel(entry.type)}",
+                    text = cardStatusLabel(entry),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.error,
                 )
