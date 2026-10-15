@@ -37,7 +37,7 @@
       Television only. The long press is the one gesture on the screen that
       nothing draws, so the rail it applies to says so beside its title.
     -->
-    <string name="feature_home_tv_details_hint">Hold OK for details</string>
+    <string name="feature_home_tv_details_hint">Hold OK for details or to remove</string>
 
     <!-- S8-E02, no source. The phone can add one; the television says where (core:data). -->
     <string name="feature_home_no_source_title">Add your first source</string>
@@ -74,4 +74,14 @@
     <!-- S11-05: an outage keeps what is on screen, and says so. -->
     <string name="feature_home_continue_partial">Continue watching couldn\'t be updated. What\'s shown may be out of date.</string>
     <string name="feature_home_details_unavailable">Details unavailable</string>
+
+    <!--
+      S12-04: "Remove from Continue watching" hides the card on every device and
+      keeps the position. A removal the server did not confirm keeps the card and
+      says so (CW-26) — never a success announced on its own.
+    -->
+    <string name="feature_home_remove_continue">Remove from Continue watching</string>
+    <string name="feature_home_remove_continue_failed">The card couldn\'t be removed and has been kept. Try again later.</string>
+    <string name="feature_home_cancel">Cancel</string>
+    <string name="feature_home_card_options">Options for %1$s</string>
 </resources>

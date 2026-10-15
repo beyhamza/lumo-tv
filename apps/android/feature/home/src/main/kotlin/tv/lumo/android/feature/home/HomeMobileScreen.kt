@@ -1,7 +1,9 @@
 package tv.lumo.android.feature.home
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -21,6 +23,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -28,7 +32,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,10 +84,9 @@ import tv.lumo.android.feature.home.navigation.HomeActions
  *
  * <h2>What is deliberately not here</h2>
  *
- * "Remove from Continue" (sprint 12, and it needs a contract the API does not have
- * yet) is not drawn disabled: a control that does nothing is one somebody presses
- * to find out. The way into the TV guide, which used to be on this list, is now
- * the Live rail's second closing action (S9-04-04).
+ * The way into the TV guide, which used to be on this list, is now the Live
+ * rail's second closing action (S9-04-04). "Remove from Continue watching"
+ * arrived with sprint 12 (S12-04): the "⋮" beside Details, or a long press.
  *
  * <h2>What is on, under the Live cards (US-16, S9-03)</h2>
  *
@@ -157,6 +162,7 @@ fun HomeMobileScreen(
                 actions = actions,
                 onRetry = viewModel::refreshSource,
                 onRetryContinue = viewModel::onShown,
+                onRemove = viewModel::removeFromContinue,
             )
         }
     }
@@ -168,6 +174,7 @@ private fun Browsing(
     actions: HomeActions,
     onRetry: () -> Unit,
     onRetryContinue: () -> Unit,
+    onRemove: (ContinueItem) -> Unit,
 ) {
     val sections = remember(state) { state.sections }
     val listState = rememberLazyListState()
@@ -199,6 +206,18 @@ private fun Browsing(
             item(key = "continue-partial") { ContinuePartial(onRetry = onRetryContinue) }
         }
 
+        // A removal the server did not confirm (CW-26): the card is still there.
+        if (state.removeFailed) {
+            item(key = "remove-failed") {
+                Text(
+                    text = stringResource(R.string.feature_home_remove_continue_failed),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = LumoSpacing.md),
+                )
+            }
+        }
+
         when {
             state.waiting -> item(key = "waiting") {
                 Box(
@@ -213,7 +232,7 @@ private fun Browsing(
 
             else -> items(sections, key = { it.railKey }) { section ->
                 when (section) {
-                    is HomeSection.Continue -> ContinueRail(section, actions)
+                    is HomeSection.Continue -> ContinueRail(section, actions, onRemove)
 
                     is HomeSection.Favorites -> ChannelRail(
                         title = stringResource(R.string.feature_home_favorites),
@@ -320,7 +339,7 @@ private fun ContinuePartial(onRetry: () -> Unit) {
 // ---- Continue ---------------------------------------------------------------
 
 @Composable
-private fun ContinueRail(section: HomeSection.Continue, actions: HomeActions) {
+private fun ContinueRail(section: HomeSection.Continue, actions: HomeActions, onRemove: (ContinueItem) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
         RailHeader(title = stringResource(R.string.feature_home_continue))
 
@@ -328,7 +347,7 @@ private fun ContinueRail(section: HomeSection.Continue, actions: HomeActions) {
             contentPadding = PaddingValues(horizontal = LumoSpacing.md),
             horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
         ) {
-            items(section.items, key = { it.key }) { item -> ContinueCard(item, actions) }
+            items(section.items, key = { it.key }) { item -> ContinueCard(item, actions, onRemove) }
         }
     }
 }
@@ -342,16 +361,25 @@ private fun ContinueRail(section: HomeSection.Continue, actions: HomeActions) {
  * never tries one, and an overflow menu holding a single entry is a menu somebody
  * opens to find a button.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ContinueCard(item: ContinueItem, actions: HomeActions) {
+private fun ContinueCard(item: ContinueItem, actions: HomeActions, onRemove: (ContinueItem) -> Unit) {
     val view = continueCardOf(item)
+    var menuOpen by remember { mutableStateOf(false) }
+    val optionsLabel = stringResource(R.string.feature_home_card_options, view.title)
 
     Column(
         modifier = Modifier.width(CONTINUE_CARD_WIDTH),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
     ) {
         Column(
-            modifier = Modifier.clickable { view.resume(actions) },
+            modifier = Modifier.combinedClickable(
+                onClick = { view.resume(actions) },
+                // The options are also on "⋮" below: a long press alone is a
+                // gesture nobody is told about (S12-04).
+                onLongClick = { menuOpen = true },
+                onLongClickLabel = optionsLabel,
+            ),
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
         ) {
             LumoPoster(
@@ -382,14 +410,36 @@ private fun ContinueCard(item: ContinueItem, actions: HomeActions) {
         }
 
         val detailsOf = stringResource(R.string.feature_home_details_of, view.title)
-        TextButton(
-            onClick = { view.open(actions) },
-            contentPadding = PaddingValues(horizontal = LumoSpacing.xs),
-            // Twelve buttons reading "Details" are twelve identical announcements
-            // to a screen reader; each one names what it opens.
-            modifier = Modifier.semantics { contentDescription = detailsOf },
-        ) {
-            Text(stringResource(R.string.feature_home_details))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(
+                onClick = { view.open(actions) },
+                contentPadding = PaddingValues(horizontal = LumoSpacing.xs),
+                // Twelve buttons reading "Details" are twelve identical announcements
+                // to a screen reader; each one names what it opens.
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { contentDescription = detailsOf },
+            ) {
+                Text(stringResource(R.string.feature_home_details), maxLines = 1)
+            }
+            Box {
+                TextButton(
+                    onClick = { menuOpen = true },
+                    contentPadding = PaddingValues(horizontal = LumoSpacing.xs),
+                    modifier = Modifier.semantics { contentDescription = optionsLabel },
+                ) {
+                    Text("⋮")
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.feature_home_remove_continue)) },
+                        onClick = {
+                            menuOpen = false
+                            onRemove(item)
+                        },
+                    )
+                }
+            }
         }
     }
 }

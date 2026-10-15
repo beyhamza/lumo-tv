@@ -52,6 +52,25 @@ internal fun homeFocusTarget(
     return returnKey?.takeIf { it in keys } ?: keys.first()
 }
 
+/**
+ * Where the focus goes when the card [removed] leaves its rail (S12-04).
+ *
+ * The card after it in the same rail, then the one before it — the remote stays
+ * where the viewer was working — and, when it was the rail's last card, the first
+ * card of whatever rail is now first. Null when nothing is left to focus.
+ *
+ * @param rail the keys of the rail the card was in, before the removal.
+ * @param keys every focusable card, before the removal.
+ */
+internal fun neighbourAfterRemoval(rail: List<String>, keys: List<String>, removed: String): String? {
+    val index = rail.indexOf(removed)
+    if (index >= 0) {
+        rail.getOrNull(index + 1)?.let { return it }
+        rail.getOrNull(index - 1)?.let { return it }
+    }
+    return keys.firstOrNull { it != removed && it !in rail }
+}
+
 /** The keys of every card of [sections], in reading order. See [homeFocusTarget]. */
 internal fun focusKeysOf(sections: List<HomeSection>): List<String> = sections.flatMap { section ->
     when (section) {

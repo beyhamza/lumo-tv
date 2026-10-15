@@ -30,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +42,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -85,9 +88,10 @@ import tv.lumo.android.feature.home.navigation.HomeActions
  * `OK` on a "Continue" card resumes it; `OK` on a channel starts it. There is no
  * second target on a card: two per card would double the horizontal journey
  * through a rail, which is the argument the channel grid already makes against a
- * heart button. The film or the series behind a "Continue" card is on a **long
- * press of `OK`** — the gesture that grid uses for its own secondary action — so
- * it costs no focus stop and traps nothing, and the rail's heading says it exists.
+ * heart button. The film or the series behind a "Continue" card, and "Remove from
+ * Continue watching" (S12-04), are on a **long press of `OK`** — the gesture the
+ * favourites use for their options — so they cost no focus stop and trap nothing,
+ * and the rail's heading says they exist.
  *
  * <h2>Where the focus goes, and when it is left alone</h2>
  *
@@ -169,13 +173,19 @@ fun HomeTvScreen(
                 state = state,
                 actions = actions,
                 onRetry = viewModel::refreshSource,
+                onRemove = viewModel::removeFromContinue,
             )
         }
     }
 }
 
 @Composable
-private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit) {
+private fun Browsing(
+    state: HomeState,
+    actions: HomeActions,
+    onRetry: () -> Unit,
+    onRemove: (ContinueItem) -> Unit,
+) {
     val sections = remember(state) { state.sections }
     val keys = remember(sections) { focusKeysOf(sections) }
 
@@ -212,6 +222,44 @@ private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit
         onLaunch = { key -> returnKey = key },
     )
 
+    // Hold OK on a "Continue" card: its options (S12-04), the favourites' pattern.
+    var options by remember { mutableStateOf<ContinueItem?>(null) }
+    // A removal asked for: the card, and where the focus goes once it has gone.
+    // Applied when the rail no longer holds it; dropped if the server refused.
+    var removal by remember { mutableStateOf<Pair<String, String?>?>(null) }
+    LaunchedEffect(keys, state.removeFailed) {
+        val (removed, neighbour) = removal ?: return@LaunchedEffect
+        if (removed !in keys) {
+            returnKey = neighbour
+            placedKey = null
+            removal = null
+        } else if (state.removeFailed) {
+            // Kept (CW-26): the focus goes back to the card that is still there.
+            returnKey = removed
+            placedKey = null
+            removal = null
+        }
+    }
+
+    options?.let { item ->
+        ContinueOptions(
+            item = item,
+            onDismiss = { options = null },
+            onDetails = { open ->
+                options = null
+                cards.onLaunch(item.key)
+                open(actions)
+            },
+            onRemove = {
+                options = null
+                val rail = sections.filterIsInstance<HomeSection.Continue>().firstOrNull()
+                    ?.items?.map { it.key }.orEmpty()
+                removal = item.key to neighbourAfterRemoval(rail, keys, item.key)
+                onRemove(item)
+            },
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -231,6 +279,15 @@ private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit
 
         state.notice?.let { notice ->
             Notice(notice = notice, onOpenSources = actions.onOpenSources, onRetry = onRetry)
+        }
+
+        // A removal the server did not confirm (CW-26): the card is still there.
+        if (state.removeFailed) {
+            Text(
+                text = stringResource(R.string.feature_home_remove_continue_failed),
+                style = MaterialTheme.typography.bodyLarge,
+                color = LumoColors.OnDarkMuted,
+            )
         }
 
         // Text and not a focus stop, like an import in progress: the next return
@@ -254,7 +311,12 @@ private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit
 
             else -> sections.forEach { section ->
                 when (section) {
-                    is HomeSection.Continue -> ContinueRail(section, actions, cards)
+                    is HomeSection.Continue -> ContinueRail(
+                        section = section,
+                        actions = actions,
+                        cards = cards,
+                        onOptions = { options = it },
+                    )
 
                     is HomeSection.Favorites -> ChannelRail(
                         title = stringResource(R.string.feature_home_favorites),
@@ -298,6 +360,65 @@ private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit
                         cards = cards,
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * The options of a "Continue" card: its sheet, and removing it from the rail.
+ *
+ * A dialog with a column of buttons, the first focused — the favourites' options,
+ * reached by the same gesture. `BACK` closes it.
+ */
+@Composable
+private fun ContinueOptions(
+    item: ContinueItem,
+    onDismiss: () -> Unit,
+    /** Called with the card's own way to its sheet. */
+    onDetails: ((HomeActions) -> Unit) -> Unit,
+    onRemove: () -> Unit,
+) {
+    val view = continueCardOf(item)
+    val first = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        runCatching { first.requestFocus() }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(LumoColors.Scrim),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .width(OPTIONS_WIDTH)
+                    .clip(LumoTvShapes.large)
+                    .background(LumoColors.Surface)
+                    .padding(LumoSpacing.xl),
+                verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+            ) {
+                Text(
+                    text = view.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = LumoColors.OnDark,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                LumoTvButton(
+                    text = stringResource(R.string.feature_home_details),
+                    onClick = { onDetails(view.open) },
+                    primary = true,
+                    focusRequester = first,
+                )
+                LumoTvButton(text = stringResource(R.string.feature_home_remove_continue), onClick = onRemove)
+                LumoTvButton(text = stringResource(R.string.feature_home_cancel), onClick = onDismiss)
             }
         }
     }
@@ -384,6 +505,7 @@ private fun ContinueRail(
     section: HomeSection.Continue,
     actions: HomeActions,
     cards: HomeCardFocus,
+    onOptions: (ContinueItem) -> Unit,
 ) {
     val listState = rememberLazyListState()
     PlaceFocus(keys = section.items.map { it.key }, cards = cards, scrollTo = listState::scrollToItem)
@@ -411,7 +533,12 @@ private fun ContinueRail(
             contentPadding = RAIL_PADDING,
         ) {
             items(section.items, key = { it.key }) { item ->
-                ContinueCard(item = item, actions = actions, cards = cards)
+                ContinueCard(
+                    item = item,
+                    actions = actions,
+                    cards = cards,
+                    onOptions = { onOptions(item) },
+                )
             }
         }
     }
@@ -419,7 +546,12 @@ private fun ContinueRail(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ContinueCard(item: ContinueItem, actions: HomeActions, cards: HomeCardFocus) {
+private fun ContinueCard(
+    item: ContinueItem,
+    actions: HomeActions,
+    cards: HomeCardFocus,
+    onOptions: () -> Unit,
+) {
     val view = continueCardOf(item)
     var focused by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
@@ -441,15 +573,13 @@ private fun ContinueCard(item: ContinueItem, actions: HomeActions, cards: HomeCa
             .combinedClickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onLongClickLabel = stringResource(R.string.feature_home_details),
-                onLongClick = {
+                onLongClickLabel = stringResource(R.string.feature_home_card_options, view.title),
+                onLongClick = onOptions,
+                onClick = {
                     cards.onLaunch(view.key)
-                    view.open(actions)
+                    view.resume(actions)
                 },
-            ) {
-                cards.onLaunch(view.key)
-                view.resume(actions)
-            }
+            )
             .padding(LumoSpacing.xs),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
     ) {
@@ -804,6 +934,9 @@ private fun Centered(content: @Composable () -> Unit) {
  * below" on a television is seeing the top of it.
  */
 private val POSTER_WIDTH = 160.dp
+
+/** The favourites' options dialog width, so the two read as one pattern. */
+private val OPTIONS_WIDTH = 640.dp
 
 /** The channel grid's card, a little narrower: a rail shows five and the edge of a sixth. */
 private val CHANNEL_CARD_WIDTH = 232.dp

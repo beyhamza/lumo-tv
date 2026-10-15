@@ -19,6 +19,32 @@ class HomeFocusTest {
 
     private val keys = listOf("film:a", "series:b", "favorite:c", "recent:c")
 
+    // ---- after "Remove from Continue watching" (S12-04) ---------------------
+
+    private val rail = listOf("film:a", "series:b", "film:d")
+    private val all = rail + listOf("favorite:c", "recent:c")
+
+    @Test
+    fun `a removed card hands the focus to the next one in its rail`() {
+        assertThat(neighbourAfterRemoval(rail, all, "series:b")).isEqualTo("film:d")
+    }
+
+    @Test
+    fun `the last card of the rail hands it to the one before`() {
+        assertThat(neighbourAfterRemoval(rail, all, "film:d")).isEqualTo("series:b")
+    }
+
+    @Test
+    fun `the only card of the rail hands it to the next rail`() {
+        assertThat(neighbourAfterRemoval(listOf("film:a"), listOf("film:a", "favorite:c"), "film:a"))
+            .isEqualTo("favorite:c")
+    }
+
+    @Test
+    fun `nothing left to focus is null`() {
+        assertThat(neighbourAfterRemoval(listOf("film:a"), listOf("film:a"), "film:a")).isNull()
+    }
+
     @Test
     fun `on arrival the first card of the first rail takes the focus`() {
         assertThat(homeFocusTarget(keys, returnKey = null, placedKey = null, focusedKey = null))
