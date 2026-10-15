@@ -38,7 +38,7 @@ class SourceDeletionCascadeIntegrationTest extends PostgresIntegrationTest {
     /** Every table that holds rows belonging to a source, directly or not. */
     private static final List<String> TABLES_BY_SOURCE = List.of(
             "category", "channel", "epg_programme", "vod_item", "series", "episode",
-            "favorite", "recent_channel", "playback_progress");
+            "favorite", "recent_channel", "playback_progress", "watchlist_item");
 
     @Autowired
     private SourceService sourceService;
@@ -186,6 +186,15 @@ class SourceDeletionCascadeIntegrationTest extends PostgresIntegrationTest {
                 """)
                 .param("id", UUID.randomUUID()).param("userId", user.id())
                 .param("sourceId", sourceId).param("itemRef", filmId.toString()).update();
+
+        // The watchlist keeps no foreign key to the catalogue (ADR 0011): what
+        // takes its items with the source is its own source_id (US-024, WL-05).
+        jdbc.sql("""
+                INSERT INTO watchlist_item (id, user_id, source_id, content_type, external_id, title)
+                VALUES (:id, :userId, :sourceId, 'VOD', 'film-1', 'Film')
+                """)
+                .param("id", UUID.randomUUID()).param("userId", user.id())
+                .param("sourceId", sourceId).update();
 
         return sourceId;
     }
