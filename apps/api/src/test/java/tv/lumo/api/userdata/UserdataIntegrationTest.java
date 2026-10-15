@@ -307,6 +307,48 @@ class UserdataIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("position is an index: moving a favourite down lands it exactly there")
+    void movingDownLandsAtTheIndex() {
+        List<Favorite> group = fourInOneGroup();
+
+        userdata.updateFavorite(user.id(), group.get(1).getId(), new UpdateFavoriteRequest().position(3));
+
+        assertThat(userdata.listFavorites(user.id(), group.get(0).getGroupId()))
+                .extracting(Favorite::getId)
+                .containsExactly(group.get(0).getId(), group.get(2).getId(),
+                        group.get(3).getId(), group.get(1).getId());
+    }
+
+    @Test
+    @DisplayName("removing a favourite closes the gap: positions stay contiguous")
+    void removingKeepsPositionsContiguous() {
+        List<Favorite> group = fourInOneGroup();
+
+        userdata.removeFavorite(user.id(), group.get(1).getId());
+
+        assertThat(userdata.listFavorites(user.id(), group.get(0).getGroupId()))
+                .extracting(Favorite::getPosition).containsExactly(0, 1, 2);
+    }
+
+    @Test
+    @DisplayName("a favourite removed by a cascade still leaves contiguous positions, and a move after it is exact")
+    void cascadeGapsDoNotSkewMoves() {
+        List<Favorite> group = fourInOneGroup();
+        // A synchronisation that no longer lists a channel deletes it, and its
+        // favourites go with it (ON DELETE CASCADE), behind this service's back.
+        jdbc.sql("DELETE FROM channel WHERE id = :id").param("id", group.get(1).getChannelId()).update();
+
+        List<Favorite> left = userdata.listFavorites(user.id(), group.get(0).getGroupId());
+        assertThat(left).extracting(Favorite::getPosition).containsExactly(0, 1, 2);
+
+        userdata.updateFavorite(user.id(), group.get(0).getId(), new UpdateFavoriteRequest().position(2));
+
+        assertThat(userdata.listFavorites(user.id(), group.get(0).getGroupId()))
+                .extracting(Favorite::getId)
+                .containsExactly(group.get(2).getId(), group.get(3).getId(), group.get(0).getId());
+    }
+
+    @Test
     @DisplayName("reordering within a group leaves the positions contiguous from zero")
     void reorderingWithinAGroupIsContiguous() {
         UUID thirdChannelId = insertChannel(sourceId, "Chaîne 03");
@@ -495,6 +537,16 @@ class UserdataIntegrationTest extends PostgresIntegrationTest {
      * playlist, which a test suite has no business making. What is under test here
      * is what happens to a channel once it exists.
      */
+    /** Four favourites in the default group, in insertion order. */
+    private List<Favorite> fourInOneGroup() {
+        userdata.addFavorite(user.id(), new AddFavoriteRequest(channelId));
+        userdata.addFavorite(user.id(), new AddFavoriteRequest(otherChannelId));
+        userdata.addFavorite(user.id(), new AddFavoriteRequest(insertChannel(sourceId, "Chaîne 03")));
+        Favorite last = userdata.addFavorite(user.id(),
+                new AddFavoriteRequest(insertChannel(sourceId, "Chaîne 04")));
+        return userdata.listFavorites(user.id(), last.getGroupId());
+    }
+
     private UUID insertChannel(UUID source, String name) {
         UUID id = UUID.randomUUID();
         jdbc.sql("""

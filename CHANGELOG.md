@@ -28,6 +28,10 @@ clients générés ; les écrans arrivent avec S11-04.
 
 - API : un en-tête obligatoire absent répond `400 VALIDATION_FAILED` au lieu de
   `500`.
+- API : les positions des favoris restent un index contigu, comme le promet le
+  contrat. Un retrait, ou une chaîne effacée par une synchronisation ou avec sa
+  source, laissait un trou ; un favori déplacé vers le bas dans son groupe
+  atterrissait une place trop haut.
 
 ## [0.2.0] — 2026-10-14
 
