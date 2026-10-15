@@ -738,8 +738,10 @@ paths:
       description: |
         Irreversible, and it takes everything that belongs to the source with
         it: categories, channels, EPG programmes, films, series with their
-        seasons and episodes, favourites, recently watched channels and playback
-        progress. Nothing belonging to another source is touched.
+        seasons and episodes, favourites, recently watched channels, playback
+        progress and the items saved to watch later (`/me/watchlist`, which do
+        not linger as unavailable). Nothing belonging to another source is
+        touched.
 
         Adding the same source again does not bring any of it back: ids are
         minted at ingestion, so the favourites and positions that pointed at

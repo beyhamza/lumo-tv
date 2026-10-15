@@ -57,7 +57,7 @@ public interface SourcesApi {
 
     /**
      * DELETE /sources/{id} : Delete a source and everything ingested from it
-     * Irreversible, and it takes everything that belongs to the source with it: categories, channels, EPG programmes, films, series with their seasons and episodes, favourites, recently watched channels and playback progress. Nothing belonging to another source is touched.  Adding the same source again does not bring any of it back: ids are minted at ingestion, so the favourites and positions that pointed at the old ones have nothing left to point at.  For another device, the proof that a source is gone is &#x60;404 SOURCE_NOT_FOUND&#x60; on a call that names it, or its absence from a successful &#x60;GET /sources&#x60;. A network failure proves nothing. 
+     * Irreversible, and it takes everything that belongs to the source with it: categories, channels, EPG programmes, films, series with their seasons and episodes, favourites, recently watched channels, playback progress and the items saved to watch later (&#x60;/me/watchlist&#x60;, which do not linger as unavailable). Nothing belonging to another source is touched.  Adding the same source again does not bring any of it back: ids are minted at ingestion, so the favourites and positions that pointed at the old ones have nothing left to point at.  For another device, the proof that a source is gone is &#x60;404 SOURCE_NOT_FOUND&#x60; on a call that names it, or its absence from a successful &#x60;GET /sources&#x60;. A network failure proves nothing. 
      *
      * @param id Resource identifier. (required)
      * @return Source and its ingested data deleted. (status code 204)
