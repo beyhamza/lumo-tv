@@ -49,9 +49,24 @@ Une case cochée signifie **recetté**, pas seulement écrit.
   automatisée = DoD : ADR 0011 **acceptée** par Hamza le 14/10 ; `/me/watchlist` au
   contrat, migration `0021`, `WatchlistService`, clients régénérés ; `WatchlistIntegrationTest`
   19/19, suite API 380/380.
-- [ ] S11-02 — agrégation des favoris sans doublon — 0 %
-- [ ] S11-03 — gestes Ajouter / Organiser, retraits, réordonnancement — 0 %
-- [ ] S11-04 — écrans À regarder (trois clients), clé d'idempotence par intention — 80 % :
+- [ ] S11-02 — agrégation des favoris sans doublon — 90 % : l'agrégation US-020 existait déjà
+  (accueil web et Android, vue « Tous » Android) ; la vue « Tous les favoris » de la page web
+  Favoris la reprend désormais (PR #60). Reste la recette sur appareil.
+- [ ] S11-03 — gestes Ajouter / Organiser, retraits, réordonnancement — 85 % :
+  - **Web** fusionné (PR #60) : Organiser, retrait d'un groupe, « Retirer de tous mes
+    favoris » avec confirmation sans JavaScript et réessai limité aux appartenances restantes,
+    Monter / Descendre traduits en index du groupe complet (G1), « Ordre non entièrement
+    appliqué » en cas d'interruption (G2), groupes réordonnables. Vitest 427/427.
+  - **Android** (`feat/S11-03-android-favorites`) : mêmes règles, glisser-déposer et menu sur
+    mobile, « Déplacer avant / après » et options par appui long OK sur TV, focus rendu à la
+    carte ou à sa voisine. Tests 719/719, `FavoritesTvRemovalFocusTest` 2/2.
+  - **API** : positions de favoris contiguës et déplacement à l'index exact (PR #59) ; même
+    défaut corrigé pour les groupes (`fix/S11-03-group-positions`).
+  - Reste : échec partiel réel en cours de séquence (tests seulement), hors ligne sur appareil,
+    clavier TV pour renommer, FR sur appareil, glisser-déposer web (non fait, boutons
+    accessibles à la place), « Retirer de tous mes favoris » depuis l'accueil (non proposé).
+- [ ] S11-04 — écrans À regarder (trois clients), clé d'idempotence par intention — 90 %, en recette
+  (web PR #57, Android PR #58) :
   - **Web** fusionné (PR #57) : `/app/watchlist`, filtres depuis `content_types`, carte
     `Indisponible` retirable sans fiche, bouton sur les fiches film et série ; clé créée au
     rendu du formulaire (une double soumission ne change rien), « Modification non
@@ -67,7 +82,7 @@ Une case cochée signifie **recetté**, pas seulement écrit.
 - [ ] S11-05 — propagation, erreurs partielles, suppression de source — 0 %
 - [ ] S11-06 — recette entre appareils — 0 %
 
-**Avancement global ≈ 37 %** (moyenne des sept lots).
+**Avancement global ≈ 62 %** (moyenne des sept lots).
 
 ### Point du 8 octobre 2026
 
