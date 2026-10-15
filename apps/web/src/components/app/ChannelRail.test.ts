@@ -32,4 +32,14 @@ describe("railParts", () => {
     expect(railParts(3, 2, true)).toEqual({ cards: true, entries: true });
     expect(railParts(1, 0, false)).toEqual({ cards: true, entries: false });
   });
+
+  it("draws a failed rail with no card: heading and failure line only (S11-05)", () => {
+    // An empty rail whose lookup failed must not vanish as if it were empty.
+    expect(railParts(0, 1, false, true)).toEqual({ cards: false, entries: false });
+    expect(railParts(0, 0, false, true)).toEqual({ cards: false, entries: false });
+    // The Live rail keeps its doors when it failed, too.
+    expect(railParts(0, 2, true, true)).toEqual({ cards: false, entries: true });
+    // A failed rail with cards keeps them.
+    expect(railParts(2, 1, false, true)).toEqual({ cards: true, entries: true });
+  });
 });

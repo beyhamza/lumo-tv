@@ -21,8 +21,13 @@ export function EmptyState({ title, hint }: { title: string; hint: string }) {
   );
 }
 
-/** The API did not answer: down, restarting, or unreachable from this server. */
-export async function Unavailable() {
+/**
+ * The API did not answer: down, restarting, or unreachable from this server.
+ *
+ * `retryHref`, when given, is the same view: a plain link, so that retrying is
+ * one click and works without JavaScript (S11-05).
+ */
+export async function Unavailable({ retryHref }: { retryHref?: string } = {}) {
   const t = await getTranslations("App");
 
   return (
@@ -32,6 +37,13 @@ export async function Unavailable() {
     >
       <p className="font-medium">{t("unavailableTitle")}</p>
       <p className="text-muted-foreground mt-1 text-sm">{t("unavailableBody")}</p>
+      {retryHref ? (
+        <p className="mt-3">
+          <a href={retryHref} className="text-sm underline underline-offset-4">
+            {t("unavailableRetry")}
+          </a>
+        </p>
+      ) : null}
     </div>
   );
 }

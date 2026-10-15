@@ -10,6 +10,7 @@ import { type DirectView, directViewHref } from "@/lib/direct/view-memory";
 import { epgNow } from "@/lib/epg/clock";
 import { clockTime } from "@/lib/epg/format";
 import { loadHomeRails, type HomeRails } from "@/lib/home/load-home-rails";
+import { homeState, type RailStatus } from "@/lib/home/rail-status";
 import { requireSession } from "@/lib/session/session";
 import { loadActiveSource } from "@/lib/sources/active-source-store";
 import { sourceCondition } from "@/lib/sources/source-condition";
@@ -39,6 +40,10 @@ import { sourceCondition } from "@/lib/sources/source-condition";
  *   open on the same question; this says why the page is waiting.
  * - A source with nothing watched and nothing starred — an invitation to explore,
  *   with the three catalogues one click away.
+ * - A rail that could not be read in full — a short line under its heading,
+ *   with a retry, beside the rails that did load (S11-05). Never the
+ *   invitation to explore: a failed lookup is not "nothing yet". Only when every
+ *   rail failed and none has a card does the page say it is unavailable.
  * - A source synchronising, or in error — said, **above** the rails rather than
  *   instead of them: since contract lot C4 the previous catalogue stays served in
  *   every status, so what was there yesterday is still there
@@ -143,9 +148,26 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
     ? await loadHomeRails(session.accessToken, source.id, now)
     : null;
   const onAir = rails ? await onAirLines(rails.onAir, locale, t) : undefined;
-  const hasRails =
-    rails !== null &&
-    rails.continueWatching.length + rails.favorites.length + rails.recents.length > 0;
+  const state = rails
+    ? homeState([
+        { cards: rails.continueWatching.length, status: rails.status.continueWatching },
+        { cards: rails.favorites.length, status: rails.status.favorites },
+        { cards: rails.recents.length, status: rails.status.recents },
+      ])
+    : null;
+
+  // Retrying is reading the page again: a plain link, no script (S11-05).
+  const retryHref = hrefFor(locale, "/app");
+  // Per rail, only while the rails are what the page shows: when every rail
+  // failed, one "unavailable" says it once instead of three identical lines.
+  const failureOf = (status: RailStatus, cards: number) =>
+    state === "rails" && status === "failed"
+      ? {
+          text: cards > 0 ? t("homeRailPartial") : t("homeRailFailed"),
+          retryHref,
+          retryLabel: t("homeRailRetry"),
+        }
+      : undefined;
 
   const channelsHref = `/app/sources/${source.id}/channels`;
   const playHref = (channelId: string) =>
@@ -184,6 +206,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
           <ContinueRail
             title={t("homeContinueTitle")}
             entries={continueEntries(rails, source.id, locale, t)}
+            failure={failureOf(rails.status.continueWatching, rails.continueWatching.length)}
           />
           <ChannelRail
             prominent
@@ -191,6 +214,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
             channels={rails.favorites}
             playHref={playHref}
             onAir={onAir}
+            failure={failureOf(rails.status.favorites, rails.favorites.length)}
             more={[
               {
                 href: hrefFor(locale, "/app/favorites"),
@@ -204,6 +228,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
             channels={rails.recents}
             playHref={playHref}
             onAir={onAir}
+            failure={failureOf(rails.status.recents, rails.recents.length)}
             // A cold account has no recent channel, and the two doors must
             // still be there (S9-04-07): the rail keeps its entries with no card.
             keepEntriesWhenEmpty
@@ -215,16 +240,14 @@ export default async function HomePage({ params }: PageProps<"/[locale]/app">) {
         </>
       ) : null}
 
-      {rails && !hasRails ? (
-        rails.failed ? (
-          // Nothing on screen *and* something did not answer: "nothing yet" would
-          // be a guess, and the wrong one for anybody who has a history.
-          <div className="mt-8">
-            <Unavailable />
-          </div>
-        ) : (
-          <Explore sourceId={source.id} locale={locale} />
-        )
+      {state === "unavailable" ? (
+        // Nothing on screen *and* every rail failed: "nothing yet" would be a
+        // guess, and the wrong one for anybody who has a history.
+        <div className="mt-8">
+          <Unavailable retryHref={retryHref} />
+        </div>
+      ) : state === "explore" ? (
+        <Explore sourceId={source.id} locale={locale} />
       ) : null}
     </div>
   );

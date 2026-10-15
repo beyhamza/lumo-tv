@@ -20,6 +20,7 @@ import {
   resumableRows,
   type ContinueCard,
 } from "./continue-watching";
+import { channelRailStatus, lookupOf, railStatus, type RailStatus } from "./rail-status";
 
 /**
  * Everything the home page's three rails need, for one source (S8-04).
@@ -49,9 +50,11 @@ import {
  * and the rail built on it comes out empty. What would be lost otherwise is the
  * two rails that did load.
  *
- * It is reported, though, as `failed`. A page with nothing on it because nothing
- * was ever watched invites somebody to explore; a page with nothing on it because
- * three requests failed must not say the same sentence.
+ * It is reported, though, **per rail** (`status`, S11-05). A page with nothing on
+ * it because nothing was ever watched invites somebody to explore; a page with
+ * nothing on it because three requests failed must not say the same sentence —
+ * and neither must a rail whose names could not be looked up in the second wave,
+ * which is the case the first version of this report missed.
  */
 
 /**
@@ -86,11 +89,20 @@ export type HomeRails = {
    */
   onAir: ReadonlyMap<string, EpgProgramme>;
   /**
-   * At least one of the first-wave requests did not answer. The group list is
-   * not counted: without it the favourites keep the server's order, which is
-   * the same rail.
+   * Per rail, whether every request it depends on answered — the first wave
+   * *and* the lookups of the second and third (S11-05). A failed rail may still
+   * hold the cards that did resolve; it is never an empty rail presented as
+   * confirmed empty.
+   *
+   * Not counted: the group list (without it the favourites keep the server's
+   * order, which is the same rail) and the guide (an absent "on now" line hides
+   * nothing, S7-03).
    */
-  failed: boolean;
+  status: {
+    continueWatching: RailStatus;
+    favorites: RailStatus;
+    recents: RailStatus;
+  };
 };
 
 export async function loadHomeRails(
@@ -152,7 +164,7 @@ export async function loadHomeRails(
   // both, and the server refuses a batch with a duplicate.
   const railIds = unique([...starred, ...watched].map((entry) => entry.channel_id));
 
-  const [episodes, films, channelsById, guide] = await Promise.all([
+  const [episodes, films, channelLookup, guide] = await Promise.all([
     episodeIds.length > 0
       ? quiet(
           client.GET("/sources/{id}/episodes", {
@@ -170,14 +182,18 @@ export async function loadHomeRails(
         )
       : undefined,
     // One lookup for both channel rails: a favourite watched this morning is in
-    // both, and `resolveChannels` asks for it once. It never throws.
+    // both, and `resolveChannels` asks for it once. It never throws, and reports
+    // the ids whose batch failed — which is what `status` below is built from.
     resolveChannels(
       [...starred, ...watched].map((entry) => ({ sourceId, channelId: entry.channel_id })),
       async (id, ids, size) => {
         const answer = await client.GET("/sources/{id}/channels", {
           params: { path: { id }, query: { ids, size } },
         });
-        return answer.data?.items ?? [];
+        // A refusal is a failure, not an empty answer: `[]` here would claim
+        // every channel of the batch is gone.
+        if (!answer.data) throw new Error("channel lookup failed");
+        return answer.data.items;
       },
     ),
     // One request for what is on across both rails (S9-03). Never throws and
@@ -207,7 +223,7 @@ export async function loadHomeRails(
   // last ingestion dropped is absent from the map and falls out.
   const named = (entries: readonly { channel_id: string }[]) =>
     entries
-      .map((entry) => channelsById.get(entry.channel_id))
+      .map((entry) => channelLookup.byId.get(entry.channel_id))
       .filter((channel): channel is Channel => channel !== undefined);
 
   return {
@@ -220,7 +236,25 @@ export async function loadHomeRails(
     favorites: named(starred),
     recents: named(watched),
     onAir: guide.state === "ok" ? onAirByChannel(guide.grid.channels, now) : new Map(),
-    failed: [filmRows, episodeRows, favorites, recents].some((answer) => answer === undefined),
+    status: {
+      continueWatching: railStatus(
+        lookupOf(true, filmRows),
+        lookupOf(true, episodeRows),
+        lookupOf(episodeIds.length > 0, episodes),
+        lookupOf(filmIds.length > 0, films),
+        lookupOf(seriesIds.length > 0, series),
+      ),
+      favorites: channelRailStatus(
+        lookupOf(true, favorites),
+        starred.map((entry) => entry.channel_id),
+        channelLookup.failed,
+      ),
+      recents: channelRailStatus(
+        lookupOf(true, recents),
+        watched.map((entry) => entry.channel_id),
+        channelLookup.failed,
+      ),
+    },
   };
 }
 
