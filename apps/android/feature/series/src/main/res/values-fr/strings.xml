@@ -24,6 +24,9 @@
     <string name="feature_series_retry">Réessayer</string>
     <string name="feature_series_tree_unavailable_title">Épisodes indisponibles</string>
     <string name="feature_series_tree_unavailable_body">Votre fournisseur n\'a pas répondu. La série est toujours là — réessayez dans un instant.</string>
+    <string name="feature_series_offline_title">Cette série n\'est pas disponible hors ligne</string>
+    <string name="feature_series_episodes_offline_title">Les épisodes ne sont pas disponibles hors ligne</string>
+    <string name="feature_series_offline_body">Tout se chargera au retour de la connexion.</string>
     <string name="feature_series_no_seasons_title">Aucun épisode listé</string>
     <string name="feature_series_no_seasons_body">Votre fournisseur liste cette série mais n\'a renvoyé aucune saison pour elle. Il ne manque rien de notre côté.</string>
     <string name="feature_series_episode_count_mismatch">%1$d épisodes listés, %2$d annoncés par votre fournisseur.</string>

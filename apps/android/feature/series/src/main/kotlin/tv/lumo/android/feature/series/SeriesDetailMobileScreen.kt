@@ -94,7 +94,7 @@ fun SeriesDetailMobileScreen(
             series = state.series,
             watchlist = {
                 LumoWatchlistButton(
-                    state = watchlist.asButtonState(),
+                    state = watchlist.asButtonState(state.unavailable),
                     onToggle = viewModel::onWatchlistToggle,
                     onRetry = viewModel::onWatchlistRetry,
                 )
@@ -103,6 +103,7 @@ fun SeriesDetailMobileScreen(
 
         Tree(
             tree = state.tree,
+            unavailableTitle = unavailableTitle(state),
             openSeason = state.openSeason,
             progress = state.progress,
             onSelectSeason = viewModel::onSeasonSelected,
@@ -164,6 +165,7 @@ private fun Header(series: Series?, watchlist: @Composable () -> Unit) {
 @Composable
 private fun Tree(
     tree: SeriesTree,
+    unavailableTitle: Pair<Int, Int>,
     openSeason: Season?,
     progress: Map<String, EpisodeProgress>,
     onSelectSeason: (Int) -> Unit,
@@ -188,7 +190,7 @@ private fun Tree(
             verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
         ) {
             Text(
-                text = stringResource(R.string.feature_series_tree_unavailable_title),
+                text = stringResource(unavailableTitle.first),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
             )
@@ -196,7 +198,7 @@ private fun Tree(
                 // Never "this series has no episodes". The series is there; what
                 // failed is the call that fills it in, and the two send somebody
                 // to two different places.
-                text = stringResource(R.string.feature_series_tree_unavailable_body),
+                text = stringResource(unavailableTitle.second),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

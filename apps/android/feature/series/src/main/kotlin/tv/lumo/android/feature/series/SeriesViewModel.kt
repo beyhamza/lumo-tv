@@ -25,7 +25,9 @@ import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.ActiveSourceState
 import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
+import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.SheetUnavailable
 import tv.lumo.android.core.data.valueOrNull
 import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.WatchlistToggle
@@ -406,7 +408,7 @@ data class SeriesState(
 class SeriesDetailViewModel @Inject constructor(
     private val series: SeriesRepository,
     private val progress: ProgressRepository,
-    watchlistRepository: WatchlistRepository,
+    private val watchlistRepository: WatchlistRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SeriesDetailState())
@@ -421,9 +423,14 @@ class SeriesDetailViewModel @Inject constructor(
 
     fun onWatchlistToggle() = watchlist.toggle()
 
-    fun onWatchlistRetry() = watchlist.retry()
+    /**
+     * "Retry" beside the button. A sheet that never loaded has no source to read
+     * the membership with, so its retry is the sheet's own (BUG-S11-06-04).
+     */
+    fun onWatchlistRetry() = if (_state.value.unavailable != null) retry() else watchlist.retry()
 
     private var loaded: String? = null
+    private var fetching = false
 
     /** Called once, with the series the screen was opened for. */
     fun start(seriesId: String) {
@@ -441,12 +448,28 @@ class SeriesDetailViewModel @Inject constructor(
         viewModelScope.launch {
             series.tree(seriesId).collect { tree -> _state.update { it.copy(tree = tree) } }
         }
+        // Once, on opening. The repository serves what is cached first and
+        // decides on its own whether this call is worth making.
+        fetch(seriesId)
         viewModelScope.launch {
-            // Once, on opening. The repository serves what is cached first and
-            // decides on its own whether this call is worth making.
-            series.loadTree(seriesId)
+            // A sheet that could not load offline loads when the network comes
+            // back, rather than waiting for a press.
+            watchlistRepository.reconnections.collect {
+                if (_state.value.loadOffline) retry()
+            }
         }
         loadProgress()
+    }
+
+    private fun fetch(seriesId: String) {
+        if (fetching) return
+        fetching = true
+        viewModelScope.launch {
+            _state.update { it.copy(lastLoad = null) }
+            val result = series.loadTree(seriesId)
+            _state.update { it.copy(lastLoad = result) }
+            fetching = false
+        }
     }
 
     /**
@@ -470,7 +493,7 @@ class SeriesDetailViewModel @Inject constructor(
     /** Retrying after a provider that did not answer. The only failure worth a button. */
     fun retry() {
         val seriesId = loaded ?: return
-        viewModelScope.launch { series.loadTree(seriesId) }
+        fetch(seriesId)
     }
 
     fun onSeasonSelected(seasonNumber: Int) =
@@ -495,7 +518,20 @@ data class SeriesDetailState(
      * about itself and a list would be a scan per row down a fifty-episode season.
      */
     val progress: Map<String, EpisodeProgress> = emptyMap(),
+    /** The outcome of the last fetch of the tree, or null while one is running. */
+    val lastLoad: LumoResult<Unit>? = null,
 ) {
+
+    /**
+     * Why the sheet has nothing to show, or null when it has (BUG-S11-06-04):
+     * no cached series row and a fetch that failed.
+     */
+    val unavailable: SheetUnavailable?
+        get() = SheetUnavailable.of(hasContent = series != null, lastLoad = lastLoad)
+
+    /** The last fetch failed for want of a network: the episodes say so, not "your provider". */
+    val loadOffline: Boolean
+        get() = (lastLoad as? LumoResult.Failure)?.error is LumoError.Offline
 
     /**
      * The season on screen.
@@ -545,4 +581,20 @@ data class SeriesDetailState(
             }
             return started?.id ?: episodes.firstOrNull { progress[it.id] == null }?.id
         }
+}
+
+/**
+ * The title and body string resources of a tree that could not be loaded.
+ *
+ * "Your provider did not answer" is only true when something answered: offline,
+ * the sentence is about the connection, and about the whole series when not even
+ * its name is cached (BUG-S11-06-04).
+ */
+internal fun unavailableTitle(state: SeriesDetailState): Pair<Int, Int> = when {
+    !state.loadOffline ->
+        R.string.feature_series_tree_unavailable_title to R.string.feature_series_tree_unavailable_body
+    state.series == null ->
+        R.string.feature_series_offline_title to R.string.feature_series_offline_body
+    else ->
+        R.string.feature_series_episodes_offline_title to R.string.feature_series_offline_body
 }

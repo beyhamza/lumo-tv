@@ -26,6 +26,11 @@
     <string name="feature_vod_minutes">%1$d min</string>
     <string name="feature_vod_synopsis_loading">Récupération du synopsis…</string>
     <string name="feature_vod_synopsis_none">Cette source ne donne pas de synopsis pour ce film.</string>
+    <string name="feature_vod_detail_offline_title">Ce film n\'est pas disponible hors ligne</string>
+    <string name="feature_vod_detail_offline_body">Il se chargera au retour de la connexion.</string>
+    <string name="feature_vod_detail_failed_title">Ce film n\'a pas pu être chargé</string>
+    <string name="feature_vod_detail_failed_body">Un problème est survenu en chemin. Réessayez.</string>
+    <string name="feature_vod_detail_retry">Réessayer</string>
 
     <!-- ==== Le lecteur ==== -->
     <string name="feature_vod_position">%1$s / %2$s</string>
