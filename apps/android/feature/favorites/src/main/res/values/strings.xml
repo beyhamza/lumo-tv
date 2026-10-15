@@ -47,9 +47,6 @@
     <string name="feature_favorites_move_right">Move right</string>
     <string name="feature_favorites_move_up">Move up</string>
     <string name="feature_favorites_move_down">Move down</string>
-    <string name="feature_favorites_move_to_group">Move to another group…</string>
-    <string name="feature_favorites_move_title">Move to which group?</string>
-    <string name="feature_favorites_remove">Remove from favourites</string>
 
     <string name="feature_favorites_delete_title">Delete “%1$s”?</string>
     <string name="feature_favorites_delete_confirm">Delete the group</string>
@@ -78,4 +75,59 @@
     <string name="feature_favorites_tv_loading">Loading…</string>
     <string name="feature_favorites_tv_empty_body">In Live, hold OK on a channel to add it to your favourites. It will appear here.</string>
     <string name="feature_favorites_tv_open_live">Open Live</string>
+
+    <!--
+      Organising favourite channels in the library (US-022, S11-E01 → S11-E04).
+      "Remove from all my favourites" is the wording the story fixes; removing from
+      one group is a different gesture with its own words.
+    -->
+    <string name="feature_favorites_all">All favourites</string>
+    <string name="feature_favorites_groups">Groups</string>
+    <string name="feature_favorites_new_group">New group</string>
+    <string name="feature_favorites_new_group_title">Create a group</string>
+    <string name="feature_favorites_create">Create</string>
+    <string name="feature_favorites_default_not_deletable">The default group can be renamed, not deleted.</string>
+    <string name="feature_favorites_move_before">Move before</string>
+    <string name="feature_favorites_move_after">Move after</string>
+    <string name="feature_favorites_drag_handle">Drag to reorder “%1$s”</string>
+    <string name="feature_favorites_saving">Saving…</string>
+
+    <string name="feature_favorites_organize">Organise…</string>
+    <string name="feature_favorites_organize_title">Groups for “%1$s”</string>
+    <string name="feature_favorites_organize_last_group">A favourite channel stays in at least one group. To remove it everywhere, use “Remove from all my favourites” in All favourites.</string>
+    <string name="feature_favorites_done">Done</string>
+
+    <string name="feature_favorites_remove_from_group">Remove from this group</string>
+    <string name="feature_favorites_remove_everywhere">Remove from all my favourites</string>
+    <string name="feature_favorites_remove_everywhere_title">Remove “%1$s” from all your favourites?</string>
+    <plurals name="feature_favorites_remove_everywhere_body">
+        <item quantity="one">It will be removed from %1$d group. You can add it again from Live.</item>
+        <item quantity="other">It will be removed from its %1$d groups. You can add it again from Live.</item>
+    </plurals>
+    <string name="feature_favorites_remove_everywhere_confirm">Remove everywhere</string>
+    <string name="feature_favorites_removing">Removing…</string>
+    <!--
+      A partial removal (S11-00, G2): what succeeded is kept, what remains is named,
+      and nothing here says the removal worked.
+    -->
+    <string name="feature_favorites_removal_incomplete_title">Removal incomplete</string>
+    <plurals name="feature_favorites_removal_incomplete_body">
+        <item quantity="one">This channel is still in %1$d group: %2$s. The other removals are done.</item>
+        <item quantity="other">This channel is still in %1$d groups: %2$s. The other removals are done.</item>
+    </plurals>
+    <string name="feature_favorites_removal_unconfirmed_title">Removal not confirmed</string>
+    <string name="feature_favorites_removal_unconfirmed_body">The connection dropped before every removal was confirmed. Nothing is assumed: retry to check and finish.</string>
+    <string name="feature_favorites_removal_not_started_title">Nothing was removed</string>
+    <string name="feature_favorites_removal_not_started_body">Your favourites could not be reached. The channel is still in your favourites.</string>
+    <string name="feature_favorites_removal_offline_body">You\'re offline. The channel is still in your favourites.</string>
+    <string name="feature_favorites_removed_everywhere">“%1$s” was removed from all your favourites.</string>
+    <string name="feature_favorites_retry">Retry</string>
+    <string name="feature_favorites_close">Close</string>
+
+    <string name="feature_favorites_reorder_not_applied">The order could not be changed. The list shows the saved order.</string>
+    <string name="feature_favorites_reorder_not_fully_applied">The new order was not fully applied. The list shows the order actually saved.</string>
+    <string name="feature_favorites_offline">You\'re offline. Your favourites can be viewed, not changed, until the connection is back.</string>
+    <string name="feature_favorites_write_failed">That change could not be saved. The list shows your favourites as they are.</string>
+    <string name="feature_favorites_dismiss">OK</string>
+    <string name="feature_favorites_tv_hint">Hold OK on a channel or a group for more options.</string>
 </resources>

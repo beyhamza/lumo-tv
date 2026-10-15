@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,9 +15,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -25,55 +29,62 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.SubcomposeAsyncImage
+import kotlinx.coroutines.delay
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
+import tv.lumo.android.core.designsystem.component.LumoConfirmDialog
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 
 /**
- * The channels the user filed themselves (US-12).
+ * Favourite channels, the first section of the phone's Library (US-12, US-022).
  *
- * <h2>A tab per group, and the list in the user's own order</h2>
+ * <h2>"All favourites" first, then the groups</h2>
  *
- * Sorted by `position`, never by name: `position` is what S4-05 lets somebody
- * change, and sorting alphabetically here would make that whole task invisible.
+ * The strip opens on **All favourites**: each channel once, in the library's
+ * order (US-020's first occurrence). A tap on a group shows that group, in the
+ * user's own order. The two views offer different removals, and the words say
+ * which: from a group, "Remove from this group", at once; from All, "Remove from
+ * all my favourites", after a confirmation (S11-E04).
  *
- * <h2>Each row says which source it came from</h2>
+ * <h2>Reordering: a drag, and the same thing without one</h2>
  *
- * Discreetly, and it is not decoration. A group belongs to the account and can
- * hold channels from two subscriptions — that is the point of the feature — and
- * two channels with the same name from two providers are otherwise identical
- * rows.
+ * Inside a group, the handle on each row drags it; the row's menu offers "Move up"
+ * and "Move down", because a reorder that exists only as a gesture is one nobody
+ * using TalkBack can perform. Either way the view model receives the **visible**
+ * order and turns it into full-group moves (S11-00, G1).
  *
- * <h2>Two empty states, because they are two different situations</h2>
+ * <h2>Menus behind a long press, and a visible door to them</h2>
  *
- * An account with nothing starred needs the *gesture* named: go to the channels
- * and press the heart. A group that happens to be empty in an account full of
- * favourites needs no such lesson — it needs to say that this shelf is empty. One
- * message for both would be wrong for one of them.
- *
- * <h2>A list, not Paging</h2>
- *
- * Unlike the catalogue. Fifteen thousand channels is an ordinary source; a group
- * of favourites is something somebody built by hand, counted in tens. Paging forty
- * rows costs more than it saves.
+ * A tap plays. The row's options are on a long press and on the `⋮` at its end —
+ * the second because a long press is a gesture nobody discovers by looking.
  */
 @Composable
 fun FavoritesMobileScreen(
@@ -88,59 +99,32 @@ fun FavoritesMobileScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        Header(refreshing = state.refreshing, onRefresh = viewModel::refresh)
+        Header(refreshing = state.refreshing || state.busy, onRefresh = viewModel::refresh)
 
-        state.error?.let {
-            Text(
-                text = stringResource(R.string.feature_favorites_refresh_failed),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = viewModel::onErrorShown)
-                    .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.xs),
-            )
-        }
+        Notices(state = state, viewModel = viewModel)
 
         when {
             state.loading -> Centered { CircularProgressIndicator() }
 
-            state.nothingAtAll -> Message(
+            state.nothingAtAll && state.groups.isEmpty() -> Message(
                 title = stringResource(R.string.feature_favorites_empty_title),
                 body = stringResource(R.string.feature_favorites_empty_body),
             )
 
             else -> {
-                GroupTabs(
-                    groups = state.groups,
-                    selectedId = state.selectedGroupId,
-                    onSelect = viewModel::onGroupSelected,
-                    canMove = state::canMoveGroup,
-                    onRename = viewModel::onRenameRequested,
-                    onDelete = viewModel::onDeleteRequested,
-                    onMove = viewModel::onGroupMoved,
-                )
+                GroupTabs(state = state, viewModel = viewModel)
 
                 val visible = state.visible
-                if (visible.isEmpty()) {
-                    Message(
+                when {
+                    visible.isNotEmpty() -> FavoriteList(state = state, viewModel = viewModel, onPlay = onPlay)
+                    state.nothingAtAll -> Message(
+                        title = stringResource(R.string.feature_favorites_empty_title),
+                        body = stringResource(R.string.feature_favorites_empty_body),
+                    )
+                    else -> Message(
                         title = stringResource(R.string.feature_favorites_group_empty_title),
                         body = stringResource(R.string.feature_favorites_group_empty_body),
                     )
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(visible, key = { it.favoriteId }) { favorite ->
-                            FavoriteRow(
-                                favorite = favorite,
-                                canMove = state::canMoveFavorite,
-                                hasOtherGroups = state.moveTargets(favorite).isNotEmpty(),
-                                onPlay = onPlay,
-                                onMove = viewModel::onFavoriteMoved,
-                                onMoveToGroup = viewModel::onMoveRequested,
-                                onRemove = viewModel::onFavoriteRemoved,
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -149,84 +133,257 @@ fun FavoritesMobileScreen(
     Dialogs(state = state, viewModel = viewModel)
 }
 
+@Composable
+private fun Notices(state: FavoritesState, viewModel: FavoritesViewModel) {
+    val notice: Pair<String, Boolean>? = when {
+        state.offline -> stringResource(R.string.feature_favorites_offline) to false
+        state.reorderNotice == ReorderNotice.NotFullyApplied ->
+            stringResource(R.string.feature_favorites_reorder_not_fully_applied) to true
+        state.reorderNotice == ReorderNotice.NotApplied ->
+            stringResource(R.string.feature_favorites_reorder_not_applied) to true
+        state.writeError != null -> stringResource(R.string.feature_favorites_write_failed) to true
+        state.error != null -> stringResource(R.string.feature_favorites_refresh_failed) to true
+        state.removalDone != null ->
+            stringResource(R.string.feature_favorites_removed_everywhere, state.removalDone.name) to false
+        else -> null
+    }
+    notice ?: return
+
+    // A completed removal is said once, then goes; failures stay until tapped.
+    LaunchedEffect(state.removalDone) {
+        if (state.removalDone != null) {
+            delay(REMOVAL_NOTICE_MILLIS)
+            viewModel.onRemovalShown()
+        }
+    }
+
+    Text(
+        text = notice.first,
+        style = MaterialTheme.typography.labelLarge,
+        color = if (notice.second) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                when {
+                    state.offline -> viewModel.refresh()
+                    state.reorderNotice != null -> viewModel.onReorderNoticeShown()
+                    state.removalDone != null -> viewModel.onRemovalShown()
+                    else -> viewModel.onErrorShown()
+                }
+            }
+            .semantics { liveRegion = LiveRegionMode.Polite }
+            .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.xs),
+    )
+}
+
 /**
- * Renaming, deleting and moving, in three dialogs.
+ * Renaming, creating, deleting, organising and the global removal.
  *
- * Gathered here rather than scattered through the list so that a row can be
- * recycled by `LazyColumn` without taking its open dialog with it.
+ * Gathered here rather than in the rows, so that a row recycled by `LazyColumn`
+ * does not take its open dialog with it.
  */
 @Composable
 private fun Dialogs(state: FavoritesState, viewModel: FavoritesViewModel) {
     state.renaming?.let { group ->
-        RenameDialog(
+        NameDialog(
+            title = stringResource(R.string.feature_favorites_rename_title),
+            confirmLabel = stringResource(R.string.feature_favorites_rename_confirm),
             initial = group.displayName(),
             onConfirm = viewModel::onRenameConfirmed,
             onDismiss = viewModel::onDialogDismissed,
         )
     }
 
-    state.deleting?.let { group ->
-        val count = state.countIn(group)
-        val defaultName = stringResource(R.string.feature_favorites_default_group)
-        AlertDialog(
-            onDismissRequest = viewModel::onDialogDismissed,
-            title = { Text(stringResource(R.string.feature_favorites_delete_title, group.displayName())) },
-            text = {
-                // The count, and where they are going. "Are you sure?" would say
-                // nothing this person does not already know; this lets them
-                // predict the state they will be in.
-                Text(
-                    pluralStringResource(
-                        R.plurals.feature_favorites_delete_body,
-                        count,
-                        count,
-                        state.groups.firstOrNull { it.isDefault }?.displayName() ?: defaultName,
-                    ),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = viewModel::onDeleteConfirmed) {
-                    Text(stringResource(R.string.feature_favorites_delete_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::onDialogDismissed) {
-                    Text(stringResource(R.string.feature_favorites_cancel))
-                }
-            },
+    if (state.creatingGroup) {
+        NameDialog(
+            title = stringResource(R.string.feature_favorites_new_group_title),
+            confirmLabel = stringResource(R.string.feature_favorites_create),
+            initial = "",
+            onConfirm = viewModel::onCreateGroupConfirmed,
+            onDismiss = viewModel::onDialogDismissed,
         )
     }
 
-    state.moving?.let { favorite ->
-        AlertDialog(
-            onDismissRequest = viewModel::onDialogDismissed,
-            title = { Text(stringResource(R.string.feature_favorites_move_title)) },
-            text = {
-                Column {
-                    state.moveTargets(favorite).forEach { group ->
+    state.deleting?.let { group ->
+        val count = state.countIn(group)
+        val defaultName = state.groups.firstOrNull { it.isDefault }?.displayName()
+            ?: stringResource(R.string.feature_favorites_default_group)
+        // The count, and where they are going: "are you sure?" would say nothing
+        // this person does not already know.
+        LumoConfirmDialog(
+            title = stringResource(R.string.feature_favorites_delete_title, group.displayName()),
+            message = pluralStringResource(R.plurals.feature_favorites_delete_body, count, count, defaultName),
+            confirmLabel = stringResource(R.string.feature_favorites_delete_confirm),
+            cancelLabel = stringResource(R.string.feature_favorites_cancel),
+            onConfirm = viewModel::onDeleteConfirmed,
+            onCancel = viewModel::onDialogDismissed,
+        )
+    }
+
+    state.organizing?.let { channel -> OrganizeDialog(channel = channel, state = state, viewModel = viewModel) }
+
+    state.removal?.let { removal -> RemovalDialog(removal = removal, state = state, viewModel = viewModel) }
+}
+
+/**
+ * Organise (S11-E02): the channel's groups, ticked, each tick one call. The last
+ * one cannot be unticked here — that is the global removal's job, with its own
+ * question.
+ */
+@Composable
+private fun OrganizeDialog(channel: Channel, state: FavoritesState, viewModel: FavoritesViewModel) {
+    val memberOf = state.membershipsOf(channel.id).mapTo(HashSet()) { it.groupId }
+    var newName by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = viewModel::onOrganizeDismissed,
+        title = { Text(stringResource(R.string.feature_favorites_organize_title, channel.name)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs)) {
+                state.groups.forEach { group ->
+                    val checked = group.id in memberOf
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(LumoShapes.small)
+                            .clickable(enabled = state.canWrite) { viewModel.onMembershipToggled(group.id, !checked) },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(checked = checked, onCheckedChange = null, enabled = state.canWrite)
                         Text(
                             text = group.displayName(),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { viewModel.onMoveConfirmed(group.id) }
-                                .padding(vertical = LumoSpacing.sm),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = viewModel::onDialogDismissed) {
-                    Text(stringResource(R.string.feature_favorites_cancel))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextField(
+                        value = newName,
+                        onValueChange = { newName = it },
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.feature_favorites_new_group)) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(
+                        enabled = newName.isNotBlank() && state.canWrite,
+                        onClick = {
+                            viewModel.onOrganizeGroupCreated(newName)
+                            newName = ""
+                        },
+                    ) { Text(stringResource(R.string.feature_favorites_create)) }
                 }
-            },
+                if (state.organizeNotice == OrganizeNotice.LastGroup) {
+                    Text(
+                        text = stringResource(R.string.feature_favorites_organize_last_group),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                }
+                if (state.busy) {
+                    Text(
+                        text = stringResource(R.string.feature_favorites_saving),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = viewModel::onOrganizeDismissed) {
+                Text(stringResource(R.string.feature_favorites_done))
+            }
+        },
+    )
+}
+
+/**
+ * "Remove from all my favourites": the question, then the verdict (S11-E04, G2).
+ *
+ * Cancel is the prominent answer to the question. After a partial removal the
+ * dialog names the groups that still hold the channel and offers to retry those
+ * only; closing it is a close, never a success (FO-07).
+ */
+@Composable
+private fun RemovalDialog(removal: GlobalRemoval, state: FavoritesState, viewModel: FavoritesViewModel) {
+    val name = removal.channel.name
+    when (val phase = removal.phase) {
+        RemovalPhase.Confirming, RemovalPhase.Running -> {
+            val count = state.membershipsOf(removal.channel.id).size.coerceAtLeast(1)
+            LumoConfirmDialog(
+                title = stringResource(R.string.feature_favorites_remove_everywhere_title, name),
+                message = pluralStringResource(R.plurals.feature_favorites_remove_everywhere_body, count, count),
+                confirmLabel = stringResource(
+                    if (phase == RemovalPhase.Running) {
+                        R.string.feature_favorites_removing
+                    } else {
+                        R.string.feature_favorites_remove_everywhere_confirm
+                    },
+                ),
+                cancelLabel = stringResource(R.string.feature_favorites_cancel),
+                onConfirm = viewModel::onRemoveEverywhereConfirmed,
+                onCancel = viewModel::onRemovalDismissed,
+                busy = phase == RemovalPhase.Running,
+            )
+        }
+
+        is RemovalPhase.Incomplete -> OutcomeDialog(
+            title = stringResource(R.string.feature_favorites_removal_incomplete_title),
+            body = pluralStringResource(
+                R.plurals.feature_favorites_removal_incomplete_body,
+                phase.remaining.size,
+                phase.remaining.size,
+                groupNames(state.groupsOf(phase.remaining)),
+            ),
+            viewModel = viewModel,
+        )
+
+        is RemovalPhase.Unconfirmed -> OutcomeDialog(
+            title = stringResource(R.string.feature_favorites_removal_unconfirmed_title),
+            body = stringResource(R.string.feature_favorites_removal_unconfirmed_body),
+            viewModel = viewModel,
+        )
+
+        is RemovalPhase.NotStarted -> OutcomeDialog(
+            title = stringResource(R.string.feature_favorites_removal_not_started_title),
+            body = stringResource(
+                if (phase.offline) {
+                    R.string.feature_favorites_removal_offline_body
+                } else {
+                    R.string.feature_favorites_removal_not_started_body
+                },
+            ),
+            viewModel = viewModel,
         )
     }
 }
 
 @Composable
-private fun RenameDialog(
+private fun OutcomeDialog(title: String, body: String, viewModel: FavoritesViewModel) {
+    AlertDialog(
+        onDismissRequest = viewModel::onRemovalDismissed,
+        title = { Text(title) },
+        text = {
+            Text(
+                text = body,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = viewModel::onRemovalRetried) { Text(stringResource(R.string.feature_favorites_retry)) }
+        },
+        dismissButton = {
+            TextButton(onClick = viewModel::onRemovalDismissed) { Text(stringResource(R.string.feature_favorites_close)) }
+        },
+    )
+}
+
+@Composable
+private fun NameDialog(
+    title: String,
+    confirmLabel: String,
     initial: String,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -235,7 +392,7 @@ private fun RenameDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.feature_favorites_rename_title)) },
+        title = { Text(title) },
         text = {
             TextField(
                 value = name,
@@ -245,19 +402,11 @@ private fun RenameDialog(
             )
         },
         confirmButton = {
-            TextButton(
-                // The server refuses an empty name (`minLength: 1`), and a group
-                // nobody can tell from another is not a rename anyone wanted.
-                enabled = name.isNotBlank(),
-                onClick = { onConfirm(name) },
-            ) {
-                Text(stringResource(R.string.feature_favorites_rename_confirm))
-            }
+            // The server refuses an empty name (`minLength: 1`).
+            TextButton(enabled = name.isNotBlank(), onClick = { onConfirm(name) }) { Text(confirmLabel) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.feature_favorites_cancel))
-            }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.feature_favorites_cancel)) }
         },
     )
 }
@@ -288,225 +437,343 @@ private fun Header(refreshing: Boolean, onRefresh: () -> Unit) {
 }
 
 /**
- * One tab per group, the default group first.
+ * "All favourites", then one chip per group, then "New group".
  *
- * The same horizontal strip as the catalogue's categories, and deliberately so: a
- * group filters a list of channels exactly as a category does, and giving the two
- * different shapes would be a difference with nothing behind it.
+ * The same horizontal strip as the catalogue's categories: a group filters a list
+ * of channels exactly as a category does.
  */
 @Composable
-private fun GroupTabs(
-    groups: List<FavoriteGroup>,
-    selectedId: String?,
-    onSelect: (String) -> Unit,
-    canMove: (FavoriteGroup, Int) -> Boolean,
-    onRename: (FavoriteGroup) -> Unit,
-    onDelete: (FavoriteGroup) -> Unit,
-    onMove: (FavoriteGroup, Int) -> Unit,
-) {
+private fun GroupTabs(state: FavoritesState, viewModel: FavoritesViewModel) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = LumoSpacing.md),
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
         modifier = Modifier.padding(bottom = LumoSpacing.sm),
     ) {
-        items(groups, key = { it.id }) { group ->
-            GroupChip(
-                group = group,
-                selected = group.id == selectedId,
-                onClick = { onSelect(group.id) },
-                canMove = canMove,
-                onRename = onRename,
-                onDelete = onDelete,
-                onMove = onMove,
+        item(key = "all") {
+            Chip(
+                label = stringResource(R.string.feature_favorites_all),
+                selected = state.isAllView,
+                onClick = { viewModel.onGroupSelected(null) },
+            )
+        }
+        items(state.groups, key = { it.id }) { group ->
+            GroupChip(group = group, state = state, viewModel = viewModel)
+        }
+        item(key = "new") {
+            Chip(
+                label = "+ " + stringResource(R.string.feature_favorites_new_group),
+                selected = false,
+                onClick = viewModel::onCreateGroupRequested,
             )
         }
     }
 }
 
 /**
- * A group tab, and everything one can do to it.
- *
- * The menu is on a long press rather than behind a visible button: a row of chips
- * is already narrow on a phone, and an overflow dot on each would halve the space
- * the names have. A tap still does the frequent thing, which is switching tab.
- *
- * **The default group offers no delete.** The server refuses it — it is where the
- * others empty into — and an entry that is only ever answered by an error is an
- * entry that teaches somebody the application is broken.
+ * A group tab and everything one can do to it, behind a long press. **The default
+ * group offers no delete**: the server refuses it — it is where the others empty
+ * into — and an entry only ever answered by an error teaches that the app is broken.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun GroupChip(
-    group: FavoriteGroup,
-    selected: Boolean,
-    onClick: () -> Unit,
-    canMove: (FavoriteGroup, Int) -> Boolean,
-    onRename: (FavoriteGroup) -> Unit,
-    onDelete: (FavoriteGroup) -> Unit,
-    onMove: (FavoriteGroup, Int) -> Unit,
-) {
+private fun GroupChip(group: FavoriteGroup, state: FavoritesState, viewModel: FavoritesViewModel) {
     var menuOpen by remember { mutableStateOf(false) }
 
     Box {
-        Text(
-            text = group.displayName(),
-            style = MaterialTheme.typography.labelLarge,
-            color = if (selected) {
-                MaterialTheme.colorScheme.onPrimary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .clip(LumoShapes.small)
-                .background(
-                    if (selected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant
-                    },
-                )
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = { menuOpen = true },
-                    onLongClickLabel = stringResource(R.string.feature_favorites_group_actions),
-                )
-                .padding(horizontal = LumoSpacing.sm, vertical = LumoSpacing.xs),
+        Chip(
+            label = group.displayName(),
+            selected = group.id == state.selectedGroupId,
+            onClick = { viewModel.onGroupSelected(group.id) },
+            onLongClick = { menuOpen = true },
+            longClickLabel = stringResource(R.string.feature_favorites_group_actions),
         )
 
         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-            MenuItem(R.string.feature_favorites_rename) {
+            MenuItem(R.string.feature_favorites_rename, enabled = state.canWrite) {
                 menuOpen = false
-                onRename(group)
+                viewModel.onRenameRequested(group)
             }
-            // Only the moves that exist. An entry that does nothing at the end of
-            // the list is an entry somebody presses once to find out.
-            if (canMove(group, -1)) {
-                MenuItem(R.string.feature_favorites_move_left) {
+            if (state.canMoveGroup(group, -1)) {
+                MenuItem(R.string.feature_favorites_move_left, enabled = state.canWrite) {
                     menuOpen = false
-                    onMove(group, -1)
+                    viewModel.onGroupMoved(group, -1)
                 }
             }
-            if (canMove(group, 1)) {
-                MenuItem(R.string.feature_favorites_move_right) {
+            if (state.canMoveGroup(group, 1)) {
+                MenuItem(R.string.feature_favorites_move_right, enabled = state.canWrite) {
                     menuOpen = false
-                    onMove(group, 1)
+                    viewModel.onGroupMoved(group, 1)
                 }
             }
             if (!group.isDefault) {
-                MenuItem(R.string.feature_favorites_delete) {
+                MenuItem(R.string.feature_favorites_delete, enabled = state.canWrite) {
                     menuOpen = false
-                    onDelete(group)
+                    viewModel.onDeleteRequested(group)
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun MenuItem(labelRes: Int, onClick: () -> Unit) {
-    DropdownMenuItem(text = { Text(stringResource(labelRes)) }, onClick = onClick)
+private fun Chip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    longClickLabel: String? = null,
+) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelLarge,
+        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier
+            .clip(LumoShapes.small)
+            .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick, onLongClickLabel = longClickLabel)
+            .padding(horizontal = LumoSpacing.sm, vertical = LumoSpacing.xs),
+    )
+}
+
+@Composable
+private fun MenuItem(labelRes: Int, enabled: Boolean = true, onClick: () -> Unit) {
+    DropdownMenuItem(text = { Text(stringResource(labelRes)) }, onClick = onClick, enabled = enabled)
 }
 
 /**
- * One favourite, and everything one can do to it.
- *
- * A tap plays it — that is what somebody came here for. The organising is behind a
- * long press, for the reason the group chips have theirs: buttons on every row of
- * a list somebody reads would leave the channel names half the width.
- *
- * **"Move up" and "move down" rather than only drag-and-drop.** The order matters
- * here — it is the user's own, and the list is sorted by it — and a reorder that
- * exists only as a drag gesture is a reorder nobody using TalkBack can perform.
- * The drag is the comfort; this is the mechanism.
+ * The open view's channels. In a group, each row carries a drag handle; the order
+ * shown while dragging is local, and it is dropped as soon as the server's answer
+ * (or its refusal) comes back — the screen never keeps a guess.
+ */
+@Composable
+private fun FavoriteList(
+    state: FavoritesState,
+    viewModel: FavoritesViewModel,
+    onPlay: (String, String?) -> Unit,
+) {
+    val visible = state.visible
+    val listState = rememberLazyListState()
+    var dragOrder by remember { mutableStateOf<List<FavoriteChannel>?>(null) }
+    var draggedId by remember { mutableStateOf<String?>(null) }
+    val dragOffset = remember { mutableFloatStateOf(0f) }
+    val currentVisible by rememberUpdatedState(visible)
+
+    // The server answered (or refused): what is shown is its list again.
+    LaunchedEffect(visible, state.busy) {
+        if (draggedId == null && !state.busy) dragOrder = null
+    }
+
+    val shown = dragOrder ?: visible
+    val draggable = !state.isAllView && state.canWrite && visible.size > 1
+
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+        items(shown, key = { it.favoriteId }) { favorite ->
+            val dragged = favorite.favoriteId == draggedId
+            FavoriteRow(
+                favorite = favorite,
+                state = state,
+                viewModel = viewModel,
+                onPlay = onPlay,
+                handle = if (draggable) {
+                    { DragHandle(channelName = favorite.channel.name, modifier = Modifier.pointerInput(favorite.favoriteId) {
+                        detectDragGestures(
+                            onDragStart = {
+                                draggedId = favorite.favoriteId
+                                dragOrder = currentVisible
+                                dragOffset.floatValue = 0f
+                            },
+                            onDrag = { change, amount ->
+                                change.consume()
+                                dragOffset.floatValue += amount.y
+                                dragOrder = stepDrag(dragOrder ?: return@detectDragGestures, favorite.favoriteId, dragOffset, listState)
+                            },
+                            onDragEnd = {
+                                val order = dragOrder
+                                draggedId = null
+                                dragOffset.floatValue = 0f
+                                if (order != null) viewModel.onFavoritesReordered(order.map { it.favoriteId })
+                            },
+                            onDragCancel = {
+                                draggedId = null
+                                dragOrder = null
+                                dragOffset.floatValue = 0f
+                            },
+                        )
+                    }) }
+                } else {
+                    null
+                },
+                modifier = if (dragged) {
+                    Modifier
+                        .zIndex(1f)
+                        .graphicsLayer { translationY = dragOffset.floatValue }
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                } else {
+                    Modifier
+                },
+            )
+        }
+    }
+}
+
+/**
+ * Swaps the dragged row with its neighbour once it has travelled past half of it.
+ * The offset is rebased by the neighbour's height, so the row stays under the finger.
+ */
+private fun stepDrag(
+    order: List<FavoriteChannel>,
+    draggedId: String,
+    offset: androidx.compose.runtime.MutableFloatState,
+    listState: LazyListState,
+): List<FavoriteChannel> {
+    val index = order.indexOfFirst { it.favoriteId == draggedId }
+    if (index < 0) return order
+    val items = listState.layoutInfo.visibleItemsInfo
+    val delta = offset.floatValue
+    return when {
+        delta > 0 && index < order.lastIndex -> {
+            val next = items.firstOrNull { it.key == order[index + 1].favoriteId } ?: return order
+            if (delta < next.size / 2f) return order
+            offset.floatValue -= next.size
+            order.toMutableList().apply { add(index + 1, removeAt(index)) }
+        }
+        delta < 0 && index > 0 -> {
+            val previous = items.firstOrNull { it.key == order[index - 1].favoriteId } ?: return order
+            if (-delta < previous.size / 2f) return order
+            offset.floatValue += previous.size
+            order.toMutableList().apply { add(index - 1, removeAt(index)) }
+        }
+        else -> order
+    }
+}
+
+/**
+ * One favourite. A tap plays; the long press and the `⋮` open its options, which
+ * depend on the view: in All, Organise and "Remove from all my favourites"; in a
+ * group, Move up / Move down, Organise and "Remove from this group".
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FavoriteRow(
     favorite: FavoriteChannel,
-    canMove: (FavoriteChannel, Int) -> Boolean,
-    hasOtherGroups: Boolean,
+    state: FavoritesState,
+    viewModel: FavoritesViewModel,
     onPlay: (String, String?) -> Unit,
-    onMove: (FavoriteChannel, Int) -> Unit,
-    onMoveToGroup: (FavoriteChannel) -> Unit,
-    onRemove: (FavoriteChannel) -> Unit,
+    handle: (@Composable () -> Unit)?,
+    modifier: Modifier = Modifier,
 ) {
     val channel = favorite.channel
     var menuOpen by remember { mutableStateOf(false) }
+    val optionsLabel = stringResource(R.string.feature_favorites_channel_actions)
 
-    Box {
-        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-            if (canMove(favorite, -1)) {
-                MenuItem(R.string.feature_favorites_move_up) {
-                    menuOpen = false
-                    onMove(favorite, -1)
-                }
-            }
-            if (canMove(favorite, 1)) {
-                MenuItem(R.string.feature_favorites_move_down) {
-                    menuOpen = false
-                    onMove(favorite, 1)
-                }
-            }
-            if (hasOtherGroups) {
-                MenuItem(R.string.feature_favorites_move_to_group) {
-                    menuOpen = false
-                    onMoveToGroup(favorite)
-                }
-            }
-            MenuItem(R.string.feature_favorites_remove) {
-                menuOpen = false
-                onRemove(favorite)
-            }
-        }
-    }
+    Box(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = { onPlay(channel.id, channel.name) },
+                    onLongClick = { menuOpen = true },
+                    onLongClickLabel = optionsLabel,
+                )
+                .padding(start = LumoSpacing.md, end = LumoSpacing.xs, top = LumoSpacing.sm, bottom = LumoSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Logo(channel)
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = { onPlay(channel.id, channel.name) },
-                onLongClick = { menuOpen = true },
-                onLongClickLabel = stringResource(R.string.feature_favorites_channel_actions),
-            )
-            .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Logo(channel)
-
-        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = channel.name,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
-            // No line naming the subscription any more (US-018). Every row here
-            // now comes from the source being browsed, and the shell names that
-            // source next to its switcher — the same sentence under each row is
-            // the noise this line was always careful not to be.
+
+            channel.quality?.let { quality ->
+                Text(
+                    text = quality,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            Glyph(text = "⋮", description = optionsLabel, onClick = { menuOpen = true })
+
+            handle?.invoke()
         }
 
-        channel.quality?.let { quality ->
-            Text(
-                text = quality,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            if (state.isAllView) {
+                MenuItem(R.string.feature_favorites_organize, enabled = state.canWrite) {
+                    menuOpen = false
+                    viewModel.onOrganizeRequested(favorite)
+                }
+                MenuItem(R.string.feature_favorites_remove_everywhere, enabled = state.canWrite) {
+                    menuOpen = false
+                    viewModel.onRemoveEverywhereRequested(favorite)
+                }
+            } else {
+                // Only the moves that exist: an entry that does nothing at the end
+                // of the list is an entry somebody presses once to find out.
+                if (state.canMoveFavorite(favorite, -1)) {
+                    MenuItem(R.string.feature_favorites_move_up, enabled = state.canWrite) {
+                        menuOpen = false
+                        viewModel.onFavoriteMoved(favorite, -1)
+                    }
+                }
+                if (state.canMoveFavorite(favorite, 1)) {
+                    MenuItem(R.string.feature_favorites_move_down, enabled = state.canWrite) {
+                        menuOpen = false
+                        viewModel.onFavoriteMoved(favorite, 1)
+                    }
+                }
+                MenuItem(R.string.feature_favorites_organize, enabled = state.canWrite) {
+                    menuOpen = false
+                    viewModel.onOrganizeRequested(favorite)
+                }
+                MenuItem(R.string.feature_favorites_remove_from_group, enabled = state.canWrite) {
+                    menuOpen = false
+                    viewModel.onRemoveFromGroup(favorite)
+                }
+            }
         }
     }
 }
 
+/** The grip a row is dragged by. Its gestures come from the list, which owns the order. */
+@Composable
+private fun DragHandle(channelName: String, modifier: Modifier = Modifier) {
+    val dragLabel = stringResource(R.string.feature_favorites_drag_handle, channelName)
+    Text(
+        text = "≡",
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier
+            .semantics { contentDescription = dragLabel }
+            .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.xs),
+    )
+}
+
+@Composable
+private fun Glyph(text: String, description: String, onClick: () -> Unit) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .clip(LumoShapes.small)
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = description }
+            .padding(horizontal = LumoSpacing.sm, vertical = LumoSpacing.xs),
+    )
+}
+
 /**
- * The logo the user's own playlist advertises, or the channel's initial.
- *
- * **Lumo ships no fallback artwork** (AGENTS.md §1). A logo that fails to load
- * looks like a channel with no logo, which is deliberate and will be common: most
- * panels advertise their logos over `http`, and this application does not permit
- * cleartext.
+ * The logo the user's own playlist advertises, or the channel's initial. **Lumo
+ * ships no fallback artwork** (AGENTS.md §1).
  */
 @Composable
 private fun Logo(channel: Channel) {
@@ -570,21 +837,4 @@ private fun Centered(content: @Composable () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
 }
 
-/**
- * What to call a group on screen.
- *
- * The server names the group it creates on the first add, and names it
- * `Favorites`, in English. `is_default` is what lets a client translate it; the
- * second half of the condition is what stops the translation overriding the user
- * once they have renamed the group.
- */
-@Composable
-private fun FavoriteGroup.displayName(): String =
-    if (isDefault && name == SERVER_DEFAULT_GROUP_NAME) {
-        stringResource(R.string.feature_favorites_default_group)
-    } else {
-        name
-    }
-
-/** The name the server gives the default group, verbatim. */
-private const val SERVER_DEFAULT_GROUP_NAME = "Favorites"
+private const val REMOVAL_NOTICE_MILLIS = 6_000L

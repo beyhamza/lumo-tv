@@ -16,6 +16,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -110,10 +111,6 @@ fun LumoTvConfirmDialog(
 ) {
     val cancel = remember { FocusRequester() }
 
-    // Failing to focus is recoverable — `BACK` still cancels — and throwing
-    // would take the dialog down under the viewer.
-    LaunchedEffect(Unit) { runCatching { cancel.requestFocus() } }
-
     Dialog(
         onDismissRequest = { if (!busy) onCancel() },
         properties = DialogProperties(
@@ -124,6 +121,15 @@ fun LumoTvConfirmDialog(
             usePlatformDefaultWidth = false,
         ),
     ) {
+        // Inside the dialog's window and one frame late: requested from outside,
+        // before that window exists, the request can land nowhere. Failing to focus
+        // is recoverable — `BACK` still cancels — and throwing would take the
+        // dialog down under the viewer.
+        LaunchedEffect(Unit) {
+            withFrameNanos { }
+            runCatching { cancel.requestFocus() }
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()

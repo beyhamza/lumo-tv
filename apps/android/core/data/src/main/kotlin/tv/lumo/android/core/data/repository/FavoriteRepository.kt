@@ -9,12 +9,18 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import tv.lumo.android.core.common.di.Dispatcher
 import tv.lumo.android.core.common.di.LumoDispatcher
+import tv.lumo.android.core.data.GlobalFavoriteRemoval
+import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.VisibleFavoriteOrder
 import tv.lumo.android.core.data.internal.ApiCaller
 import tv.lumo.android.core.data.internal.ChannelResolver
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
+import tv.lumo.android.core.data.model.FavoriteMembership
+import tv.lumo.android.core.data.model.FavoriteRemovalOutcome
+import tv.lumo.android.core.data.model.FavoriteReorderOutcome
 import tv.lumo.android.core.database.dao.FavoriteDao
 import tv.lumo.android.core.database.model.ChannelEntity
 import tv.lumo.android.core.database.model.FavoriteChannelRow
@@ -72,10 +78,10 @@ class FavoriteRepository @Inject internal constructor(
     private val favoriteDao: FavoriteDao,
     private val resolver: ChannelResolver,
     @Dispatcher(LumoDispatcher.IO) private val io: CoroutineDispatcher,
-) {
+) : FavoriteLibrary {
 
     /** Every group of the account, in the user's order. */
-    fun groups(): Flow<List<FavoriteGroup>> =
+    override fun groups(): Flow<List<FavoriteGroup>> =
         favoriteDao.observeGroups().map { rows -> rows.map(FavoriteGroupEntity::asGroup) }
 
     /**
@@ -88,7 +94,7 @@ class FavoriteRepository @Inject internal constructor(
      *
      * @param groupId null for every group.
      */
-    fun favorites(groupId: String? = null): Flow<List<FavoriteChannel>> =
+    override fun favorites(groupId: String?): Flow<List<FavoriteChannel>> =
         favoriteDao.observeFavorites(groupId).map { rows -> rows.map(FavoriteChannelRow::asFavorite) }
 
     /** The starred channel ids, for a grid drawing its hearts as it scrolls. */
@@ -102,7 +108,7 @@ class FavoriteRepository @Inject internal constructor(
      * Both lists are replaced whole rather than merged: a favourite removed from
      * another device has to disappear here, and a merge would keep it forever.
      */
-    suspend fun refresh(): LumoResult<Unit> = withContext(io) {
+    override suspend fun refresh(): LumoResult<Unit> = withContext(io) {
         val groups = calls.call { api.listFavoriteGroups() }
         if (groups is LumoResult.Failure) return@withContext groups
 
@@ -122,7 +128,7 @@ class FavoriteRepository @Inject internal constructor(
     // ---- writes -------------------------------------------------------------
 
     /** Stars a channel. `groupId` null lands it in the account's default group. */
-    suspend fun add(channelId: String, groupId: String? = null): LumoResult<Unit> =
+    override suspend fun add(channelId: String, groupId: String?): LumoResult<Unit> =
         withContext(io) {
             val request = AddFavoriteRequest(UUID.fromString(channelId))
                 .let { if (groupId == null) it else it.copy(groupId = UUID.fromString(groupId)) }
@@ -144,15 +150,34 @@ class FavoriteRepository @Inject internal constructor(
             }
         }
 
-    /** Unstars one favourite. */
-    suspend fun remove(favoriteId: String): LumoResult<Unit> = withContext(io) {
-        when (val result = calls.call { api.removeFavorite(UUID.fromString(favoriteId)) }) {
-            is LumoResult.Failure -> result
-            is LumoResult.Success -> {
-                favoriteDao.deleteFavorite(favoriteId)
-                LumoResult.Success(Unit)
+    /**
+     * Removes one membership.
+     *
+     * `404 FAVORITE_NOT_FOUND` is a success: the favourite is gone, which is what
+     * was asked — removed from another device, or by an earlier attempt whose
+     * answer was lost. Either way the list is re-read afterwards: the server
+     * renumbers the group, and the cache follows the server rather than a guess.
+     */
+    override suspend fun remove(favoriteId: String): LumoResult<Unit> = withContext(io) {
+        when (val result = calls.empty { api.removeFavorite(UUID.fromString(favoriteId)) }) {
+            is LumoResult.Failure -> if (GlobalFavoriteRemoval.isAlreadyGone(result.error)) {
+                removedLocally(favoriteId)
+            } else {
+                result
             }
+            is LumoResult.Success -> removedLocally(favoriteId)
         }
+    }
+
+    /**
+     * The removal was accepted: the row goes, and the list is re-read for the
+     * renumbering. A re-read that fails does not turn the accepted removal into a
+     * failure — the next refresh brings the positions back in line.
+     */
+    private suspend fun removedLocally(favoriteId: String): LumoResult<Unit> {
+        favoriteDao.deleteFavorite(favoriteId)
+        pullFavorites()
+        return LumoResult.Success(Unit)
     }
 
     /**
@@ -179,7 +204,7 @@ class FavoriteRepository @Inject internal constructor(
         }
     }
 
-    suspend fun createGroup(name: String): LumoResult<FavoriteGroup> = withContext(io) {
+    override suspend fun createGroup(name: String): LumoResult<FavoriteGroup> = withContext(io) {
         when (val result = calls.call { api.createFavoriteGroup(CreateFavoriteGroupRequest(name)) }) {
             is LumoResult.Failure -> result
             is LumoResult.Success -> {
@@ -189,7 +214,7 @@ class FavoriteRepository @Inject internal constructor(
         }
     }
 
-    suspend fun renameGroup(groupId: String, name: String): LumoResult<Unit> = withContext(io) {
+    override suspend fun renameGroup(groupId: String, name: String): LumoResult<Unit> = withContext(io) {
         val request = UpdateFavoriteGroupRequest(name = name)
         when (val result = calls.call { api.updateFavoriteGroup(UUID.fromString(groupId), request) }) {
             is LumoResult.Failure -> result
@@ -201,7 +226,7 @@ class FavoriteRepository @Inject internal constructor(
     }
 
     /** Moves a group in the list. The server renumbers the others, so groups are re-read. */
-    suspend fun moveGroup(groupId: String, position: Int): LumoResult<Unit> = withContext(io) {
+    override suspend fun moveGroup(groupId: String, position: Int): LumoResult<Unit> = withContext(io) {
         val request = UpdateFavoriteGroupRequest(position = position)
         when (val result = calls.call { api.updateFavoriteGroup(UUID.fromString(groupId), request) }) {
             is LumoResult.Failure -> result
@@ -213,7 +238,7 @@ class FavoriteRepository @Inject internal constructor(
      * Deletes a group. Its favourites are **not** deleted: the server moves them
      * to the default group, which is why both lists are re-read afterwards.
      */
-    suspend fun deleteGroup(groupId: String): LumoResult<Unit> = withContext(io) {
+    override suspend fun deleteGroup(groupId: String): LumoResult<Unit> = withContext(io) {
         when (val result = calls.call { api.deleteFavoriteGroup(UUID.fromString(groupId)) }) {
             is LumoResult.Failure -> result
             is LumoResult.Success -> when (val groups = pullGroups()) {
@@ -221,6 +246,96 @@ class FavoriteRepository @Inject internal constructor(
                 is LumoResult.Success -> pullFavorites()
             }
         }
+    }
+
+    /**
+     * The visible reorder of a group, as single moves (S11-00, G1 and G2).
+     *
+     * 1. The group is **read from the server**, not from the cache: the plan is
+     *    made against the order the moves will apply to (G3).
+     * 2. [VisibleFavoriteOrder.target] places [visibleOrder] in the slots those
+     *    favourites occupy, everything else where it is;
+     *    [VisibleFavoriteOrder.movesToReach] turns that into `PATCH`es.
+     * 3. The moves go one at a time. The first failure stops the sequence; what
+     *    was accepted is kept — there is no rollback and no batch.
+     * 4. The whole list is re-read, whatever happened, so the cache shows the
+     *    server's order and never a guess that outlived a failure.
+     */
+    override suspend fun reorderVisible(
+        groupId: String,
+        visibleOrder: List<String>,
+    ): FavoriteReorderOutcome = withContext(io) {
+        val read = calls.call { api.listFavorites(UUID.fromString(groupId)) }
+        if (read is LumoResult.Failure) return@withContext FavoriteReorderOutcome.NotApplied(read.error)
+
+        val current = (read as LumoResult.Success).value.items
+            .filter { it.groupId.toString() == groupId }
+            .sortedBy { it.position }
+            .map { it.id.toString() }
+        val moves = VisibleFavoriteOrder.movesToReach(current, VisibleFavoriteOrder.target(current, visibleOrder))
+
+        var applied = 0
+        var failure: LumoError? = null
+        for (move in moves) {
+            val request = UpdateFavoriteRequest(position = move.position)
+            when (val result = calls.call { api.updateFavorite(UUID.fromString(move.member), request) }) {
+                is LumoResult.Failure -> {
+                    failure = result.error
+                    break
+                }
+                is LumoResult.Success -> applied++
+            }
+        }
+
+        if (applied > 0 || failure != null) pullFavorites()
+
+        when (val error = failure) {
+            null -> FavoriteReorderOutcome.Applied
+            else -> FavoriteReorderOutcome.NotFullyApplied(applied = applied, planned = moves.size, error = error)
+        }
+    }
+
+    /**
+     * "Remove from all my favourites", one `DELETE` per membership, in sequence.
+     *
+     * The memberships are read from the server first (G3); on a retry, only the
+     * ones left of the first attempt are targeted ([GlobalFavoriteRemoval]). Every
+     * removal is attempted even after one fails — each is independent, and the
+     * user asked for all of them. The list is then re-read, and the verdict comes
+     * from that re-read when there is one (FO-05 → FO-08).
+     */
+    override suspend fun removeEverywhere(
+        channelId: String,
+        restrictTo: Set<String>?,
+    ): FavoriteRemovalOutcome = withContext(io) {
+        val read = calls.call { api.listFavorites(null) }
+        if (read is LumoResult.Failure) return@withContext FavoriteRemovalOutcome.NotStarted(read.error)
+
+        val onServer = (read as LumoResult.Success).value.items
+            .filter { it.channelId.toString() == channelId }
+            .map { FavoriteMembership(favoriteId = it.id.toString(), groupId = it.groupId.toString()) }
+        val targets = GlobalFavoriteRemoval.targets(onServer, restrictTo)
+
+        val failures = linkedMapOf<String, LumoError>()
+        for (membership in targets) {
+            val result = calls.empty { api.removeFavorite(UUID.fromString(membership.favoriteId)) }
+            if (result is LumoResult.Failure && !GlobalFavoriteRemoval.isAlreadyGone(result.error)) {
+                failures[membership.favoriteId] = result.error
+            } else {
+                favoriteDao.deleteFavorite(membership.favoriteId)
+            }
+        }
+
+        val reread = calls.call { api.listFavorites(null) }
+        val presentAfter = when (reread) {
+            is LumoResult.Failure -> null
+            is LumoResult.Success -> {
+                favoriteDao.replaceFavorites(reread.value.items.map(ApiFavorite::asEntity))
+                resolveMissingChannels()
+                reread.value.items.mapTo(HashSet()) { it.id.toString() }
+            }
+        }
+        GlobalFavoriteRemoval.outcome(targets, failures, presentAfter)
     }
 
     // ---- internals ----------------------------------------------------------
