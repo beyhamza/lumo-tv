@@ -18,6 +18,10 @@ interface CatalogueSyncDao {
     )
     suspend fun isSynchronised(sourceId: String, contentType: String): Boolean
 
+    /** Every source with at least one synchronised catalogue on this device. */
+    @Query("SELECT DISTINCT source_id FROM catalogue_sync")
+    suspend fun sourceIds(): List<String>
+
     @Query("DELETE FROM catalogue_sync WHERE source_id = :sourceId AND content_type = :contentType")
     suspend fun delete(sourceId: String, contentType: String)
 }

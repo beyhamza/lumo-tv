@@ -14,10 +14,10 @@ import tv.lumo.android.network.generated.model.ErrorCode
  * The order matters and has a wrong version. The server deletes first, because
  * **a failed deletion must change nothing locally**: dropping the cache and then
  * learning the request never left would leave a source that still exists with an
- * empty catalogue. Only then is the device's copy dropped — channels, films,
- * series and the programme guide, each from its own repository — and only then does
- * [ActiveSourceRepository] re-decide what is browsed: the one source left, a
- * question when several are, the add flow when none is.
+ * empty catalogue. Only then does [ActiveSourceRepository.onSourceGone] re-decide
+ * what is browsed — the one source left, a question when several are, the add
+ * flow when none is — and drop the device's copy of the source: channels, films,
+ * series and the programme guide ([SourceGoneCleanup]).
  *
  * Here rather than in `feature:source` so the sequence is held by a test that
  * needs no screen, and so that a second caller cannot write it in another order.
@@ -40,35 +40,15 @@ import tv.lumo.android.network.generated.model.ErrorCode
 @Singleton
 class SourceRemover internal constructor(
     private val delete: suspend (sourceId: String) -> LumoResult<Unit>,
-    private val caches: List<suspend (sourceId: String) -> Unit>,
-    private val accountLists: List<suspend () -> Unit>,
     private val activeSource: ActiveSourceRepository,
 ) {
 
     @Inject
     constructor(
         sources: SourceRepository,
-        catalogue: CatalogueRepository,
-        vod: VodRepository,
-        series: SeriesRepository,
-        epg: EpgRepository,
-        favorites: FavoriteRepository,
-        recents: RecentChannelRepository,
         activeSource: ActiveSourceRepository,
     ) : this(
         delete = { sourceId -> sources.delete(sourceId) },
-        caches = listOf(
-            { sourceId -> catalogue.forget(sourceId) },
-            { sourceId -> vod.forget(sourceId) },
-            { sourceId -> series.forget(sourceId) },
-            // The guide too (S9-03): programmes of a deleted source would sit in
-            // the cache until the daily purge, joined to nothing.
-            { sourceId -> epg.forget(sourceId) },
-        ),
-        accountLists = listOf(
-            { favorites.refresh() },
-            { recents.refresh() },
-        ),
         activeSource = activeSource,
     )
 
@@ -80,12 +60,12 @@ class SourceRemover internal constructor(
         val result = delete(sourceId)
         if (result is LumoResult.Failure && !result.error.provesDeletion()) return result
 
-        caches.forEach { forget -> forget(sourceId) }
         // Not `refresh()`: the deletion is proven, and a list that still carries
         // the source a moment later — or cannot be fetched at all — must not be
-        // able to bring it back. `onSourceGone` filters it out either way.
+        // able to bring it back. `onSourceGone` filters it out either way, and
+        // drops the device's copy of the source ([SourceGoneCleanup]) — the same
+        // step a deletion noticed from another device goes through.
         activeSource.onSourceGone(sourceId)
-        accountLists.forEach { reload -> reload() }
 
         return LumoResult.Success(Unit)
     }

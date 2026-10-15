@@ -36,8 +36,7 @@ class SourceRemoverTest {
     private val c = benchSource("Source C")
 
     private val store = InMemoryActiveSourceStore()
-    private val forgotten = mutableListOf<String>()
-    private var accountListReloads = 0
+    private val cleanup = RecordingSourceGoneCleanup()
 
     /** What `DELETE` answers. The list loses the source only on a `204`. */
     private var deleteAnswer: (UUID) -> Response<Unit> = { id ->
@@ -104,10 +103,9 @@ class SourceRemoverTest {
 
         remover.remove(b.key)
 
-        // Channels, films, series — one entry per cache, all for the same source.
-        assertThat(forgotten).containsExactly(b.key, b.key, b.key)
-        // Favourites and recent channels went with the cascade: re-read.
-        assertThat(accountListReloads).isEqualTo(2)
+        // Channels, films, series, guide, then favourites and recents re-read:
+        // one clean-up, for that source alone.
+        assertThat(cleanup.purges).containsExactly(listOf(b.key))
     }
 
     @Test
@@ -121,8 +119,7 @@ class SourceRemoverTest {
         val result = remover.remove(a.key)
 
         assertThat(result).isInstanceOf(LumoResult.Failure::class.java)
-        assertThat(forgotten).isEmpty()
-        assertThat(accountListReloads).isEqualTo(0)
+        assertThat(cleanup.purges).isEmpty()
         assertThat(active.state.value).isEqualTo(before)
         assertThat(store.entries).containsExactly("user-1", a.key)
     }
@@ -142,7 +139,7 @@ class SourceRemoverTest {
         val result = remover.remove(a.key)
 
         assertThat(result).isEqualTo(LumoResult.Success(Unit))
-        assertThat(forgotten).containsExactly(a.key, a.key, a.key)
+        assertThat(cleanup.purges).containsExactly(listOf(a.key))
         assertThat(active.state.value.selectedSourceId).isEqualTo(b.key)
     }
 
@@ -168,17 +165,12 @@ class SourceRemoverTest {
             sources = sources,
             store = store,
             scope = backgroundScope,
+            cleanup = cleanup,
         )
         runCurrent()
 
-        val forget: suspend (String) -> Unit = { sourceId -> forgotten += sourceId }
-        val reload: suspend () -> Unit = { accountListReloads++ }
-
         val remover = SourceRemover(
             delete = { sourceId -> sources.delete(sourceId) },
-            // Channels, films and series; then favourites and recent channels.
-            caches = listOf(forget, forget, forget),
-            accountLists = listOf(reload, reload),
             activeSource = active,
         )
         return remover to active

@@ -35,6 +35,7 @@ class ActiveSourceRepositoryTest {
     private val api = ScriptedSourcesApi()
     private val store = InMemoryActiveSourceStore()
     private val sessions = FakeSessionStore(tokens("user-1"))
+    private val cleanup = RecordingSourceGoneCleanup()
 
     @Test
     fun `the only source is selected and remembered without a question`() = runTest {
@@ -195,6 +196,88 @@ class ActiveSourceRepositoryTest {
         assertThat(store.entries).containsExactly("user-1", b.key)
     }
 
+    // ---- the device's copy of a deleted source (S11-05) -----------------------
+
+    @Test
+    fun `a known source absent from a successful list is purged locally`() = runTest {
+        api.sources = listOf(a, b)
+        store.entries["user-1"] = a.key
+        val repository = repository()
+        assertThat(cleanup.purges).isEmpty()
+
+        // Deleted from another device; this one learns it from its next list.
+        api.sources = listOf(a)
+        repository.refresh()
+
+        assertThat(cleanup.purges).containsExactly(listOf(b.key))
+    }
+
+    @Test
+    fun `a cached source deleted while the app was closed is purged at launch`() = runTest {
+        api.sources = listOf(a)
+        store.entries["user-1"] = a.key
+        // Room still holds b's catalogue from an earlier run; the list has no b.
+        cleanup.cached = setOf(a.key, b.key)
+
+        repository()
+
+        assertThat(cleanup.purged).containsExactly(b.key)
+    }
+
+    @Test
+    fun `a failed list purges nothing, whatever was known`() = runTest {
+        api.sources = listOf(a, b)
+        store.entries["user-1"] = a.key
+        cleanup.cached = setOf(a.key, b.key)
+        val repository = repository()
+
+        api.failing = true
+        repository.refresh()
+
+        assertThat(cleanup.purges).isEmpty()
+    }
+
+    @Test
+    fun `SOURCE_NOT_FOUND purges the source, from whichever screen it came`() = runTest {
+        api.sources = listOf(a, b)
+        store.entries["user-1"] = a.key
+        val repository = repository()
+
+        // A catalogue or a player naming the source (onFailureNaming), then a
+        // source screen or the player's Continue (onSourceGone directly).
+        repository.onFailureNaming(a.key, LumoError.Api(ErrorCode.SOURCE_NOT_FOUND, detail = null))
+        repository.onSourceGone(b.key)
+
+        assertThat(cleanup.purges).containsExactly(listOf(a.key), listOf(b.key)).inOrder()
+    }
+
+    @Test
+    fun `SOURCE_NOT_FOUND purges even when the list cannot be read`() = runTest {
+        api.sources = listOf(a, b)
+        store.entries["user-1"] = a.key
+        val repository = repository()
+
+        api.failing = true
+        repository.onSourceGone(a.key)
+
+        assertThat(cleanup.purged).containsExactly(a.key)
+    }
+
+    @Test
+    fun `a network error naming a source purges nothing`() = runTest {
+        api.sources = listOf(a, b)
+        store.entries["user-1"] = a.key
+        val repository = repository()
+
+        listOf(
+            LumoError.Offline(java.io.IOException("timeout")),
+            LumoError.Api(ErrorCode.INTERNAL_ERROR, detail = null),
+            LumoError.Unreadable(status = 502, cause = null),
+        ).forEach { repository.onFailureNaming(a.key, it) }
+
+        assertThat(cleanup.purges).isEmpty()
+    }
+
     // ---- adding a source (US-024) ---------------------------------------------
 
     @Test
@@ -302,6 +385,7 @@ class ActiveSourceRepositoryTest {
             sources = SourceRepository(api, calls),
             store = store,
             scope = backgroundScope,
+            cleanup = cleanup,
         )
         runCurrent()
         return repository
