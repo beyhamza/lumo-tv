@@ -1,6 +1,7 @@
 package tv.lumo.androidtv.navigation
 
 import androidx.navigation.NavHostController
+import tv.lumo.android.feature.home.HomeDestination
 import tv.lumo.android.feature.series.SeriesDestination
 import tv.lumo.android.feature.series.SeriesDetailDestination
 import tv.lumo.android.feature.vod.VodDestination
@@ -59,6 +60,36 @@ internal fun NavHostController.leaveDetailOfPreviousSource() {
     if (!popBackStack(root, inclusive = false)) {
         navigate(root) {
             popUpTo(detail) { inclusive = true }
+            launchSingleTop = true
+        }
+    }
+}
+
+/**
+ * The back stack *Continue* leaves after the source being played was deleted
+ * (US-024 § Suppression, BUG-S11-06-02): everything up to and including Home,
+ * or Home alone when it is not there.
+ *
+ * Popping the player alone used to land on the sheet of the film that had just
+ * been deleted — a blank poster, *Play*, "In my list" — with the catalogue of a
+ * source that no longer exists behind it. Everything above Home was opened from
+ * the deleted source: the player, its sheet, the catalogue or the list the sheet
+ * came from. Home follows the active source by itself, so it is the root of the
+ * source that is left, and nothing is started on the viewer's behalf.
+ *
+ * A pure function of the routes, so the test can hold the rule;
+ * [leaveScreensOfDeletedSource] applies it to the controller.
+ */
+internal fun backStackAfterSourceDeleted(backStack: List<String>): List<String> {
+    val home = backStack.indexOf(HomeDestination.route)
+    return if (home < 0) listOf(HomeDestination.route) else backStack.subList(0, home + 1)
+}
+
+/** *Continue* after a deletion: back to Home, popping or replacing. See [backStackAfterSourceDeleted]. */
+internal fun NavHostController.leaveScreensOfDeletedSource() {
+    if (!popBackStack(HomeDestination.route, inclusive = false)) {
+        navigate(HomeDestination.route) {
+            popUpTo(graph.id) { inclusive = true }
             launchSingleTop = true
         }
     }

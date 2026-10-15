@@ -11,6 +11,7 @@ import tv.lumo.android.feature.settings.SettingsDestination
 import tv.lumo.android.feature.source.SourceDestination
 import tv.lumo.android.feature.vod.VodDestination
 import tv.lumo.android.feature.vod.VodDetailDestination
+import tv.lumo.android.feature.vod.VodPlayerDestination
 
 /**
  * Where a change of source leaves the user (US-018).
@@ -76,5 +77,27 @@ class SourceSwitchNavigationTest {
         // Home, with no grid underneath. Where it leads after a change of source
         // depends on what it is, never on how somebody got there.
         assertThat(SourceScopedDetails.values).doesNotContain(HomeDestination.route)
+    }
+
+    // ---- BUG-S11-06-02: Continue after the played source was deleted ----------
+
+    @Test
+    fun `Continue leaves the player, the sheet and the section of the deleted source`() {
+        val backStack = listOf(
+            HomeDestination.route,
+            ExploreDestination.route,
+            VodDestination.route,
+            VodDetailDestination.route,
+            VodPlayerDestination.route,
+        )
+
+        assertThat(backStackAfterSourceDeleted(backStack)).containsExactly(HomeDestination.route)
+    }
+
+    @Test
+    fun `Continue with no Home underneath replaces everything with Home`() {
+        val backStack = listOf(SourceDestination.route, VodDetailDestination.route, VodPlayerDestination.route)
+
+        assertThat(backStackAfterSourceDeleted(backStack)).containsExactly(HomeDestination.route)
     }
 }

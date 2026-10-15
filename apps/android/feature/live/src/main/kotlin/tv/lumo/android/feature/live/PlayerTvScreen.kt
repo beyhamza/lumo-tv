@@ -116,6 +116,7 @@ fun PlayerTvScreen(
     channelName: String?,
     onBack: (channelId: String) -> Unit,
     onOpenSources: () -> Unit,
+    onSourceGone: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
@@ -241,7 +242,7 @@ fun PlayerTvScreen(
             LumoTvAcknowledgeDialog(
                 message = stringResource(DataR.string.core_data_source_deleted_message),
                 actionLabel = stringResource(DataR.string.core_data_source_deleted_continue),
-                onAcknowledge = { viewModel.onSourceDeletedAcknowledged { onBack(currentId) } },
+                onAcknowledge = { viewModel.onSourceDeletedAcknowledged(onSourceGone) },
             )
         }
 

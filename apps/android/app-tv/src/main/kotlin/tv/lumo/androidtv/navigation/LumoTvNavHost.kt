@@ -83,6 +83,9 @@ fun LumoTvNavHost(
             navController.popBackStack()
             openSources()
         }
+        // *Continue* after the source being played was deleted elsewhere: every
+        // screen of that source goes, not only the player (BUG-S11-06-02).
+        val leaveDeletedSource = { navController.leaveScreensOfDeletedSource() }
 
         // The same player for the three screens that start a channel: the home
         // screen, the channel grid and the library.
@@ -171,6 +174,7 @@ fun LumoTvNavHost(
                 navController.popBackStack()
             },
             onOpenSources = leavePlayerForSources,
+            onSourceGone = leaveDeletedSource,
         )
         vodTvScreen(
             onOpenFilm = { filmId ->
@@ -198,6 +202,7 @@ fun LumoTvNavHost(
         vodPlayerTvScreen(
             onBack = { navController.popBackStack() },
             onOpenSources = leavePlayerForSources,
+            onSourceGone = leaveDeletedSource,
         )
         seriesTvScreen(
             onOpenSeries = { seriesId ->
@@ -225,6 +230,7 @@ fun LumoTvNavHost(
         episodePlayerTvScreen(
             onBack = { navController.popBackStack() },
             onOpenSources = leavePlayerForSources,
+            onSourceGone = leaveDeletedSource,
         )
         searchTvScreen(
             onPlayChannel = playChannel,

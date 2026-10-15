@@ -53,7 +53,11 @@ fun NavGraphBuilder.seriesDetailMobileScreen(
     }
 }
 
-fun NavGraphBuilder.episodePlayerMobileScreen(onBack: () -> Unit, onOpenSources: () -> Unit) {
+fun NavGraphBuilder.episodePlayerMobileScreen(
+    onBack: () -> Unit,
+    onOpenSources: () -> Unit,
+    onSourceGone: () -> Unit,
+) {
     composable(
         route = EpisodePlayerDestination.route,
         arguments = listOf(
@@ -78,6 +82,7 @@ fun NavGraphBuilder.episodePlayerMobileScreen(onBack: () -> Unit, onOpenSources:
             resumeFromMs = entry.arguments?.getLong(EpisodePlayerDestination.ARG_AT) ?: 0L,
             onBack = onBack,
             onOpenSources = onOpenSources,
+            onSourceGone = onSourceGone,
         )
     }
 }
@@ -158,7 +163,11 @@ fun NavGraphBuilder.seriesDetailTvScreen(
  * happens inside the screen rather than through this graph, so an evening of six
  * episodes leaves `BACK` one press from the series instead of six.
  */
-fun NavGraphBuilder.episodePlayerTvScreen(onBack: () -> Unit, onOpenSources: () -> Unit) {
+fun NavGraphBuilder.episodePlayerTvScreen(
+    onBack: () -> Unit,
+    onOpenSources: () -> Unit,
+    onSourceGone: () -> Unit,
+) {
     composable(
         route = EpisodePlayerDestination.route,
         arguments = listOf(
@@ -183,6 +192,7 @@ fun NavGraphBuilder.episodePlayerTvScreen(onBack: () -> Unit, onOpenSources: () 
             resumeFromMs = entry.arguments?.getLong(EpisodePlayerDestination.ARG_AT) ?: 0L,
             onBack = onBack,
             onOpenSources = onOpenSources,
+            onSourceGone = onSourceGone,
         )
     }
 }

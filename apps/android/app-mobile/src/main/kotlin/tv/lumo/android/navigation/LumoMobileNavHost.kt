@@ -183,10 +183,14 @@ fun LumoMobileNavHost(
             navController.popBackStack()
             openSources()
         }
+        // *Continue* after the source being played was deleted elsewhere: every
+        // screen of that source goes, not only the player (BUG-S11-06-02).
+        val leaveDeletedSource = { navController.leaveScreensOfDeletedSource() }
 
         livePlayerMobileScreen(
             onBack = { navController.popBackStack() },
             onOpenSources = leavePlayerForSources,
+            onSourceGone = leaveDeletedSource,
         )
         // Library: two sections, built as Explore is (US-022). The favourites play
         // through the same player, and the wire is held here rather than in either
@@ -222,6 +226,7 @@ fun LumoMobileNavHost(
         vodPlayerMobileScreen(
             onBack = { navController.popBackStack() },
             onOpenSources = leavePlayerForSources,
+            onSourceGone = leaveDeletedSource,
         )
         seriesDetailMobileScreen(
             onPlay = playEpisode,
@@ -230,6 +235,7 @@ fun LumoMobileNavHost(
         episodePlayerMobileScreen(
             onBack = { navController.popBackStack() },
             onOpenSources = leavePlayerForSources,
+            onSourceGone = leaveDeletedSource,
         )
         searchMobileScreen(
             onPlayChannel = playChannel,

@@ -50,7 +50,11 @@ fun NavGraphBuilder.vodDetailMobileScreen(
     }
 }
 
-fun NavGraphBuilder.vodPlayerMobileScreen(onBack: () -> Unit, onOpenSources: () -> Unit) {
+fun NavGraphBuilder.vodPlayerMobileScreen(
+    onBack: () -> Unit,
+    onOpenSources: () -> Unit,
+    onSourceGone: () -> Unit,
+) {
     composable(
         route = VodPlayerDestination.route,
         arguments = listOf(
@@ -79,6 +83,7 @@ fun NavGraphBuilder.vodPlayerMobileScreen(onBack: () -> Unit, onOpenSources: () 
             resumeFromMs = entry.arguments?.getLong(VodPlayerDestination.ARG_AT) ?: 0L,
             onBack = onBack,
             onOpenSources = onOpenSources,
+            onSourceGone = onSourceGone,
         )
     }
 }
@@ -158,7 +163,11 @@ fun NavGraphBuilder.vodDetailTvScreen(
  * channel player has to carry an id because there is no screen between it and the
  * grid.
  */
-fun NavGraphBuilder.vodPlayerTvScreen(onBack: () -> Unit, onOpenSources: () -> Unit) {
+fun NavGraphBuilder.vodPlayerTvScreen(
+    onBack: () -> Unit,
+    onOpenSources: () -> Unit,
+    onSourceGone: () -> Unit,
+) {
     composable(
         route = VodPlayerDestination.route,
         arguments = listOf(
@@ -187,6 +196,7 @@ fun NavGraphBuilder.vodPlayerTvScreen(onBack: () -> Unit, onOpenSources: () -> U
             resumeFromMs = entry.arguments?.getLong(VodPlayerDestination.ARG_AT) ?: 0L,
             onBack = onBack,
             onOpenSources = onOpenSources,
+            onSourceGone = onSourceGone,
         )
     }
 }

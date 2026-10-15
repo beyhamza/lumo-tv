@@ -46,7 +46,11 @@ fun NavGraphBuilder.liveMobileScreen(
     }
 }
 
-fun NavGraphBuilder.livePlayerMobileScreen(onBack: () -> Unit, onOpenSources: () -> Unit) {
+fun NavGraphBuilder.livePlayerMobileScreen(
+    onBack: () -> Unit,
+    onOpenSources: () -> Unit,
+    onSourceGone: () -> Unit,
+) {
     composable(
         route = PlayerDestination.route,
         arguments = listOf(
@@ -63,6 +67,7 @@ fun NavGraphBuilder.livePlayerMobileScreen(onBack: () -> Unit, onOpenSources: ()
                 ?.takeIf { it.isNotEmpty() },
             onBack = onBack,
             onOpenSources = onOpenSources,
+            onSourceGone = onSourceGone,
         )
     }
 }
@@ -141,6 +146,7 @@ const val KEY_REQUESTED_VIEW: String = "requestedDirectView"
 fun NavGraphBuilder.livePlayerTvScreen(
     onBack: (channelId: String) -> Unit,
     onOpenSources: () -> Unit,
+    onSourceGone: () -> Unit,
 ) {
     composable(
         route = PlayerDestination.route,
@@ -158,6 +164,7 @@ fun NavGraphBuilder.livePlayerTvScreen(
                 ?.takeIf { it.isNotEmpty() },
             onBack = onBack,
             onOpenSources = onOpenSources,
+            onSourceGone = onSourceGone,
         )
     }
 }
