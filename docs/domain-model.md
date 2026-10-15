@@ -155,8 +155,15 @@ Un groupe par défaut (« Favoris ») est créé au premier ajout.
 `id`, `group_id`, `user_id`, `source_id`, `channel_id`, `position`.
 
 ### `playback_progress`
-`id`, `user_id`, `item_type` (`VOD` | `EPISODE`), `item_ref`, `position_ms`,
-`duration_ms`, `updated_at`. Le live n'a pas de progression.
+`id`, `user_id`, `source_id`, `item_type` (`VOD` | `EPISODE`), `item_ref`, `position_ms`,
+`duration_ms`, `updated_at`, `observed_at`, `watched_ms`, `legacy_watched_ms`, `hidden_at`,
+`restarted_after_hide`, `last_session_started_at`. Le live n'a pas de progression.
+
+Continuer (ADR 0012) : la dernière observation (`observed_at`) gagne la position ;
+`watched_ms` est l'union des intervalles de `playback_watched_interval`
+(`progress_id`, `started_at`, `ended_at`), fusionnés à l'écriture, plus le crédit des
+progressions antérieures à la 0.3.0 ; une carte masquée (`hidden_at`) revient au
+premier démarrage réel postérieur au masquage. `in_continue` est calculé à la lecture.
 
 ### `recent_channel`
 `id`, `user_id`, `source_id`, `channel_id`, `watched_at`. Unique sur
@@ -303,6 +310,7 @@ DELETE /me/favorites/{id}
 GET    /me/favorite-groups
 POST   /me/favorite-groups
 PUT    /me/progress
+POST   /me/progress/hide
 GET    /me/watchlist
 POST   /me/watchlist            (en-tête Idempotency-Key)
 DELETE /me/watchlist/{id}       (en-tête Idempotency-Key)

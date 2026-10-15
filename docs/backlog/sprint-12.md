@@ -1,6 +1,25 @@
 # Sprint 12 — Continuer et reprise partagée
 
-Statut : proposé, non commencé. Taille relative : L.
+Statut : **ouvert le 15 octobre 2026**, version **0.3.0**. Taille relative : L. Mode rapide
+(décision du 15/10) : chaque lot livre ses tests automatisés et une vérification rapide du chemin
+principal ; pas de passe de recette dédiée, les bugs vont au backlog, la recette approfondie est
+groupée avant la sortie 0.3.0.
+
+## Avancement
+
+- [ ] S12-00 — règles CW-17→22 et CW-29→33 — 80 % : portées par l'[ADR 0012](../adr/0012-continue-watching-protocol.md),
+  acceptée par Hamza le 15/10 ; il reste l'application côté clients (S12-02/04).
+- [ ] S12-01 — contrat C3, serveur, génération — 90 % : `PUT /me/progress` accepte
+  `watched_segments`, `observed_at`, `session_started_at` ; `POST /me/progress/hide` ;
+  `PlaybackProgress` porte `watched_ms`, `hidden`, `in_continue` calculés par le serveur ;
+  migration `0022` (les progressions existantes gardent leur place) ;
+  `ContinueWatchingIntegrationTest` 14/14. Branche `feat/S12-01-continue-watching`.
+- [ ] S12-02 — mesure de la lecture effective dans les lecteurs — 0 %
+- [ ] S12-03 — fiches Regarder / Reprendre / Recommencer / Revoir — 0 %
+- [ ] S12-04 — rail Continuer unifié par série, masquage partagé — 0 %
+- [ ] S12-05 — contenus disparus, conflits, hors ligne — 0 %
+
+**Avancement global ≈ 28 %**.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 ## Objectif
