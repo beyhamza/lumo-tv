@@ -93,9 +93,16 @@ Une case cochée signifie **recetté**, pas seulement écrit.
     et panne contrôlées sur émulateur.
   - Reste : lignes « Détails indisponibles » et relecture au retour sur une vraie TV,
     emplacement du Réessayer TV (fin de la colonne des groupes) à valider en recette.
-- [ ] S11-06 — recette entre appareils — 0 %
+- [ ] S11-06 — recette entre appareils — 60 % : jouée le 15/10 sur `dev` @ `0de950b`
+  (web FR/EN, téléphone en FR, TV en EN, deux comptes) — 27 cas : 16 conformes, 7 non conformes,
+  4 non joués ([rapport](../releases/0.3.0/qa-evidence/s11-06-recette-2026-10-15/RAPPORT.md)).
+  Tiennent : agrégation et retraits des favoris, favoris d'une source distincte, À regarder
+  entre appareils, lecture ≠ retrait, cascade de suppression, isolation. Écarts au backlog :
+  `BUG-S11-06-01` (suppression de groupe annoncée en échec, majeur), `-02` (TV : fiche du film
+  supprimé rouverte après Continuer, majeur), `-03` (web : Favoris plante quand l'API est
+  arrêtée, majeur), `-04` à `-10` (mineurs et cosmétiques, dont `-09` hors S11).
 
-**Avancement global ≈ 76 %** (moyenne des sept lots).
+**Avancement global ≈ 84 %** (moyenne des sept lots).
 
 ### Point du 8 octobre 2026
 
