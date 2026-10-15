@@ -1,5 +1,6 @@
 import type { Channel } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+import { RailFailureLine, type RailFailure } from "./RailFailure";
 
 /**
  * One rail: a row of channels to get back to in a click.
@@ -47,6 +48,12 @@ import { cn } from "@/lib/utils";
  * no guide would read that sentence under every card, forever. An absent
  * information hides nothing (S7-03), which is the opposite of the rule for a
  * tab — a tab is a door.
+ *
+ * <h2>A rail that could not be read says so (S11-05)</h2>
+ *
+ * When the caller passes a `failure`, the rail draws its heading and a short
+ * line with a retry — even with no card, because an empty rail whose lookup
+ * failed is not an empty rail. The cards that did resolve stay.
  */
 export function ChannelRail({
   title,
@@ -56,6 +63,7 @@ export function ChannelRail({
   more,
   onAir,
   keepEntriesWhenEmpty = false,
+  failure,
 }: {
   title: string;
   channels: Channel[];
@@ -91,8 +99,15 @@ export function ChannelRail({
    * Favourites rail is exactly the dead end US-017 keeps off the page.
    */
   keepEntriesWhenEmpty?: boolean;
+  /** Part of this rail could not be read: said under the heading, with a retry. */
+  failure?: RailFailure;
 }) {
-  const parts = railParts(channels.length, more?.length ?? 0, keepEntriesWhenEmpty === true);
+  const parts = railParts(
+    channels.length,
+    more?.length ?? 0,
+    keepEntriesWhenEmpty === true,
+    failure !== undefined,
+  );
   if (parts === null) return null;
 
   // Whether any card of this rail has a programme to show. Decided once for
@@ -131,6 +146,7 @@ export function ChannelRail({
       ) : (
         heading
       )}
+      {failure ? <RailFailureLine failure={failure} /> : null}
       {parts.cards ? (
         <ul
           aria-label={title}
@@ -183,6 +199,10 @@ export function ChannelRail({
  * card draws only when its caller kept the entries on purpose and there are
  * entries to keep — the Live rail's two doors on a cold account (S9-04-07).
  *
+ * A rail that **failed** is drawn even with no card and no entry kept: its
+ * heading and its failure line, so that a lookup that did not answer never
+ * passes for an empty rail (S11-05).
+ *
  * Extracted from the render so the rule can be tested without a DOM: the web
  * unit suite runs in Node with no React rendering (vitest.config.mts), and the
  * one thing worth pinning here is precisely which rail survives being empty.
@@ -191,9 +211,11 @@ export function railParts(
   channelCount: number,
   entryCount: number,
   keepEntriesWhenEmpty: boolean,
+  failed = false,
 ): { cards: boolean; entries: boolean } | null {
   if (channelCount > 0) return { cards: true, entries: entryCount > 0 };
   if (keepEntriesWhenEmpty && entryCount > 0) return { cards: false, entries: true };
+  if (failed) return { cards: false, entries: false };
   return null;
 }
 

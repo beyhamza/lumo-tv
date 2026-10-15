@@ -1,3 +1,5 @@
+import { RailFailureLine, type RailFailure } from "./RailFailure";
+
 /**
  * The "Continue" rail of the home page: films and series in progress, side by
  * side (US-017, US-019, S8-E01).
@@ -23,7 +25,8 @@
  * `lib/home/continue-watching.ts`, where it is tested.
  *
  * Like every rail of this zone: a `<ul>` that scrolls with CSS, no script, and
- * nothing at all when it is empty.
+ * nothing at all when it is empty — **unless it failed** (S11-05): then its
+ * heading and a line with a retry, beside whatever cards did resolve.
  */
 export type ContinueRailEntry = {
   key: string;
@@ -40,46 +43,52 @@ export type ContinueRailEntry = {
 export function ContinueRail({
   title,
   entries,
+  failure,
 }: {
   title: string;
   entries: ContinueRailEntry[];
+  /** Part of this rail could not be read: said under the heading, with a retry. */
+  failure?: RailFailure;
 }) {
-  if (entries.length === 0) return null;
+  if (entries.length === 0 && !failure) return null;
 
   return (
     <section className="mt-10">
       <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-      <ul aria-label={title} className="mt-3 flex gap-4 overflow-x-auto pb-2">
-        {entries.map((entry) => (
-          <li key={entry.key} className="w-32 shrink-0">
-            <a
-              href={entry.resume.href}
-              // "Resume <title>", because the visible text is a title and a
-              // title alone does not say what following the link will do.
-              aria-label={entry.resume.label}
-              className="focus-visible:ring-ring block rounded-lg focus-visible:ring-2 focus-visible:outline-none"
-            >
-              <div className="relative">
-                <Poster url={entry.posterUrl ?? null} title={entry.title} />
-                <PositionBar positionMs={entry.positionMs} durationMs={entry.durationMs} />
-              </div>
-              <p className="mt-2 truncate text-xs font-medium">{entry.title}</p>
-              {entry.caption ? (
-                <p className="text-muted-foreground truncate text-xs">{entry.caption}</p>
-              ) : null}
-            </a>
-            {entry.details ? (
+      {failure ? <RailFailureLine failure={failure} /> : null}
+      {entries.length === 0 ? null : (
+        <ul aria-label={title} className="mt-3 flex gap-4 overflow-x-auto pb-2">
+          {entries.map((entry) => (
+            <li key={entry.key} className="w-32 shrink-0">
               <a
-                href={entry.details.href}
-                aria-label={entry.details.label}
-                className="text-muted-foreground hover:text-foreground mt-1 inline-block text-xs underline underline-offset-4"
+                href={entry.resume.href}
+                // "Resume <title>", because the visible text is a title and a
+                // title alone does not say what following the link will do.
+                aria-label={entry.resume.label}
+                className="focus-visible:ring-ring block rounded-lg focus-visible:ring-2 focus-visible:outline-none"
               >
-                {entry.details.text}
+                <div className="relative">
+                  <Poster url={entry.posterUrl ?? null} title={entry.title} />
+                  <PositionBar positionMs={entry.positionMs} durationMs={entry.durationMs} />
+                </div>
+                <p className="mt-2 truncate text-xs font-medium">{entry.title}</p>
+                {entry.caption ? (
+                  <p className="text-muted-foreground truncate text-xs">{entry.caption}</p>
+                ) : null}
               </a>
-            ) : null}
-          </li>
-        ))}
-      </ul>
+              {entry.details ? (
+                <a
+                  href={entry.details.href}
+                  aria-label={entry.details.label}
+                  className="text-muted-foreground hover:text-foreground mt-1 inline-block text-xs underline underline-offset-4"
+                >
+                  {entry.details.text}
+                </a>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

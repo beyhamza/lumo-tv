@@ -59,7 +59,7 @@ const EMPTY_RAILS: HomeRails = {
   favorites: [],
   recents: [],
   onAir: new Map(),
-  failed: false,
+  status: { continueWatching: "ok", favorites: "ok", recents: "ok" },
 };
 
 const ORIGINAL_NOW = process.env.LUMO_NOW;
