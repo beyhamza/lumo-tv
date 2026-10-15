@@ -4,7 +4,10 @@ import { getLocale } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "@/i18n/navigation";
 import { locales } from "@/i18n/routing";
-import { api } from "@/lib/api/client";
+import { api, problemCode } from "@/lib/api/client";
+import { executeRemoval, isUuid, readMembershipIds } from "@/lib/favorites/global-removal";
+import { withNotice, type FavoritesNotice } from "@/lib/favorites/notice";
+import { executeMoves, planVisibleStep, type Direction } from "@/lib/favorites/visible-order";
 import { safeRedirectTarget } from "@/lib/security/redirect-target";
 import { requireSession } from "@/lib/session/session";
 
@@ -155,5 +158,206 @@ async function backToCatalogue(formData: FormData): Promise<void> {
   // Without the query: `revalidatePath` takes a path, and this screen's
   // category, search and page number all live in the query string.
   revalidatePath(`/${locale}${target.split("?")[0]}`);
-  redirect({ href: target, locale });
+  // A notice from an earlier action on the favourites page is not about this
+  // one, so it does not survive the round trip.
+  redirect({ href: withNotice(target, null), locale });
+}
+
+/**
+ * "Move up" / "Move down" on a favourite, in a group as the active source sees
+ * it (US-022, S11-03; S11-00 G1 to G3).
+ *
+ * <h2>Planned against a fresh read, not against the page</h2>
+ *
+ * The form names a favourite and a direction — not positions. The group is
+ * re-read here, and the visible step is translated into full-group moves against
+ * **that** order (`lib/favorites/visible-order.ts`): whatever another device did
+ * since the page was drawn is the order this applies to, so the last accepted
+ * action decides (G3), and the other sources' favourites keep their indexes (G1).
+ *
+ * <h2>Not atomic, and not presented as such</h2>
+ *
+ * The moves go one `PATCH` at a time and stop at the first one not confirmed.
+ * What succeeded stays; the page comes back re-read with "Order not fully
+ * applied" — never a success (G2).
+ */
+export async function moveFavorite(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const client = api(session.accessToken);
+  const favoriteId = formData.get("favoriteId");
+  const groupId = formData.get("groupId");
+  const direction = readDirection(formData.get("direction"));
+
+  let notice: FavoritesNotice | null = null;
+  if (isUuid(favoriteId) && isUuid(groupId) && direction) {
+    const group = await attempt(() =>
+      client.GET("/me/favorites", { params: { query: { groupId } } }),
+    );
+    if (!group?.data) {
+      notice = { kind: "unconfirmed" };
+    } else {
+      const step = planVisibleStep(group.data.items, favoriteId, direction);
+      if (step.kind === "moves") {
+        const outcome = await executeMoves(step.moves, async (move) => {
+          const { response } = await client.PATCH("/me/favorites/{id}", {
+            params: { path: { id: move.id } },
+            body: { position: move.position },
+          });
+          return response.status === 200;
+        });
+        if (outcome.kind === "partial") notice = { kind: "move-partial" };
+      }
+    }
+  }
+
+  await backToFavorites(formData, notice);
+}
+
+/**
+ * "Remove from all my favourites", once confirmed (US-022, S11-03; G2,
+ * FO-05 to FO-08, FO-12).
+ *
+ * Deletes exactly the memberships the confirmation listed — or, on a retry, the
+ * ones the page found still remaining — one `DELETE` each, in sequence.
+ * `404 FAVORITE_NOT_FOUND` is a membership already gone, hence done. Whatever
+ * could not be confirmed travels back in the redirect; the page re-reads and
+ * offers to retry those that really remain, and only those
+ * (`lib/favorites/global-removal.ts`).
+ */
+export async function removeFromAllFavorites(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const client = api(session.accessToken);
+  const channelId = formData.get("channelId");
+  const ids = readMembershipIds(formData.getAll("favoriteId"));
+
+  let notice: FavoritesNotice | null = null;
+  if (isUuid(channelId) && ids.length > 0) {
+    const outcome = await executeRemoval(ids, async (id) => {
+      const { response, error } = await client.DELETE("/me/favorites/{id}", {
+        params: { path: { id } },
+      });
+      return { status: response.status, error };
+    });
+    if (outcome.left.length > 0) {
+      notice = { kind: "removal-partial", channelId, left: outcome.left };
+    }
+  }
+
+  await backToFavorites(formData, notice);
+}
+
+/**
+ * Removing one membership from the favourites page — "Remove from this group",
+ * or unticking a group under "Organise". No confirmation: the other memberships
+ * stay (FO-09). Already gone is done; anything else is said.
+ */
+export async function removeMembership(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const favoriteId = formData.get("favoriteId");
+
+  let notice: FavoritesNotice | null = null;
+  if (isUuid(favoriteId)) {
+    const outcome = await executeRemoval([favoriteId], async (id) => {
+      const { response, error } = await api(session.accessToken).DELETE(
+        "/me/favorites/{id}",
+        { params: { path: { id } } },
+      );
+      return { status: response.status, error };
+    });
+    if (outcome.left.length > 0) notice = { kind: "unconfirmed" };
+  }
+
+  await backToFavorites(formData, notice);
+}
+
+/**
+ * Filing a favourite channel into one more group, from "Organise". Already in
+ * that group (`409 FAVORITE_ALREADY_EXISTS`) is the state that was asked for.
+ */
+export async function addMembership(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const channelId = formData.get("channelId");
+  const groupId = formData.get("groupId");
+
+  let notice: FavoritesNotice | null = { kind: "unconfirmed" };
+  if (isUuid(channelId) && isUuid(groupId)) {
+    const answer = await attempt(() =>
+      api(session.accessToken).POST("/me/favorites", {
+        body: { channel_id: channelId, group_id: groupId },
+      }),
+    );
+    const status = answer?.response.status;
+    if (
+      status === 201 ||
+      (status === 409 && problemCode(answer?.error) === "FAVORITE_ALREADY_EXISTS")
+    ) {
+      notice = null;
+    }
+  }
+
+  await backToFavorites(formData, notice);
+}
+
+/**
+ * "Move earlier" / "Move later" on a group. The group list belongs to the
+ * account and is not filtered, so this is one `PATCH` to the neighbouring index
+ * — computed from a fresh read of the groups, not from the page.
+ */
+export async function moveFavoriteGroup(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const client = api(session.accessToken);
+  const groupId = formData.get("groupId");
+  const direction = readDirection(formData.get("direction"));
+
+  let notice: FavoritesNotice | null = null;
+  if (isUuid(groupId) && direction) {
+    const groups = await attempt(() => client.GET("/me/favorite-groups", {}));
+    if (!groups?.data) {
+      notice = { kind: "unconfirmed" };
+    } else {
+      const ordered = [...groups.data.items].sort((a, b) => a.position - b.position);
+      const from = ordered.findIndex((group) => group.id === groupId);
+      const to = direction === "up" ? from - 1 : from + 1;
+      if (from >= 0 && to >= 0 && to < ordered.length) {
+        const answer = await attempt(() =>
+          client.PATCH("/me/favorite-groups/{id}", {
+            params: { path: { id: groupId } },
+            body: { position: to },
+          }),
+        );
+        if (answer?.response.status !== 200) notice = { kind: "unconfirmed" };
+      }
+    }
+  }
+
+  await backToFavorites(formData, notice);
+}
+
+function readDirection(value: FormDataEntryValue | null): Direction | null {
+  return value === "up" || value === "down" ? value : null;
+}
+
+/** A request that threw — no response at all — is `null`, never a guess. */
+async function attempt<T>(call: () => Promise<T>): Promise<T | null> {
+  try {
+    return await call();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Back to the favourites view the form was on, which re-renders from
+ * `GET /me/favorites` (G3: never local state), with the notice when something
+ * was not confirmed.
+ */
+async function backToFavorites(
+  formData: FormData,
+  notice: FavoritesNotice | null,
+): Promise<void> {
+  const locale = await getLocale();
+  const target = safeRedirectTarget(formData.get("returnTo"), locales, "/app/favorites");
+
+  revalidatePath(`/${locale}${target.split(/[?#]/, 1)[0]}`);
+  redirect({ href: withNotice(target, notice), locale });
 }

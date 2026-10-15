@@ -608,6 +608,7 @@ export default async function ChannelsPage({
           name: t("catalogueGroupName"),
           rename: t("catalogueGroupRename"),
           remove: t("catalogueGroupDelete"),
+          confirmRemove: t("catalogueGroupDeleteConfirm"),
         }}
         deleteWarning={(count) =>
           t("catalogueGroupDeleteWarning", {
