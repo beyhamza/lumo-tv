@@ -82,7 +82,7 @@ Une case cochée signifie **recetté**, pas seulement écrit.
 - [ ] S11-05 — propagation, erreurs partielles, suppression de source — 0 %
 - [ ] S11-06 — recette entre appareils — 0 %
 
-**Avancement global ≈ 62 %** (moyenne des sept lots).
+**Avancement global ≈ 64 %** (moyenne des sept lots).
 
 ### Point du 8 octobre 2026
 
