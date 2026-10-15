@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { SourceSwitcher } from "@/components/app/SourceSwitcher";
 import { Wordmark } from "@/components/site/Wordmark";
 import { hrefFor } from "@/i18n/navigation";
@@ -33,9 +34,9 @@ import { cn } from "@/lib/utils";
  * name, truncated email. The name comes from `GET /me`; the email is already in
  * the session.
  *
- * Note the absence of a `NextIntlClientProvider`: nothing in this shell is a
- * client component. Every row of the source switcher is a form posting to a
- * Server Action, and everything else is a link.
+ * The shell itself has no client component: every row of the source switcher
+ * is a form posting to a Server Action, and everything else is a link. The one
+ * `NextIntlClientProvider` below carries only `AppError`, for `error.tsx`.
  *
  * <h2>Two groups of entries (US-017, S8-E03; US-025, S8-06)</h2>
  *
@@ -248,7 +249,12 @@ export default async function AppLayout({
       </aside>
 
       <main id="main" className="min-w-0 flex-1 px-5 py-8 sm:px-8 lg:px-11 lg:py-9">
-        {children}
+        {/* `AppError` only, for `error.tsx`: the one client component of this
+            zone, drawn when a page throws (BUG-S11-06-03). Three strings, not
+            the zone's messages. */}
+        <NextIntlClientProvider messages={{ AppError: (await getMessages()).AppError }}>
+          {children}
+        </NextIntlClientProvider>
       </main>
     </div>
   );

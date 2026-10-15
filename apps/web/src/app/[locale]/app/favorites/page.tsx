@@ -17,6 +17,7 @@ import { EmptyState, Unavailable } from "@/components/app/Unavailable";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api } from "@/lib/api/client";
+import { fetched } from "@/lib/api/fetched";
 import type { Channel, Favorite, FavoriteGroup } from "@/lib/api/types";
 import { channelStatus, resolveChannels } from "@/lib/catalogue/resolve-channels";
 import { stillRemaining } from "@/lib/favorites/global-removal";
@@ -168,9 +169,12 @@ export default async function FavoritesPage({
 
   const activeGroupId = single(query.group);
 
-  const [favorites, groups, activeSource] = await Promise.all([
-    api(session.accessToken).GET("/me/favorites", {}),
-    api(session.accessToken).GET("/me/favorite-groups", {}),
+  // Through `fetched`, which also absorbs a request that got no answer at all:
+  // openapi-fetch throws on a refused connection, and an uncaught throw here
+  // was Next's generic English error page in place of this one (BUG-S11-06-03).
+  const [favoritesAnswer, groupsAnswer, activeSource] = await Promise.all([
+    fetched(() => api(session.accessToken).GET("/me/favorites", {})),
+    fetched(() => api(session.accessToken).GET("/me/favorite-groups", {})),
     // Which source this browser is browsing. The layout asked the same question
     // for the rail; this is the same answer, not a second request.
     loadActiveSource(session.accessToken, session.userId),
@@ -178,9 +182,15 @@ export default async function FavoritesPage({
 
   // An unanswered `GET /sources` is in this branch on purpose. It is not "no
   // source" and it is not "choose one": it proves nothing, so it changes nothing.
-  if (!favorites.data || !groups.data || activeSource.state === "unavailable") {
+  if (
+    favoritesAnswer.state !== "ok" ||
+    groupsAnswer.state !== "ok" ||
+    activeSource.state === "unavailable"
+  ) {
     return <Unavailable />;
   }
+  const favorites = { data: favoritesAnswer.data };
+  const groups = { data: groupsAnswer.data };
 
   if (activeSource.state === "none") {
     return (
