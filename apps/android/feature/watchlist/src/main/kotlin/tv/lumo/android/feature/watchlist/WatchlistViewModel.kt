@@ -24,6 +24,8 @@ import tv.lumo.android.core.data.model.WatchlistTarget
 import tv.lumo.android.core.data.model.WatchlistType
 import tv.lumo.android.core.data.model.WatchlistWriteOutcome
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
+import tv.lumo.android.core.data.repository.onFailureNaming
+import tv.lumo.android.core.data.selectedSourceId
 import tv.lumo.android.core.data.repository.WatchlistRepository
 
 /**
@@ -177,6 +179,16 @@ class WatchlistViewModel @Inject constructor(
                 }
             }
 
+            // An empty list or a failure may be a source deleted from another
+            // device: `GET /me/watchlist` answers an empty `200` for a source that
+            // no longer exists, and "Your list is empty" would be a lie about a
+            // source that is gone. The source is checked first; when it has gone,
+            // the change of source re-draws this screen (S11-05).
+            if ((items.isEmpty() || failure != null) && !sourceStillActive(sourceId, failure)) {
+                _state.update { if (it.sourceId == sourceId) it.copy(rereading = false) else it }
+                return@launch
+            }
+
             val slice = last
             if (failure != null || slice == null) {
                 val offline = failure is LumoError.Offline
@@ -221,6 +233,20 @@ class WatchlistViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    /**
+     * Whether [sourceId] is still the active source, asked of the server.
+     *
+     * A `404 SOURCE_NOT_FOUND` is a proof on its own; otherwise the source list is
+     * re-read, and its absence from a successful list is the other proof. Offline,
+     * nothing can be proven and the source is presumed still there (US-018).
+     */
+    private suspend fun sourceStillActive(sourceId: String, failure: LumoError?): Boolean {
+        if (failure != null && activeSource.onFailureNaming(sourceId, failure)) return false
+        if (failure is LumoError.Offline) return true
+        activeSource.refresh()
+        return activeSource.state.value.selectedSourceId == sourceId
     }
 
     // ---- the compact panel of an unavailable card ---------------------------

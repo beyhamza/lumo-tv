@@ -79,10 +79,23 @@ Une case cochée signifie **recetté**, pas seulement écrit.
     `Television_1080p` ; parcours contrôlés sur les deux émulateurs.
   - Reste : recette FR, retour réseau réel (relecture automatique), « charger plus » au-delà
     du banc ; rendu web des états indisponible et échec non revus à l'écran.
-- [ ] S11-05 — propagation, erreurs partielles, suppression de source — 0 %
+- [ ] S11-05 — propagation, erreurs partielles, suppression de source — 85 % :
+  - **API** (PR #63) : la cascade serveur était complète ; `deleteSource` nomme désormais la
+    liste À regarder et un seul test prouve la cascade de toutes les tables.
+  - **Web** (`feat/S11-05-web-partial-errors`) : un favori dont la chaîne n'a pas pu être
+    résolue garde sa ligne (« Détails indisponibles », bandeau + Réessayer) ; chaque rail de
+    l'accueil a son statut, une panne ne s'affiche plus comme « rien encore ». Vitest 440/440.
+  - **Android** (`feat/S11-05-android-propagation`) : purge locale d'une source supprimée quel
+    que soit le chemin qui le constate (404 ou absence d'une liste réussie, jamais une panne) ;
+    « Ma liste » vérifie la source avant d'afficher « vide » ; favoris non résolus gardés ;
+    rail Continuer conservé en cas d'échec ; Accueil, Favoris et Ma liste relus à chaque
+    retour dans l'app. Tests 741/741 ; suppression faite ailleurs, propagation TV → téléphone
+    et panne contrôlées sur émulateur.
+  - Reste : lignes « Détails indisponibles » et relecture au retour sur une vraie TV,
+    emplacement du Réessayer TV (fin de la colonne des groupes) à valider en recette.
 - [ ] S11-06 — recette entre appareils — 0 %
 
-**Avancement global ≈ 64 %** (moyenne des sept lots).
+**Avancement global ≈ 76 %** (moyenne des sept lots).
 
 ### Point du 8 octobre 2026
 

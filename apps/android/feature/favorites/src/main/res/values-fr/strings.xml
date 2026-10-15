@@ -89,4 +89,9 @@
     <string name="feature_favorites_write_failed">Cette modification n\'a pas pu être enregistrée. La liste montre vos favoris tels qu\'ils sont.</string>
     <string name="feature_favorites_dismiss">OK</string>
     <string name="feature_favorites_tv_hint">Maintenez OK sur une chaîne ou un groupe pour plus d\'options.</string>
+
+    <!-- S11-05 : les favoris dont la chaîne n'a pas pu être résolue restent listés. -->
+    <string name="feature_favorites_details_unavailable">Détails indisponibles</string>
+    <string name="feature_favorites_partial">Certains favoris ne peuvent pas être affichés en entier pour le moment. Touchez pour réessayer.</string>
+    <string name="feature_favorites_tv_partial">Certains favoris ne peuvent pas être affichés en entier pour le moment. Réessayer se trouve à la fin des groupes.</string>
 </resources>

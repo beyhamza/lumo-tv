@@ -35,4 +35,8 @@
     <string name="feature_home_explore_live">Direct</string>
     <string name="feature_home_explore_films">Films</string>
     <string name="feature_home_explore_series">Séries</string>
+
+    <!-- S11-05 : une panne garde ce qui est affiché, et le dit. -->
+    <string name="feature_home_continue_partial">« Continuer » n\'a pas pu être actualisé. Ce qui est affiché peut ne pas être à jour.</string>
+    <string name="feature_home_details_unavailable">Détails indisponibles</string>
 </resources>

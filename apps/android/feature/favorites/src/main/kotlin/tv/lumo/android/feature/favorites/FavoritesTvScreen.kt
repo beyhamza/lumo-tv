@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -106,6 +108,11 @@ fun FavoritesTvScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    // Back on screen, or back from the background: another device may have
+    // starred or removed something (S11-05). In place — the grid is keyed by
+    // channel, so the focused card keeps the focus if it is still there.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.refresh() }
+
     FavoritesTvContent(
         state = state,
         actions = FavoritesTvActions(
@@ -134,6 +141,7 @@ fun FavoritesTvScreen(
                 viewModel.onReorderNoticeShown()
                 viewModel.onErrorShown()
             },
+            onRetry = viewModel::refresh,
         ),
         modifier = modifier,
     )
@@ -163,6 +171,7 @@ internal class FavoritesTvActions(
     val onRemovalDismissed: () -> Unit = {},
     val onRemovalShown: () -> Unit = {},
     val onNoticeShown: () -> Unit = {},
+    val onRetry: () -> Unit = {},
 )
 
 /** What opened a dialog, to put the focus back (or next to it) when it closes. */
@@ -182,7 +191,7 @@ internal fun FavoritesTvContent(
     actions: FavoritesTvActions,
     modifier: Modifier = Modifier,
 ) {
-    val favorites = state.visible
+    val favorites = state.visible.withReadableNames()
     val cardRequesters = remember { mutableMapOf<String, FocusRequester>() }
     val groupRequesters = remember { mutableMapOf<String, FocusRequester>() }
     val gridState = rememberLazyGridState()
@@ -244,6 +253,7 @@ internal fun FavoritesTvContent(
                         requesters = groupRequesters,
                         onSelect = actions.onSelectGroup,
                         onCreate = actions.onCreateGroup,
+                        onRetry = actions.onRetry,
                         onOptions = { index, group ->
                             origin = FocusOrigin(FocusOrigin.Kind.Group, group.id, index)
                             groupMenu = group
@@ -457,6 +467,9 @@ private fun Notice(state: FavoritesState, onShown: () -> Unit, onRemovalShown: (
         state.reorderNotice == ReorderNotice.NotApplied ->
             stringResource(R.string.feature_favorites_reorder_not_applied) to true
         state.writeError != null -> stringResource(R.string.feature_favorites_write_failed) to true
+        // Stays while it is true; its Retry is the last entry of the group column,
+        // where the remote reaches it (S11-05).
+        state.partial -> stringResource(R.string.feature_favorites_tv_partial) to true
         state.error != null -> stringResource(R.string.feature_favorites_refresh_failed) to true
         state.removalDone != null ->
             stringResource(R.string.feature_favorites_removed_everywhere, state.removalDone.name) to false
@@ -466,7 +479,9 @@ private fun Notice(state: FavoritesState, onShown: () -> Unit, onRemovalShown: (
     // No button to dismiss it: one more focus target in the way of the grid. It
     // stays long enough to be read at three metres, then goes.
     LaunchedEffect(text) {
-        if (state.offline) return@LaunchedEffect
+        if (state.offline || (state.partial && state.writeError == null && state.reorderNotice == null)) {
+            return@LaunchedEffect
+        }
         delay(NOTICE_MILLIS)
         if (state.removalDone != null) onRemovalShown() else onShown()
     }
@@ -488,6 +503,7 @@ private fun GroupColumn(
     requesters: MutableMap<String, FocusRequester>,
     onSelect: (String?) -> Unit,
     onCreate: () -> Unit,
+    onRetry: () -> Unit,
     onOptions: (index: Int, FavoriteGroup) -> Unit,
 ) {
     LazyColumn(
@@ -525,11 +541,28 @@ private fun GroupColumn(
                 requesterKey = NEW_KEY,
                 requesters = requesters,
                 onClick = onCreate,
-                blockDown = true,
+                blockDown = !state.partial,
             )
+        }
+        // The partial notice's Retry (S11-05), at the end of the column the remote
+        // already walks: a button beside the notice would be above everything the
+        // focus can reach from.
+        if (state.partial) {
+            item(key = RETRY_KEY) {
+                GroupItem(
+                    label = stringResource(R.string.feature_favorites_retry),
+                    selected = false,
+                    requesterKey = RETRY_KEY,
+                    requesters = requesters,
+                    onClick = onRetry,
+                    blockDown = true,
+                )
+            }
         }
     }
 }
+
+private const val RETRY_KEY = "retry"
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -628,7 +661,9 @@ private fun Grid(
             ChannelCard(
                 channel = favorite.channel,
                 focusRequester = requester,
-                onPlay = { onPlay(favorite.channel) },
+                // Not resolved: nothing to play; `OK` opens its options, where it
+                // can be removed (S11-05).
+                onPlay = { if (favorite.resolved) onPlay(favorite.channel) else onOptions(index, favorite) },
                 onOptions = { onOptions(index, favorite) },
                 // The grid has ends too: `UP` from the first row and `DOWN` from the
                 // last stay in it rather than jumping to the rail.

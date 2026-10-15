@@ -26,6 +26,7 @@ import tv.lumo.android.core.data.ActiveSourceState
 import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.valueOrNull
 import tv.lumo.android.core.data.WatchlistToggle
 import tv.lumo.android.core.data.WatchlistToggleState
 import tv.lumo.android.core.data.SourceNotice
@@ -233,7 +234,9 @@ class VodViewModel @Inject constructor(
      * screen, and the rest is untouched — it is there again when its source is.
      */
     private suspend fun loadContinueWatching(sourceId: String) {
-        val films = continueWatching.films(sourceId)
+        // A failure keeps the cards on screen: an outage is not "nothing in
+        // progress" (S11-05).
+        val films = continueWatching.films(sourceId).valueOrNull() ?: return
         _state.update { it.copy(continueWatching = films) }
     }
 

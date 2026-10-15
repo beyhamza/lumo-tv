@@ -37,6 +37,13 @@ data class FavoriteChannel(
     val groupId: String,
     val position: Int,
     val channel: Channel,
+    /**
+     * False when the channel could not be resolved on this device — an outage
+     * during the resolution, typically (S11-05). [channel] then carries the ids
+     * and nothing readable: the screens draw "Details unavailable", do not play
+     * it, and still let it be removed. Never dropped from a list for that.
+     */
+    val resolved: Boolean = true,
 )
 
 /**

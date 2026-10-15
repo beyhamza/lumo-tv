@@ -100,8 +100,17 @@ data class FavoriteChannelRow(
     @ColumnInfo(name = "favorite_position")
     val favoritePosition: Int,
 
+    /** The favourite's own source, known even when its channel is not cached. */
+    @ColumnInfo(name = "favorite_source_id")
+    val favoriteSourceId: String,
+
+    /** The favourite's own channel id, known even when its channel is not cached. */
+    @ColumnInfo(name = "favorite_channel_id")
+    val favoriteChannelId: String,
+
+    /** Null when the channel has not been resolved on this device (S11-05). */
     @Embedded
-    val channel: ChannelEntity,
+    val channel: ChannelEntity?,
 )
 
 /** A favourite whose channel is not in this device's cache yet. */

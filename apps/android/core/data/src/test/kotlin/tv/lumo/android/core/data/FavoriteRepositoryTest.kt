@@ -6,6 +6,7 @@ import java.util.UUID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
@@ -62,7 +63,8 @@ import tv.lumo.android.network.generated.infrastructure.Serializer
  * what is under test is the walk and the bookkeeping, and Room needs an Android
  * runtime the unit build deliberately does not ask for (AGENTS.md §8). The join
  * that hides an orphan favourite is Room's own and is exercised on a device, not
- * here.
+ * here. Since S11-05 that join is a left join: an unresolved favourite is a row
+ * with a null channel, and its mapping is held here.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class FavoriteRepositoryTest {
@@ -130,10 +132,63 @@ class FavoriteRepositoryTest {
 
         // The favourites are in the cache. What is missing is the readable name of
         // one of them, which the next refresh resolves. An error here would be an
-        // error screen over somebody's perfectly good favourites.
+        // error screen over somebody's perfectly good favourites — the partial
+        // state is carried by the rows instead (`resolved`, S11-05).
         assertThat(result).isEqualTo(LumoResult.Success(Unit))
         assertThat(favoriteDao.groups.value.map { it.name }).containsExactly("Documentaire")
         assertThat(favoriteDao.favorites).hasSize(1)
+    }
+
+    @Test
+    fun `a favourite whose channel is not resolved stays listed, marked so (S11-05)`() = runTest {
+        val channelId = UUID.randomUUID().toString()
+        favoriteDao.rows.value = listOf(
+            FavoriteChannelRow(
+                favoriteId = "f-1",
+                groupId = groupId,
+                favoritePosition = 0,
+                favoriteSourceId = sourceId,
+                favoriteChannelId = channelId,
+                channel = null,
+            ),
+            FavoriteChannelRow(
+                favoriteId = "f-2",
+                groupId = groupId,
+                favoritePosition = 1,
+                favoriteSourceId = sourceId,
+                favoriteChannelId = "c-2",
+                channel = channelEntity("c-2", name = "Chaîne 2"),
+            ),
+        )
+
+        val listed = repository().favorites().first()
+
+        // Never dropped: an outage during the resolution used to make it vanish.
+        assertThat(listed.map { it.favoriteId }).containsExactly("f-1", "f-2").inOrder()
+        val unresolved = listed.first()
+        assertThat(unresolved.resolved).isFalse()
+        // Its ids survive, so it can be filtered by source and removed.
+        assertThat(unresolved.channel.id).isEqualTo(channelId)
+        assertThat(unresolved.channel.sourceId).isEqualTo(sourceId)
+        assertThat(listed[1].resolved).isTrue()
+        assertThat(listed[1].channel.name).isEqualTo("Chaîne 2")
+    }
+
+    @Test
+    fun `one unreachable source does not cost the names resolved from another`() = runTest {
+        val other = UUID.randomUUID().toString()
+        val mine = UUID.randomUUID().toString()
+        val theirs = UUID.randomUUID().toString()
+        val resolver = ChannelResolver(catalog = catalog, calls = calls(), channelDao = channelDao)
+
+        server.enqueue(json(channelsById(listOf(mine))))
+        server.enqueue(MockResponse().setResponseCode(503).setBody("""{"code":"INTERNAL_ERROR"}"""))
+
+        val failure = resolver.resolve(listOf(sourceId to mine, other to theirs))
+
+        // The failure is reported, and what did resolve is kept.
+        assertThat(failure).isNotNull()
+        assertThat(channelDao.stored.map { it.id }).containsExactly(mine)
     }
 
     @Test
@@ -406,6 +461,20 @@ class FavoriteRepositoryTest {
         position = 0,
     )
 
+    private fun channelEntity(id: String, name: String) = ChannelEntity(
+        id = id,
+        sourceId = sourceId,
+        categoryId = null,
+        externalId = null,
+        name = name,
+        logoUrl = null,
+        tvgId = null,
+        number = null,
+        quality = null,
+        position = 0,
+        isAdult = false,
+    )
+
     private fun groupEntity(name: String) = FavoriteGroupEntity(
         id = groupId,
         name = name,
@@ -432,6 +501,7 @@ private class FakeFavoriteDao : FavoriteDao {
     val groups = MutableStateFlow<List<FavoriteGroupEntity>>(emptyList())
     val favorites = mutableListOf<FavoriteEntity>()
     val unresolved = mutableListOf<UnresolvedFavorite>()
+    val rows = MutableStateFlow<List<FavoriteChannelRow>>(emptyList())
 
     override fun observeGroups(): Flow<List<FavoriteGroupEntity>> = groups
 
@@ -445,8 +515,7 @@ private class FakeFavoriteDao : FavoriteDao {
         groups.value = emptyList()
     }
 
-    override fun observeFavorites(groupId: String?): Flow<List<FavoriteChannelRow>> =
-        MutableStateFlow(emptyList())
+    override fun observeFavorites(groupId: String?): Flow<List<FavoriteChannelRow>> = rows
 
     override fun observeFavoritedChannelIds(): Flow<List<String>> =
         MutableStateFlow(favorites.map { it.channelId })

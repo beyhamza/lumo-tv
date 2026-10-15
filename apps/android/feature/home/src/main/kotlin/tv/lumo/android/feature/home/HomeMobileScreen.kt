@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +39,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.SubcomposeAsyncImage
 import kotlinx.coroutines.delay
@@ -96,8 +99,8 @@ fun HomeMobileScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     // Every time this screen comes into view — launch, return from a player,
-    // return from another tab. See `HomeViewModel.onShown`.
-    LaunchedEffect(Unit) { viewModel.onShown() }
+    // return from another tab, return from the background. See `HomeViewModel.onShown`.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onShown() }
 
     // The step of an import is only worth showing if it moves. Polled from the
     // composition so that it stops when the screen does.
@@ -153,16 +156,31 @@ fun HomeMobileScreen(
                 state = state,
                 actions = actions,
                 onRetry = viewModel::refreshSource,
+                onRetryContinue = viewModel::onShown,
             )
         }
     }
 }
 
 @Composable
-private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit) {
+private fun Browsing(
+    state: HomeState,
+    actions: HomeActions,
+    onRetry: () -> Unit,
+    onRetryContinue: () -> Unit,
+) {
     val sections = remember(state) { state.sections }
+    val listState = rememberLazyListState()
+
+    // A notice inserted above the first visible rail would be scrolled out of
+    // sight: `LazyColumn` keeps the rail anchored. Brought back to the top when
+    // the list was there anyway.
+    LaunchedEffect(state.continueFailed) {
+        if (state.continueFailed && listState.firstVisibleItemIndex <= 1) listState.scrollToItem(0)
+    }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = LumoSpacing.md),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
@@ -175,6 +193,10 @@ private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit
                     onRetry = onRetry,
                 )
             }
+        }
+
+        if (state.continueFailed) {
+            item(key = "continue-partial") { ContinuePartial(onRetry = onRetryContinue) }
         }
 
         when {
@@ -197,8 +219,12 @@ private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit
                         title = stringResource(R.string.feature_home_favorites),
                         action = stringResource(R.string.feature_home_see_all_favorites),
                         onAction = actions.onOpenLibrary,
-                        channels = section.channels.map { it.channel },
-                        onPlay = actions.onPlayChannel,
+                        channels = section.railChannels(stringResource(R.string.feature_home_details_unavailable)),
+                        // Not resolved: nothing to play here; the library is where
+                        // it can be removed (S11-05).
+                        onPlay = { id, name ->
+                            if (id in section.unresolvedIds) actions.onOpenLibrary() else actions.onPlayChannel(id, name)
+                        },
                     )
 
                     is HomeSection.Live -> ChannelRail(
@@ -266,6 +292,29 @@ private fun Notice(notice: SourceNotice, onOpenSources: () -> Unit, onRetry: () 
         onRetry = onRetry,
         modifier = Modifier.padding(horizontal = LumoSpacing.md),
     )
+}
+
+/**
+ * The progress list could not be read (S11-05): one discreet line over the rails,
+ * which keep the cards they had, and a way to ask again.
+ */
+@Composable
+private fun ContinuePartial(onRetry: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = LumoSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.feature_home_continue_partial),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onRetry) { Text(stringResource(R.string.feature_home_retry)) }
+    }
 }
 
 // ---- Continue ---------------------------------------------------------------

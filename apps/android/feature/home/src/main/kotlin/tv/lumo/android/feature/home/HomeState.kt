@@ -1,6 +1,7 @@
 package tv.lumo.android.feature.home
 
 import tv.lumo.android.core.data.ActiveSourceState
+import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.aggregatedFavorites
 import tv.lumo.android.core.data.channelsOfSource
@@ -105,7 +106,20 @@ sealed interface HomeSection {
      * Always comes with a "See all" action: the rail is capped, and the library is
      * where the groups and their organisation live (US-020).
      */
-    data class Favorites(val channels: List<FavoriteChannel>) : HomeSection
+    data class Favorites(val channels: List<FavoriteChannel>) : HomeSection {
+
+        /**
+         * The channels a favourite whose channel this device could not resolve is
+         * drawn as: its ids, named [unavailable] (S11-05). Kept in the rail, never
+         * dropped; pressing it leads to the library, where it can be removed.
+         */
+        fun railChannels(unavailable: String): List<Channel> =
+            channels.map { if (it.resolved) it.channel else it.channel.copy(name = unavailable) }
+
+        /** The channel ids of the favourites [railChannels] names "unavailable". */
+        val unresolvedIds: Set<String>
+            get() = channels.filterNot { it.resolved }.mapTo(HashSet()) { it.channel.id }
+    }
 
     /** Recently watched channels. Comes with "All channels", the way into the catalogue. */
     data class Live(val channels: List<Channel>) : HomeSection
@@ -147,6 +161,12 @@ data class HomeState(
      * its rails arrive.
      */
     val continueLoaded: Boolean = false,
+    /**
+     * The last read of the progress list failed (S11-05). What [continueWatching]
+     * holds is the previous answer — possibly nothing — and the screen says it may
+     * be out of date. Never an empty rail for an outage.
+     */
+    val continueFailed: Boolean = false,
     val favoritesLoaded: Boolean = false,
     val recentLoaded: Boolean = false,
     /**
@@ -205,8 +225,27 @@ data class HomeState(
      * [settled], so the invitation is a conclusion and not a first frame.
      */
     val blank: Boolean
-        get() = step == HomeStep.Browsing && settled &&
+        get() = step == HomeStep.Browsing && settled && !continueFailed &&
             sections.all { it is HomeSection.LiveEntries }
+
+    /**
+     * The progress list's answer for [asked], put on screen (S11-05).
+     *
+     * A success replaces the cards. A failure **keeps** them and says so: the
+     * rail used to be emptied by any outage, and "nothing in progress" is a claim
+     * an unreachable server cannot support. An answer for a source no longer on
+     * screen changes nothing.
+     */
+    fun withContinue(asked: String, result: LumoResult<List<ContinueItem>>): HomeState =
+        if (asked != sourceId) {
+            this
+        } else {
+            when (result) {
+                is LumoResult.Success ->
+                    copy(continueWatching = result.value, continueLoaded = true, continueFailed = false)
+                is LumoResult.Failure -> copy(continueLoaded = true, continueFailed = true)
+            }
+        }
 
     /** Still waiting for the first answers, with nothing to draw in the meantime. */
     val waiting: Boolean
@@ -231,6 +270,7 @@ data class HomeState(
                 notice = source.notice,
                 continueWatching = emptyList(),
                 continueLoaded = false,
+                continueFailed = false,
                 // The old source's guide under the new source's cards would be
                 // the GD-03 failure; the tracker answers again for the new one.
                 onAir = emptyMap(),

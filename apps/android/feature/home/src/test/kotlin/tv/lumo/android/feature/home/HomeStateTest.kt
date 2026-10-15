@@ -4,6 +4,8 @@ import com.google.common.truth.Truth.assertThat
 import java.util.UUID
 import org.junit.Test
 import tv.lumo.android.core.data.ActiveSourceState
+import tv.lumo.android.core.data.LumoError
+import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.ContinueItem
@@ -244,6 +246,62 @@ class HomeStateTest {
 
         // Equal, so `distinctUntilChanged` swallows it and the rails do not reload.
         assertThat(after.asHomeSource()).isEqualTo(before.asHomeSource())
+    }
+
+    // ---- partial answers (S11-05) -----------------------------------------------
+
+    @Test
+    fun `a failed progress read keeps the cards on screen and says so`() {
+        val shown = browsing(continueWatching = listOf(film("film-a")))
+
+        val after = shown.withContinue(SOURCE, LumoResult.Failure(LumoError.Offline(java.io.IOException("down"))))
+
+        assertThat(after.continueWatching.map { it.key }).isEqualTo(shown.continueWatching.map { it.key })
+        assertThat(after.continueFailed).isTrue()
+        assertThat(after.sections.first()).isInstanceOf(HomeSection.Continue::class.java)
+    }
+
+    @Test
+    fun `a failed progress read with nothing shown is never the blank invitation`() {
+        val after = browsing().withContinue(SOURCE, LumoResult.Failure(LumoError.Unreadable(502, null)))
+
+        assertThat(after.settled).isTrue()
+        assertThat(after.blank).isFalse()
+        assertThat(after.continueFailed).isTrue()
+    }
+
+    @Test
+    fun `a successful read replaces the cards and lifts the notice`() {
+        val failed = browsing(continueWatching = listOf(film("film-a")))
+            .withContinue(SOURCE, LumoResult.Failure(LumoError.Unreadable(502, null)))
+
+        val after = failed.withContinue(SOURCE, LumoResult.Success(listOf(film("film-b"))))
+
+        assertThat(after.continueWatching.map { it.key }).containsExactly(film("film-b").key)
+        assertThat(after.continueFailed).isFalse()
+    }
+
+    @Test
+    fun `an answer for a source no longer on screen changes nothing`() {
+        val shown = browsing(continueWatching = listOf(film("film-a")))
+
+        assertThat(shown.withContinue("another-source", LumoResult.Success(emptyList()))).isEqualTo(shown)
+    }
+
+    @Test
+    fun `an unresolved favourite stays in the rail, named unavailable`() {
+        val state = browsing(
+            favorites = listOf(
+                favorite("channel-a"),
+                favorite("channel-b", position = 1).let { it.copy(resolved = false, channel = it.channel.copy(name = "")) },
+            ),
+        )
+
+        val rail = state.sections.filterIsInstance<HomeSection.Favorites>().single()
+
+        assertThat(rail.railChannels("Details unavailable").map { it.name })
+            .containsExactly("Channel channel-a", "Details unavailable").inOrder()
+        assertThat(rail.unresolvedIds).containsExactly("channel-b")
     }
 
     // ---- fixtures ------------------------------------------------------------

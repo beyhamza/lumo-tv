@@ -31,6 +31,7 @@ import tv.lumo.android.core.data.internal.ConnectivityMonitor
 import tv.lumo.android.core.data.internal.DataStoreActiveSourceStore
 import tv.lumo.android.core.data.repository.ActiveSourceRepository
 import tv.lumo.android.core.data.repository.DefaultActiveSourceRepository
+import tv.lumo.android.core.data.repository.DefaultSourceGoneCleanup
 import tv.lumo.android.core.data.repository.SourceRepository
 
 /**
@@ -81,7 +82,8 @@ internal object ActiveSourceModule {
         sources: SourceRepository,
         store: ActiveSourceStore,
         @ApplicationScope scope: CoroutineScope,
-    ): ActiveSourceRepository = DefaultActiveSourceRepository(session, sources, store, scope)
+        cleanup: DefaultSourceGoneCleanup,
+    ): ActiveSourceRepository = DefaultActiveSourceRepository(session, sources, store, scope, cleanup)
 
     private const val ACTIVE_SOURCE_FILE = "active_source"
 }

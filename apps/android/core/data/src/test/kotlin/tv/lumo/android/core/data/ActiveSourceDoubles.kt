@@ -5,6 +5,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
 import retrofit2.Response
 import tv.lumo.android.core.data.internal.ActiveSourceStore
+import tv.lumo.android.core.data.repository.SourceGoneCleanup
 import tv.lumo.android.network.generated.api.SourcesApi
 import tv.lumo.android.network.generated.model.CreateSourceRequest
 import tv.lumo.android.network.generated.model.Source
@@ -107,5 +108,28 @@ internal class InMemoryActiveSourceStore : ActiveSourceStore {
 
     override suspend fun clearAll() {
         entries.clear()
+    }
+}
+
+/**
+ * The local clean-up of a deleted source (S11-05), recorded rather than done:
+ * the tests are about **when** it runs — on proof, and never on a network error.
+ */
+internal class RecordingSourceGoneCleanup(
+    var cached: Set<String> = emptySet(),
+) : SourceGoneCleanup {
+
+    /** One entry per call, with the sources it purged. */
+    val purges = mutableListOf<List<String>>()
+
+    /** Every source purged, across calls. */
+    val purged: List<String> get() = purges.flatten()
+
+    override suspend fun cachedSources(): Set<String> = cached
+
+    override suspend fun purge(sourceIds: Collection<String>) {
+        if (sourceIds.isEmpty()) return
+        purges += sourceIds.toList()
+        cached = cached - sourceIds.toSet()
     }
 }

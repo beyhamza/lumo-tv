@@ -94,6 +94,11 @@ interface ActiveSourceRepository {
      * The second of the two proofs of deletion (c4-previous-catalogue.md §P6),
      * and the one that reaches a device whose source was deleted from another:
      * one source left is selected, several ask, none sends to "add a source".
+     *
+     * It also drops the device's copy of the source — catalogue, films, series,
+     * guide — and re-reads favourites and recent channels ([SourceGoneCleanup]),
+     * whoever noticed the deletion. [refresh] does the same for a known source a
+     * successful list no longer carries.
      */
     suspend fun onSourceGone(sourceId: String)
 }
@@ -141,6 +146,7 @@ internal class DefaultActiveSourceRepository(
     private val sources: SourceRepository,
     private val store: ActiveSourceStore,
     scope: CoroutineScope,
+    private val cleanup: SourceGoneCleanup = SourceGoneCleanup.None,
 ) : ActiveSourceRepository {
 
     private val _state = MutableStateFlow<ActiveSourceState>(ActiveSourceState.Loading)
@@ -172,16 +178,37 @@ internal class DefaultActiveSourceRepository(
         }
     }
 
-    override suspend fun refresh() = mutex.withLock {
-        val account = currentAccount() ?: return@withLock
-        val stored = store.read(account)
+    override suspend fun refresh() {
+        val gone = mutex.withLock {
+            val account = currentAccount() ?: return@withLock emptySet()
+            val stored = store.read(account)
+            // Read before the list, so a source added and synchronised while the
+            // request is in flight cannot look like one the list forgot.
+            val cached = cleanup.cachedSources()
 
-        when (val result = sources.sources()) {
-            is LumoResult.Success -> publish(account, stored, ActiveSourceResolver.resolve(result.value, stored))
-            is LumoResult.Failure ->
-                _state.value = ActiveSourceResolver.withoutList(previousFor(account), stored)
+            val vanished = when (val result = sources.sources()) {
+                is LumoResult.Success -> {
+                    // A successful list is a proof (c4-previous-catalogue.md §P6):
+                    // what this device knew and the list no longer carries was
+                    // deleted — from another device, or while the app was closed.
+                    val listed = result.value.map { it.id.toString() }.toSet()
+                    val knew = previousFor(account).knownSources.map { it.id.toString() }.toSet() +
+                        listOfNotNull(stored) + cached
+                    publish(account, stored, ActiveSourceResolver.resolve(result.value, stored))
+                    knew - listed
+                }
+                // A failed fetch proves nothing, and cleans nothing.
+                is LumoResult.Failure -> {
+                    _state.value = ActiveSourceResolver.withoutList(previousFor(account), stored)
+                    emptySet()
+                }
+            }
+            resolvedFor = account
+            vanished
         }
-        resolvedFor = account
+        // Outside the lock: the re-read of favourites is a network call, and a
+        // `select` has no reason to wait for it.
+        cleanup.purge(gone)
     }
 
     override suspend fun select(sourceId: String) = mutex.withLock {
@@ -204,8 +231,13 @@ internal class DefaultActiveSourceRepository(
         resolvedFor = account
     }
 
-    override suspend fun onSourceGone(sourceId: String) = mutex.withLock {
-        val account = currentAccount() ?: return@withLock
+    override suspend fun onSourceGone(sourceId: String) {
+        if (decideWithout(sourceId)) cleanup.purge(listOf(sourceId))
+    }
+
+    /** @return false when nobody is signed in, and nothing was decided. */
+    private suspend fun decideWithout(sourceId: String): Boolean = mutex.withLock {
+        val account = currentAccount() ?: return@withLock false
 
         // The `404` is the proof, so the recorded choice goes first and whatever
         // the list says: nothing below may bring a deleted source back.
@@ -229,6 +261,7 @@ internal class DefaultActiveSourceRepository(
             publish(account, stored, ActiveSourceResolver.withoutSource(known, stored, sourceId))
         }
         resolvedFor = account
+        true
     }
 
     /**

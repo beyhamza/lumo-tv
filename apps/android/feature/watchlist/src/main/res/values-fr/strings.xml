@@ -26,6 +26,7 @@
     <string name="feature_watchlist_offline_title">Votre liste n\'est pas disponible hors ligne</string>
     <string name="feature_watchlist_offline_body">Elle se chargera au retour de la connexion.</string>
     <string name="feature_watchlist_retry">Réessayer</string>
+    <string name="feature_watchlist_refresh">Actualiser</string>
     <string name="feature_watchlist_no_source">Choisissez une source pour voir sa liste.</string>
 
     <string name="feature_watchlist_offline_notice">Hors ligne : voici la liste déjà chargée. Ajouter et retirer sont indisponibles jusqu\'au retour de la connexion.</string>

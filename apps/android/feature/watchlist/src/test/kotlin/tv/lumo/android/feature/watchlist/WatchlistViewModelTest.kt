@@ -197,6 +197,70 @@ class WatchlistViewModelTest {
             assertThat(vm.state.value.canRemove).isTrue()
         }
 
+    // ---- a source deleted elsewhere (S11-05) ---------------------------------
+
+    @Test
+    fun `an empty list for a source deleted elsewhere falls back instead of claiming empty`() =
+        runTest(scheduler) {
+            // The server answers an empty 200 for a deleted source; the source list
+            // no longer carries it, and one source is left.
+            active.onRefresh = {
+                active.active.value = ActiveSourceState.Selected("source-2", source = null, sources = emptyList())
+            }
+            repo.items = listOf(entry("z", source = "source-2"))
+            repo.emptyFor = "source-1"
+            val vm = WatchlistViewModel(repo, active)
+            advanceUntilIdle()
+
+            assertThat(active.refreshes).isAtLeast(1)
+            assertThat(vm.state.value.sourceId).isEqualTo("source-2")
+            assertThat(vm.state.value.items.map { it.id }).containsExactly("z")
+        }
+
+    @Test
+    fun `an empty list for a source deleted with none left is never drawn as empty`() =
+        runTest(scheduler) {
+            active.onRefresh = { active.active.value = ActiveSourceState.None }
+            val vm = WatchlistViewModel(repo, active)
+            advanceUntilIdle()
+
+            assertThat(vm.state.value.phase).isEqualTo(WatchlistPhase.NoSource)
+            assertThat(vm.state.value.confirmedEmpty).isFalse()
+        }
+
+    @Test
+    fun `an empty list for a source that still exists is a confirmed empty list`() = runTest(scheduler) {
+        val vm = WatchlistViewModel(repo, active)
+        advanceUntilIdle()
+
+        assertThat(active.refreshes).isEqualTo(1)
+        assertThat(vm.state.value.confirmedEmpty).isTrue()
+    }
+
+    @Test
+    fun `SOURCE_NOT_FOUND on a read is handled as a deletion`() = runTest(scheduler) {
+        repo.readFailure = LumoError.Api(ErrorCode.SOURCE_NOT_FOUND, null)
+        val vm = WatchlistViewModel(repo, active)
+        advanceUntilIdle()
+
+        assertThat(active.gone).containsExactly("source-1")
+        assertThat(vm.state.value.phase).isEqualTo(WatchlistPhase.NoSource)
+    }
+
+    @Test
+    fun `a server failure re-reads the source list, offline does not`() = runTest(scheduler) {
+        repo.readFailure = LumoError.Unreadable(500, null)
+        WatchlistViewModel(repo, active)
+        advanceUntilIdle()
+        assertThat(active.refreshes).isEqualTo(1)
+
+        repo.readFailure = LumoError.Offline(IOException("no network"))
+        val offline = WatchlistViewModel(repo, active)
+        advanceUntilIdle()
+        assertThat(active.refreshes).isEqualTo(1)
+        assertThat(offline.state.value.phase).isEqualTo(WatchlistPhase.LoadFailed(offline = true))
+    }
+
     // ---- removal from the compact panel -------------------------------------
 
     @Test
@@ -323,6 +387,9 @@ class WatchlistViewModelTest {
         var types: Set<WatchlistType>? = null
         var filterEmpty = false
         var readFailure: LumoError? = null
+
+        /** A source the server answers an empty `200` for, as it does once deleted. */
+        var emptyFor: String? = null
         var gate: CompletableDeferred<Unit>? = null
         var next: () -> WatchlistWriteOutcome = { WatchlistWriteOutcome.Confirmed(null) }
         val written = mutableListOf<PendingIntention>()
@@ -342,7 +409,11 @@ class WatchlistViewModelTest {
             sourcesAsked += sourceId
             typesAsked += type
             readFailure?.let { return LumoResult.Failure(it) }
-            val matching = if (type != null && filterEmpty) emptyList() else items.filter { type == null || it.type == type }
+            val matching = when {
+                sourceId == emptyFor -> emptyList()
+                type != null && filterEmpty -> emptyList()
+                else -> items.filter { type == null || it.type == type }
+            }
             val chunk = matching.drop(page * size).take(size)
             val totalPages = ((matching.size + size - 1) / size).coerceAtLeast(1)
             return LumoResult.Success(
@@ -372,7 +443,19 @@ class WatchlistViewModelTest {
         override val state: StateFlow<ActiveSourceState> = active
         override val accountId: Flow<String?> = MutableStateFlow("account-1")
         override suspend fun select(sourceId: String) = Unit
-        override suspend fun refresh() = Unit
-        override suspend fun onSourceGone(sourceId: String) = Unit
+        var refreshes = 0
+        val gone = mutableListOf<String>()
+
+        /** What a re-read of the source list concludes. Unchanged by default. */
+        var onRefresh: () -> Unit = {}
+        override suspend fun refresh() {
+            refreshes++
+            onRefresh()
+        }
+
+        override suspend fun onSourceGone(sourceId: String) {
+            gone += sourceId
+            active.value = ActiveSourceState.None
+        }
     }
 }

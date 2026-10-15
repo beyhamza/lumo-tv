@@ -253,6 +253,40 @@ class FavoritesStateTest {
         assertThat(state.aggregated.first().groupId).isEqualTo("group-first")
     }
 
+    // ---- unresolved favourites (S11-05) -----------------------------------------
+
+    @Test
+    fun `an unresolved favourite stays listed and makes the list partial`() {
+        val state = FavoritesState(
+            loading = false,
+            groups = listOf(documentaire),
+            activeSourceId = "source",
+            favorites = listOf(
+                favorite("f-1", "documentaire", channel("c-1", "Chaîne 1"), position = 0),
+                favorite("f-2", "documentaire", channel("c-2", ""), position = 1).copy(resolved = false),
+            ),
+        )
+
+        assertThat(state.visible.map { it.favoriteId }).containsExactly("f-1", "f-2").inOrder()
+        assertThat(state.partial).isTrue()
+        assertThat(state.nothingAtAll).isFalse()
+    }
+
+    @Test
+    fun `an unresolved favourite of another source does not make this one partial`() {
+        val state = FavoritesState(
+            loading = false,
+            groups = listOf(documentaire),
+            activeSourceId = "source",
+            favorites = listOf(
+                favorite("f-1", "documentaire", channel("c-1", "Chaîne 1")),
+                favorite("f-2", "documentaire", channel("c-2", "", sourceId = "other")).copy(resolved = false),
+            ),
+        )
+
+        assertThat(state.partial).isFalse()
+    }
+
     private fun group(id: String, name: String) = FavoriteGroup(
         id = id,
         name = name,

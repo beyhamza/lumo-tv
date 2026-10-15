@@ -31,6 +31,7 @@
     <string name="feature_watchlist_offline_title">Your list isn\'t available offline</string>
     <string name="feature_watchlist_offline_body">It will load once the connection is back.</string>
     <string name="feature_watchlist_retry">Retry</string>
+    <string name="feature_watchlist_refresh">Refresh</string>
     <string name="feature_watchlist_no_source">Choose a source to see its list.</string>
 
     <!-- A list already on screen (WL-06, S11-E07). -->

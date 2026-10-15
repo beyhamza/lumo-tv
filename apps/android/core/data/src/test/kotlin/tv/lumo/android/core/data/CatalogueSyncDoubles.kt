@@ -20,6 +20,8 @@ internal class FakeCatalogueSyncDao : CatalogueSyncDao {
     override suspend fun isSynchronised(sourceId: String, contentType: String): Boolean =
         (sourceId to contentType) in stored
 
+    override suspend fun sourceIds(): List<String> = stored.keys.map { it.first }.distinct()
+
     override suspend fun delete(sourceId: String, contentType: String) {
         stored.remove(sourceId to contentType)
     }

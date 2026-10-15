@@ -26,6 +26,7 @@ import tv.lumo.android.core.data.ActiveSourceState
 import tv.lumo.android.core.data.CatalogueFace
 import tv.lumo.android.core.data.CatalogueSource
 import tv.lumo.android.core.data.LumoResult
+import tv.lumo.android.core.data.valueOrNull
 import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.WatchlistToggle
 import tv.lumo.android.core.data.WatchlistToggleState
@@ -205,7 +206,9 @@ class SeriesViewModel @Inject constructor(
     private suspend fun loadContinueWatching(sourceId: String) {
         // Through the repository the home screen reads too (US-017), so the two
         // cannot come to disagree about which series somebody is watching.
-        val cards = continueWatching.series(sourceId)
+        // A failure keeps the cards on screen: an outage is not "nothing in
+        // progress" (S11-05).
+        val cards = continueWatching.series(sourceId).valueOrNull() ?: return
         _state.update { it.copy(continueWatching = cards) }
     }
 
@@ -459,7 +462,7 @@ class SeriesDetailViewModel @Inject constructor(
      */
     private fun loadProgress() {
         viewModelScope.launch {
-            val rows = progress.episodesInProgress().associateBy { it.episodeId }
+            val rows = progress.episodesInProgress().valueOrNull()?.associateBy { it.episodeId } ?: return@launch
             _state.update { it.copy(progress = rows) }
         }
     }

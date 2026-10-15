@@ -42,6 +42,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -102,7 +104,9 @@ fun HomeTvScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) { viewModel.onShown() }
+    // Each `ON_START`: arrival, return from a player, return from the background
+    // (S11-05). In place — the focused card keeps the focus if it is still there.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onShown() }
 
     val syncing = state.notice is SourceNotice.Refreshing
     LaunchedEffect(syncing) {
@@ -229,6 +233,16 @@ private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit
             Notice(notice = notice, onOpenSources = actions.onOpenSources, onRetry = onRetry)
         }
 
+        // Text and not a focus stop, like an import in progress: the next return
+        // to this screen asks again by itself (S11-05).
+        if (state.continueFailed) {
+            Text(
+                text = stringResource(R.string.feature_home_continue_partial),
+                style = MaterialTheme.typography.bodyLarge,
+                color = LumoColors.OnDarkMuted,
+            )
+        }
+
         when {
             state.waiting -> Text(
                 text = stringResource(R.string.feature_home_loading),
@@ -246,9 +260,13 @@ private fun Browsing(state: HomeState, actions: HomeActions, onRetry: () -> Unit
                         title = stringResource(R.string.feature_home_favorites),
                         action = stringResource(R.string.feature_home_see_all_favorites),
                         onAction = actions.onOpenLibrary,
-                        channels = section.channels.map { it.channel },
+                        channels = section.railChannels(stringResource(R.string.feature_home_details_unavailable)),
                         keyOf = ::favoriteKey,
-                        onPlay = actions.onPlayChannel,
+                        // Not resolved: nothing to play here; the library is where
+                        // it can be removed (S11-05).
+                        onPlay = { id, name ->
+                            if (id in section.unresolvedIds) actions.onOpenLibrary() else actions.onPlayChannel(id, name)
+                        },
                         cards = cards,
                     )
 

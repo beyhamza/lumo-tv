@@ -735,7 +735,12 @@ class LiveViewModel @Inject constructor(
         // moment they turn the television on.
         viewModelScope.launch { recents.refresh() }
         viewModelScope.launch {
-            combine(favorites.favorites(), browsed) { rows, sourceId -> rows.ofSource(sourceId) }
+            // Only the channels this device can name and play: the grid's
+            // favourites filter is a way to a player, and a favourite not resolved
+            // yet stays visible in the library, where it can be removed (S11-05).
+            combine(favorites.favorites(), browsed) { rows, sourceId ->
+                rows.ofSource(sourceId).filter { it.resolved }
+            }
                 .collect { rows -> _state.update { it.copy(favorites = rows) } }
         }
         viewModelScope.launch {

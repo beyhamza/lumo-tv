@@ -70,4 +70,8 @@
       The notice over the rails — refreshing, failed, "My sources" — is worded in
       core:data since the three catalogue grids show the same one (US-024).
     -->
+
+    <!-- S11-05: an outage keeps what is on screen, and says so. -->
+    <string name="feature_home_continue_partial">Continue watching couldn\'t be updated. What\'s shown may be out of date.</string>
+    <string name="feature_home_details_unavailable">Details unavailable</string>
 </resources>

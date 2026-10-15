@@ -46,10 +46,11 @@ interface FavoriteDao {
     /**
      * The favourites of one group, or of every group, joined to their channels.
      *
-     * An inner join, and that is the whole behaviour of an orphan: a favourite
-     * whose channel is not in the cache produces no row. No error, no placeholder
-     * — the channel either left the subscription or has not been synchronised on
-     * this device yet, and neither is something to show a person.
+     * A **left** join (S11-05): a favourite whose channel is not in the cache yet
+     * still produces a row, with a null channel. It used to produce none, and an
+     * outage during the resolution made starred channels disappear from the list
+     * somebody curated by hand. A channel genuinely deleted by a synchronisation
+     * is cascaded server-side and gone from the next `GET /me/favorites` anyway.
      *
      * @param groupId null for every group.
      */
@@ -58,10 +59,12 @@ interface FavoriteDao {
         SELECT f.id AS favorite_id,
                f.group_id AS group_id,
                f.position AS favorite_position,
+               f.source_id AS favorite_source_id,
+               f.channel_id AS favorite_channel_id,
                c.*
         FROM favorite f
         JOIN favorite_group g ON g.id = f.group_id
-        JOIN channel c ON c.id = f.channel_id
+        LEFT JOIN channel c ON c.id = f.channel_id
         WHERE :groupId IS NULL OR f.group_id = :groupId
         ORDER BY g.position, f.position
         """,
