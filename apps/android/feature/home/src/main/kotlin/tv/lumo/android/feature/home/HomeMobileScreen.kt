@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -169,8 +170,17 @@ private fun Browsing(
     onRetryContinue: () -> Unit,
 ) {
     val sections = remember(state) { state.sections }
+    val listState = rememberLazyListState()
+
+    // A notice inserted above the first visible rail would be scrolled out of
+    // sight: `LazyColumn` keeps the rail anchored. Brought back to the top when
+    // the list was there anyway.
+    LaunchedEffect(state.continueFailed) {
+        if (state.continueFailed && listState.firstVisibleItemIndex <= 1) listState.scrollToItem(0)
+    }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = LumoSpacing.md),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
