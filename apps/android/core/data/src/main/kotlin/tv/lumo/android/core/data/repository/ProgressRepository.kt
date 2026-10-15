@@ -120,11 +120,13 @@ class ProgressRepository @Inject internal constructor(
         hide(sourceId, ProgressItemType.EPISODE, episodeId)
 
     private suspend fun hide(sourceId: String, type: ProgressItemType, ref: String): LumoResult<Unit> =
-        calls.call {
+        // `204 No Content`: `empty`, not `call` — the latter reads a missing body as
+        // an unreadable answer, and a confirmed removal would be shown as refused.
+        calls.empty {
             userdata.hideProgress(
                 HideProgressRequest(sourceId = UUID.fromString(sourceId), itemType = type, itemRef = ref),
             )
-        }.map { }
+        }
 
     /**
      * The saved position of one film, or null.
