@@ -348,7 +348,7 @@
     "sourceSyncFailed": "The refresh could not be started. Try again.",
     "sourceDelete": "Delete this source",
     "sourceDeleteConfirmTitle": "Delete “{label}”?",
-    "sourceDeleteConfirmRemoves": "Its catalogue, and your favourites, playback progress and recently watched channels on this source, will be removed.",
+    "sourceDeleteConfirmRemoves": "Its catalogue, and your favourites, playback progress, recently watched channels and the films and series in your “My list” on this source, will be removed.",
     "sourceDeleteConfirmKeeps": "Your other sources and their data are kept.",
     "sourceDeleteConfirmProvider": "This does not cancel your subscription with the provider.",
     "sourceDeleteConfirmNoRestore": "Adding this source again will not restore the deleted data.",

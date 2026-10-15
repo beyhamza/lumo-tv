@@ -348,7 +348,7 @@
     "sourceSyncFailed": "L'actualisation n'a pas pu être lancée. Réessayez.",
     "sourceDelete": "Supprimer cette source",
     "sourceDeleteConfirmTitle": "Supprimer « {label} » ?",
-    "sourceDeleteConfirmRemoves": "Son catalogue, vos favoris, vos progressions de lecture et vos chaînes récentes sur cette source seront supprimés.",
+    "sourceDeleteConfirmRemoves": "Son catalogue, vos favoris, vos progressions de lecture, vos chaînes récentes et les films et séries de « Ma liste » sur cette source seront supprimés.",
     "sourceDeleteConfirmKeeps": "Vos autres sources et leurs données sont conservées.",
     "sourceDeleteConfirmProvider": "Cela ne résilie pas votre abonnement auprès du fournisseur.",
     "sourceDeleteConfirmNoRestore": "Ajouter à nouveau cette source ne restaurera pas les données supprimées.",
