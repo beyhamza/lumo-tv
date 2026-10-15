@@ -673,5 +673,10 @@
     "title": "This page does not exist",
     "body": "The link may be out of date, or the address may have a typo.",
     "backHome": "Back to the home page"
+  },
+  "AppError": {
+    "title": "Data unavailable",
+    "body": "The service is not responding right now. Try again in a moment.",
+    "retry": "Try again"
   }
 }

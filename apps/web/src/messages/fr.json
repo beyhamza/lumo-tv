@@ -673,5 +673,10 @@
     "title": "Cette page n'existe pas",
     "body": "Le lien est peut-être périmé, ou l'adresse comporte une faute.",
     "backHome": "Retour à l'accueil"
+  },
+  "AppError": {
+    "title": "Données indisponibles",
+    "body": "Le service ne répond pas pour le moment. Réessayez dans un instant.",
+    "retry": "Réessayer"
   }
 }
