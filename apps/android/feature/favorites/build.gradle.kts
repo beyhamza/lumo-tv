@@ -4,9 +4,18 @@ plugins {
 
 android {
     namespace = "tv.lumo.android.feature.favorites"
+
+    defaultConfig {
+        // Where the focus lands when the removal question closes is a property of
+        // the focus system on a device: pinned by an instrumented Compose test on a
+        // television, like "My list"'s panel.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
 }
 
 dependencies {
+    androidTestImplementation(libs.androidx.test.ext.junit)
+
     // Stated here, not inherited: the feature convention plugin wires only
     // core:common and core:designsystem, so a build file names every core module
     // its feature actually touches.
