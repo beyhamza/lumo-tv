@@ -53,6 +53,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.SubcomposeAsyncImage
 import kotlinx.coroutines.delay
@@ -93,6 +95,10 @@ fun FavoritesMobileScreen(
     viewModel: FavoritesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Back on screen, or back from the background: another device may have
+    // starred or removed something (S11-05). In place — the list stays drawn.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.refresh() }
 
     Column(
         modifier = modifier
@@ -142,6 +148,9 @@ private fun Notices(state: FavoritesState, viewModel: FavoritesViewModel) {
         state.reorderNotice == ReorderNotice.NotApplied ->
             stringResource(R.string.feature_favorites_reorder_not_applied) to true
         state.writeError != null -> stringResource(R.string.feature_favorites_write_failed) to true
+        // Before the plain refresh failure: it says what is wrong with the list
+        // on screen, and its tap is a retry (S11-05).
+        state.partial -> stringResource(R.string.feature_favorites_partial) to true
         state.error != null -> stringResource(R.string.feature_favorites_refresh_failed) to true
         state.removalDone != null ->
             stringResource(R.string.feature_favorites_removed_everywhere, state.removalDone.name) to false
@@ -167,6 +176,7 @@ private fun Notices(state: FavoritesState, viewModel: FavoritesViewModel) {
                 when {
                     state.offline -> viewModel.refresh()
                     state.reorderNotice != null -> viewModel.onReorderNoticeShown()
+                    state.writeError == null && state.partial -> viewModel.refresh()
                     state.removalDone != null -> viewModel.onRemovalShown()
                     else -> viewModel.onErrorShown()
                 }
@@ -553,7 +563,7 @@ private fun FavoriteList(
     viewModel: FavoritesViewModel,
     onPlay: (String, String?) -> Unit,
 ) {
-    val visible = state.visible
+    val visible = state.visible.withReadableNames()
     val listState = rememberLazyListState()
     var dragOrder by remember { mutableStateOf<List<FavoriteChannel>?>(null) }
     var draggedId by remember { mutableStateOf<String?>(null) }
@@ -673,7 +683,9 @@ private fun FavoriteRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .combinedClickable(
-                    onClick = { onPlay(channel.id, channel.name) },
+                    // Not resolved: nothing to play, but its options — removal
+                    // among them — are one tap away (S11-05).
+                    onClick = { if (favorite.resolved) onPlay(channel.id, channel.name) else menuOpen = true },
                     onLongClick = { menuOpen = true },
                     onLongClickLabel = optionsLabel,
                 )

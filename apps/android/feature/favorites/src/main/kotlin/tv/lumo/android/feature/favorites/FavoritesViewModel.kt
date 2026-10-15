@@ -32,8 +32,9 @@ import tv.lumo.android.network.generated.model.ErrorCode
  * <h2>Everything drawn here comes out of Room</h2>
  *
  * [refresh] fills the cache; it never answers the screen. Refreshing is cheap —
- * two requests — so it happens on open: this is a list somebody edits from
- * several devices.
+ * two requests — so it happens on open, and again at each `ON_START` of the
+ * screens (S11-05): this is a list somebody edits from several devices, and
+ * coming back to the application is when the other device's change is expected.
  *
  * <h2>The account's groups, the active source's favourites</h2>
  *
@@ -490,6 +491,14 @@ data class FavoritesState(
      */
     val aggregated: List<FavoriteChannel>
         get() = aggregatedFavorites(groups, favorites, activeSourceId)
+
+    /**
+     * Some favourites of this source could not be resolved on this device (S11-05):
+     * listed as "Details unavailable", not playable, removable — and said, with a
+     * Retry, rather than dropped.
+     */
+    val partial: Boolean
+        get() = ofActiveSource.any { !it.resolved }
 
     /** Nothing starred at all in this source — as opposed to an empty group. */
     val nothingAtAll: Boolean

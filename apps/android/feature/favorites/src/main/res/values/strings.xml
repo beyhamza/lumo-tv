@@ -130,4 +130,9 @@
     <string name="feature_favorites_write_failed">That change could not be saved. The list shows your favourites as they are.</string>
     <string name="feature_favorites_dismiss">OK</string>
     <string name="feature_favorites_tv_hint">Hold OK on a channel or a group for more options.</string>
+
+    <!-- S11-05: favourites whose channel could not be resolved stay listed. -->
+    <string name="feature_favorites_details_unavailable">Details unavailable</string>
+    <string name="feature_favorites_partial">Some favourites can\'t be shown in full right now. Tap to retry.</string>
+    <string name="feature_favorites_tv_partial">Some favourites can\'t be shown in full right now. Retry is at the end of the groups.</string>
 </resources>

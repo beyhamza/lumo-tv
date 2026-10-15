@@ -3,6 +3,7 @@ package tv.lumo.android.core.data.internal
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.database.dao.ChannelDao
 import tv.lumo.android.core.database.model.ChannelEntity
@@ -46,12 +47,19 @@ internal class ChannelResolver @Inject constructor(
     /**
      * Fetches and caches the named channels, grouped by source and chunked.
      *
+     * A source that fails stops its own chunks and not the others', and what was
+     * resolved before the failure is kept: one unreachable source used to cost
+     * every name this call had already fetched (S11-05).
+     *
      * @param missing source id to channel id, as the DAOs report it.
+     * @return the first failure, or null when every call answered — a partial
+     * resolution the caller may report, never a reason to undo its own writes.
      */
-    suspend fun resolve(missing: List<Pair<String, String>>) {
-        if (missing.isEmpty()) return
+    suspend fun resolve(missing: List<Pair<String, String>>): LumoError? {
+        if (missing.isEmpty()) return null
 
         val resolved = mutableListOf<ChannelEntity>()
+        var failure: LumoError? = null
         for ((sourceId, channelIds) in missing.groupBy({ it.first }, { it.second })) {
             for (chunk in channelIds.chunked(ID_CHUNK)) {
                 val page = calls.call {
@@ -61,7 +69,10 @@ internal class ChannelResolver @Inject constructor(
                         size = ID_CHUNK,
                     )
                 }
-                if (page is LumoResult.Failure) return
+                if (page is LumoResult.Failure) {
+                    failure = failure ?: page.error
+                    break
+                }
                 resolved += (page as LumoResult.Success).value.items.map(ApiChannel::asEntity)
             }
         }
@@ -69,7 +80,8 @@ internal class ChannelResolver @Inject constructor(
         // Upserted, not replaced: these are genuine channels of that source, and
         // wiping the source's cache to add them would empty a catalogue in order
         // to name a favourite.
-        channelDao.upsert(resolved)
+        if (resolved.isNotEmpty()) channelDao.upsert(resolved)
+        return failure
     }
 
     private companion object {

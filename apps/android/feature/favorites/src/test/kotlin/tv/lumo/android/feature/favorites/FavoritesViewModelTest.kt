@@ -62,6 +62,42 @@ class FavoritesViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
+    // ---- propagation between devices (S11-05) --------------------------------
+
+    @Test
+    fun `a return to the screen re-reads in place, and another device's add appears`() = runTest(scheduler) {
+        val vm = ready()
+        val before = library.refreshes
+
+        // Starred on the television meanwhile; the phone comes back (ON_START).
+        library.favorites.value = library.favorites.value + favorite("f-a2-news", "news", a2, 0)
+        vm.refresh()
+        // Nothing on screen is replaced by a loading state while it runs.
+        assertThat(vm.state.value.loading).isFalse()
+        assertThat(vm.state.value.visible).isNotEmpty()
+        advanceUntilIdle()
+
+        assertThat(library.refreshes).isEqualTo(before + 1)
+        assertThat(vm.state.value.favorites.map { it.favoriteId }).contains("f-a2-news")
+    }
+
+    @Test
+    fun `a refresh that cannot resolve names keeps the favourites, with the partial notice`() =
+        runTest(scheduler) {
+            val vm = ready()
+
+            // The outage: the channel of one favourite could not be named.
+            library.favorites.value = library.favorites.value.map {
+                if (it.favoriteId == "f-a2-docs") it.copy(resolved = false) else it
+            }
+            vm.refresh()
+            advanceUntilIdle()
+
+            assertThat(vm.state.value.visible.map { it.channel.id }).contains("a2")
+            assertThat(vm.state.value.partial).isTrue()
+            assertThat(vm.state.value.error).isNull()
+        }
+
     // ---- global removal (S11-E04, G2) ----------------------------------------
 
     @Test

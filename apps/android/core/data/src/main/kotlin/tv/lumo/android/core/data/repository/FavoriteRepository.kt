@@ -87,10 +87,11 @@ class FavoriteRepository @Inject internal constructor(
     /**
      * The favourites of one group, or of every group, joined to their channels.
      *
-     * A favourite whose channel is not in the cache yields no row — no error, no
-     * placeholder. Either the channel left the subscription at the last
-     * re-synchronisation, or it has not been synchronised on this device yet, and
-     * neither is something to put in front of a person.
+     * A favourite whose channel is not in the cache is **kept**, with
+     * [FavoriteChannel.resolved] false (S11-05): an outage during the resolution
+     * must not make starred channels vanish. A channel that left the subscription
+     * at the last re-synchronisation is cascaded server-side, so it is not in the
+     * list at all after the next refresh — the two cases do not meet.
      *
      * @param groupId null for every group.
      */
@@ -366,8 +367,9 @@ class FavoriteRepository @Inject internal constructor(
      * correctly once and wrongly the second time.
      *
      * Always a success: the groups and the favourites are already written by now,
-     * and what is missing is only the readable name of a favourite whose source has
-     * never been synchronised here.
+     * and what is missing is only the readable name of some favourites. A partial
+     * resolution is not hidden, though: those rows stay in the list, marked
+     * [FavoriteChannel.resolved] false, and the screens say so with a Retry.
      */
     private suspend fun resolveMissingChannels(): LumoResult<Unit> {
         resolver.resolve(favoriteDao.unresolvedFavorites().map { it.sourceId to it.channelId })
@@ -420,18 +422,37 @@ private fun FavoriteGroupEntity.asGroup() = FavoriteGroup(
     isDefault = isDefault,
 )
 
-private fun FavoriteChannelRow.asFavorite() = FavoriteChannel(
-    favoriteId = favoriteId,
-    groupId = groupId,
-    position = favoritePosition,
-    channel = Channel(
-        id = channel.id,
-        sourceId = channel.sourceId,
-        categoryId = channel.categoryId,
-        name = channel.name,
-        logoUrl = channel.logoUrl,
-        number = channel.number,
-        quality = channel.quality,
-        isAdult = channel.isAdult,
-    ),
-)
+private fun FavoriteChannelRow.asFavorite(): FavoriteChannel {
+    val cached = channel
+    return FavoriteChannel(
+        favoriteId = favoriteId,
+        groupId = groupId,
+        position = favoritePosition,
+        channel = if (cached == null) {
+            // Not resolved on this device: the ids, and nothing to read. The
+            // screens put their own words on it (S11-05).
+            Channel(
+                id = favoriteChannelId,
+                sourceId = favoriteSourceId,
+                categoryId = null,
+                name = "",
+                logoUrl = null,
+                number = null,
+                quality = null,
+                isAdult = false,
+            )
+        } else {
+            Channel(
+                id = cached.id,
+                sourceId = cached.sourceId,
+                categoryId = cached.categoryId,
+                name = cached.name,
+                logoUrl = cached.logoUrl,
+                number = cached.number,
+                quality = cached.quality,
+                isAdult = cached.isAdult,
+            )
+        },
+        resolved = cached != null,
+    )
+}
