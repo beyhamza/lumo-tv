@@ -18,6 +18,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.focusGroup
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -63,23 +68,41 @@ fun LumoTvNavRail(
     modifier: Modifier = Modifier,
     footer: @Composable ColumnScope.() -> Unit = {},
 ) {
+    val selectedIndex = destinations.indexOfFirst { it.route == selectedRoute }
+    val requesters = remember(destinations) { destinations.map { FocusRequester() } }
+
     Column(
         modifier = modifier
             .fillMaxHeight()
             .width(RAIL_WIDTH)
             .background(LumoColors.Surface)
             .tvOverscanEdges(start = true, top = true, bottom = true)
-            .padding(end = LumoSpacing.md),
+            .padding(end = LumoSpacing.md)
+            // `LEFT` from the content comes back to the entry that is open, not
+            // to whichever entry happens to be level with the card the remote
+            // left (BUG-S11-06-07): the rail is one zone, and re-entering a zone
+            // lands on its current entry (docs/design/tv-focus-map.md). With no
+            // entry open — a detail screen — the geometric search applies.
+            .focusProperties {
+                onEnter = {
+                    val target = requesters.getOrNull(selectedIndex)
+                    if (requestedFocusDirection == FocusDirection.Left && target != null) {
+                        target.requestFocus()
+                    }
+                }
+            }
+            .focusGroup(),
         // `xs` between entries, not `sm`: eight destinations at `sm` filled a
         // 1080p panel and pushed the footer — the active source's name — off
         // the bottom, clipped to "Banc Xtr…" or to an empty outline
         // (BUG-S11-06-10). See [RAIL_ITEM_VERTICAL_PADDING] for the budget.
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs),
     ) {
-        destinations.forEach { destination ->
+        destinations.forEachIndexed { index, destination ->
             LumoTvNavRailItem(
                 destination = destination,
-                selected = destination.route == selectedRoute,
+                selected = index == selectedIndex,
+                focusRequester = requesters[index],
                 onSelect = { onSelect(destination) },
             )
         }
@@ -93,6 +116,7 @@ fun LumoTvNavRail(
 private fun LumoTvNavRailItem(
     destination: LumoDestination,
     selected: Boolean,
+    focusRequester: FocusRequester,
     onSelect: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -112,6 +136,7 @@ private fun LumoTvNavRailItem(
         },
         modifier = Modifier
             .fillMaxWidth()
+            .focusRequester(focusRequester)
             .onFocusChanged { focused = it.isFocused }
             .lumoTvFocus(focused, shape = LumoTvShapes.small)
             .clip(LumoTvShapes.small)
