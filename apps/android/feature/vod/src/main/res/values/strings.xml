@@ -30,7 +30,6 @@
     <string name="feature_vod_no_results_body">The search looks through what has already been synchronised, and it does not forgive a typo.</string>
 
     <!-- ==== One film ==== -->
-    <string name="feature_vod_play">Play</string>
     <string name="feature_vod_back">Back</string>
     <string name="feature_vod_minutes">%1$d min</string>
     <string name="feature_vod_synopsis_loading">Fetching the synopsis…</string>
@@ -80,4 +79,8 @@
     <string name="feature_vod_audio_track_number">Track %1$d</string>
     <string name="feature_vod_audio_unsupported">This device cannot decode this track</string>
     <string name="feature_vod_audio_track_hint">Press UP to change the audio track.</string>
+
+    <!-- S12-03: the sheet's main action. Watch (nothing saved), Resume at… (started), Watch again (finished). -->
+    <string name="feature_vod_watch">Watch</string>
+    <string name="feature_vod_watch_again">Watch again</string>
 </resources>

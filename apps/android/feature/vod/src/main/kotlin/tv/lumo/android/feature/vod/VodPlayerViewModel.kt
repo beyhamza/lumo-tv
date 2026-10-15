@@ -17,6 +17,7 @@ import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.PlaybackSourceGuard
 import tv.lumo.android.core.data.model.VodPlaybackTarget
+import tv.lumo.android.core.data.model.WatchReport
 import tv.lumo.android.core.data.repository.PlaybackRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.player.AudioTrack
@@ -281,6 +282,8 @@ class VodPlayerViewModel @Inject constructor(
         val sourceId = sourceId ?: return
         val snapshot = player.progress.value
         if (!snapshot.savable()) return
+        // Read with the position, synchronously: `stop()` resets both right after.
+        val report = player.watchReport()
 
         viewModelScope.launch {
             progress.save(
@@ -288,6 +291,7 @@ class VodPlayerViewModel @Inject constructor(
                 filmId = filmId,
                 positionMs = snapshot.positionMs,
                 durationMs = snapshot.durationMs,
+                report = report,
             )
         }
     }
@@ -410,6 +414,20 @@ internal fun VodPlayerFailure.isRetryable(): Boolean = when (this) {
  * `UNKNOWN` is refused with the same reasoning: nothing has loaded, so whatever
  * the position says is not a position.
  */
+/**
+ * What a save carries besides the position (S12-02, `adr/0012`): the intervals
+ * actually watched since the previous save, when the position was read, and when
+ * this playback really started. The server decides what that makes eligible.
+ */
+internal fun LumoPlayer.watchReport(now: Long = System.currentTimeMillis()): WatchReport {
+    val watched = takeWatched()
+    return WatchReport(
+        observedAtMs = now,
+        sessionStartedAtMs = watched.sessionStartedAtMs,
+        segments = watched.segments.map { it.startedAtMs to it.endedAtMs },
+    )
+}
+
 internal fun PlaybackProgress.savable(): Boolean = when (seek) {
     SeekAvailability.LIVE, SeekAvailability.UNKNOWN -> false
     SeekAvailability.AVAILABLE, SeekAvailability.REFUSED -> positionMs > 0L

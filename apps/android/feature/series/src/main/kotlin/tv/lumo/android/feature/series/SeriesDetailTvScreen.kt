@@ -34,6 +34,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -43,6 +45,7 @@ import tv.lumo.android.core.data.model.Season
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.designsystem.component.LumoPoster
+import tv.lumo.android.core.designsystem.component.LumoTvButton
 import tv.lumo.android.core.designsystem.component.LumoTvWatchlistButton
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoTvShapes
@@ -106,6 +109,8 @@ fun SeriesDetailTvScreen(
     val watchlist by viewModel.watchlistState.collectAsStateWithLifecycle()
 
     LaunchedEffect(seriesId) { viewModel.start(seriesId) }
+    // Back from the player: the main button follows where the episode was left.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onShown() }
 
     // BACK returns to the grid **and says which series was being looked at**, so
     // the remote comes back on that card rather than at the head of fifty thousand.
@@ -132,11 +137,32 @@ fun SeriesDetailTvScreen(
             // poster fills that column on a 1080p panel and pushed the button off
             // screen, and `LEFT` from an episode lands on the rail first. Never
             // the arrival focus — an episode is.
-            LumoTvWatchlistButton(
-                state = watchlist.asButtonState(state.unavailable),
-                onToggle = viewModel::onWatchlistToggle,
-                onRetry = viewModel::onWatchlistRetry,
-            )
+            //
+            // The episode to continue and how (S12-03) sits on the same line:
+            // `UP` from the seasons or the first episode reaches the row, `LEFT`
+            // and `RIGHT` walk it. The arrival focus stays on the episode list,
+            // already on the episode this button would play.
+            Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md)) {
+                state.sheetPlay?.let { (episode, play) ->
+                    val title = episodePlayerTitle(episode)
+                    LumoTvButton(
+                        text = seriesPrimaryLabel(episode, play) { it.asSheetClock() },
+                        onClick = { onPlay(episode.id, title, play.primary.startMs) },
+                        primary = true,
+                    )
+                    if (play.startOver) {
+                        LumoTvButton(
+                            text = seriesStartOverLabel(episode),
+                            onClick = { onPlay(episode.id, title, 0L) },
+                        )
+                    }
+                }
+                LumoTvWatchlistButton(
+                    state = watchlist.asButtonState(state.unavailable),
+                    onToggle = viewModel::onWatchlistToggle,
+                    onRetry = viewModel::onWatchlistRetry,
+                )
+            }
 
             Tree(
                 tree = state.tree,
@@ -406,6 +432,7 @@ private fun EpisodeRow(
 ) {
     val label = episode.name
         ?: stringResource(R.string.feature_series_episode, episode.episodeNumber)
+    val startMs = progress.rowStartMs(episode)
     var focused by remember { mutableStateOf(false) }
 
     Row(
@@ -422,7 +449,7 @@ private fun EpisodeRow(
                 // Where they were, or the beginning. A finished episode starts
                 // over, because resuming somebody into the credits is not
                 // resuming.
-                onPlay(episode.id, label, progress?.takeIf { !it.finished }?.positionMs ?: 0L)
+                onPlay(episode.id, label, startMs)
             }
             .padding(horizontal = LumoSpacing.lg, vertical = LumoSpacing.md),
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
@@ -446,6 +473,15 @@ private fun EpisodeRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+
+            // Per-episode resume (S12-03): `OK` on the row starts here.
+            if (startMs > 0L) {
+                Text(
+                    text = stringResource(R.string.feature_series_episode_resume_at, startMs.asSheetClock()),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = LumoColors.Accent,
+                )
+            }
 
             // Only where there is a position (S6-08). A bar at zero on every row
             // would say that everybody has started everything, and at three metres

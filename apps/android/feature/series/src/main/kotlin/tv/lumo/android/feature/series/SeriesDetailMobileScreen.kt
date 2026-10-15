@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -30,6 +31,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.lumo.android.core.data.model.Episode
 import tv.lumo.android.core.data.model.EpisodeProgress
@@ -81,6 +84,8 @@ fun SeriesDetailMobileScreen(
     val watchlist by viewModel.watchlistState.collectAsStateWithLifecycle()
 
     LaunchedEffect(seriesId) { viewModel.start(seriesId) }
+    // Back from the player: the main button follows where the episode was left.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onShown() }
 
     Column(
         modifier = modifier
@@ -100,6 +105,27 @@ fun SeriesDetailMobileScreen(
                 )
             },
         )
+
+        // The episode to continue, and how (S12-03): Watch / Resume at… / Watch
+        // again, Start over beside Resume. Above the seasons, the first thing a
+        // thumb reaches; any episode below can still be chosen on its own.
+        state.sheetPlay?.let { (episode, play) ->
+            val title = episodePlayerTitle(episode)
+            Button(
+                onClick = { onPlay(episode.id, title, play.primary.startMs) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(seriesPrimaryLabel(episode, play) { it.asSheetClock() })
+            }
+            if (play.startOver) {
+                OutlinedButton(
+                    onClick = { onPlay(episode.id, title, 0L) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(seriesStartOverLabel(episode))
+                }
+            }
+        }
 
         Tree(
             tree = state.tree,
@@ -313,6 +339,7 @@ private fun EpisodeRow(
 ) {
     val label = episode.name
         ?: stringResource(R.string.feature_series_episode, episode.episodeNumber)
+    val startMs = progress.rowStartMs(episode)
 
     Row(
         modifier = Modifier
@@ -320,13 +347,7 @@ private fun EpisodeRow(
             .clip(LumoShapes.medium)
             // Where they were, or the beginning. A finished episode starts over,
             // because resuming somebody into the credits is not resuming.
-            .clickable {
-                onPlay(
-                    episode.id,
-                    label,
-                    progress?.takeIf { !it.finished }?.positionMs ?: 0L,
-                )
-            }
+            .clickable { onPlay(episode.id, label, startMs) }
             .padding(vertical = LumoSpacing.sm, horizontal = LumoSpacing.xs),
         horizontalArrangement = Arrangement.spacedBy(LumoSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
@@ -349,6 +370,15 @@ private fun EpisodeRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+
+            // Per-episode resume (S12-03): pressing the row starts here.
+            if (startMs > 0L) {
+                Text(
+                    text = stringResource(R.string.feature_series_episode_resume_at, startMs.asSheetClock()),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
 
             // The bar S6-05 asked for and could not have, because nothing saved a
             // position then. Only where there is one: a bar at zero on every row

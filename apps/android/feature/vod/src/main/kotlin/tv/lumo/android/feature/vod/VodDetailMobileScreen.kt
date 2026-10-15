@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -21,8 +22,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.lumo.android.core.data.SheetUnavailable
+import tv.lumo.android.core.data.model.PrimaryPlay
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.designsystem.component.LumoPoster
 import tv.lumo.android.core.designsystem.component.LumoWatchlistButton
@@ -75,6 +79,8 @@ fun VodDetailMobileScreen(
     val watchlist by viewModel.watchlistState.collectAsStateWithLifecycle()
 
     LaunchedEffect(filmId) { viewModel.start(filmId) }
+    // Back from the player: "Resume at…" follows where the film was left (S12-03).
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onShown() }
 
     Column(
         modifier = modifier
@@ -121,35 +127,28 @@ fun VodDetailMobileScreen(
                     )
                 }
 
-                val resumeAt = state.resumeFrom?.positionMs
+                val play = state.play
 
-                // Resume first, and start-over under it. Both visible, and that
-                // is the whole ruling of S5-11: a player that resumed on its own
-                // is a good idea right up until somebody wants the beginning.
-                if (resumeAt != null) {
-                    Button(
-                        onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, resumeAt) } },
-                        enabled = film != null,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.feature_vod_resume_at, resumeAt.asClock()))
-                    }
-                }
-
+                // Watch, Resume at…, or Watch again; Start over under Resume. Both
+                // visible, and that is the whole ruling of S5-11: a player that
+                // resumed on its own is a good idea right up until somebody wants
+                // the beginning (S12-03).
                 Button(
-                    onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, 0L) } },
+                    onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, play.primary.startMs) } },
                     enabled = film != null,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(
-                        stringResource(
-                            if (resumeAt != null) {
-                                R.string.feature_vod_start_over
-                            } else {
-                                R.string.feature_vod_play
-                            },
-                        ),
-                    )
+                    Text(primaryLabel(play.primary) { it.asClock() })
+                }
+
+                if (play.startOver) {
+                    OutlinedButton(
+                        onClick = { film?.let { onPlay(it.id, it.sourceId, it.name, 0L) } },
+                        enabled = film != null,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.feature_vod_start_over))
+                    }
                 }
 
                 // Under the play buttons: a selection for later, never in the
@@ -254,6 +253,14 @@ private fun VodItem.facts(): List<String> = buildList {
  * The player's formatter, and it is the same value being spoken about: "resume
  * at 20:14" has to read as the number the scrubber will show.
  */
+/** The words on the sheet's main button, for both surfaces (S12-03). */
+@Composable
+internal fun primaryLabel(primary: PrimaryPlay, clock: (Long) -> String): String = when (primary) {
+    PrimaryPlay.Watch -> stringResource(R.string.feature_vod_watch)
+    is PrimaryPlay.Resume -> stringResource(R.string.feature_vod_resume_at, clock(primary.positionMs))
+    PrimaryPlay.WatchAgain -> stringResource(R.string.feature_vod_watch_again)
+}
+
 private fun Long.asClock(): String {
     val totalSeconds = (this / 1_000L).coerceAtLeast(0L)
     val seconds = totalSeconds % 60
