@@ -29,6 +29,9 @@ import com.squareup.moshi.JsonClass
  * @param itemRef Identifier of the item, opaque to this API. For `VOD` it is `VodItem.id` and for `EPISODE` it is `Episode.id` — see `SaveProgressRequest.item_ref`, where both are argued — which is what lets a \"continue watching\" rail resolve these rows through `GET /sources/{id}/vod?ids=` and `GET /sources/{id}/episodes?ids=`. 
  * @param positionMs Playback position, in milliseconds.
  * @param updatedAt 
+ * @param watchedMs Time actually watched, summed across devices with simultaneous playback counted once (`adr/0012`, ruling 1). Not the position. 
+ * @param hidden Removed from \"Continue watching\" by the user, progress kept.
+ * @param inContinue Whether this item belongs in \"Continue watching\": not hidden, not finished (position strictly past 95 % of a known duration), and either 30 seconds actually watched or restarted after being hidden. 
  * @param durationMs Total duration, when known.
  */
 
@@ -55,6 +58,18 @@ data class PlaybackProgress (
 
     @Json(name = "updated_at")
     val updatedAt: java.time.OffsetDateTime,
+
+    /* Time actually watched, summed across devices with simultaneous playback counted once (`adr/0012`, ruling 1). Not the position.  */
+    @Json(name = "watched_ms")
+    val watchedMs: kotlin.Long,
+
+    /* Removed from \"Continue watching\" by the user, progress kept. */
+    @Json(name = "hidden")
+    val hidden: kotlin.Boolean,
+
+    /* Whether this item belongs in \"Continue watching\": not hidden, not finished (position strictly past 95 % of a known duration), and either 30 seconds actually watched or restarted after being hidden.  */
+    @Json(name = "in_continue")
+    val inContinue: kotlin.Boolean,
 
     /* Total duration, when known. */
     @Json(name = "duration_ms")

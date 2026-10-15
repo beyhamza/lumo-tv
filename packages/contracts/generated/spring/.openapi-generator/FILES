@@ -48,6 +48,7 @@ src/main/java/tv/lumo/api/generated/model/FavoriteList.java
 src/main/java/tv/lumo/api/generated/model/FieldError.java
 src/main/java/tv/lumo/api/generated/model/ForgotPasswordRequest.java
 src/main/java/tv/lumo/api/generated/model/GoogleSignInRequest.java
+src/main/java/tv/lumo/api/generated/model/HideProgressRequest.java
 src/main/java/tv/lumo/api/generated/model/IngestionErrorCode.java
 src/main/java/tv/lumo/api/generated/model/Locale.java
 src/main/java/tv/lumo/api/generated/model/LoginRequest.java
@@ -83,6 +84,7 @@ src/main/java/tv/lumo/api/generated/model/User.java
 src/main/java/tv/lumo/api/generated/model/VodItem.java
 src/main/java/tv/lumo/api/generated/model/VodItemPage.java
 src/main/java/tv/lumo/api/generated/model/VodPlaybackInfo.java
+src/main/java/tv/lumo/api/generated/model/WatchedSegment.java
 src/main/java/tv/lumo/api/generated/model/WatchlistContentType.java
 src/main/java/tv/lumo/api/generated/model/WatchlistItem.java
 src/main/java/tv/lumo/api/generated/model/WatchlistPage.java

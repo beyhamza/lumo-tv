@@ -16,6 +16,7 @@
 package tv.lumo.android.network.generated.model
 
 import tv.lumo.android.network.generated.model.ProgressItemType
+import tv.lumo.android.network.generated.model.WatchedSegment
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
@@ -28,6 +29,9 @@ import com.squareup.moshi.JsonClass
  * @param itemRef Identifier of the item, opaque to this endpoint — it is stored and compared, never joined on.  **For `VOD`, send `VodItem.id`.** That was decided when the resume rail was built (`S5-11`) and it is worth stating rather than leaving to each client: a \"continue watching\" rail has to turn these rows back into films with posters and titles, and `GET /sources/{id}/vod?ids=` is the only operation that does. A panel-minted reference would have needed a lookup operation of its own, for no difference anybody could see.  It costs nothing in stability: `vod_item` is upserted on `(source_id, external_id)`, so a row keeps its id across re-synchronisations — which is the property a panel-minted reference would have been chosen for.  **For `EPISODE`, send `Episode.id`** — decided in `S6-01`, on the same argument and with one more step to resolve.  A \"continue watching\" rail for series shows **series**, not episodes: nobody remembers an episode identifier, they remember having got to episode four. So a saved position has to resolve to a series *and* to a place in it. `GET /sources/{id}/episodes?ids=` turns these rows into episodes carrying `series_id`, `season_number` and `episode_number`; `GET /sources/{id}/series?ids=` turns those into posters and titles. Two requests for a whole rail, not two per row.  That resolver exists **because of this field**, and it was added when this decision was taken rather than discovered when the rail was built — which is what happened for films in sprint 5.  The stability argument is the film one: `episode` is upserted on `(series_id, external_id)` — the panel's own episode identifier, which unlike a season's always exists because it is what the playback URL is built from. A row therefore keeps its id across re-synchronisations and across the tree being refetched when its cache expires. 
  * @param positionMs 
  * @param durationMs Total duration, when the source states one. Sent so a client can decide an item is finished without a second lookup.  **Finished is a threshold, not an event**: past 95 % of the duration an item leaves the \"continue watching\" rail. With no duration — and many panels give none — it never leaves, which is the right default: a film that lingers in the rail is an annoyance, a film that vanishes before the end is a loss. 
+ * @param watchedSegments Intervals of actual playback — not paused, not buffering, not seeking — since the previous save, in wall-clock time. Seeking produces no segment, so jumping ahead adds no watched time (CW-04). Intervals in the future are clamped to the server's clock. 
+ * @param observedAt When the device read `position_ms`. The position with the latest `observed_at` wins; an older one arriving late, from a device that reconnects, does not overwrite it (CW-32). Omitted: the receive time. 
+ * @param sessionStartedAt When playback really started on this device for this session — the first frame, not the sheet opening. See `POST /me/progress/hide`. 
  */
 
 
@@ -49,7 +53,19 @@ data class SaveProgressRequest (
 
     /* Total duration, when the source states one. Sent so a client can decide an item is finished without a second lookup.  **Finished is a threshold, not an event**: past 95 % of the duration an item leaves the \"continue watching\" rail. With no duration — and many panels give none — it never leaves, which is the right default: a film that lingers in the rail is an annoyance, a film that vanishes before the end is a loss.  */
     @Json(name = "duration_ms")
-    val durationMs: kotlin.Long? = null
+    val durationMs: kotlin.Long? = null,
+
+    /* Intervals of actual playback — not paused, not buffering, not seeking — since the previous save, in wall-clock time. Seeking produces no segment, so jumping ahead adds no watched time (CW-04). Intervals in the future are clamped to the server's clock.  */
+    @Json(name = "watched_segments")
+    val watchedSegments: kotlin.collections.List<WatchedSegment>? = null,
+
+    /* When the device read `position_ms`. The position with the latest `observed_at` wins; an older one arriving late, from a device that reconnects, does not overwrite it (CW-32). Omitted: the receive time.  */
+    @Json(name = "observed_at")
+    val observedAt: java.time.OffsetDateTime? = null,
+
+    /* When playback really started on this device for this session — the first frame, not the sheet opening. See `POST /me/progress/hide`.  */
+    @Json(name = "session_started_at")
+    val sessionStartedAt: java.time.OffsetDateTime? = null
 
 ) {
 

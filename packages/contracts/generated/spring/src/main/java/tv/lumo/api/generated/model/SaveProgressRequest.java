@@ -5,9 +5,15 @@ import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.lang.Nullable;
 import tv.lumo.api.generated.model.ProgressItemType;
+import tv.lumo.api.generated.model.WatchedSegment;
 import java.time.OffsetDateTime;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -32,6 +38,15 @@ public class SaveProgressRequest {
   private Long positionMs;
 
   private @Nullable Long durationMs = null;
+
+  @Valid
+  private List<@Valid WatchedSegment> watchedSegments = new ArrayList<>();
+
+  @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+  private @Nullable OffsetDateTime observedAt;
+
+  @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+  private @Nullable OffsetDateTime sessionStartedAt;
 
   public SaveProgressRequest() {
     super();
@@ -144,6 +159,71 @@ public class SaveProgressRequest {
     this.durationMs = durationMs;
   }
 
+  public SaveProgressRequest watchedSegments(List<@Valid WatchedSegment> watchedSegments) {
+    this.watchedSegments = watchedSegments;
+    return this;
+  }
+
+  public SaveProgressRequest addWatchedSegmentsItem(WatchedSegment watchedSegmentsItem) {
+    if (this.watchedSegments == null) {
+      this.watchedSegments = new ArrayList<>();
+    }
+    this.watchedSegments.add(watchedSegmentsItem);
+    return this;
+  }
+
+  /**
+   * Intervals of actual playback — not paused, not buffering, not seeking — since the previous save, in wall-clock time. Seeking produces no segment, so jumping ahead adds no watched time (CW-04). Intervals in the future are clamped to the server's clock. 
+   * @return watchedSegments
+   */
+  @Valid @Size(max = 20) 
+  @JsonProperty("watched_segments")
+  public List<@Valid WatchedSegment> getWatchedSegments() {
+    return watchedSegments;
+  }
+
+  public void setWatchedSegments(List<@Valid WatchedSegment> watchedSegments) {
+    this.watchedSegments = watchedSegments;
+  }
+
+  public SaveProgressRequest observedAt(@Nullable OffsetDateTime observedAt) {
+    this.observedAt = observedAt;
+    return this;
+  }
+
+  /**
+   * When the device read `position_ms`. The position with the latest `observed_at` wins; an older one arriving late, from a device that reconnects, does not overwrite it (CW-32). Omitted: the receive time. 
+   * @return observedAt
+   */
+  @Valid 
+  @JsonProperty("observed_at")
+  public @Nullable OffsetDateTime getObservedAt() {
+    return observedAt;
+  }
+
+  public void setObservedAt(@Nullable OffsetDateTime observedAt) {
+    this.observedAt = observedAt;
+  }
+
+  public SaveProgressRequest sessionStartedAt(@Nullable OffsetDateTime sessionStartedAt) {
+    this.sessionStartedAt = sessionStartedAt;
+    return this;
+  }
+
+  /**
+   * When playback really started on this device for this session — the first frame, not the sheet opening. See `POST /me/progress/hide`. 
+   * @return sessionStartedAt
+   */
+  @Valid 
+  @JsonProperty("session_started_at")
+  public @Nullable OffsetDateTime getSessionStartedAt() {
+    return sessionStartedAt;
+  }
+
+  public void setSessionStartedAt(@Nullable OffsetDateTime sessionStartedAt) {
+    this.sessionStartedAt = sessionStartedAt;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -157,12 +237,15 @@ public class SaveProgressRequest {
         Objects.equals(this.itemType, saveProgressRequest.itemType) &&
         Objects.equals(this.itemRef, saveProgressRequest.itemRef) &&
         Objects.equals(this.positionMs, saveProgressRequest.positionMs) &&
-        Objects.equals(this.durationMs, saveProgressRequest.durationMs);
+        Objects.equals(this.durationMs, saveProgressRequest.durationMs) &&
+        Objects.equals(this.watchedSegments, saveProgressRequest.watchedSegments) &&
+        Objects.equals(this.observedAt, saveProgressRequest.observedAt) &&
+        Objects.equals(this.sessionStartedAt, saveProgressRequest.sessionStartedAt);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(sourceId, itemType, itemRef, positionMs, durationMs);
+    return Objects.hash(sourceId, itemType, itemRef, positionMs, durationMs, watchedSegments, observedAt, sessionStartedAt);
   }
 
   @Override
@@ -174,6 +257,9 @@ public class SaveProgressRequest {
     sb.append("    itemRef: ").append(toIndentedString(itemRef)).append("\n");
     sb.append("    positionMs: ").append(toIndentedString(positionMs)).append("\n");
     sb.append("    durationMs: ").append(toIndentedString(durationMs)).append("\n");
+    sb.append("    watchedSegments: ").append(toIndentedString(watchedSegments)).append("\n");
+    sb.append("    observedAt: ").append(toIndentedString(observedAt)).append("\n");
+    sb.append("    sessionStartedAt: ").append(toIndentedString(sessionStartedAt)).append("\n");
     sb.append("}");
     return sb.toString();
   }

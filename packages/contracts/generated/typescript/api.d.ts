@@ -1049,6 +1049,11 @@ export interface paths {
          * @description Ordered by `updated_at`, most recent first — which is also the order a
          *     "Continue watching" rail wants.
          *
+         *     Which rows belong in that rail is the server's call, not the client's:
+         *     `in_continue` (`adr/0012`, ruling 4). A client groups the episodes of a
+         *     series into one card and keeps the order; it does not re-derive the
+         *     30-second or the 95 % rule.
+         *
          *     Without this operation `PUT /me/progress` writes into a void: progress
          *     could be saved on the phone and never read back on the television, and
          *     "resume across screens" would be a promise no client could keep.
@@ -1070,6 +1075,19 @@ export interface paths {
          *     caller. The source is part of the key rather than a passenger — see
          *     `SaveProgressRequest.source_id`.
          *
+         *     **Continue watching (`adr/0012`).** Three optional fields make the rail
+         *     right across devices; a client that sends none of them still saves a
+         *     position.
+         *
+         *     - `watched_segments`: the wall-clock intervals of actual playback since
+         *       the previous save. The server keeps their union per item, so devices
+         *       add up, simultaneous seconds count once and a resent save adds nothing
+         *       (CW-17, CW-29, CW-33).
+         *     - `observed_at`: when the position was read. The latest observation wins
+         *       the position, not the latest request (CW-30, CW-32).
+         *     - `session_started_at`: when playback really started on this device.
+         *       Brings a hidden item back only if it is after the hide (CW-18, CW-31).
+         *
          *     Live channels have no progress. `ProgressItemType` has no `LIVE` value,
          *     and sending one for a channel is a client bug rather than a supported
          *     case: a position means nothing on a continuous stream. What a channel
@@ -1077,6 +1095,39 @@ export interface paths {
          */
         put: operations["saveProgress"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/progress/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove an item from "Continue watching", keeping its position
+         * @description Hides the item from the rail on every device (`adr/0012`, ruling 3;
+         *     CW-10). The position and the watched time are kept: the sheet still
+         *     offers to resume.
+         *
+         *     For an `EPISODE`, the whole series is hidden — the rail shows one card
+         *     per series, and hiding the card must not let the next episode take its
+         *     place.
+         *
+         *     The item comes back on the first save whose `session_started_at` is
+         *     **after** the hide (CW-18, CW-22). A session already running when the
+         *     card was hidden keeps saving without bringing it back (CW-31).
+         *
+         *     Idempotent: hiding a hidden item, or an item with no saved progress,
+         *     answers `204` and changes nothing.
+         */
+        post: operations["hideProgress"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2930,6 +2981,20 @@ export interface components {
             duration_ms?: number | null;
             /** Format: date-time */
             updated_at: string;
+            /**
+             * Format: int64
+             * @description Time actually watched, summed across devices with simultaneous
+             *     playback counted once (`adr/0012`, ruling 1). Not the position.
+             */
+            watched_ms: number;
+            /** @description Removed from "Continue watching" by the user, progress kept. */
+            hidden: boolean;
+            /**
+             * @description Whether this item belongs in "Continue watching": not hidden, not
+             *     finished (position strictly past 95 % of a known duration), and either
+             *     30 seconds actually watched or restarted after being hidden.
+             */
+            in_continue: boolean;
         };
         /**
          * @description One page of saved positions. Same shape as `ChannelPage`, on purpose:
@@ -3081,6 +3146,23 @@ export interface components {
              */
             content_id: string;
         };
+        /** @description One interval of actual playback, in wall-clock time. */
+        WatchedSegment: {
+            /** Format: date-time */
+            started_at: string;
+            /**
+             * Format: date-time
+             * @description Not before `started_at`.
+             */
+            ended_at: string;
+        };
+        /** @description The item whose card is hidden — the same key as a save. */
+        HideProgressRequest: {
+            /** Format: uuid */
+            source_id: string;
+            item_type: components["schemas"]["ProgressItemType"];
+            item_ref: string;
+        };
         /** @description Upsert keyed on `(source_id, item_type, item_ref)` for the caller. */
         SaveProgressRequest: {
             /**
@@ -3160,6 +3242,26 @@ export interface components {
              *     before the end is a loss.
              */
             duration_ms?: number | null;
+            /**
+             * @description Intervals of actual playback — not paused, not buffering, not
+             *     seeking — since the previous save, in wall-clock time. Seeking
+             *     produces no segment, so jumping ahead adds no watched time (CW-04).
+             *     Intervals in the future are clamped to the server's clock.
+             */
+            watched_segments?: components["schemas"]["WatchedSegment"][];
+            /**
+             * Format: date-time
+             * @description When the device read `position_ms`. The position with the latest
+             *     `observed_at` wins; an older one arriving late, from a device that
+             *     reconnects, does not overwrite it (CW-32). Omitted: the receive time.
+             */
+            observed_at?: string;
+            /**
+             * Format: date-time
+             * @description When playback really started on this device for this session — the
+             *     first frame, not the sheet opening. See `POST /me/progress/hide`.
+             */
+            session_started_at?: string;
         };
         /**
          * @description What the caller is allowed to influence when opening a checkout. Which
@@ -5129,6 +5231,31 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PlaybackProgress"];
                 };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["SourceNotFound"];
+        };
+    };
+    hideProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HideProgressRequest"];
+            };
+        };
+        responses: {
+            /** @description Hidden. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
