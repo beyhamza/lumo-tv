@@ -102,4 +102,16 @@
     -->
     <string name="core_data_source_deleted_message">This source has been removed from your account.</string>
     <string name="core_data_source_deleted_continue">Continue</string>
+
+    <!-- Wi-Fi only playback (S13-05, Q7). Shown by the three mobile players. -->
+    <string name="core_data_network_wifi_required">Wi-Fi required</string>
+    <string name="core_data_network_wifi_required_body">Playback on mobile data is off. Connect to Wi-Fi, or change this in Playback settings. The catalogue stays available.</string>
+    <string name="core_data_network_unconfirmed_body">Wi-Fi cannot be confirmed on this connection (VPN or unknown network). Playback on mobile data is off.</string>
+    <string name="core_data_network_no_connection">No usable connection</string>
+    <string name="core_data_network_no_connection_body">This network does not reach the Internet. Check your connection, then try again.</string>
+    <string name="core_data_network_back">Wi-Fi available. Resume playback?</string>
+    <string name="core_data_network_retry">Try again</string>
+    <string name="core_data_network_resume">Resume</string>
+    <string name="core_data_network_settings">Playback settings</string>
+    <string name="core_data_network_back_action">Back</string>
 </resources>

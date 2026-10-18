@@ -46,4 +46,15 @@
 
     <string name="core_data_source_deleted_message">Cette source a été supprimée de votre compte.</string>
     <string name="core_data_source_deleted_continue">Continuer</string>
+
+    <string name="core_data_network_wifi_required">Wi-Fi requis</string>
+    <string name="core_data_network_wifi_required_body">La lecture sur données mobiles est désactivée. Connectez-vous au Wi-Fi ou modifiez ce choix dans les réglages de lecture. Le catalogue reste consultable.</string>
+    <string name="core_data_network_unconfirmed_body">Impossible de confirmer le Wi-Fi sur cette connexion (VPN ou réseau inconnu). La lecture sur données mobiles est désactivée.</string>
+    <string name="core_data_network_no_connection">Aucune connexion utilisable</string>
+    <string name="core_data_network_no_connection_body">Ce réseau n\'accède pas à Internet. Vérifiez votre connexion, puis réessayez.</string>
+    <string name="core_data_network_back">Wi-Fi disponible. Reprendre la lecture ?</string>
+    <string name="core_data_network_retry">Réessayer</string>
+    <string name="core_data_network_resume">Reprendre</string>
+    <string name="core_data_network_settings">Réglages de lecture</string>
+    <string name="core_data_network_back_action">Retour</string>
 </resources>
