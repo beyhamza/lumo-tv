@@ -1,6 +1,6 @@
 # Sprint 12 — Continuer et reprise partagée
 
-Statut : **ouvert le 15 octobre 2026**, version **0.3.0**. Taille relative : L. Mode rapide
+Statut : **clos le 18 octobre 2026** (≈ 90 %), version **0.3.0**. Tout le code est sur `dev` (PR #70 → #74) ; le reste (CW-25/27/28 et hors ligne sur appareil, application TV en vrai, parcours série) part dans la recette groupée de la 0.3.0. Ouvert le 15/10, Taille relative : L. Mode rapide
 (décision du 15/10) : chaque lot livre ses tests automatisés et une vérification rapide du chemin
 principal ; pas de passe de recette dédiée, les bugs vont au backlog, la recette approfondie est
 groupée avant la sortie 0.3.0.

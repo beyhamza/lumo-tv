@@ -1,6 +1,20 @@
 # Sprint 13 — Lecteur et réglages
 
-Statut : proposé, non commencé. Taille relative : XL.
+Statut : **ouvert le 18 octobre 2026**, version **0.3.0**, en mode rapide (tests automatisés et
+vérification rapide du chemin principal ; recette approfondie groupée avant la sortie). Taille
+relative : XL. Préférences de lecture locales à l'appareil : pas de changement de contrat prévu.
+
+## Avancement
+
+- [ ] S13-00 — matrice des capacités des lecteurs — 0 % (établie par chaque surface au fil de S13-01)
+- [ ] S13-01 — audio, sous-titres, qualité avec états honnêtes — 0 % (web, Android en cours)
+- [ ] S13-02 — préférences locales, replis, retour Automatique — 0 % (web, Android en cours)
+- [ ] S13-03 — enchaînement d'épisodes, mode manuel, décomptes 10 s TV / 5 s mobile-web — 0 % (web, Android en cours)
+- [ ] S13-04 — cinq rubriques Réglages — 0 % (web en cours ; Android en seconde vague)
+- [ ] S13-05 — lancements bloqués hors Wi-Fi selon préférence (mobile) — 0 % (Android en cours)
+- [ ] S13-06 — recette des capacités — reportée à la recette groupée 0.3.0
+
+**Avancement global ≈ 0 %**.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 ## Objectif
