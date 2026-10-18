@@ -8,6 +8,7 @@ import {
 } from "@/lib/direct/view-memory";
 import { sessionCookieName, sessionCookieSecure } from "@/lib/env";
 import { PATHNAME_HEADER } from "@/lib/http/pathname-header";
+import { INTERFACE_LOCALE_COOKIE, localeForUnprefixed } from "@/lib/i18n/interface-locale";
 import { expireAccountCookies } from "@/lib/session/account-cookies";
 import {
   isAccessTokenStale,
@@ -42,11 +43,22 @@ import { refreshSession } from "@/lib/session/refresh";
  */
 const handleI18n = createIntlMiddleware(routing);
 
+/** next-intl's default locale cookie, which its locale detection reads first. */
+const NEXT_INTL_LOCALE_COOKIE = "NEXT_LOCALE";
+
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   // For the account rail's current-section mark (see lib/http/pathname-header).
   // Set before next-intl builds its response, which copies the request headers
   // into the one it forwards.
   request.headers.set(PATHNAME_HEADER, request.nextUrl.pathname);
+  // An interface language chosen in Settings (S13-04) decides where an
+  // unprefixed URL goes, ahead of next-intl's own session cookie and of
+  // `Accept-Language`. A prefixed URL is never redirected for it.
+  const chosen = localeForUnprefixed(
+    request.nextUrl.pathname,
+    request.cookies.get(INTERFACE_LOCALE_COOKIE)?.value,
+  );
+  if (chosen) request.cookies.set(NEXT_INTL_LOCALE_COOKIE, chosen);
   const response = handleI18n(request);
 
   // A locale redirect ends the request; there is no session work to do on a
