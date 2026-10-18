@@ -511,7 +511,7 @@ internal class Media3LumoPlayer @Inject constructor(
                             id = id,
                             width = format.width.takeIf { it > 0 },
                             height = format.height.takeIf { it > 0 },
-                            bitrate = format.bitrate.takeIf { it > 0 },
+                            bitrate = format.declaredBitrate(),
                             selected = id == manualQualityId,
                             playable = playable,
                         )
@@ -720,6 +720,10 @@ internal interface Media3Player : LumoPlayer {
  * Media3 1.4 subtitles are parsed during extraction and the original format
  * moves to `codecs`, hence both fields.
  */
+/** What a variant declares, or null. `Format.bitrate` is still @UnstableApi in Media3 1.x. */
+@OptIn(UnstableApi::class)
+private fun Format.declaredBitrate(): Int? = bitrate.takeIf { it > 0 }
+
 private fun Format.isBitmapSubtitle(): Boolean =
     listOfNotNull(sampleMimeType, codecs).any { it in BITMAP_SUBTITLE_TYPES }
 
