@@ -20,12 +20,9 @@
     <string name="feature_settings_devices_retry">Réessayer</string>
 
     <string name="feature_settings_language">Langue</string>
-    <string name="feature_settings_language_note">Suit la langue de votre appareil. Le choix dans Lumo arrivera dans une prochaine version.</string>
 
     <string name="feature_settings_guides">Guides</string>
     <string name="feature_settings_version">Version</string>
-
-    <string name="feature_settings_section_playback">LECTURE</string>
     <string name="feature_settings_autoplay_next">Épisode suivant automatique</string>
     <string name="feature_settings_autoplay_next_note">Sur cet appareil. Désactivé : l\'épisode suivant est proposé sans décompte.</string>
     <string name="feature_settings_mobile_data">Lecture sur données mobiles</string>
@@ -33,4 +30,28 @@
     <string name="feature_settings_on">Activé</string>
     <string name="feature_settings_off">Désactivé</string>
     <string name="feature_settings_playback_not_saved">Ce réglage n\'a pas pu être enregistré sur cet appareil.</string>
+    <!--
+      S13-04 : les cinq rubriques d'US-025, dans l'ordre du site, sur les deux
+      surfaces.
+    -->
+    <string name="feature_settings_menu_account">Compte et appareils</string>
+    <string name="feature_settings_menu_sources">Mes sources</string>
+    <string name="feature_settings_menu_playback">Lecture</string>
+    <string name="feature_settings_menu_application">Application</string>
+    <string name="feature_settings_menu_about">Aide et informations</string>
+    <string name="feature_settings_back">Retour aux réglages</string>
+    <string name="feature_settings_back_label">‹ Réglages</string>
+    <string name="feature_settings_version_value">Version %1$s</string>
+
+    <string name="feature_settings_playback_scope">Pour ce compte sur cet appareil. Rien ne change sur vos autres appareils.</string>
+    <string name="feature_settings_audio_language">Langue audio préférée</string>
+    <string name="feature_settings_audio_language_note">Absente d\'un contenu, la piste par défaut est lue ; votre préférence reste.</string>
+    <string name="feature_settings_subtitles">Afficher les sous-titres</string>
+    <string name="feature_settings_subtitle_language">Langue des sous-titres</string>
+    <string name="feature_settings_subtitle_language_note">Absente d\'un contenu, aucun sous-titre d\'une autre langue n\'est activé. La langue reste mémorisée sous-titres désactivés.</string>
+    <string name="feature_settings_language_not_set">Non définie</string>
+    <string name="feature_settings_quality_note">La qualité se choisit dans le lecteur et ne vaut que pour la lecture en cours.</string>
+
+    <string name="feature_settings_language_current">Langue actuelle</string>
+    <string name="feature_settings_language_note">S\'applique à Lumo sur cet appareil. Ne change ni votre compte, ni vos autres appareils, ni les langues de lecture.</string>
 </resources>

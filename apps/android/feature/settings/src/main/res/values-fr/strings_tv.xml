@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="feature_settings_tv_menu_sources">Sources</string>
-    <string name="feature_settings_tv_menu_account">Compte et appareils</string>
-    <string name="feature_settings_tv_menu_application">Application</string>
-    <string name="feature_settings_tv_menu_about">À propos</string>
 
     <string name="feature_settings_tv_sources_hint">Les sources se gèrent depuis votre téléphone ou lumo.tv — jamais de saisie ici.</string>
     <string name="feature_settings_tv_my_sources">Mes sources</string>
@@ -25,8 +21,6 @@
     <string name="feature_settings_tv_account_sign_out">Déconnecter cette télévision</string>
     <string name="feature_settings_tv_sign_out_title">Déconnecter cette télévision ?</string>
     <string name="feature_settings_tv_sign_out_body">Elle reviendra à son écran d\'activation. Rien n\'est supprimé de votre compte.</string>
-
-    <string name="feature_settings_tv_language_value">Suit la langue du téléviseur</string>
 
     <string name="feature_settings_tv_about_version">lumo tv v%1$s</string>
     <string name="feature_settings_tv_about_site">lumo.tv</string>

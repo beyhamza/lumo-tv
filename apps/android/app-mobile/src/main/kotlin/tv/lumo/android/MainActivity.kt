@@ -1,5 +1,6 @@
 package tv.lumo.android
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import tv.lumo.android.core.common.locale.InterfaceLanguage
 import tv.lumo.android.core.data.AppStart
 import tv.lumo.android.core.data.AppStartDecision
 import tv.lumo.android.core.designsystem.theme.LumoMobileTheme
@@ -32,6 +34,11 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var appStart: AppStartDecision
 
+
+    /** The interface language chosen in Settings, below Android 13 (S13-04). From 13 the platform applies it. */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(InterfaceLanguage.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Edge to edge before setContent: video wants the whole panel, and

@@ -37,20 +37,15 @@
     <string name="feature_settings_devices_unavailable">Your devices could not be read.</string>
     <string name="feature_settings_devices_retry">Try again</string>
 
-    <!--
-      Application. The language is read-only in S8: it follows the system, and
-      the one sentence under it says the choice comes later (S13). No switch.
-    -->
+    <!-- Application: the interface language, chosen in Lumo since S13-04. -->
     <string name="feature_settings_language">Language</string>
-    <string name="feature_settings_language_note">Follows your device\'s language. Choosing it in Lumo will come in a later version.</string>
 
     <!-- Help and information: the guides on the website, and the installed version. -->
     <string name="feature_settings_guides">Guides</string>
     <string name="feature_settings_version">Version</string>
     <string name="feature_settings_unknown_value" translatable="false">—</string>
 
-    <!-- S13-03/05: the playback entries the player needs. The full Playback section is S13-04. -->
-    <string name="feature_settings_section_playback">PLAYBACK</string>
+    <!-- S13-03/05: next episode and mobile data, in Playback. -->
     <string name="feature_settings_autoplay_next">Next episode automatically</string>
     <string name="feature_settings_autoplay_next_note">On this device. Off: the next episode is offered without a countdown.</string>
     <string name="feature_settings_mobile_data">Playback on mobile data</string>
@@ -58,4 +53,31 @@
     <string name="feature_settings_on">On</string>
     <string name="feature_settings_off">Off</string>
     <string name="feature_settings_playback_not_saved">This setting could not be saved on this device.</string>
+
+    <!--
+      S13-04: the five sections of US-025, in the website's order, on both
+      surfaces — the phone's list and the television's menu.
+    -->
+    <string name="feature_settings_menu_account">Account and devices</string>
+    <string name="feature_settings_menu_sources">My sources</string>
+    <string name="feature_settings_menu_playback">Playback</string>
+    <string name="feature_settings_menu_application">Application</string>
+    <string name="feature_settings_menu_about">Help and information</string>
+    <string name="feature_settings_back">Back to Settings</string>
+    <string name="feature_settings_back_label">‹ Settings</string>
+    <string name="feature_settings_version_value">Version %1$s</string>
+
+    <!-- Playback (S13-E05): the store the player opens streams with. -->
+    <string name="feature_settings_playback_scope">For this account on this device. Nothing changes on your other devices.</string>
+    <string name="feature_settings_audio_language">Preferred audio language</string>
+    <string name="feature_settings_audio_language_note">When a programme does not have it, its default track plays; your preference stays.</string>
+    <string name="feature_settings_subtitles">Show subtitles</string>
+    <string name="feature_settings_subtitle_language">Subtitle language</string>
+    <string name="feature_settings_subtitle_language_note">When a programme does not have it, no subtitles in another language are turned on. Kept while subtitles are off.</string>
+    <string name="feature_settings_language_not_set">Not set</string>
+    <string name="feature_settings_quality_note">Quality is chosen in the player and applies to the current playback only.</string>
+
+    <!-- Application (S13-E08): the interface language, each named in itself. -->
+    <string name="feature_settings_language_current">Current language</string>
+    <string name="feature_settings_language_note">Applies to Lumo on this device. It does not change your account, your other devices or the playback languages.</string>
 </resources>

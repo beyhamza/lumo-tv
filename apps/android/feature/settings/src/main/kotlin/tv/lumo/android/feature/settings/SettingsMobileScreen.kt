@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.text.format.DateUtils
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -16,32 +17,44 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import tv.lumo.android.core.common.locale.InterfaceLanguage
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.designsystem.component.LumoConfirmDialog
 import tv.lumo.android.core.designsystem.theme.LumoColors
@@ -50,16 +63,30 @@ import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.network.generated.model.Device
 
 /**
- * The settings of the phone, in the five sections US-025 validated — minus the
- * one that has nothing to show yet (S8-06).
+ * The settings of the phone: the five sections of US-025 as a list, then the
+ * section that was opened (S13-04, docs/design/0.2.0/settings.md).
  *
- * <h2>Account and devices · My sources · Application · Help and information</h2>
+ * <h2>List, then section</h2>
  *
- * In that order, and no Playback: its settings arrive with sprint 13, and the
- * rule of the sprint is that what is not delivered is not drawn. That is also
- * why the two `[mock]` rows this screen used to carry — the language *choice*,
- * playback on mobile data — are gone rather than disabled. What is left is read
- * from the server, the package or the build, through [SettingsViewModel].
+ * Account and devices · My sources · Playback · Application · Help and
+ * information, in the website's order ([SettingsSection]). A row opens its
+ * section over the list; `BACK` closes it before leaving Settings. "My sources"
+ * opens US-024's screen rather than a second one ([SettingsSections.targetOf]).
+ * The open section is saved, so a recreation — a change of interface language
+ * is one — comes back to it.
+ *
+ * <h2>Playback edits what the player reads</h2>
+ *
+ * Audio language, subtitles on/off and their language, next episode, and
+ * playback on mobile data: one store, `PlaybackPreferencesRepository`, so a
+ * subtitle preference set here is what the next stream opens with, and a track
+ * picked in the player is what this section shows next.
+ *
+ * <h2>Application: the platform's per-app language</h2>
+ *
+ * French or English, each named in itself, through [InterfaceLanguage] — the
+ * activity is redrawn in the new language and the choice outlives a sign-out
+ * (Q6). It writes nothing to the account.
  *
  * <h2>Devices, as the server tells them</h2>
  *
@@ -68,14 +95,6 @@ import tv.lumo.android.network.generated.model.Device
  * — never "online", which nothing announces. Each of the others can be
  * disconnected, behind a confirmation that names it and whose default is
  * Cancel; a refusal keeps the device and the question, with the reason under it.
- *
- * <h2>Why the address is on the card</h2>
- *
- * "Reopened still connected" is not observable if the only thing on display is
- * the words *signed in*; the address is the cheapest thing that could not have
- * been guessed. The session line and the address come from the view model the
- * television reads too — a second reading of "is there a session" written here
- * would be exactly the duplicated logic AGENTS.md §2 calls a defect.
  */
 @Composable
 fun SettingsMobileScreen(
@@ -84,8 +103,11 @@ fun SettingsMobileScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val language = currentLanguage()
+    var openKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val open = SettingsSections.fromKey(openKey)
+    var chooser by rememberSaveable { mutableStateOf<String?>(null) }
+
+    BackHandler(enabled = open != null) { openKey = null }
 
     Column(
         modifier = modifier
@@ -95,123 +117,65 @@ fun SettingsMobileScreen(
             .padding(horizontal = LumoSpacing.lg, vertical = LumoSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
     ) {
-        Text(
-            text = stringResource(R.string.feature_settings_title),
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-
-        Section(title = stringResource(R.string.feature_settings_section_account)) {
-            AccountCard(state)
-            RowDivider()
-            Devices(state = state, onRevoke = viewModel::askRevoke, onRetry = viewModel::reloadDevices)
-            RowDivider()
-            SettingsRow(
-                label = stringResource(R.string.feature_settings_pair_tv),
-                value = state.activationLabel,
-                valueColor = accentInk(),
-                chevron = true,
-                onClick = { openInBrowser(context, state.activationUrl) },
-            )
-            if (state.signedIn) {
-                RowDivider()
-                SettingsRow(
-                    label = stringResource(R.string.feature_settings_sign_out),
-                    labelColor = MaterialTheme.colorScheme.error,
-                    onClick = if (state.signingOut) null else viewModel::askSignOut,
-                ) {
-                    if (state.signingOut) {
-                        CircularProgressIndicator(
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(LumoSpacing.md),
-                        )
-                    }
-                }
-            }
-        }
-
-        Section(title = stringResource(R.string.feature_settings_section_sources)) {
-            SettingsRow(
-                label = stringResource(R.string.feature_settings_my_sources),
-                value = state.sourceCount?.let {
-                    pluralStringResource(R.plurals.feature_settings_sources_active, it, it)
-                },
-                chevron = true,
-                // The row had its chevron and no destination until US-017 took
-                // "Source" out of the bar: this is now the way to that screen,
-                // and where it leads is the application's wire, not this module's.
-                onClick = onOpenSources,
-            )
-        }
-
-        // S13-03/05: only the two switches the player reads. Languages are chosen
-        // in the player itself; the full Playback section is S13-04.
-        Section(title = stringResource(R.string.feature_settings_section_playback)) {
-            SettingsRow(
-                label = stringResource(R.string.feature_settings_autoplay_next),
-                note = stringResource(R.string.feature_settings_autoplay_next_note),
-                onClick = { viewModel.setAutoplayNext(!state.playback.autoplayNext) },
-            ) {
-                Switch(checked = state.playback.autoplayNext, onCheckedChange = viewModel::setAutoplayNext)
-            }
-            RowDivider()
-            SettingsRow(
-                label = stringResource(R.string.feature_settings_mobile_data),
-                note = stringResource(R.string.feature_settings_mobile_data_note),
-                onClick = { viewModel.setMobileDataAllowed(!state.playback.mobileDataAllowed) },
-            ) {
-                Switch(checked = state.playback.mobileDataAllowed, onCheckedChange = viewModel::setMobileDataAllowed)
-            }
-            if (state.playbackNotSaved) {
-                Text(
-                    text = stringResource(R.string.feature_settings_playback_not_saved),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(LumoSpacing.md),
-                )
-            }
-        }
-
-        Section(title = stringResource(R.string.feature_settings_section_application)) {
-            // Read-only, and no chevron: there is nothing to open. The line
-            // under it is the one sentence US-025 allows about what comes later.
-            SettingsRow(
-                label = stringResource(R.string.feature_settings_language),
-                value = language.displayName,
-                note = stringResource(R.string.feature_settings_language_note),
-            )
-        }
-
-        Section(title = stringResource(R.string.feature_settings_section_help)) {
-            // Derived from the same variable as the pairing link, so a local
-            // stack cannot pair against one host and open guides on another.
-            // Absent rather than dead when the build carries no origin.
-            SettingsLinks.guidesUrlOf(state.activationUrl, language.code)?.let { guides ->
-                SettingsRow(
-                    label = stringResource(R.string.feature_settings_guides),
-                    value = SettingsLinks.label(guides),
-                    valueColor = accentInk(),
-                    chevron = true,
-                    onClick = { openInBrowser(context, guides) },
-                )
-                RowDivider()
-            }
-            // Privacy and terms would follow, and do not: the website has no
-            // such pages yet (docs/design/0.2.0/settings.md), and a link to a
-            // page that does not exist is a link somebody presses to find out.
-            SettingsRow(
-                label = stringResource(R.string.feature_settings_version),
-                value = state.appVersion ?: stringResource(R.string.feature_settings_unknown_value),
-            )
-        }
-
-        if (!state.signedIn) {
+        if (open == null) {
             Text(
-                text = stringResource(sessionLabelOf(state)),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = stringResource(R.string.feature_settings_title),
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.semantics { heading() },
             )
+            SectionList(
+                state = state,
+                onOpen = { section ->
+                    when (SettingsSections.targetOf(section, SettingsSurface.Mobile)) {
+                        SettingsTarget.OpenSources -> onOpenSources()
+                        is SettingsTarget.Panel -> openKey = section.key
+                    }
+                },
+            )
+            if (!state.signedIn) {
+                Text(
+                    text = stringResource(sessionLabelOf(state)),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            SectionHeader(section = open, onBack = { openKey = null })
+            when (open) {
+                SettingsSection.Account -> AccountSection(state, viewModel)
+                // Never drawn here: the row opens US-024's screen.
+                SettingsSection.Sources -> Unit
+                SettingsSection.Playback -> PlaybackSection(
+                    state = state,
+                    viewModel = viewModel,
+                    onChooseLanguage = { chooser = it },
+                )
+                SettingsSection.Application -> ApplicationSection()
+                SettingsSection.About -> AboutSection(state)
+            }
         }
+    }
+
+    when (chooser) {
+        CHOOSE_AUDIO -> LanguageChooser(
+            title = stringResource(R.string.feature_settings_audio_language),
+            current = state.playback.tracks.audioLanguage,
+            onChoose = {
+                viewModel.setAudioLanguage(it)
+                chooser = null
+            },
+            onDismiss = { chooser = null },
+        )
+        CHOOSE_SUBTITLES -> LanguageChooser(
+            title = stringResource(R.string.feature_settings_subtitle_language),
+            current = state.playback.tracks.subtitleLanguage,
+            onChoose = {
+                viewModel.setSubtitleLanguage(it)
+                chooser = null
+            },
+            onDismiss = { chooser = null },
+        )
     }
 
     when (val asked = state.confirmation) {
@@ -245,6 +209,289 @@ fun SettingsMobileScreen(
             },
         )
     }
+}
+
+private const val CHOOSE_AUDIO = "audio"
+private const val CHOOSE_SUBTITLES = "subtitles"
+
+/** The five rows, each with the one fact that tells it apart before it is opened. */
+@Composable
+private fun SectionList(state: SettingsUiState, onOpen: (SettingsSection) -> Unit) {
+    Section(title = null) {
+        SettingsSection.entries.forEachIndexed { index, section ->
+            if (index > 0) RowDivider()
+            SettingsRow(
+                label = stringResource(section.titleRes),
+                note = when (section) {
+                    SettingsSection.Account -> state.email ?: stringResource(sessionLabelOf(state))
+                    SettingsSection.Sources -> state.sourceCount?.let {
+                        pluralStringResource(R.plurals.feature_settings_sources_active, it, it)
+                    }
+                    SettingsSection.Playback -> null
+                    SettingsSection.Application -> InterfaceLanguage.nativeName(currentInterfaceLanguage())
+                    SettingsSection.About -> state.appVersion?.let {
+                        stringResource(R.string.feature_settings_version_value, it)
+                    }
+                },
+                chevron = true,
+                onClick = { onOpen(section) },
+            )
+        }
+    }
+}
+
+/** "‹ Settings" over the section's own title. `BACK` does the same. */
+@Composable
+private fun SectionHeader(section: SettingsSection, onBack: () -> Unit) {
+    val back = stringResource(R.string.feature_settings_back)
+    Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs)) {
+        TextButton(
+            onClick = onBack,
+            modifier = Modifier.semantics { contentDescription = back },
+        ) {
+            Text(
+                text = stringResource(R.string.feature_settings_back_label),
+                color = accentInk(),
+            )
+        }
+        Text(
+            text = stringResource(section.titleRes),
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.semantics { heading() },
+        )
+    }
+}
+
+// ---- Account and devices ---------------------------------------------------
+
+@Composable
+private fun AccountSection(state: SettingsUiState, viewModel: SettingsViewModel) {
+    val context = LocalContext.current
+    Section(title = null) {
+        AccountCard(state)
+        RowDivider()
+        Devices(state = state, onRevoke = viewModel::askRevoke, onRetry = viewModel::reloadDevices)
+        RowDivider()
+        SettingsRow(
+            label = stringResource(R.string.feature_settings_pair_tv),
+            value = state.activationLabel,
+            valueColor = accentInk(),
+            chevron = true,
+            onClick = { openInBrowser(context, state.activationUrl) },
+        )
+        if (state.signedIn) {
+            RowDivider()
+            SettingsRow(
+                label = stringResource(R.string.feature_settings_sign_out),
+                labelColor = MaterialTheme.colorScheme.error,
+                onClick = if (state.signingOut) null else viewModel::askSignOut,
+            ) {
+                if (state.signingOut) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(LumoSpacing.md),
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ---- Playback ----------------------------------------------------------------
+
+/**
+ * S13-E05/E06: languages, next episode, and — on a phone — mobile data.
+ * Quality is not here: it belongs to the current playback (US-023).
+ */
+@Composable
+private fun PlaybackSection(
+    state: SettingsUiState,
+    viewModel: SettingsViewModel,
+    onChooseLanguage: (String) -> Unit,
+) {
+    val tracks = state.playback.tracks
+    val notSet = stringResource(R.string.feature_settings_language_not_set)
+
+    Note(stringResource(R.string.feature_settings_playback_scope))
+    Section(title = null) {
+        SettingsSections.playbackRows(SettingsSurface.Mobile).forEachIndexed { index, row ->
+            if (index > 0) RowDivider()
+            when (row) {
+                PlaybackRow.AudioLanguage -> SettingsRow(
+                    label = stringResource(R.string.feature_settings_audio_language),
+                    value = playbackLanguageName(tracks.audioLanguage) ?: notSet,
+                    note = stringResource(R.string.feature_settings_audio_language_note),
+                    chevron = true,
+                    onClick = { onChooseLanguage(CHOOSE_AUDIO) },
+                )
+                PlaybackRow.Subtitles -> SettingsRow(
+                    label = stringResource(R.string.feature_settings_subtitles),
+                    onClick = { viewModel.setSubtitlesEnabled(!tracks.subtitlesEnabled) },
+                ) {
+                    Switch(checked = tracks.subtitlesEnabled, onCheckedChange = viewModel::setSubtitlesEnabled)
+                }
+                PlaybackRow.SubtitleLanguage -> SettingsRow(
+                    label = stringResource(R.string.feature_settings_subtitle_language),
+                    value = playbackLanguageName(tracks.subtitleLanguage) ?: notSet,
+                    note = stringResource(R.string.feature_settings_subtitle_language_note),
+                    chevron = true,
+                    onClick = { onChooseLanguage(CHOOSE_SUBTITLES) },
+                )
+                PlaybackRow.AutoplayNext -> SettingsRow(
+                    label = stringResource(R.string.feature_settings_autoplay_next),
+                    note = stringResource(R.string.feature_settings_autoplay_next_note),
+                    onClick = { viewModel.setAutoplayNext(!state.playback.autoplayNext) },
+                ) {
+                    Switch(checked = state.playback.autoplayNext, onCheckedChange = viewModel::setAutoplayNext)
+                }
+                PlaybackRow.MobileData -> SettingsRow(
+                    label = stringResource(R.string.feature_settings_mobile_data),
+                    note = stringResource(R.string.feature_settings_mobile_data_note),
+                    onClick = { viewModel.setMobileDataAllowed(!state.playback.mobileDataAllowed) },
+                ) {
+                    Switch(
+                        checked = state.playback.mobileDataAllowed,
+                        onCheckedChange = viewModel::setMobileDataAllowed,
+                    )
+                }
+            }
+        }
+    }
+    if (state.playbackNotSaved) {
+        Text(
+            text = stringResource(R.string.feature_settings_playback_not_saved),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+    Note(stringResource(R.string.feature_settings_quality_note))
+}
+
+/** A radio list of the offered languages, the stored one ticked. Choosing closes it. */
+@Composable
+private fun LanguageChooser(
+    title: String,
+    current: String?,
+    onChoose: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            LazyColumn {
+                items(SettingsSections.languageChoices(current)) { code ->
+                    val selected = SettingsSections.isCurrentLanguage(code, current)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .selectable(selected = selected, role = Role.RadioButton, onClick = { onChoose(code) }),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+                    ) {
+                        RadioButton(selected = selected, onClick = null)
+                        Text(text = playbackLanguageName(code) ?: code, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.feature_settings_cancel)) }
+        },
+    )
+}
+
+// ---- Application ---------------------------------------------------------------
+
+/**
+ * S13-E08: French or English, each named in itself. Choosing redraws the
+ * application in that language; the current one is ticked and does nothing.
+ */
+@Composable
+private fun ApplicationSection() {
+    val context = LocalContext.current
+    val current = currentInterfaceLanguage()
+
+    Section(title = stringResource(R.string.feature_settings_language)) {
+        InterfaceLanguage.SUPPORTED.forEachIndexed { index, language ->
+            if (index > 0) RowDivider()
+            val selected = language == current
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(
+                        selected = selected,
+                        role = Role.RadioButton,
+                        onClick = {
+                            if (!selected) context.findActivity()?.let { InterfaceLanguage.choose(it, language) }
+                        },
+                    )
+                    .heightIn(min = 56.dp)
+                    .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = selected, onClick = null)
+                Text(
+                    text = InterfaceLanguage.nativeName(language),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                if (selected) {
+                    Text(
+                        text = stringResource(R.string.feature_settings_language_current),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+    Note(stringResource(R.string.feature_settings_language_note))
+}
+
+// ---- Help and information ----------------------------------------------------
+
+@Composable
+private fun AboutSection(state: SettingsUiState) {
+    val context = LocalContext.current
+    val language = currentInterfaceLanguage()
+    Section(title = null) {
+        // Derived from the same variable as the pairing link, so a local
+        // stack cannot pair against one host and open guides on another.
+        // Absent rather than dead when the build carries no origin.
+        SettingsLinks.guidesUrlOf(state.activationUrl, language)?.let { guides ->
+            SettingsRow(
+                label = stringResource(R.string.feature_settings_guides),
+                value = SettingsLinks.label(guides),
+                valueColor = accentInk(),
+                chevron = true,
+                onClick = { openInBrowser(context, guides) },
+            )
+            RowDivider()
+        }
+        // Privacy and terms would follow, and do not: the website has no
+        // such pages yet (docs/design/0.2.0/settings.md), and a link to a
+        // page that does not exist is a link somebody presses to find out.
+        SettingsRow(
+            label = stringResource(R.string.feature_settings_version),
+            value = state.appVersion ?: stringResource(R.string.feature_settings_unknown_value),
+        )
+    }
+}
+
+@Composable
+private fun Note(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = LumoSpacing.xs),
+    )
 }
 
 /**
@@ -490,28 +737,6 @@ private fun Chevron() {
 @Composable
 private fun accentInk(): Color =
     if (isSystemInDarkTheme()) LumoColors.Accent else MaterialTheme.colorScheme.primary
-
-/** The interface language: its ISO code, for a URL, and its name in itself, for a row. */
-private data class InterfaceLanguage(val code: String, val displayName: String)
-
-/**
- * Read from the configuration and nowhere else: `Locale.getDefault()` is not
- * observable, and a composable that reads it does not recompose when the
- * language changes (lint `NonObservableLocale`). An empty locale list is
- * impossible on a real configuration; the empty strings are only the honest
- * fallback for one that says nothing.
- */
-@Composable
-private fun currentLanguage(): InterfaceLanguage {
-    val locales = LocalConfiguration.current.locales
-    if (locales.isEmpty) return InterfaceLanguage(code = "", displayName = "")
-    val locale = locales[0]
-    return InterfaceLanguage(
-        code = locale.language,
-        displayName = locale.getDisplayLanguage(locale)
-            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() },
-    )
-}
 
 /**
  * Hands a page to whatever browser the phone has.

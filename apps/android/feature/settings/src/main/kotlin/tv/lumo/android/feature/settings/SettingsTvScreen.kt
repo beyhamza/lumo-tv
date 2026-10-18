@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +35,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,8 +44,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import tv.lumo.android.core.common.locale.InterfaceLanguage
+import tv.lumo.android.core.designsystem.component.LumoAudioTrackChoice
+import tv.lumo.android.core.designsystem.component.LumoOptionSection
 import tv.lumo.android.core.designsystem.component.LumoTvButton
 import tv.lumo.android.core.designsystem.component.LumoTvConfirmDialog
+import tv.lumo.android.core.designsystem.component.LumoTvPlayerOptionsSheet
 import tv.lumo.android.core.designsystem.theme.LumoColors
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.designsystem.theme.LumoTvShapes
@@ -56,16 +61,16 @@ import tv.lumo.android.network.generated.model.SourceKind
 import tv.lumo.android.network.generated.model.SourceStatus
 
 /**
- * `TV5 — Réglages`: a sub-menu down the left — Sources, Account and devices,
- * Application, About — and one panel on the right for whichever entry is open
- * (US-025, S8-06).
+ * `TV5 — Réglages`: the five sections of US-025 down the left, and one panel on
+ * the right for whichever is open (S13-04, S13-E10).
  *
- * <h2>Four entries, and nothing that is not delivered</h2>
+ * <h2>Five entries, in the website's order</h2>
  *
- * Playback is absent until its settings exist (sprint 13), and Language is no
- * longer an entry of its own: it is one read-only line of Application, since
- * that is all that is true about it. The `[mock]` badges this screen used to
- * draw are gone with the rows that carried them.
+ * Account and devices, My sources, Playback, Application, Help and information
+ * ([SettingsSection]). Playback edits the player's own store directly — the
+ * design keeps playback settings editable on a television — without the mobile
+ * data switch, since a television is never gated (S13-05). Application switches
+ * the interface language through the platform ([InterfaceLanguage]).
  *
  * <h2>Devices are read here and decided elsewhere</h2>
  *
@@ -78,13 +83,15 @@ import tv.lumo.android.network.generated.model.SourceStatus
  * <h2>Focus</h2>
  *
  * The map of this screen is in `docs/design/tv-focus-map.md`. Arrival lands on
- * the first menu entry. `DOWN` walks the menu, and opening an entry is a matter
- * of focusing it: a menu that needed `OK` to reveal its panel would cost a press
- * for every look. `RIGHT` enters the panel where it has something to press —
- * "My sources", "Try again", "Sign out" — and `LEFT` returns to the menu, then
- * to the rail. `BACK` from inside a panel returns to its menu entry; from the
- * menu it is the shell's, and goes to Home. Signing out asks first, in a dialog
- * that holds the focus with Cancel as its default.
+ * the open section's menu entry — Account and devices the first time, and the
+ * section left open otherwise: coming back from "My sources", or after the
+ * activity was recreated in another language, the remote is where it was.
+ * `DOWN` walks the menu, and opening an entry is a matter of focusing it.
+ * `RIGHT` enters the panel where it has something to press, and `LEFT` returns
+ * to the menu, then to the rail. `BACK` from inside a panel returns to its menu
+ * entry; from the menu it is the shell's, and goes to Home. A language list
+ * opens over the screen, on the stored choice; `BACK` closes it onto the row
+ * that opened it.
  */
 @Composable
 fun SettingsTvScreen(
@@ -93,81 +100,110 @@ fun SettingsTvScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var section by remember { mutableStateOf(SettingsSection.Sources) }
+    var sectionKey by rememberSaveable { mutableStateOf(SettingsSections.DEFAULT.key) }
+    val section = SettingsSections.fromKey(sectionKey) ?: SettingsSections.DEFAULT
+    var chooser by rememberSaveable { mutableStateOf<String?>(null) }
     val menu = remember { SettingsSection.entries.associateWith { FocusRequester() } }
+    val audioRow = remember { FocusRequester() }
+    val subtitleRow = remember { FocusRequester() }
 
-    LaunchedEffect(Unit) { runCatching { menu.getValue(SettingsSection.Sources).requestFocus() } }
+    LaunchedEffect(Unit) { runCatching { menu.getValue(section).requestFocus() } }
 
-    Row(
-        modifier = modifier
-            .fillMaxSize()
-            .background(LumoColors.Ink)
-            .tvOverscan(),
-        horizontalArrangement = Arrangement.spacedBy(LumoSpacing.xxl),
-    ) {
-        Column(
-            // A third of the width for the menu, as the canvas: a fixed width is
-            // right on one panel and wrong on every other.
+    Box(modifier = modifier.fillMaxSize()) {
+        Row(
             modifier = Modifier
-                .weight(MENU_SHARE)
-                .fillMaxHeight(),
-            verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+                .fillMaxSize()
+                .background(LumoColors.Ink)
+                .tvOverscan(),
+            horizontalArrangement = Arrangement.spacedBy(LumoSpacing.xxl),
         ) {
-            Text(
-                text = stringResource(R.string.feature_settings_title),
-                style = MaterialTheme.typography.displayMedium,
-                color = LumoColors.OnDark,
-                modifier = Modifier.padding(bottom = LumoSpacing.md),
-            )
-            SettingsSection.entries.forEach { entry ->
-                MenuItem(
-                    label = stringResource(entry.titleRes),
-                    selected = section == entry,
-                    onFocused = { section = entry },
-                    modifier = Modifier.focusRequester(menu.getValue(entry)),
+            Column(
+                // A third of the width for the menu, as the canvas: a fixed width is
+                // right on one panel and wrong on every other.
+                modifier = Modifier
+                    .weight(MENU_SHARE)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+            ) {
+                Text(
+                    text = stringResource(R.string.feature_settings_title),
+                    style = MaterialTheme.typography.displayMedium,
+                    color = LumoColors.OnDark,
+                    modifier = Modifier.padding(bottom = LumoSpacing.md),
+                )
+                SettingsSection.entries.forEach { entry ->
+                    MenuItem(
+                        label = stringResource(entry.titleRes),
+                        selected = section == entry,
+                        onFocused = { sectionKey = entry.key },
+                        modifier = Modifier.focusRequester(menu.getValue(entry)),
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = stringResource(R.string.feature_settings_tv_about_version, state.appVersion ?: "—"),
+                    style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
+                    color = LumoColors.OnDarkMuted,
                 )
             }
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = stringResource(R.string.feature_settings_tv_about_version, state.appVersion ?: "—"),
-                style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
-                color = LumoColors.OnDarkMuted,
-            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f - MENU_SHARE)
+                    .fillMaxHeight()
+                    // `BACK` inside a panel goes back to the menu entry that opened
+                    // it, not to Home: the viewer went right, and the key that means
+                    // "out" should undo that step before undoing the screen. Seen
+                    // here first, before Compose treats it as a focus search that
+                    // finds nothing and lets it fall through to the shell.
+                    .onPreviewKeyEvent { event ->
+                        val isBack = event.key == Key.Back || event.key == Key.Escape
+                        if (!isBack) return@onPreviewKeyEvent false
+                        if (event.type == KeyEventType.KeyUp) {
+                            runCatching { menu.getValue(section).requestFocus() }
+                        }
+                        true
+                    }
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
+            ) {
+                when (section) {
+                    SettingsSection.Account -> AccountPanel(
+                        state = state,
+                        onRetryDevices = viewModel::reloadDevices,
+                        onSignOut = viewModel::askSignOut,
+                    )
+                    SettingsSection.Sources -> SourcesPanel(state, onOpenSources)
+                    SettingsSection.Playback -> PlaybackPanel(
+                        state = state,
+                        viewModel = viewModel,
+                        audioRow = audioRow,
+                        subtitleRow = subtitleRow,
+                        onChooseLanguage = { chooser = it },
+                    )
+                    SettingsSection.Application -> ApplicationPanel()
+                    SettingsSection.About -> AboutPanel(state)
+                }
+            }
         }
 
-        Column(
-            modifier = Modifier
-                .weight(1f - MENU_SHARE)
-                .fillMaxHeight()
-                // `BACK` inside a panel goes back to the menu entry that opened
-                // it, not to Home: the viewer went right, and the key that means
-                // "out" should undo that step before undoing the screen. Seen
-                // here first, before Compose treats it as a focus search that
-                // finds nothing and lets it fall through to the shell.
-                .onPreviewKeyEvent { event ->
-                    val isBack = event.key == Key.Back || event.key == Key.Escape
-                    if (!isBack) return@onPreviewKeyEvent false
-                    if (event.type == KeyEventType.KeyUp) {
-                        runCatching { menu.getValue(section).requestFocus() }
-                    }
-                    true
-                }
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
-        ) {
-            when (section) {
-                SettingsSection.Sources -> SourcesPanel(state, onOpenSources)
-                SettingsSection.Account -> AccountPanel(
-                    state = state,
-                    onRetryDevices = viewModel::reloadDevices,
-                    onSignOut = viewModel::askSignOut,
-                )
-                SettingsSection.Application -> {
-                    PlaybackPanel(state, onToggleAutoplay = { viewModel.setAutoplayNext(!state.playback.autoplayNext) })
-                    ApplicationPanel()
-                }
-                SettingsSection.About -> AboutPanel(state)
+        chooser?.let { which ->
+            val audio = which == CHOOSE_AUDIO
+            val close: () -> Unit = {
+                chooser = null
+                runCatching { (if (audio) audioRow else subtitleRow).requestFocus() }
             }
+            LanguageSheet(
+                title = stringResource(
+                    if (audio) R.string.feature_settings_audio_language else R.string.feature_settings_subtitle_language,
+                ),
+                current = if (audio) state.playback.tracks.audioLanguage else state.playback.tracks.subtitleLanguage,
+                onChoose = { code ->
+                    if (audio) viewModel.setAudioLanguage(code) else viewModel.setSubtitleLanguage(code)
+                    close()
+                },
+                onDismiss = close,
+            )
         }
     }
 
@@ -187,12 +223,8 @@ fun SettingsTvScreen(
     }
 }
 
-private enum class SettingsSection(val titleRes: Int) {
-    Sources(R.string.feature_settings_tv_menu_sources),
-    Account(R.string.feature_settings_tv_menu_account),
-    Application(R.string.feature_settings_tv_menu_application),
-    About(R.string.feature_settings_tv_menu_about),
-}
+private const val CHOOSE_AUDIO = "audio"
+private const val CHOOSE_SUBTITLES = "subtitles"
 
 @Composable
 private fun MenuItem(
@@ -394,53 +426,154 @@ private fun relativeTime(epochMillis: Long): String =
         DateUtils.MINUTE_IN_MILLIS,
     ).toString()
 
-// ---- Application / About ---------------------------------------------------
+// ---- Playback ----------------------------------------------------------------
 
 /**
- * The interface language, read-only, and the one sentence about what comes
- * later. No stop: there is nothing to press, and `RIGHT` from the menu stays on
- * the menu — which is what a panel of facts should do.
- */
-/**
- * The one playback switch a television has (S13-03): the next episode on its own.
- * No mobile-data switch — a television is never gated (S13-05). The full Playback
- * section is S13-04.
+ * S13-E05 on a television: the languages and the next episode, edited with the
+ * remote. `OK` toggles a switch or opens a language list. No mobile-data row:
+ * a television is never gated (S13-05).
  */
 @Composable
-private fun PlaybackPanel(state: SettingsUiState, onToggleAutoplay: () -> Unit) {
-    PanelRow(
-        title = stringResource(R.string.feature_settings_autoplay_next),
-        subtitle = if (state.playbackNotSaved) {
-            stringResource(R.string.feature_settings_playback_not_saved)
-        } else {
-            stringResource(R.string.feature_settings_autoplay_next_note)
-        },
-        trailing = {
-            Text(
-                text = stringResource(
-                    if (state.playback.autoplayNext) R.string.feature_settings_on else R.string.feature_settings_off,
-                ),
-                style = MaterialTheme.typography.titleLarge,
-                color = if (state.playback.autoplayNext) LumoColors.Accent else LumoColors.OnDarkMuted,
+private fun PlaybackPanel(
+    state: SettingsUiState,
+    viewModel: SettingsViewModel,
+    audioRow: FocusRequester,
+    subtitleRow: FocusRequester,
+    onChooseLanguage: (String) -> Unit,
+) {
+    val tracks = state.playback.tracks
+    val notSet = stringResource(R.string.feature_settings_language_not_set)
+
+    Text(
+        text = stringResource(R.string.feature_settings_playback_scope),
+        style = MaterialTheme.typography.bodyLarge,
+        color = LumoColors.OnDarkMuted,
+    )
+    SettingsSections.playbackRows(SettingsSurface.Tv).forEach { row ->
+        when (row) {
+            PlaybackRow.AudioLanguage -> PanelRow(
+                title = stringResource(R.string.feature_settings_audio_language),
+                subtitle = stringResource(R.string.feature_settings_audio_language_note),
+                trailing = { TrailingValue(playbackLanguageName(tracks.audioLanguage) ?: notSet, active = true) },
+                onClick = { onChooseLanguage(CHOOSE_AUDIO) },
+                focusRequester = audioRow,
             )
-        },
-        onClick = onToggleAutoplay,
+            PlaybackRow.Subtitles -> PanelRow(
+                title = stringResource(R.string.feature_settings_subtitles),
+                trailing = { OnOff(tracks.subtitlesEnabled) },
+                onClick = { viewModel.setSubtitlesEnabled(!tracks.subtitlesEnabled) },
+            )
+            PlaybackRow.SubtitleLanguage -> PanelRow(
+                title = stringResource(R.string.feature_settings_subtitle_language),
+                subtitle = stringResource(R.string.feature_settings_subtitle_language_note),
+                trailing = { TrailingValue(playbackLanguageName(tracks.subtitleLanguage) ?: notSet, active = true) },
+                onClick = { onChooseLanguage(CHOOSE_SUBTITLES) },
+                focusRequester = subtitleRow,
+            )
+            PlaybackRow.AutoplayNext -> PanelRow(
+                title = stringResource(R.string.feature_settings_autoplay_next),
+                subtitle = stringResource(R.string.feature_settings_autoplay_next_note),
+                trailing = { OnOff(state.playback.autoplayNext) },
+                onClick = { viewModel.setAutoplayNext(!state.playback.autoplayNext) },
+            )
+            PlaybackRow.MobileData -> Unit
+        }
+    }
+    if (state.playbackNotSaved) {
+        Text(
+            text = stringResource(R.string.feature_settings_playback_not_saved),
+            style = MaterialTheme.typography.bodyLarge,
+            color = LumoColors.Error,
+        )
+    }
+    Text(
+        text = stringResource(R.string.feature_settings_quality_note),
+        style = MaterialTheme.typography.bodyLarge,
+        color = LumoColors.OnDarkMuted,
     )
 }
 
 @Composable
-private fun ApplicationPanel() {
-    PanelRow(
-        title = stringResource(R.string.feature_settings_language),
-        subtitle = stringResource(R.string.feature_settings_tv_language_value),
-        trailing = {
-            Text(
-                text = currentLanguageName(),
-                style = MaterialTheme.typography.titleLarge,
-                color = LumoColors.OnDark,
-            )
-        },
+private fun OnOff(on: Boolean) = TrailingValue(
+    text = stringResource(if (on) R.string.feature_settings_on else R.string.feature_settings_off),
+    active = on,
+)
+
+@Composable
+private fun TrailingValue(text: String, active: Boolean) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleLarge,
+        color = if (active) LumoColors.Accent else LumoColors.OnDarkMuted,
     )
+}
+
+/**
+ * The offered languages over the screen, the stored one focused on arrival —
+ * the player's options panel, reused: centred, `BACK` closes it.
+ */
+@Composable
+private fun LanguageSheet(
+    title: String,
+    current: String?,
+    onChoose: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val choices = SettingsSections.languageChoices(current).map { code ->
+        LumoAudioTrackChoice(
+            id = code,
+            label = playbackLanguageName(code) ?: code,
+            detail = null,
+            selected = SettingsSections.isCurrentLanguage(code, current),
+            enabled = true,
+        )
+    }
+    LumoTvPlayerOptionsSheet(
+        title = title,
+        sections = listOf(
+            LumoOptionSection(
+                key = LANGUAGE_SECTION,
+                title = stringResource(R.string.feature_settings_playback_scope),
+                choices = choices,
+            ),
+        ),
+        onSelect = { _, code -> onChoose(code) },
+        onDismiss = onDismiss,
+    )
+}
+
+private const val LANGUAGE_SECTION = "language"
+
+// ---- Application / Help ----------------------------------------------------
+
+/**
+ * S13-E08: French or English, each named in itself. `OK` on the other one
+ * redraws the application in it; the current one says so and does nothing.
+ */
+@Composable
+private fun ApplicationPanel() {
+    val context = LocalContext.current
+    val current = currentInterfaceLanguage()
+
+    Text(
+        text = stringResource(R.string.feature_settings_language),
+        style = MaterialTheme.typography.labelLarge,
+        color = LumoColors.OnDarkMuted,
+    )
+    InterfaceLanguage.SUPPORTED.forEach { language ->
+        val selected = language == current
+        PanelRow(
+            title = InterfaceLanguage.nativeName(language),
+            trailing = if (selected) {
+                { TrailingValue(stringResource(R.string.feature_settings_language_current), active = true) }
+            } else {
+                null
+            },
+            onClick = {
+                if (!selected) context.findActivity()?.let { InterfaceLanguage.choose(it, language) }
+            },
+        )
+    }
     Text(
         text = stringResource(R.string.feature_settings_language_note),
         style = MaterialTheme.typography.bodyLarge,
@@ -460,31 +593,12 @@ private fun AboutPanel(state: SettingsUiState) {
         title = stringResource(R.string.feature_settings_tv_about_version, state.appVersion ?: "—"),
         subtitle = stringResource(R.string.feature_settings_tv_about_site),
     )
-    SettingsLinks.guidesUrlOf(state.activationUrl, currentLanguageCode())?.let { guides ->
+    SettingsLinks.guidesUrlOf(state.activationUrl, currentInterfaceLanguage())?.let { guides ->
         PanelRow(
             title = stringResource(R.string.feature_settings_guides),
             subtitle = stringResource(R.string.feature_settings_tv_about_guides, SettingsLinks.label(guides)),
         )
     }
-}
-
-/**
- * The interface language, named in itself: "Français", "English". Read from the
- * configuration and nowhere else, for the reason the phone's screen gives.
- */
-@Composable
-private fun currentLanguageName(): String {
-    val locales = LocalConfiguration.current.locales
-    if (locales.isEmpty) return ""
-    val locale = locales[0]
-    return locale.getDisplayLanguage(locale)
-        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
-}
-
-@Composable
-private fun currentLanguageCode(): String {
-    val locales = LocalConfiguration.current.locales
-    return if (locales.isEmpty) "" else locales[0].language
 }
 
 // ---- Building blocks -------------------------------------------------------
@@ -500,6 +614,7 @@ private fun PanelRow(
     subtitle: String? = null,
     trailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
+    focusRequester: FocusRequester? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
@@ -507,6 +622,7 @@ private fun PanelRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged { focused = it.isFocused }
             .lumoTvFocus(focused)
             .clip(LumoTvShapes.medium)
