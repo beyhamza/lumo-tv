@@ -108,7 +108,7 @@ fun EpisodePlayerTvScreen(
     onOpenSources: () -> Unit,
     onSourceGone: () -> Unit,
     onBackToSeries: (seriesId: String) -> Unit,
-    nextOfSeries: String? = null,
+    nextOfSeries: String?,
     modifier: Modifier = Modifier,
     viewModel: EpisodePlayerViewModel = hiltViewModel(),
 ) {
