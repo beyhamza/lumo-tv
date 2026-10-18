@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { saveEpisodeProgress, saveFilmProgress } from "@/actions/playback";
 import { PlaybackRefusalMessage } from "@/components/app/PlaybackRefusalMessage";
 import { SourceDeleted } from "@/components/app/SourceDeleted";
+import { TrackMenus } from "@/components/app/player/TrackMenus";
+import { usePlaybackPrefs } from "@/components/app/player/use-playback-prefs";
 import { advanceMs, audibility, browserDecodes } from "@/lib/playback/audibility";
 import {
   type LaunchKind,
@@ -13,6 +15,8 @@ import {
 } from "@/lib/playback/continue-launch";
 import { asClock, savableProgress } from "@/lib/playback/progress";
 import type { PlayerActions } from "@/lib/playback/sheet-action";
+import { nativeTracks } from "@/lib/playback/tracks/native";
+import type { TrackController } from "@/lib/playback/tracks/types";
 import { useSourceGone } from "@/lib/playback/use-source-gone";
 import { WatchMeter, isActuallyPlaying } from "@/lib/playback/watch-meter";
 
@@ -120,6 +124,14 @@ import { WatchMeter, isActuallyPlaying } from "@/lib/playback/watch-meter";
  *   failure says so, with Retry when trying again can change something, and
  *   Back: home, or the series for a next episode, never another episode in its
  *   place (CW-27). See `lib/playback/continue-launch.ts`.
+ *
+ * <h2>Tracks and quality (S13-01/02)</h2>
+ *
+ * Under the element, "Audio and subtitles" and "Quality" offer what this
+ * browser reports about the file (`lib/playback/tracks/native.ts`) — on most
+ * browsers, honestly, very little: the menus then say what cannot be known
+ * rather than inventing a choice. The account's preferences on this browser
+ * are applied at open (`TrackMenus`). A file is one encoding: Automatic only.
  */
 export function FilmPlayer({
   filmId,
@@ -132,6 +144,8 @@ export function FilmPlayer({
   sourceHref,
   continueHref,
   launch,
+  accountId,
+  onEndedChange,
 }: {
   filmId: string;
   /**
@@ -191,9 +205,20 @@ export function FilmPlayer({
    * after a failure goes home, or to `seriesHref` for a next episode (CW-27).
    */
   launch?: { kind: LaunchKind; fromMs: number; seriesHref?: string } | null;
+  /** Whose playback preferences apply: one entry per account on this browser (S13-02). */
+  accountId: string;
+  /**
+   * The real end of the file (`true`) and playback starting again after it
+   * (`false`), for the episode player's next-episode card (S13-03). Never the
+   * 95 % mark: that one is the sheet's business, not the player's (CW-08).
+   */
+  onEndedChange?: (ended: boolean) => void;
 }) {
   const t = useTranslations("App");
   const videoRef = useRef<HTMLVideoElement>(null);
+  const prefsHandle = usePlaybackPrefs(accountId, useLocale());
+  /** What the element reports about its tracks, for this file only (S13-01). */
+  const [tracks, setTracks] = useState<TrackController | null>(null);
 
   const [failure, setFailure] = useState<Failure | null>(null);
   const [maxConnections, setMaxConnections] = useState<number | null>(null);
@@ -320,6 +345,7 @@ export function FilmPlayer({
   useEffect(() => {
     if (!started || gone) return;
     let disposed = false;
+    let controller: TrackController | null = null;
 
     async function start() {
       setFailure(null);
@@ -366,6 +392,12 @@ export function FilmPlayer({
       // into a CORS request and break every panel that does not send the header
       // — for a capability (canvas, Web Audio) nothing here uses.
       video.src = payload.url;
+      // Per file: a new `src` is a new set of tracks, and nothing chosen for the
+      // previous one is carried over (PS-06). A manifest played natively lets
+      // the browser pick its variant; a file has only one.
+      controller?.dispose();
+      controller = nativeTracks(video, isManifest(payload.url) ? "browser-chooses" : "single-file");
+      setTracks(controller);
       // Set before play, so the browser opens the file at the offset rather than
       // downloading its way there. On a server that ignores `Range` it silently
       // does nothing, which is the honest outcome — the same server cannot seek
@@ -383,6 +415,7 @@ export function FilmPlayer({
     void start();
     return () => {
       disposed = true;
+      controller?.dispose();
     };
   }, [filmId, started, startAtMs, playbackPath, gone, attempt]);
 
@@ -516,6 +549,7 @@ export function FilmPlayer({
         onPlaying={() => {
           setAutoplayBlocked(false);
           syncMeter();
+          onEndedChange?.(false);
         }}
         onWaiting={syncMeter}
         onSeeking={syncMeter}
@@ -524,6 +558,7 @@ export function FilmPlayer({
         onEnded={() => {
           syncMeter();
           save();
+          onEndedChange?.(true);
         }}
         onEmptied={syncMeter}
         onError={() => {
@@ -537,6 +572,8 @@ export function FilmPlayer({
         }}
         className={started ? "mt-3 aspect-video w-full rounded-lg bg-black" : "hidden"}
       />
+
+      {started && !failure ? <TrackMenus controller={tracks} prefsHandle={prefsHandle} /> : null}
 
       {/* The browser wanted a gesture (S12-05). Not an error: the player is at
           the position and this one press starts it. */}
@@ -662,6 +699,15 @@ function LaunchFailureActions({
       </div>
     </>
   );
+}
+
+/** An HLS manifest, by its path; the query string, which may carry credentials, is not read. */
+function isManifest(url: string): boolean {
+  try {
+    return new URL(url).pathname.toLowerCase().endsWith(".m3u8");
+  } catch {
+    return false;
+  }
 }
 
 /** See the class documentation: an upsert, not a stream. */

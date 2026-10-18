@@ -700,5 +700,54 @@
     "title": "Données indisponibles",
     "body": "Le service ne répond pas pour le moment. Réessayez dans un instant.",
     "retry": "Réessayer"
+  },
+  "Player": {
+    "tracksButton": "Audio et sous-titres",
+    "qualityButton": "Qualité",
+    "audioLegend": "Audio",
+    "subtitlesLegend": "Sous-titres",
+    "subtitlesOff": "Désactivés",
+    "trackNumbered": "Piste {number}",
+    "trackForced": "forcés",
+    "trackUnsupported": "Cette piste n'est pas prise en charge sur cet appareil",
+    "audioNoOther": "Aucune autre piste audio disponible.",
+    "audioUnknown": {
+      "browser-hides-tracks": "Ce navigateur ne permet pas de connaître ni de changer les pistes audio de ce fichier : la piste par défaut est lue.",
+      "not-declared": "Ce flux ne déclare aucune autre piste audio.",
+      "loading": "Les pistes s'afficheront au démarrage de la lecture."
+    },
+    "subtitlesNone": "Aucun sous-titre disponible pour ce contenu.",
+    "subtitlesUnknown": {
+      "browser-hides-tracks": "Ce navigateur ne permet pas de connaître les sous-titres intégrés à ce fichier.",
+      "not-declared": "Ce flux ne déclare aucun sous-titre.",
+      "loading": "Les sous-titres s'afficheront au démarrage de la lecture."
+    },
+    "subtitlesBurnedIn": "« Désactivés » ne retire pas des sous-titres incrustés dans l'image.",
+    "subtitleLanguageMissing": "Votre langue de sous-titres n'est pas disponible.",
+    "tracksScope": "Une langue choisie ici devient votre préférence sur ce navigateur, pour ce compte.",
+    "qualityLegend": "Qualité",
+    "qualityAuto": "Automatique",
+    "qualityHeight": "{height}p",
+    "qualityKbps": "{kbps} kbit/s",
+    "qualityScope": "Un choix manuel vaut pour cette lecture uniquement ; le contenu suivant repart en Automatique.",
+    "qualityAutoOnly": {
+      "single-file": "Ce fichier n'existe qu'en une seule qualité : aucune autre n'est disponible.",
+      "browser-chooses": "Ce navigateur choisit la qualité lui-même et ne permet pas de la changer.",
+      "single-variant": "Ce flux ne propose qu'une seule qualité.",
+      "loading": "Les qualités disponibles s'afficheront au démarrage de la lecture."
+    },
+    "switching": "Changement en cours…",
+    "switchFailed": "Ce changement n'a pas pu être appliqué. La sélection précédente est conservée.",
+    "retry": "Réessayer",
+    "prefsNotSaved": "Appliqué pour cette lecture. Préférence non enregistrée.",
+    "retrySave": "Réessayer l'enregistrement",
+    "close": "Fermer",
+    "nextTitle": "Épisode suivant : S{season} E{episode}",
+    "nextResumeAt": "Reprise à {at}",
+    "nextCountdown": "Lecture dans {seconds, plural, one {# seconde} other {# secondes}}",
+    "nextCancelled": "Lecture automatique annulée.",
+    "nextPlayNow": "Lire maintenant",
+    "nextPlay": "Lire l'épisode suivant",
+    "backToSeries": "Retour à la série"
   }
 }

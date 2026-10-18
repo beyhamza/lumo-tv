@@ -700,5 +700,54 @@
     "title": "Data unavailable",
     "body": "The service is not responding right now. Try again in a moment.",
     "retry": "Try again"
+  },
+  "Player": {
+    "tracksButton": "Audio and subtitles",
+    "qualityButton": "Quality",
+    "audioLegend": "Audio",
+    "subtitlesLegend": "Subtitles",
+    "subtitlesOff": "Off",
+    "trackNumbered": "Track {number}",
+    "trackForced": "forced",
+    "trackUnsupported": "This track is not supported on this device",
+    "audioNoOther": "No other audio track available.",
+    "audioUnknown": {
+      "browser-hides-tracks": "This browser cannot tell or change the audio tracks of this file: the default track plays.",
+      "not-declared": "This stream declares no other audio track.",
+      "loading": "Tracks will appear once playback starts."
+    },
+    "subtitlesNone": "No subtitles available for this content.",
+    "subtitlesUnknown": {
+      "browser-hides-tracks": "This browser cannot tell which subtitles this file contains.",
+      "not-declared": "This stream declares no subtitles.",
+      "loading": "Subtitles will appear once playback starts."
+    },
+    "subtitlesBurnedIn": "“Off” does not remove subtitles burnt into the picture.",
+    "subtitleLanguageMissing": "Your subtitle language is unavailable.",
+    "tracksScope": "A language chosen here becomes your preference in this browser, for this account.",
+    "qualityLegend": "Quality",
+    "qualityAuto": "Automatic",
+    "qualityHeight": "{height}p",
+    "qualityKbps": "{kbps} kbps",
+    "qualityScope": "A manual choice applies to this playback only; the next content starts in Automatic.",
+    "qualityAutoOnly": {
+      "single-file": "This file exists in one quality only: no other is available.",
+      "browser-chooses": "This browser picks the quality itself and does not let it be changed.",
+      "single-variant": "This stream offers a single quality.",
+      "loading": "Available qualities will appear once playback starts."
+    },
+    "switching": "Switching…",
+    "switchFailed": "This change could not be applied. The previous selection is kept.",
+    "retry": "Retry",
+    "prefsNotSaved": "Applied for this playback. Preference not saved.",
+    "retrySave": "Retry saving",
+    "close": "Close",
+    "nextTitle": "Next episode: S{season} E{episode}",
+    "nextResumeAt": "Resumes at {at}",
+    "nextCountdown": "Playing in {seconds, plural, one {# second} other {# seconds}}",
+    "nextCancelled": "Autoplay cancelled.",
+    "nextPlayNow": "Play now",
+    "nextPlay": "Play next episode",
+    "backToSeries": "Back to the series"
   }
 }
