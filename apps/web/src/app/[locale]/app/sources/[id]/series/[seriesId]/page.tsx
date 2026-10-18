@@ -7,6 +7,8 @@ import { WatchlistToggle, WatchlistUnconfirmed } from "@/components/app/Watchlis
 import { hrefFor } from "@/i18n/navigation";
 import type { Episode, Season, Series } from "@/lib/api/types";
 import { api, problemCode } from "@/lib/api/client";
+import { LaunchExit } from "@/components/app/LaunchExit";
+import { readLaunch, withoutLaunch } from "@/lib/playback/continue-launch";
 import { asClock, isFinished } from "@/lib/playback/progress";
 import {
   type Continuation,
@@ -114,6 +116,11 @@ export default async function SeriesDetailPage({
       })}`;
   const backLabel = fromSearch ? t("searchBackToResults") : t("seriesBackToList");
 
+  // Opened from a Continue card (S12-05): the episode in `play` starts at once.
+  const launch = readLaunch(query);
+  const seriesPath = `/app/sources/${id}/series/${seriesId}`;
+  const home = hrefFor(locale as Locale, "/app");
+
   const failure = problemCode(detail.error);
   if (failure) {
     // The distinction the contract exists to carry: `SERIES_NOT_FOUND` is final,
@@ -125,8 +132,23 @@ export default async function SeriesDetailPage({
         <BackLink href={hrefFor(locale as Locale, back)} label={backLabel} />
         <div role="alert" className="border-destructive/40 mt-6 rounded-lg border px-4 py-3">
           <p className="font-medium">{tErrors(failure as never)}</p>
-          {retryable ? (
+          {retryable && !launch ? (
             <p className="text-muted-foreground mt-1 text-sm">{t("seriesTreeRetry")}</p>
+          ) : null}
+          {/* From a card, a launch that failed (CW-25): Retry and Back home. */}
+          {launch ? (
+            <LaunchExit
+              kept={t("launchProgressKept")}
+              retry={
+                retryable
+                  ? {
+                      href: hrefFor(locale as Locale, currentView(seriesPath, query)),
+                      label: t("launchRetry"),
+                    }
+                  : undefined
+              }
+              back={{ href: home, label: t("launchBack") }}
+            />
           ) : null}
         </div>
       </div>
@@ -166,9 +188,21 @@ export default async function SeriesDetailPage({
   const playing = single(query.play);
 
   // This sheet as it was opened — season, episode, back-link context — for the
-  // "My list" form to come back to.
-  const sheetView = currentView(`/app/sources/${id}/series/${seriesId}`, query);
-  const episode = open?.episodes.find((candidate) => candidate.id === playing);
+  // "My list" form to come back to. Minus a card's launch: coming back must not
+  // start the episode again from a position that is no longer the latest.
+  const sheetView = currentView(seriesPath, withoutLaunch(query));
+  const everyEpisode = new Map(
+    seasons.flatMap((season) => season.episodes).map((entry) => [entry.id, entry] as const),
+  );
+  // From a card, the episode is looked for in the whole tree — the same
+  // episode, whichever season the URL named. Absent, it is said (CW-27): never
+  // another episode in its place.
+  const episode = launch
+    ? playing
+      ? everyEpisode.get(playing)
+      : undefined
+    : open?.episodes.find((candidate) => candidate.id === playing);
+  const launchMissing = launch !== null && episode === undefined;
   // Watch, Resume at… with Start over, or Watch again — for the episode chosen
   // (S12-03). Starting one over leaves every other episode's position alone
   // (CW-11): it is this episode's row that the next save rewrites.
@@ -182,9 +216,6 @@ export default async function SeriesDetailPage({
   // Where the series carries on, for its primary action (CW-12, CW-19, CW-21):
   // the latest episode if unfinished, otherwise the next one in order.
   const order = orderedEpisodeIds(seasons);
-  const everyEpisode = new Map(
-    seasons.flatMap((season) => season.episodes).map((entry) => [entry.id, entry] as const),
-  );
   const savedHere = (progress.data?.items ?? []).filter((row) => everyEpisode.has(row.item_ref));
   const continuation = seriesContinuation(savedHere, order);
   const primary = seriesPrimary(continuation, savedHere.length > 0, order, everyEpisode);
@@ -256,9 +287,33 @@ export default async function SeriesDetailPage({
             actions={episodeActions}
             audioCodec={episode.audio_codec ?? null}
             sourceHref={hrefFor(locale as Locale, `/app/sources/${id}`)}
-            continueHref={hrefFor(locale as Locale, "/app")}
+            continueHref={home}
+            launch={
+              launch
+                ? {
+                    kind: launch.kind,
+                    fromMs: launch.atMs,
+                    seriesHref: hrefFor(locale as Locale, seriesPath),
+                  }
+                : null
+            }
           />
         </NextIntlClientProvider>
+      ) : null}
+
+      {/* The card's episode is not in the series any more (CW-27): said, with
+          the way back to the series, where somebody chooses. No episode is
+          started in its place. */}
+      {launchMissing ? (
+        <div role="alert" className="border-destructive/40 mt-6 rounded-lg border px-4 py-3">
+          <p className="font-medium">
+            {t(launch?.kind === "next" ? "launchNextMissing" : "launchEpisodeMissing")}
+          </p>
+          <LaunchExit
+            kept={t("launchProgressKept")}
+            back={{ href: hrefFor(locale as Locale, seriesPath), label: t("launchBackToSeries") }}
+          />
+        </div>
       ) : null}
 
       {seasons.length === 0 ? (

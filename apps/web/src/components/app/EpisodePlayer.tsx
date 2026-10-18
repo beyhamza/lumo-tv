@@ -1,6 +1,7 @@
 "use client";
 
 import { FilmPlayer } from "@/components/app/FilmPlayer";
+import type { LaunchKind } from "@/lib/playback/continue-launch";
 import type { PlayerActions } from "@/lib/playback/sheet-action";
 
 /**
@@ -32,6 +33,7 @@ export function EpisodePlayer({
   audioCodec,
   sourceHref,
   continueHref,
+  launch,
 }: {
   episodeId: string;
   sourceId: string;
@@ -55,6 +57,8 @@ export function EpisodePlayer({
   sourceHref: string;
   /** Where "Continue" goes once the source is gone: the home page. */
   continueHref: string;
+  /** Opened from a Continue card: start at once (S12-05). See `FilmPlayer`. */
+  launch?: { kind: LaunchKind; fromMs: number; seriesHref?: string } | null;
 }) {
   return (
     <FilmPlayer
@@ -67,6 +71,7 @@ export function EpisodePlayer({
       audioCodec={audioCodec}
       sourceHref={sourceHref}
       continueHref={continueHref}
+      launch={launch}
     />
   );
 }

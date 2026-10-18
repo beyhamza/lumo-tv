@@ -7,6 +7,8 @@ import { WatchlistToggle, WatchlistUnconfirmed } from "@/components/app/Watchlis
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api, problemCode } from "@/lib/api/client";
+import { LaunchExit } from "@/components/app/LaunchExit";
+import { readLaunch, withoutLaunch } from "@/lib/playback/continue-launch";
 import { asClock } from "@/lib/playback/progress";
 import { playerActions, sheetChoice } from "@/lib/playback/sheet-action";
 import { openedFromSearch, searchReturnPath } from "@/lib/search/search";
@@ -101,16 +103,47 @@ export default async function FilmPage({
     loadMembership(session.accessToken, id, "VOD", filmId),
   ]);
 
+  // Opened from a Continue card (S12-05): the player starts at once, there.
+  const launch = readLaunch(query);
+  const home = hrefFor(locale as Locale, "/app");
+
   const failure = problemCode(film.error);
-  if (failure) {
+  if (failure || !film.data) {
+    // From a card, a film that did not load is a launch that failed (CW-25):
+    // the way back home, and Retry unless the film is gone.
+    const exit = launch ? (
+      <LaunchExit
+        kept={t("launchProgressKept")}
+        retry={
+          failure === "VOD_ITEM_NOT_FOUND"
+            ? undefined
+            : {
+                href: hrefFor(
+                  locale as Locale,
+                  currentView(`/app/sources/${id}/vod/${filmId}`, query),
+                ),
+                label: t("launchRetry"),
+              }
+        }
+        back={{ href: home, label: t("launchBack") }}
+      />
+    ) : null;
+    if (!failure) {
+      return (
+        <>
+          <Unavailable />
+          {exit}
+        </>
+      );
+    }
     return (
-      <p role="alert" className="text-destructive text-sm">
-        {tErrors(failure as never)}
-      </p>
+      <div>
+        <p role="alert" className="text-destructive text-sm">
+          {tErrors(failure as never)}
+        </p>
+        {exit}
+      </div>
     );
-  }
-  if (!film.data) {
-    return <Unavailable />;
   }
 
   const messages = await getMessages();
@@ -141,8 +174,10 @@ export default async function FilmPage({
         page: single(query.page),
       })}`;
 
-  // This sheet as it was opened, for the "My list" form to come back to.
-  const sheetView = currentView(`/app/sources/${id}/vod/${filmId}`, query);
+  // This sheet as it was opened, for the "My list" form to come back to — minus
+  // a card's launch: adding to the list must not start the film again from a
+  // position that is no longer the latest.
+  const sheetView = currentView(`/app/sources/${id}/vod/${filmId}`, withoutLaunch(query));
 
   return (
     <div className="max-w-3xl">
@@ -186,7 +221,8 @@ export default async function FilmPage({
               name={row.name}
               actions={actions}
               sourceHref={hrefFor(locale as Locale, `/app/sources/${row.source_id}`)}
-              continueHref={hrefFor(locale as Locale, "/app")}
+              continueHref={home}
+              launch={launch ? { kind: launch.kind, fromMs: launch.atMs } : null}
             />
           </NextIntlClientProvider>
         </div>

@@ -9,6 +9,7 @@ import type { EpgProgramme } from "@/lib/api/types";
 import { type DirectView, directViewHref } from "@/lib/direct/view-memory";
 import { epgNow } from "@/lib/epg/clock";
 import { clockTime } from "@/lib/epg/format";
+import { cardLinks } from "@/lib/home/continue-watching";
 import { HIDE_NOTICE_PARAM, hideNoticeOf } from "@/lib/home/hide-continue";
 import { loadHomeRails, type HomeRails } from "@/lib/home/load-home-rails";
 import { homeState, type RailStatus } from "@/lib/home/rail-status";
@@ -72,7 +73,8 @@ import { sourceCondition } from "@/lib/sources/source-condition";
  * <h2>No client component</h2>
  *
  * Everything is a link. Playing a channel is `?play=` on its source's channel
- * page; resuming is the URL the films and series rails already use. The players
+ * page; resuming is the film's or series' sheet with `?launch=…&at=…`, which
+ * starts its player at once (S12-05). The players
  * live on those pages, so this one ships no script of its own.
  */
 export default async function HomePage({ params, searchParams }: PageProps<"/[locale]/app">) {
@@ -293,14 +295,13 @@ async function onAirLines(
 /**
  * Cards, from the decisions made in `lib/home/continue-watching.ts`.
  *
- * The URLs are the ones the source's own rails use, on purpose:
+ * The main link **plays** (US-019, S12-05): the sheet holding the player, told
+ * to start at the card's position (`cardLinks`) — a film's page, or an
+ * episode's series page with `?season=…&play=…`. The secondary link is the same
+ * sheet with nothing playing, for a film as for a series: since the main link
+ * no longer stops at the sheet, the sheet needs a door of its own.
  *
- * - a film resumes on **its page**, where the player lives and offers "Resume at
- *   20:14" beside "Start over" (S5-11). That page is also its detail page, hence
- *   no secondary link;
- * - an episode resumes at `?season=…&play=…` on its series' page, which opens
- *   the player on that episode at its saved position; the secondary link is the
- *   same page without them — the series, its seasons, nothing playing.
+ * A gone card (CW-28) has no link at all: "Unavailable", and the removal.
  */
 function continueEntries(
   rails: HomeRails,
@@ -310,7 +311,19 @@ function continueEntries(
 ): ContinueRailEntry[] {
   return rails.continueWatching.map((card) => {
     const progress = { positionMs: card.positionMs, durationMs: card.durationMs };
-    const title = card.kind === "film" ? card.film.name : card.series.name;
+    const title =
+      card.kind === "film"
+        ? card.film.name
+        : card.kind === "episode"
+          ? card.series.name
+          : t("homeUnavailableTitle");
+    const caption =
+      card.kind === "film" || !card.episode
+        ? undefined
+        : t("seriesSeasonEpisode", {
+            season: card.episode.season_number,
+            episode: card.episode.episode_number,
+          });
     const hide = {
       sourceId,
       itemType: card.hide.itemType,
@@ -319,43 +332,32 @@ function continueEntries(
       label: t("homeRemoveOf", { title }),
     };
 
-    if (card.kind === "film") {
+    const links = cardLinks(card, sourceId);
+    if (card.kind === "gone" || !links) {
       return {
         key: card.key,
         title,
-        posterUrl: card.film.poster_url,
+        caption,
         ...progress,
-        resume: {
-          href: hrefFor(locale, `/app/sources/${sourceId}/vod/${card.film.id}`),
-          label: t("homeResume", { title }),
-        },
+        unavailable: t("homeUnavailableBody"),
         hide,
       };
     }
 
-    const seriesPath = `/app/sources/${sourceId}/series/${card.series.id}`;
-    const query = new URLSearchParams({
-      season: String(card.episode.season_number),
-      play: card.episode.id,
-    });
-
     return {
       key: card.key,
-      title: card.series.name,
-      caption: t("seriesSeasonEpisode", {
-        season: card.episode.season_number,
-        episode: card.episode.episode_number,
-      }),
-      posterUrl: card.series.poster_url,
+      title,
+      caption,
+      posterUrl: card.kind === "film" ? card.film.poster_url : card.series.poster_url,
       ...progress,
       resume: {
-        href: hrefFor(locale, `${seriesPath}?${query}`),
-        label: t("homeResume", { title: card.series.name }),
+        href: hrefFor(locale, links.play),
+        label: t("homeResume", { title }),
       },
       details: {
-        href: hrefFor(locale, seriesPath),
+        href: hrefFor(locale, links.details),
         text: t("homeDetails"),
-        label: t("homeDetailsOf", { title: card.series.name }),
+        label: t("homeDetailsOf", { title }),
       },
       hide,
     };
