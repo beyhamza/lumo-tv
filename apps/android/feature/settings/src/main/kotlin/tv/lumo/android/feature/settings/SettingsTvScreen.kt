@@ -1,6 +1,7 @@
 package tv.lumo.android.feature.settings
 
 import android.text.format.DateUtils
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -30,11 +31,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -107,7 +103,18 @@ fun SettingsTvScreen(
     val audioRow = remember { FocusRequester() }
     val subtitleRow = remember { FocusRequester() }
 
+    var panelFocused by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) { runCatching { menu.getValue(section).requestFocus() } }
+
+    // `BACK` inside a panel goes back to the menu entry that opened it, not to
+    // Home: the viewer went right, and the key that means "out" should undo
+    // that step before undoing the screen. Through the back dispatcher rather
+    // than a key listener: with predictive back (target SDK 36) the system
+    // hands BACK to the dispatcher, and a key listener never sees it.
+    BackHandler(enabled = panelFocused && chooser == null) {
+        runCatching { menu.getValue(section).requestFocus() }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Row(
@@ -127,7 +134,8 @@ fun SettingsTvScreen(
             ) {
                 Text(
                     text = stringResource(R.string.feature_settings_title),
-                    style = MaterialTheme.typography.displayMedium,
+                    style = MaterialTheme.typography.displaySmall,
+                    maxLines = 1,
                     color = LumoColors.OnDark,
                     modifier = Modifier.padding(bottom = LumoSpacing.md),
                 )
@@ -151,19 +159,7 @@ fun SettingsTvScreen(
                 modifier = Modifier
                     .weight(1f - MENU_SHARE)
                     .fillMaxHeight()
-                    // `BACK` inside a panel goes back to the menu entry that opened
-                    // it, not to Home: the viewer went right, and the key that means
-                    // "out" should undo that step before undoing the screen. Seen
-                    // here first, before Compose treats it as a focus search that
-                    // finds nothing and lets it fall through to the shell.
-                    .onPreviewKeyEvent { event ->
-                        val isBack = event.key == Key.Back || event.key == Key.Escape
-                        if (!isBack) return@onPreviewKeyEvent false
-                        if (event.type == KeyEventType.KeyUp) {
-                            runCatching { menu.getValue(section).requestFocus() }
-                        }
-                        true
-                    }
+                    .onFocusChanged { panelFocused = it.hasFocus }
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
             ) {
@@ -193,6 +189,7 @@ fun SettingsTvScreen(
                 chooser = null
                 runCatching { (if (audio) audioRow else subtitleRow).requestFocus() }
             }
+            BackHandler(onBack = close)
             LanguageSheet(
                 title = stringResource(
                     if (audio) R.string.feature_settings_audio_language else R.string.feature_settings_subtitle_language,
@@ -237,8 +234,10 @@ private fun MenuItem(
 
     Text(
         text = label,
-        style = MaterialTheme.typography.titleLarge,
-        maxLines = 1,
+        // Five entries whose names run to "Help and information": a size that
+        // fits them whole in a third of the width, on two lines at most.
+        style = MaterialTheme.typography.titleMedium,
+        maxLines = 2,
         overflow = TextOverflow.Ellipsis,
         color = when {
             selected -> LumoColors.Accent
@@ -565,7 +564,14 @@ private fun ApplicationPanel() {
         PanelRow(
             title = InterfaceLanguage.nativeName(language),
             trailing = if (selected) {
-                { TrailingValue(stringResource(R.string.feature_settings_language_current), active = true) }
+                {
+                    // A label, not a value: small enough that the language name keeps its line.
+                    Text(
+                        text = stringResource(R.string.feature_settings_language_current),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = LumoColors.Accent,
+                    )
+                }
             } else {
                 null
             },
