@@ -1,18 +1,29 @@
 import { getTranslations } from "next-intl/server";
-import type { Locale } from "@/i18n/routing";
+import { chooseInterfaceLanguage } from "@/actions/interface-language";
+import { Button } from "@/components/ui/button";
+import { routing, type Locale } from "@/i18n/routing";
 
 /**
- * "Application" (US-025, S8-06): the interface language, read-only.
+ * "Application" (US-025, S13-E08, S13-04): the interface language, French or
+ * English, for this browser.
  *
- * On the web the language is the URL's — `/fr` or `/en` — which is what the
- * value shows. There is no control: choosing a language, and whether the
- * choice is the account's or this browser's, is sprint 13 (US-025, Q6). One
- * sentence says the choice is coming; nothing pretends to take it.
+ * The current language is the URL's. The other one is a button in a plain
+ * form posting to `chooseInterfaceLanguage`, which remembers the choice for
+ * this browser and reopens this section in that language — no JavaScript, no
+ * write to the account (Q6). Each language is named in itself (`lang`), so
+ * somebody who cannot read the current interface still finds theirs.
+ *
+ * Distinct from the playback languages, which live in Playback and do not
+ * follow this choice (PS-01).
  */
 export async function ApplicationSection({ locale }: { locale: Locale }) {
   const t = await getTranslations("Settings");
-  const nav = await getTranslations("Nav");
-  const languages: Record<Locale, string> = { fr: nav("french"), en: nav("english") };
+  // Each language in its own words: "Français", "English".
+  const names: Record<Locale, string> = {
+    fr: (await getTranslations({ locale: "fr", namespace: "Nav" }))("french"),
+    en: (await getTranslations({ locale: "en", namespace: "Nav" }))("english"),
+  };
+  const others = routing.locales.filter((candidate) => candidate !== locale);
 
   return (
     <section aria-labelledby="settings-application-title">
@@ -24,8 +35,20 @@ export async function ApplicationSection({ locale }: { locale: Locale }) {
           {t("languageLabel")}
         </dt>
         <dd>
-          <span lang={locale}>{languages[locale]}</span>
-          <p className="text-muted-foreground mt-1 max-w-[60ch]">{t("languageNote")}</p>
+          <p>
+            <span lang={locale} className="font-medium">
+              {names[locale]}
+            </span>{" "}
+            <span className="text-muted-foreground">— {t("languageCurrent")}</span>
+          </p>
+          <form action={chooseInterfaceLanguage} className="mt-3 flex flex-wrap gap-2">
+            {others.map((other) => (
+              <Button key={other} type="submit" name="locale" value={other} variant="secondary">
+                <span lang={other}>{names[other]}</span>
+              </Button>
+            ))}
+          </form>
+          <p className="text-muted-foreground mt-2 max-w-[60ch]">{t("languageNote")}</p>
         </dd>
       </dl>
     </section>

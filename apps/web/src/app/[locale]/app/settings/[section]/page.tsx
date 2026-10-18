@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { AboutSection } from "@/components/app/settings/AboutSection";
 import { AccountSection } from "@/components/app/settings/AccountSection";
 import { ApplicationSection } from "@/components/app/settings/ApplicationSection";
+import { PlaybackSection } from "@/components/app/settings/PlaybackSection";
 import { SettingsNav } from "@/components/app/settings/SettingsNav";
 import type { Locale } from "@/i18n/routing";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -11,19 +12,20 @@ import { requireSession } from "@/lib/session/session";
 import { resolveSettingsSection } from "@/lib/settings/sections";
 
 /**
- * Settings (US-025, S8-06): the list on the left, one section on the right
- * (docs/design/0.2.0/settings.md).
+ * Settings (US-025, S8-06, S13-04): the list on the left, one section on the
+ * right (docs/design/0.2.0/settings.md) — five rubriques: Account and
+ * devices, My sources (a link), Playback, Application, Help and information.
  *
  * The section is the last path segment, narrowed by `resolveSettingsSection`;
- * anything else is a 404. The list and the section are both Server
- * Components, every link is an anchor and every destructive action is a form
- * posting to a Server Action: nothing here needs JavaScript, which is also
- * what keeps the access token on the server (`apps/web/AGENTS.md` §3–4).
+ * anything else is a 404. The list and the sections are Server Components,
+ * every link is an anchor and every action is a form posting to a Server
+ * Action — which is also what keeps the access token on the server
+ * (`apps/web/AGENTS.md` §3–4). The one exception is Playback's form: its
+ * preferences live in this browser's storage, which only a script can reach.
  *
  * What the sections show — and, as deliberately, what they do not — is
- * documented on each of them. In one line: no "Playback" (sprint 13), no
- * subscription (removed from 0.2.0), no language control (sprint 13), no
- * privacy or terms link (no page to link to).
+ * documented on each of them. In one line: no subscription (removed from
+ * 0.2.0), no privacy or terms link (no page to link to).
  */
 export async function generateMetadata({
   params,
@@ -73,6 +75,8 @@ export default async function SettingsPage({
               accessToken={session.accessToken}
               query={query}
             />
+          ) : section === "playback" ? (
+            <PlaybackSection accountId={session.userId} />
           ) : section === "application" ? (
             <ApplicationSection locale={locale} />
           ) : (

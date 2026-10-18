@@ -1,10 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { recordWatched } from "@/actions/playback";
 import { PlaybackRefusalMessage } from "@/components/app/PlaybackRefusalMessage";
 import { SourceDeleted } from "@/components/app/SourceDeleted";
+import { TrackMenus } from "@/components/app/player/TrackMenus";
+import { usePlaybackPrefs } from "@/components/app/player/use-playback-prefs";
+import { hlsTracks } from "@/lib/playback/tracks/hls";
+import { nativeTracks } from "@/lib/playback/tracks/native";
+import type { TrackController } from "@/lib/playback/tracks/types";
 import { useSourceGone } from "@/lib/playback/use-source-gone";
 
 /**
@@ -41,6 +46,14 @@ import { useSourceGone } from "@/lib/playback/use-source-gone";
  * the stream is torn down, the player is replaced by one sentence and one
  * "Continue" back to the home page, and nothing else is started (US-024). An
  * outage is not a deletion and changes nothing here.
+ *
+ * <h2>Tracks and quality (S13-01/02)</h2>
+ *
+ * Through hls.js the multivariant playlist is read, so audio renditions,
+ * WebVTT subtitles and variants are actually known and switchable
+ * (`lib/playback/tracks/hls.ts`). On the native path the browser chooses and
+ * reports what it reports (`tracks/native.ts`). A manual quality lasts as long
+ * as this channel: another channel is another hls.js instance, in Automatic.
  */
 export function ChannelPlayer({
   channelId,
@@ -49,6 +62,7 @@ export function ChannelPlayer({
   quality,
   sourceHref,
   continueHref,
+  accountId,
 }: {
   channelId: string;
   /** The source this channel belongs to, for the once-a-minute existence check. */
@@ -63,9 +77,13 @@ export function ChannelPlayer({
   sourceHref: string;
   /** Where "Continue" goes once the source is gone: the home page. */
   continueHref: string;
+  /** Whose playback preferences apply on this browser (S13-02). */
+  accountId: string;
 }) {
   const t = useTranslations("App");
   const videoRef = useRef<HTMLVideoElement>(null);
+  const prefsHandle = usePlaybackPrefs(accountId, useLocale());
+  const [tracks, setTracks] = useState<TrackController | null>(null);
   const [failure, setFailure] = useState<Failure | null>(null);
   const [maxConnections, setMaxConnections] = useState<number | null>(null);
   // A channel player is playing from the moment it is mounted: `?play=` is what
@@ -81,6 +99,7 @@ export function ChannelPlayer({
 
     let disposed = false;
     let hls: { destroy: () => void } | null = null;
+    let controller: TrackController | null = null;
 
     /**
      * How long a black rectangle is allowed to last before it is explained.
@@ -153,6 +172,8 @@ export function ChannelPlayer({
       if (!Hls.isSupported()) {
         if (video.canPlayType("application/vnd.apple.mpegurl")) {
           video.src = payload.url;
+          controller = nativeTracks(video, "browser-chooses");
+          setTracks(controller);
           return;
         }
         setFailure({ kind: "unsupported" });
@@ -180,6 +201,9 @@ export function ChannelPlayer({
         },
       });
       hls = instance;
+      // Before `loadSource`, so the manifest's tracks are heard as they are parsed.
+      controller = hlsTracks(instance, Hls.Events);
+      setTracks(controller);
 
       // hls.js reports a refused manifest as a NON-fatal error first and only
       // calls it fatal once its retries are spent. For a panel that will never
@@ -219,6 +243,7 @@ export function ChannelPlayer({
     return () => {
       disposed = true;
       clearTimeout(watchdog);
+      controller?.dispose();
       hls?.destroy();
     };
   }, [channelId, gone]);
@@ -258,6 +283,8 @@ export function ChannelPlayer({
         onError={() => setFailure((current) => current ?? { kind: "blocked" })}
         className="mt-3 aspect-video w-full rounded-lg bg-black"
       />
+
+      {!failure ? <TrackMenus controller={tracks} prefsHandle={prefsHandle} /> : null}
 
       {maxConnections ? (
         <p className="text-muted-foreground mt-2 text-sm">

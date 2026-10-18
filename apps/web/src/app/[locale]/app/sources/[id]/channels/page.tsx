@@ -696,7 +696,7 @@ export default async function ChannelsPage({
         <div className="min-w-0">
           {nowPlaying ? (
             <NextIntlClientProvider
-              messages={{ App: messages.App, Errors: messages.Errors }}
+              messages={{ App: messages.App, Errors: messages.Errors, Player: messages.Player }}
             >
               <ChannelPlayer
                 channelId={nowPlaying.id}
@@ -705,6 +705,7 @@ export default async function ChannelsPage({
                 quality={nowPlaying.quality}
                 sourceHref={hrefFor(locale as Locale, `/app/sources/${id}`)}
                 continueHref={hrefFor(locale as Locale, "/app")}
+                accountId={session.userId}
               />
             </NextIntlClientProvider>
           ) : null}

@@ -8,10 +8,11 @@ import { hrefFor } from "@/i18n/navigation";
 import type { Episode, Season, Series } from "@/lib/api/types";
 import { api, problemCode } from "@/lib/api/client";
 import { LaunchExit } from "@/components/app/LaunchExit";
-import { readLaunch, withoutLaunch } from "@/lib/playback/continue-launch";
+import { launchQuery, readLaunch, withoutLaunch } from "@/lib/playback/continue-launch";
 import { asClock, isFinished } from "@/lib/playback/progress";
 import {
   type Continuation,
+  nextAfter,
   orderedEpisodeIds,
   playerActions,
   seriesContinuation,
@@ -219,6 +220,46 @@ export default async function SeriesDetailPage({
   const savedHere = (progress.data?.items ?? []).filter((row) => everyEpisode.has(row.item_ref));
   const continuation = seriesContinuation(savedHere, order);
   const primary = seriesPrimary(continuation, savedHere.length > 0, order, everyEpisode);
+
+  // What follows the playing episode at its real end (S13-03): the S12 rule,
+  // from this episode — started and unfinished resumes at its position
+  // (CW-12), finished starts over (CW-21), none after it returns to the sheet
+  // (CW-15). Opened like a card's launch, so the player starts at once and a
+  // failure offers the way back to this series (CW-27).
+  const following = episode ? nextAfter(episode.id, order, savedHere) : null;
+  const nextEpisode = following ? everyEpisode.get(following.episodeId) : undefined;
+  const next =
+    following && nextEpisode
+      ? {
+          href: hrefFor(
+            locale as Locale,
+            `${seriesPath}${queryString({
+              categoryId: single(query.categoryId),
+              q: single(query.q),
+              page: single(query.page),
+              from: single(query.from),
+              season: String(nextEpisode.season_number),
+              play: nextEpisode.id,
+              ...launchQuery("next", following.startMs),
+            })}`,
+          ),
+          season: nextEpisode.season_number,
+          episode: nextEpisode.episode_number,
+          title: nextEpisode.name ?? null,
+          startMs: following.startMs,
+        }
+      : null;
+  // Back to the sheet as it was opened, without a playing episode.
+  const sheetWithoutPlayer = hrefFor(
+    locale as Locale,
+    `${seriesPath}${queryString({
+      categoryId: single(query.categoryId),
+      q: single(query.q),
+      page: single(query.page),
+      from: single(query.from),
+      season: episode ? String(episode.season_number) : undefined,
+    })}`,
+  );
   const primaryHref = (target: Episode) =>
     hrefFor(
       locale as Locale,
@@ -279,8 +320,16 @@ export default async function SeriesDetailPage({
       </div>
 
       {episode ? (
-        <NextIntlClientProvider messages={{ App: messages.App, Errors: messages.Errors }}>
+        <NextIntlClientProvider
+          messages={{ App: messages.App, Errors: messages.Errors, Player: messages.Player }}
+        >
           <EpisodePlayer
+            // A new episode is a new player: nothing of the previous one's
+            // state — tracks, manual quality, the end card — carries over.
+            key={episode.id}
+            accountId={session.userId}
+            next={next}
+            seriesHref={sheetWithoutPlayer}
             episodeId={episode.id}
             sourceId={id}
             name={episodeLabel(episode, t)}

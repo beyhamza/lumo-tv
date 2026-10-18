@@ -213,7 +213,7 @@ export default async function FilmPage({
           />
 
           <NextIntlClientProvider
-            messages={{ App: messages.App, Errors: messages.Errors }}
+            messages={{ App: messages.App, Errors: messages.Errors, Player: messages.Player }}
           >
             <FilmPlayer
               filmId={row.id}
@@ -222,6 +222,7 @@ export default async function FilmPage({
               actions={actions}
               sourceHref={hrefFor(locale as Locale, `/app/sources/${row.source_id}`)}
               continueHref={home}
+              accountId={session.userId}
               launch={launch ? { kind: launch.kind, fromMs: launch.atMs } : null}
             />
           </NextIntlClientProvider>

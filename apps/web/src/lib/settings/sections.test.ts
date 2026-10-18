@@ -2,10 +2,36 @@ import { describe, expect, it } from "vitest";
 import { currentEntryIndex } from "@/lib/navigation/current-entry";
 import {
   DEFAULT_SETTINGS_SECTION,
+  SETTINGS_ENTRIES,
   SETTINGS_SECTIONS,
   resolveSettingsSection,
   settingsSectionPath,
 } from "./sections";
+
+/**
+ * The five rubriques of US-025, in the validated order (S13-04): every
+ * section is listed once, and "My sources" is the one link out.
+ */
+describe("SETTINGS_ENTRIES", () => {
+  it("lists the five rubriques in US-025's order", () => {
+    expect(SETTINGS_ENTRIES.map((entry) => entry.key)).toEqual([
+      "account",
+      "sources",
+      "playback",
+      "application",
+      "about",
+    ]);
+  });
+
+  it("links every section to its own path, and My sources to /app/sources", () => {
+    for (const entry of SETTINGS_ENTRIES) {
+      expect(entry.href).toBe(entry.section ? settingsSectionPath(entry.section) : "/app/sources");
+    }
+    expect(
+      SETTINGS_ENTRIES.flatMap((entry) => (entry.section ? [entry.section] : [])).sort(),
+    ).toEqual([...SETTINGS_SECTIONS].sort());
+  });
+});
 
 /**
  * Which URL opens which section of Settings (US-025, S8-06).
@@ -30,10 +56,14 @@ describe("resolveSettingsSection", () => {
     // must not open silently on the account section.
     expect(resolveSettingsSection("subscription")).toBeNull();
     expect(resolveSettingsSection("billing")).toBeNull();
-    // "Playback" arrives in sprint 13 and is not a section until then.
-    expect(resolveSettingsSection("playback")).toBeNull();
     // Sources are a link in the list, not a section: their page is /app/sources.
     expect(resolveSettingsSection("sources")).toBeNull();
+    // Languages live in Application and Playback, not in a section of their own.
+    expect(resolveSettingsSection("language")).toBeNull();
+  });
+
+  it("opens Playback since sprint 13 (S13-04)", () => {
+    expect(resolveSettingsSection("playback")).toBe("playback");
   });
 
   it("does not fall for a near miss", () => {

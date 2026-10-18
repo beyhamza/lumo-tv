@@ -14,8 +14,11 @@
  *
  * "My sources" is in the list, but it is not a section: it opens `/app/sources`
  * (US-024), because a second screen managing the same sources would be a second
- * place for the same bugs. "Playback" is absent altogether: its settings do not
- * exist yet (sprint 13), and an empty section is a control that leads nowhere.
+ * place for the same bugs. "Playback" became a section in sprint 13 (S13-04),
+ * with the preferences it holds (US-023, S13-02/03).
+ *
+ * Five entries, in US-025's validated order: Account and devices, My sources,
+ * Playback, Application, Help and information (`SETTINGS_ENTRIES`).
  *
  * <h2>An unknown section is a 404, not the first section</h2>
  *
@@ -24,7 +27,7 @@
  * a URL that says "billing" — and a bookmark somebody keeps to a section that
  * was retired would keep opening, silently, on the wrong one.
  */
-export const SETTINGS_SECTIONS = ["account", "application", "about"] as const;
+export const SETTINGS_SECTIONS = ["account", "playback", "application", "about"] as const;
 
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
 
@@ -48,3 +51,19 @@ export function resolveSettingsSection(segment: unknown): SettingsSection | null
 export function settingsSectionPath(section: SettingsSection): string {
   return `/app/settings/${section}`;
 }
+
+/**
+ * The list on the left, in US-025's order: the four sections and "My sources",
+ * which links to `/app/sources` rather than being a section (`section: null`).
+ */
+export const SETTINGS_ENTRIES: readonly {
+  key: "account" | "sources" | "playback" | "application" | "about";
+  href: string;
+  section: SettingsSection | null;
+}[] = [
+  { key: "account", href: settingsSectionPath("account"), section: "account" },
+  { key: "sources", href: "/app/sources", section: null },
+  { key: "playback", href: settingsSectionPath("playback"), section: "playback" },
+  { key: "application", href: settingsSectionPath("application"), section: "application" },
+  { key: "about", href: settingsSectionPath("about"), section: "about" },
+];
