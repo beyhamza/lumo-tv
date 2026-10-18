@@ -58,6 +58,7 @@ fun NavGraphBuilder.episodePlayerMobileScreen(
     onOpenSources: () -> Unit,
     onSourceGone: () -> Unit,
     onBackToSeries: (seriesId: String) -> Unit,
+    onOpenPlaybackSettings: () -> Unit,
 ) {
     composable(
         route = EpisodePlayerDestination.route,
@@ -91,6 +92,7 @@ fun NavGraphBuilder.episodePlayerMobileScreen(
             onOpenSources = onOpenSources,
             onSourceGone = onSourceGone,
             onBackToSeries = onBackToSeries,
+            onOpenPlaybackSettings = onOpenPlaybackSettings,
         )
     }
 }

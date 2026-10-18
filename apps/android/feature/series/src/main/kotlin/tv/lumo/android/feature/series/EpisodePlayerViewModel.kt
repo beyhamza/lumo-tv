@@ -23,8 +23,13 @@ import tv.lumo.android.core.data.model.WatchReport
 import tv.lumo.android.core.data.repository.PlaybackRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.core.data.repository.SeriesRepository
+import tv.lumo.android.core.data.NetworkBlock
+import tv.lumo.android.core.data.PlaybackNetworkGuard
+import tv.lumo.android.core.data.repository.PlaybackPreferencesRepository
 import tv.lumo.android.core.player.AudioTrack
 import tv.lumo.android.core.player.BackgroundPlayback
+import tv.lumo.android.core.player.TrackChoices
+import tv.lumo.android.core.player.TrackOptions
 import tv.lumo.android.core.player.LumoPlayer
 import tv.lumo.android.core.player.PlaybackError
 import tv.lumo.android.core.player.PlaybackProgress
@@ -93,9 +98,19 @@ class EpisodePlayerViewModel @Inject constructor(
     private val series: SeriesRepository,
     private val progress: ProgressRepository,
     private val sourceGuard: PlaybackSourceGuard,
+    private val preferences: PlaybackPreferencesRepository,
+    private val networkGuard: PlaybackNetworkGuard,
     /** Exposed for the video surface, which needs the instance rather than its state. */
     val player: LumoPlayer,
 ) : ViewModel() {
+
+    /** The options menu's choices, and the preference each one leaves (S13-01/02). */
+    val trackChoices = TrackChoices(player, viewModelScope) { preferences.saveTrackPreferences(it) }
+    val trackOptions: StateFlow<TrackOptions> = player.trackOptions
+    val trackNotSaved: StateFlow<Boolean> = trackChoices.notSaved
+
+    /** Video held back by the Wi-Fi only setting (S13-05). Never set on a television. */
+    val networkBlock: StateFlow<NetworkBlock?> = networkGuard.block
 
     private val _failure = MutableStateFlow<EpisodePlayerFailure?>(null)
     private val _target = MutableStateFlow<EpisodePlaybackTarget?>(null)
@@ -163,6 +178,33 @@ class EpisodePlayerViewModel @Inject constructor(
         viewModelScope.launch {
             player.state.collect { if (it is PlaybackState.Ended) onEnded() }
         }
+        networkGuard.watch(viewModelScope, ::interruptForNetwork)
+    }
+
+    /**
+     * The network turned against video during playback (S13-05, PS-08/11).
+     *
+     * The position is saved and kept, any countdown stopped, and the stream
+     * **stopped** rather than paused: a paused player keeps buffering, over the
+     * network the viewer refused. Nothing restarts by itself; *Resume* checks the
+     * network again first.
+     */
+    private fun interruptForNetwork() {
+        resumeSeek?.cancel()
+        val snapshot = player.progress.value
+        if (snapshot.savable()) resumeFromMs = snapshot.positionMs
+        saveNow()
+        countdown?.cancel()
+        countdown = null
+        _playing.update { it.copy(upNext = null) }
+        player.stop()
+        _target.value = null
+    }
+
+    /** *Try again* or *Resume* on the network panel: the same launch, checked again. */
+    fun retryAfterNetwork() {
+        val episodeId = episodeId ?: return
+        open(episodeId, currentTitle, seriesBack = _playing.value.seriesBack)
     }
 
     /**
@@ -236,18 +278,18 @@ class EpisodePlayerViewModel @Inject constructor(
     fun keepWatching() {
         countdown?.cancel()
         countdown = null
-        _playing.update { it.copy(upNext = it.upNext?.copy(secondsLeft = null)) }
+        _playing.update { it.copy(upNext = it.upNext?.cancelled()) }
     }
 
     /** `OK` on the card, or the countdown reaching zero. */
     fun playNext() {
-        val next = _playing.value.upNext?.episode ?: return
+        val offer = _playing.value.upNext ?: return
+        val next = offer.episode
         countdown?.cancel()
         countdown = null
-        // From its beginning: the offer is for an episode nobody has seen. Carrying
-        // the previous one's position forward would drop somebody forty minutes into
-        // an episode that has not started.
-        resumeFromMs = 0L
+        // Where the next episode was left, when it was started and not finished
+        // (CW-12); its beginning otherwise. Never the previous episode's position.
+        resumeFromMs = offer.resumeAtMs ?: 0L
         // Advancing is the other way to reach a next episode: failing, it offers the
         // series too (CW-27).
         open(next.id, next.name, seriesBack = next.seriesId)
@@ -277,10 +319,19 @@ class EpisodePlayerViewModel @Inject constructor(
             // advancing to the next episode does not restart the sixty seconds.
             episode?.sourceId?.let(::watchSource)
 
+            // Every launch — opening, retrying, the next episode by itself — asks
+            // the network first (S13-05). Blocked, nothing is requested at all,
+            // not even the stream address.
+            if (!networkGuard.admit()) return@launch
+
             when (val result = playback.episodePlaybackTarget(episodeId)) {
                 is LumoResult.Success -> {
                     val target = result.value
                     _target.value = target
+                    // Read per launch: a choice made in the previous episode's menu
+                    // is already in it (S13-02).
+                    val languages = preferences.trackPreferences()
+                    trackChoices.opened(languages)
                     player.play(
                         PlaybackRequest(
                             streamUrl = target.streamUrl,
@@ -288,6 +339,7 @@ class EpisodePlayerViewModel @Inject constructor(
                             // The whole reason an episode gets a scrubber and a
                             // channel does not.
                             isLive = false,
+                            trackPreferences = languages,
                         ),
                     )
                     // After `play`, because the player has no timeline before it, and only
@@ -323,31 +375,35 @@ class EpisodePlayerViewModel @Inject constructor(
 
         viewModelScope.launch {
             val next = series.nextEpisode(episodeId)
+            // Where the next one was left, so the offer can say "Resume at…" and
+            // keep its word (CW-12). Asked only when there is a next one.
+            val nextProgress = next?.let { progress.ofEpisode(it.sourceId, it.id) }
+            val offer = upNextOffer(
+                next = next,
+                nextProgress = nextProgress,
+                autoplay = preferences.autoplayNext(),
+                countdownSeconds = autoAdvanceSeconds,
+            )
             // Stamped whether or not there is one: "asked and there is none" is
             // what tells the screen to leave, and it is a different state from
             // "not asked yet".
-            _playing.update { playing ->
-                playing.copy(
-                    upNext = next?.let { UpNext(it, autoAdvanceSeconds) },
-                    nextChecked = true,
-                )
-            }
-            if (next != null) startCountdown()
+            _playing.update { playing -> playing.copy(upNext = offer, nextChecked = true) }
+            if (offer?.secondsLeft != null) startCountdown()
         }
     }
 
     private fun startCountdown() {
         countdown?.cancel()
         countdown = viewModelScope.launch {
-            var remaining = autoAdvanceSeconds
-            while (remaining > 0) {
+            while (true) {
                 delay(ONE_SECOND_MILLIS)
-                remaining--
                 // A key press cancels this job, so reaching here means nobody has
                 // touched the remote. The guard is for the offer being cleared by
-                // an episode opening underneath.
-                val offer = _playing.value.upNext ?: return@launch
-                _playing.update { it.copy(upNext = offer.copy(secondsLeft = remaining)) }
+                // an episode opening underneath, or cancelled meanwhile.
+                val offer = _playing.value.upNext?.takeIf { it.secondsLeft != null } ?: return@launch
+                val ticked = offer.tick()
+                _playing.update { it.copy(upNext = ticked) }
+                if (ticked.due) break
             }
             playNext()
         }
@@ -462,6 +518,7 @@ class EpisodePlayerViewModel @Inject constructor(
     fun stop() {
         resumeSeek?.cancel()
         sourceGuard.stop()
+        networkGuard.idle()
         background.reset()
         // Before `player.stop()`, which resets the position to zero. Saving after it
         // would write a viewer back to the beginning of every episode they leave.
@@ -511,7 +568,12 @@ private data class Playing(
  *   still there and `OK` still works; what is gone is the part that would have
  *   started an episode without being asked.
  */
-data class UpNext(val episode: Episode, val secondsLeft: Int?)
+data class UpNext(
+    val episode: Episode,
+    val secondsLeft: Int?,
+    /** Where the next episode will start, when it was already started (CW-12). */
+    val resumeAtMs: Long? = null,
+)
 
 data class EpisodePlayerUiState(
     val playback: PlaybackState = PlaybackState.Idle,

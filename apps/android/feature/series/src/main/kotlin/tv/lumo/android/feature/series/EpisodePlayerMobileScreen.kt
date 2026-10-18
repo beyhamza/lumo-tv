@@ -42,13 +42,20 @@ import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.designsystem.component.LumoAcknowledgeDialog
 import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
-import tv.lumo.android.core.designsystem.component.LumoAudioTrackSheet
+import tv.lumo.android.core.data.NetworkBlock
+import tv.lumo.android.core.data.bodyRes
+import tv.lumo.android.core.data.titleRes
+import tv.lumo.android.core.designsystem.component.LumoNoticeAction
+import tv.lumo.android.core.designsystem.component.LumoPlayerNotice
 import tv.lumo.android.core.player.PlaybackProgress
 import tv.lumo.android.core.player.PlaybackState
+import tv.lumo.android.core.player.R as PlayerR
 import tv.lumo.android.core.player.SeekAvailability
+import tv.lumo.android.core.player.ui.AUDIO_AND_SUBTITLES
 import tv.lumo.android.core.player.ui.LumoVideoSurface
 import tv.lumo.android.core.player.ui.PlayerLifecycleEffect
-import tv.lumo.android.core.player.ui.asChoices
+import tv.lumo.android.core.player.ui.PlayerOptionGroup
+import tv.lumo.android.core.player.ui.PlayerOptionsSheet
 
 /**
  * Watching an episode on the phone (US-15).
@@ -86,11 +93,14 @@ fun EpisodePlayerMobileScreen(
     onSourceGone: () -> Unit,
     onBackToSeries: (seriesId: String) -> Unit,
     nextOfSeries: String?,
+    onOpenPlaybackSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: EpisodePlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val audioTracks by viewModel.audioTracks.collectAsStateWithLifecycle()
+    val trackOptions by viewModel.trackOptions.collectAsStateWithLifecycle()
+    val trackNotSaved by viewModel.trackNotSaved.collectAsStateWithLifecycle()
+    val networkBlock by viewModel.networkBlock.collectAsStateWithLifecycle()
     val sourceDeleted by viewModel.sourceDeleted.collectAsStateWithLifecycle()
 
     // Coming back to the foreground is one of the moments the product names for
@@ -102,7 +112,7 @@ fun EpisodePlayerMobileScreen(
     // Local to the screen. Which sheet is open is not something the player or the
     // view model has an opinion about, and a choice that survived a rotation would
     // reopen a list over a picture somebody had come back to watch.
-    var pickingAudio by remember { mutableStateOf(false) }
+    var picking by remember { mutableStateOf<Set<PlayerOptionGroup>?>(null) }
 
     // Keyed on the episode: opening a different one restarts, turning the phone
     // does not — the Activity declares `configChanges` and the player is a
@@ -118,8 +128,10 @@ fun EpisodePlayerMobileScreen(
     }
 
     // The last episode of the series has finished. Nothing is offered, so the
-    // screen leaves rather than holding a frozen last frame.
-    LaunchedEffect(state.finished) { if (state.finished) onBack() }
+    // screen leaves for the series sheet, without a countdown (CW-15).
+    LaunchedEffect(state.finished) {
+        if (state.finished) state.episode?.seriesId?.let(onBackToSeries) ?: onBack()
+    }
 
     ImmersiveWhileVisible()
 
@@ -159,6 +171,15 @@ fun EpisodePlayerMobileScreen(
                 onAcknowledge = { viewModel.onSourceDeletedAcknowledged(onSourceGone) },
             )
 
+            // Wi-Fi only, and this is not Wi-Fi (S13-05). Before a failure: no
+            // stream was even asked for.
+            networkBlock != null -> NetworkNotice(
+                block = networkBlock!!,
+                onRetry = viewModel::retryAfterNetwork,
+                onOpenSettings = onOpenPlaybackSettings,
+                onBack = onBack,
+            )
+
             state.failure != null -> Failure(
                 failure = state.failure!!,
                 title = title,
@@ -178,36 +199,28 @@ fun EpisodePlayerMobileScreen(
         // branch on purpose: an episode that stopped playing has a position worth
         // seeing, and hiding the bar with the error would take away the one thing
         // that says how far in the failure happened.
-        if (state.failure == null && !sourceDeleted) {
+        if (state.failure == null && !sourceDeleted && networkBlock == null) {
             Controls(
                 progress = state.progress,
                 playing = state.playback is PlaybackState.Playing,
                 onSeek = viewModel::seekTo,
                 onTogglePlay = viewModel::togglePlayPause,
-                // Only when there is a choice to make. One track is not a
-                // decision, and a control that opens a list of one wastes both a
-                // tap and the width it sits in.
-                onPickAudio = { pickingAudio = true }.takeIf { audioTracks.size > 1 },
+                // Once the stream has declared its tracks: before that, the menu
+                // could only guess (S13-01). One track or none is still opened —
+                // the menu then says there is no other one.
+                onPickTracks = { picking = AUDIO_AND_SUBTITLES }.takeIf { trackOptions.known },
+                onPickQuality = { picking = setOf(PlayerOptionGroup.QUALITY) }.takeIf { trackOptions.known },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
 
-        if (pickingAudio) {
-            // `resources` rather than `stringResource`: the fallback name is
-            // resolved inside a plain lambda, which is not a composable scope. The
-            // position is only known while the list is being walked, so it cannot
-            // be resolved before the call either.
-            val resources = LocalContext.current.resources
-            LumoAudioTrackSheet(
-                title = stringResource(R.string.feature_series_audio_track),
-                tracks = audioTracks.asChoices(
-                    unnamed = { position ->
-                        resources.getString(R.string.feature_series_audio_track_number, position)
-                    },
-                    unsupported = stringResource(R.string.feature_series_audio_unsupported),
-                ),
-                onSelect = viewModel::selectAudioTrack,
-                onDismiss = { pickingAudio = false },
+        picking?.let { groups ->
+            PlayerOptionsSheet(
+                options = trackOptions,
+                choices = viewModel.trackChoices,
+                notSaved = trackNotSaved,
+                groups = groups,
+                onDismiss = { picking = null },
             )
         }
 
@@ -272,6 +285,11 @@ private fun UpNextCard(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        Text(
+            text = upNextDetail(offer),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
         Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
             Button(onClick = onPlay) {
@@ -300,8 +318,9 @@ private fun Controls(
     playing: Boolean,
     onSeek: (Long) -> Unit,
     onTogglePlay: () -> Unit,
-    /** Null when the stream carries one track or none — there is nothing to choose. */
-    onPickAudio: (() -> Unit)?,
+    /** Null until the stream has declared its tracks. */
+    onPickTracks: (() -> Unit)?,
+    onPickQuality: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     // Nothing to draw for a live stream, and this screen never plays one — the
@@ -351,12 +370,14 @@ private fun Controls(
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(LumoSpacing.xs)) {
-                onPickAudio?.let { pick ->
+                onPickTracks?.let { pick ->
                     TextButton(onClick = pick) {
-                        Text(
-                            text = stringResource(R.string.feature_series_audio_track),
-                            color = Color.White,
-                        )
+                        Text(text = stringResource(PlayerR.string.core_player_audio_subtitles), color = Color.White)
+                    }
+                }
+                onPickQuality?.let { pick ->
+                    TextButton(onClick = pick) {
+                        Text(text = stringResource(PlayerR.string.core_player_quality), color = Color.White)
                     }
                 }
 
@@ -478,6 +499,36 @@ private fun Failure(
             }
         }
     }
+}
+
+/**
+ * Wi-Fi only, and the network in use is not Wi-Fi (S13-05, Q7).
+ *
+ * *Try again* and *Resume* both check the network again before anything is
+ * requested; the settings button only opens the settings — it changes nothing by
+ * itself.
+ */
+@Composable
+private fun NetworkNotice(
+    block: NetworkBlock,
+    onRetry: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val back = LumoNoticeAction(stringResource(DataR.string.core_data_network_back_action), onBack)
+    LumoPlayerNotice(
+        title = stringResource(block.titleRes),
+        message = block.bodyRes?.let { stringResource(it) },
+        actions = if (block.networkBack) {
+            listOf(LumoNoticeAction(stringResource(DataR.string.core_data_network_resume), onRetry), back)
+        } else {
+            listOf(
+                LumoNoticeAction(stringResource(DataR.string.core_data_network_retry), onRetry),
+                LumoNoticeAction(stringResource(DataR.string.core_data_network_settings), onOpenSettings),
+                back,
+            )
+        },
+    )
 }
 
 @Composable

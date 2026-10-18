@@ -59,7 +59,7 @@ import tv.lumo.android.core.player.PlaybackProgress
 import tv.lumo.android.core.player.SeekAvailability
 import tv.lumo.android.core.player.ui.LumoVideoSurface
 import tv.lumo.android.core.player.ui.PlayerLifecycleEffect
-import tv.lumo.android.core.player.ui.asChoices
+import tv.lumo.android.core.player.ui.TvPlayerOptionsSheet
 
 /**
  * Watching an episode on a television (US-15, S6-06).
@@ -113,7 +113,8 @@ fun EpisodePlayerTvScreen(
     viewModel: EpisodePlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val audioTracks by viewModel.audioTracks.collectAsStateWithLifecycle()
+    val trackOptions by viewModel.trackOptions.collectAsStateWithLifecycle()
+    val trackNotSaved by viewModel.trackNotSaved.collectAsStateWithLifecycle()
     val sourceDeleted by viewModel.sourceDeleted.collectAsStateWithLifecycle()
 
     // Coming back to the foreground is one of the moments the product names for
@@ -145,14 +146,19 @@ fun EpisodePlayerTvScreen(
     // The last episode of the series has finished and nothing is offered. The
     // screen leaves rather than holding a frozen last frame, which at three metres
     // is indistinguishable from a set that has stopped answering.
-    LaunchedEffect(state.finished) { if (state.finished) onBack() }
+    // Back to the series sheet, without a countdown (CW-15).
+    LaunchedEffect(state.finished) {
+        if (state.finished) state.episode?.seriesId?.let(onBackToSeries) ?: onBack()
+    }
 
     var overlay by remember { mutableStateOf(Overlay.None) }
 
     // A layer of its own rather than a third `Overlay` value: this one takes
     // focus and the bar never does, so the two cannot be the same kind of thing.
     var pickingAudio by remember { mutableStateOf(false) }
-    val canPickAudio = audioTracks.size > 1
+    // Once the stream has declared its tracks (S13-01). With one track or none
+    // the menu still opens and says there is no other one.
+    val canPickAudio = trackOptions.known
     var activityTick by remember { mutableIntStateOf(0) }
 
     // Keyed on the tick as well as on the overlay: every press restarts the five
@@ -290,16 +296,10 @@ fun EpisodePlayerTvScreen(
         }
 
         if (pickingAudio) {
-            val resources = LocalContext.current.resources
-            LumoTvAudioTrackSheet(
-                title = stringResource(R.string.feature_series_audio_track),
-                tracks = audioTracks.asChoices(
-                    unnamed = { position ->
-                        resources.getString(R.string.feature_series_audio_track_number, position)
-                    },
-                    unsupported = stringResource(R.string.feature_series_audio_unsupported),
-                ),
-                onSelect = viewModel::selectAudioTrack,
+            TvPlayerOptionsSheet(
+                options = trackOptions,
+                choices = viewModel.trackChoices,
+                notSaved = trackNotSaved,
                 onDismiss = {
                     pickingAudio = false
                     // The picture takes the keys back. Without this the remote
@@ -391,6 +391,12 @@ private fun UpNextCard(
                 color = if (focused) LumoColors.OnAccent else LumoColors.OnDark,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+            )
+
+            Text(
+                text = upNextDetail(offer),
+                style = MaterialTheme.typography.labelLarge,
+                color = if (focused) LumoColors.OnAccent else LumoColors.OnDarkMuted,
             )
         }
     }
