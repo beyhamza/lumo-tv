@@ -31,6 +31,7 @@ import tv.lumo.android.core.player.PlaybackProgress
 import tv.lumo.android.core.player.PlaybackRequest
 import tv.lumo.android.core.player.PlaybackState
 import tv.lumo.android.core.player.SeekAvailability
+import tv.lumo.android.core.player.seekWhenSeekable
 import tv.lumo.android.network.generated.model.ErrorCode
 
 /**
@@ -113,6 +114,7 @@ class EpisodePlayerViewModel @Inject constructor(
     private var autoAdvanceSeconds: Int = 0
     private var countdown: Job? = null
     private var saver: Job? = null
+    private var resumeSeek: Job? = null
     private var resumeFromMs: Long = 0L
 
     val state: StateFlow<EpisodePlayerUiState> =
@@ -252,6 +254,7 @@ class EpisodePlayerViewModel @Inject constructor(
     }
 
     private fun open(episodeId: String, title: String?, seriesBack: String? = null) {
+        resumeSeek?.cancel()
         // The episode being left keeps its own watched time and its last position
         // (the end, when advancing): taken now, before the next `play()` resets the
         // measure. Time is never carried from one episode to the next.
@@ -287,11 +290,12 @@ class EpisodePlayerViewModel @Inject constructor(
                             isLive = false,
                         ),
                     )
-                    // After `play`, because the player has no timeline before it.
-                    // Ignored by `LumoPlayer` until the stream turns out to be
-                    // seekable, which is the honest outcome: a server that will not
-                    // serve part of a file cannot resume one either.
-                    if (resumeFromMs > 0L) player.seekTo(resumeFromMs)
+                    // After `play`, because the player has no timeline before it, and only
+                    // once the stream says it can be moved through: asked while that is
+                    // still unknown, the seek used to be dropped and every resume started
+                    // from zero (S12-05). A server that will not serve part of a file
+                    // cannot resume one either, and is not asked to.
+                    resumeSeek = viewModelScope.launch { player.seekWhenSeekable(resumeFromMs) }
                     startSaving()
                 }
 
@@ -456,6 +460,7 @@ class EpisodePlayerViewModel @Inject constructor(
 
     /** Leaving the screen. The player survives; the stream and its URL do not. */
     fun stop() {
+        resumeSeek?.cancel()
         sourceGuard.stop()
         background.reset()
         // Before `player.stop()`, which resets the position to zero. Saving after it
