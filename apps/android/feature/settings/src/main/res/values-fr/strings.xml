@@ -24,4 +24,13 @@
 
     <string name="feature_settings_guides">Guides</string>
     <string name="feature_settings_version">Version</string>
+
+    <string name="feature_settings_section_playback">LECTURE</string>
+    <string name="feature_settings_autoplay_next">Épisode suivant automatique</string>
+    <string name="feature_settings_autoplay_next_note">Sur cet appareil. Désactivé : l\'épisode suivant est proposé sans décompte.</string>
+    <string name="feature_settings_mobile_data">Lecture sur données mobiles</string>
+    <string name="feature_settings_mobile_data_note">Désactivé : lecture uniquement en Wi-Fi. Le catalogue reste consultable.</string>
+    <string name="feature_settings_on">Activé</string>
+    <string name="feature_settings_off">Désactivé</string>
+    <string name="feature_settings_playback_not_saved">Ce réglage n\'a pas pu être enregistré sur cet appareil.</string>
 </resources>

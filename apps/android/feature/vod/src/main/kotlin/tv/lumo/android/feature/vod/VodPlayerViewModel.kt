@@ -20,7 +20,12 @@ import tv.lumo.android.core.data.model.VodPlaybackTarget
 import tv.lumo.android.core.data.model.WatchReport
 import tv.lumo.android.core.data.repository.PlaybackRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
+import tv.lumo.android.core.data.NetworkBlock
+import tv.lumo.android.core.data.PlaybackNetworkGuard
+import tv.lumo.android.core.data.repository.PlaybackPreferencesRepository
 import tv.lumo.android.core.player.AudioTrack
+import tv.lumo.android.core.player.TrackChoices
+import tv.lumo.android.core.player.TrackOptions
 import tv.lumo.android.core.player.BackgroundPlayback
 import tv.lumo.android.core.player.LumoPlayer
 import tv.lumo.android.core.player.PlaybackError
@@ -69,6 +74,8 @@ class VodPlayerViewModel @Inject constructor(
     private val playback: PlaybackRepository,
     private val progress: ProgressRepository,
     private val sourceGuard: PlaybackSourceGuard,
+    private val preferences: PlaybackPreferencesRepository,
+    private val networkGuard: PlaybackNetworkGuard,
     /** Exposed for the video surface, which needs the instance rather than its state. */
     val player: LumoPlayer,
 ) : ViewModel() {
@@ -80,6 +87,37 @@ class VodPlayerViewModel @Inject constructor(
     private var resumeFromMs: Long = 0L
     private var saver: Job? = null
     private var resumeSeek: Job? = null
+
+    /** The options menu's choices, and the preference each one leaves (S13-01/02). */
+    val trackChoices = TrackChoices(player, viewModelScope) { preferences.saveTrackPreferences(it) }
+    val trackOptions: StateFlow<TrackOptions> = player.trackOptions
+    val trackNotSaved: StateFlow<Boolean> = trackChoices.notSaved
+
+    /** Video held back by the Wi-Fi only setting (S13-05). Never set on a television. */
+    val networkBlock: StateFlow<NetworkBlock?> = networkGuard.block
+
+    init {
+        networkGuard.watch(viewModelScope, ::interruptForNetwork)
+    }
+
+    /**
+     * The network turned against video during playback (S13-05): position saved
+     * and kept, stream **stopped** — a paused player keeps buffering — and nothing
+     * restarted until *Resume*, which checks the network again.
+     */
+    private fun interruptForNetwork() {
+        resumeSeek?.cancel()
+        val snapshot = player.progress.value
+        if (snapshot.savable()) resumeFromMs = snapshot.positionMs
+        saveNow()
+        saver?.cancel()
+        saver = null
+        player.stop()
+        _target.value = null
+    }
+
+    /** *Try again* or *Resume* on the network panel. */
+    fun retryAfterNetwork() = retry()
 
     val state: StateFlow<VodPlayerUiState> =
         combine(
@@ -214,10 +252,15 @@ class VodPlayerViewModel @Inject constructor(
         currentTitle = title
 
         viewModelScope.launch {
+            // Wi-Fi only (S13-05): blocked, not even the stream address is asked for.
+            if (!networkGuard.admit()) return@launch
+
             when (val result = playback.vodPlaybackTarget(filmId)) {
                 is LumoResult.Success -> {
                     val target = result.value
                     _target.value = target
+                    val languages = preferences.trackPreferences()
+                    trackChoices.opened(languages)
                     player.play(
                         PlaybackRequest(
                             streamUrl = target.streamUrl,
@@ -225,6 +268,7 @@ class VodPlayerViewModel @Inject constructor(
                             // The whole reason a film gets a scrubber and a
                             // channel does not.
                             isLive = false,
+                            trackPreferences = languages,
                         ),
                     )
                     // After `play`, because the player has no timeline before it, and only
@@ -251,6 +295,7 @@ class VodPlayerViewModel @Inject constructor(
     fun stop() {
         resumeSeek?.cancel()
         sourceGuard.stop()
+        networkGuard.idle()
         background.reset()
         // Nothing to save once the source is gone: its progress went with it.
         if (!sourceGuard.deleted.value) saveNow()

@@ -25,7 +25,12 @@ import tv.lumo.android.core.data.model.PlaybackTarget
 import tv.lumo.android.core.data.repository.CatalogueRepository
 import tv.lumo.android.core.data.repository.EpgRepository
 import tv.lumo.android.core.data.repository.PlaybackRepository
+import tv.lumo.android.core.data.NetworkBlock
+import tv.lumo.android.core.data.PlaybackNetworkGuard
+import tv.lumo.android.core.data.repository.PlaybackPreferencesRepository
 import tv.lumo.android.core.player.AudioTrack
+import tv.lumo.android.core.player.TrackChoices
+import tv.lumo.android.core.player.TrackOptions
 import tv.lumo.android.core.player.BackgroundPlayback
 import tv.lumo.android.core.player.LumoPlayer
 import tv.lumo.android.core.player.PlaybackError
@@ -75,9 +80,31 @@ class PlayerViewModel @Inject constructor(
     private val sourceGuard: PlaybackSourceGuard,
     epg: EpgRepository,
     clock: Clock,
+    private val preferences: PlaybackPreferencesRepository,
+    private val networkGuard: PlaybackNetworkGuard,
     /** Exposed for the video surface, which needs the instance rather than its state. */
     val player: LumoPlayer,
 ) : ViewModel() {
+
+    /** The options menu's choices, and the preference each one leaves (S13-01/02). */
+    val trackChoices = TrackChoices(player, viewModelScope) { preferences.saveTrackPreferences(it) }
+    val trackOptions: StateFlow<TrackOptions> = player.trackOptions
+    val trackNotSaved: StateFlow<Boolean> = trackChoices.notSaved
+
+    /** Video held back by the Wi-Fi only setting (S13-05). Never set on a television. */
+    val networkBlock: StateFlow<NetworkBlock?> = networkGuard.block
+
+    init {
+        // A channel has no position to keep: stopped, and *Resume* rejoins the
+        // live edge of the current programme (Q7).
+        networkGuard.watch(viewModelScope) {
+            player.stop()
+            _target.value = null
+        }
+    }
+
+    /** *Try again* or *Resume* on the network panel. */
+    fun retryAfterNetwork() = retry()
 
     private val guide = OnAirTracker(epg, clock, viewModelScope)
 
@@ -227,15 +254,21 @@ class PlayerViewModel @Inject constructor(
         background.reset()
 
         viewModelScope.launch {
+            // Wi-Fi only (S13-05): a channel is a video launch like any other.
+            if (!networkGuard.admit()) return@launch
+
             when (val result = playback.playbackTarget(channelId)) {
                 is LumoResult.Success -> {
                     val target = result.value
                     _target.value = target
+                    val languages = preferences.trackPreferences()
+                    trackChoices.opened(languages)
                     player.play(
                         PlaybackRequest(
                             streamUrl = target.streamUrl,
                             title = null,
                             isLive = true,
+                            trackPreferences = languages,
                         ),
                     )
                     recordWatched(channelId)
@@ -265,6 +298,7 @@ class PlayerViewModel @Inject constructor(
     /** Leaving the screen. The player survives; the stream and its URL do not. */
     fun stop() {
         sourceGuard.stop()
+        networkGuard.idle()
         background.reset()
         player.stop()
         guide.clear()

@@ -74,7 +74,8 @@
     <string name="feature_series_audio_track">Audio track</string>
     <string name="feature_series_audio_track_number">Track %1$d</string>
     <string name="feature_series_audio_unsupported">This device cannot decode this track</string>
-    <string name="feature_series_audio_track_hint">Press UP to change the audio track.</string>
+    <string name="feature_series_audio_track_hint">Press UP for audio, subtitles and quality.</string>
+    <string name="feature_series_up_next_resume_at">Resumes at %1$s</string>
 
     <!--
       S12-03: the series sheet's main action, on the episode to continue. %1$s is

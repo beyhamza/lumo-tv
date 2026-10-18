@@ -35,8 +35,17 @@ import java.util.Locale
  * than dropped. `fre`, `qaa`, or a typo tell somebody more than nothing does,
  * and inventing a language for them would be worse than either.
  */
-fun AudioTrack.spokenName(locale: Locale = Locale.getDefault()): String? {
-    val code = language?.trim()?.takeIf { it.isNotEmpty() }
+fun AudioTrack.spokenName(locale: Locale = Locale.getDefault()): String? =
+    spokenName(language, label, locale)
+
+/** The same naming for a subtitle track (S13-01): its language, else its label. */
+fun SubtitleTrack.spokenName(locale: Locale = Locale.getDefault()): String? =
+    spokenName(language, label, locale)
+
+private fun spokenName(language: String?, label: String?, locale: Locale): String? {
+    // `und` and its kin say "no language": the track is numbered rather than
+    // called "und" (PS-06). A private-use code such as `qaa` still says something.
+    val code = language?.trim()?.takeIf { it.isNotEmpty() && it.lowercase(Locale.ROOT) !in UNDETERMINED }
     if (code != null) {
         val display = Locale.forLanguageTag(code.replace('_', '-'))
             .getDisplayLanguage(locale)
@@ -87,3 +96,5 @@ fun AudioTrack.channelLayout(): String? = when (channelCount) {
     8 -> "7.1"
     else -> null
 }
+
+private val UNDETERMINED = setOf("und", "mul", "zxx", "mis")

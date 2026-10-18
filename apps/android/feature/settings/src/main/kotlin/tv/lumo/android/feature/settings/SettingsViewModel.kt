@@ -17,6 +17,8 @@ import kotlinx.coroutines.launch
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.repository.AccountRepository
+import tv.lumo.android.core.data.repository.PlaybackPreferencesRepository
+import tv.lumo.android.core.data.repository.PlaybackSettings
 import tv.lumo.android.core.data.repository.SourceRepository
 import tv.lumo.android.core.data.valueOrNull
 import tv.lumo.android.network.generated.model.Device
@@ -71,6 +73,7 @@ import tv.lumo.android.network.generated.model.Source
 class SettingsViewModel @Inject constructor(
     private val account: AccountRepository,
     private val sources: SourceRepository,
+    private val playbackPreferences: PlaybackPreferencesRepository,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -98,6 +101,9 @@ class SettingsViewModel @Inject constructor(
                     _state.update { it.signedOut() }
                 }
             }
+        }
+        viewModelScope.launch {
+            playbackPreferences.settings.collect { playback -> _state.update { it.copy(playback = playback) } }
         }
     }
 
@@ -135,6 +141,21 @@ class SettingsViewModel @Inject constructor(
 
     /** Closes whichever confirmation is open. Refused while a call is on the wire. */
     fun dismissConfirmation() = _state.update { it.dismissConfirmation() }
+
+    // ---- playback (S13-03/05) ----------------------------------------------
+
+    /** "Next episode automatically". Per account on this device. */
+    fun setAutoplayNext(enabled: Boolean) = writePlayback { playbackPreferences.setAutoplayNext(enabled) }
+
+    /** "Playback on mobile data", Android mobile. Off: video on Wi-Fi only. */
+    fun setMobileDataAllowed(allowed: Boolean) = writePlayback { playbackPreferences.setMobileDataAllowed(allowed) }
+
+    private fun writePlayback(write: suspend () -> Boolean) {
+        viewModelScope.launch {
+            val written = write()
+            _state.update { it.copy(playbackNotSaved = !written) }
+        }
+    }
 
     /**
      * `DELETE /me/devices/{id}` for the device the confirmation names.
@@ -275,6 +296,11 @@ data class SettingsUiState(
     val appVersion: String? = null,
 
     val confirmation: SettingsConfirmation? = null,
+
+    /** Next episode automatically, playback on mobile data (S13-03/05). Local to this device. */
+    val playback: PlaybackSettings = PlaybackSettings(),
+    /** The last playback switch could not be written: it is not announced as saved. */
+    val playbackNotSaved: Boolean = false,
 ) {
 
     /** The letter in the account disc: the address's first character, or nothing. */
@@ -338,6 +364,8 @@ data class SettingsUiState(
     fun signedOut(): SettingsUiState = SettingsUiState(
         activationUrl = activationUrl,
         appVersion = appVersion,
+        // Device settings, not the account's: re-read by their own flow anyway.
+        playback = playback,
     )
 }
 

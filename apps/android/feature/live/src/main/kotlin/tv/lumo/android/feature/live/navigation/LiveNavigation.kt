@@ -50,6 +50,7 @@ fun NavGraphBuilder.livePlayerMobileScreen(
     onBack: () -> Unit,
     onOpenSources: () -> Unit,
     onSourceGone: () -> Unit,
+    onOpenPlaybackSettings: () -> Unit,
 ) {
     composable(
         route = PlayerDestination.route,
@@ -68,6 +69,7 @@ fun NavGraphBuilder.livePlayerMobileScreen(
             onBack = onBack,
             onOpenSources = onOpenSources,
             onSourceGone = onSourceGone,
+            onOpenPlaybackSettings = onOpenPlaybackSettings,
         )
     }
 }

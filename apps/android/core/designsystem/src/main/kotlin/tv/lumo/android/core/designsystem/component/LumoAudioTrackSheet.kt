@@ -130,7 +130,7 @@ fun LumoAudioTrackSheet(
 }
 
 @Composable
-private fun TrackRow(
+internal fun TrackRow(
     track: LumoAudioTrackChoice,
     onSelect: () -> Unit,
 ) {

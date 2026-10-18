@@ -192,6 +192,23 @@ class ProgressRepository internal constructor(
         }.valueOrNull()?.items?.firstOrNull()?.asWatchProgress()
 
     /**
+     * The saved position of one episode, or null — the next episode's, when the
+     * offer at the end of the previous one is made (CW-12, S13-03).
+     *
+     * Null on a failure too: the offer then starts the episode from its beginning,
+     * which is what it did before this existed, rather than not offering it.
+     */
+    suspend fun ofEpisode(sourceId: String, episodeId: String): EpisodeProgress? =
+        calls.call {
+            userdata.listProgress(
+                sourceId = UUID.fromString(sourceId),
+                itemType = ProgressItemType.EPISODE,
+                itemRef = episodeId,
+                size = 1,
+            )
+        }.valueOrNull()?.items?.firstOrNull()?.asEpisodeProgress()
+
+    /**
      * What to put in a "continue watching" rail: started, and not finished.
      *
      * The server returns them most recently updated first — *"which is also the

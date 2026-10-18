@@ -162,7 +162,10 @@ fun SettingsTvScreen(
                     onRetryDevices = viewModel::reloadDevices,
                     onSignOut = viewModel::askSignOut,
                 )
-                SettingsSection.Application -> ApplicationPanel()
+                SettingsSection.Application -> {
+                    PlaybackPanel(state, onToggleAutoplay = { viewModel.setAutoplayNext(!state.playback.autoplayNext) })
+                    ApplicationPanel()
+                }
                 SettingsSection.About -> AboutPanel(state)
             }
         }
@@ -398,6 +401,33 @@ private fun relativeTime(epochMillis: Long): String =
  * later. No stop: there is nothing to press, and `RIGHT` from the menu stays on
  * the menu — which is what a panel of facts should do.
  */
+/**
+ * The one playback switch a television has (S13-03): the next episode on its own.
+ * No mobile-data switch — a television is never gated (S13-05). The full Playback
+ * section is S13-04.
+ */
+@Composable
+private fun PlaybackPanel(state: SettingsUiState, onToggleAutoplay: () -> Unit) {
+    PanelRow(
+        title = stringResource(R.string.feature_settings_autoplay_next),
+        subtitle = if (state.playbackNotSaved) {
+            stringResource(R.string.feature_settings_playback_not_saved)
+        } else {
+            stringResource(R.string.feature_settings_autoplay_next_note)
+        },
+        trailing = {
+            Text(
+                text = stringResource(
+                    if (state.playback.autoplayNext) R.string.feature_settings_on else R.string.feature_settings_off,
+                ),
+                style = MaterialTheme.typography.titleLarge,
+                color = if (state.playback.autoplayNext) LumoColors.Accent else LumoColors.OnDarkMuted,
+            )
+        },
+        onClick = onToggleAutoplay,
+    )
+}
+
 @Composable
 private fun ApplicationPanel() {
     PanelRow(

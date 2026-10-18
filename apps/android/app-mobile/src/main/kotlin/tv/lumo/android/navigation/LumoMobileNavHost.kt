@@ -191,11 +191,15 @@ fun LumoMobileNavHost(
         // *Continue* after the source being played was deleted elsewhere: every
         // screen of that source goes, not only the player (BUG-S11-06-02).
         val leaveDeletedSource = { navController.leaveScreensOfDeletedSource() }
+        // "Playback settings" from the Wi-Fi only notice (S13-05): pushed over the
+        // player, so BACK returns to it — paused, waiting for *Try again*.
+        val openPlaybackSettings = { navController.navigate(SettingsDestination.route) }
 
         livePlayerMobileScreen(
             onBack = { navController.popBackStack() },
             onOpenSources = leavePlayerForSources,
             onSourceGone = leaveDeletedSource,
+            onOpenPlaybackSettings = openPlaybackSettings,
         )
         // Library: two sections, built as Explore is (US-022). The favourites play
         // through the same player, and the wire is held here rather than in either
@@ -232,6 +236,7 @@ fun LumoMobileNavHost(
             onBack = { navController.popBackStack() },
             onOpenSources = leavePlayerForSources,
             onSourceGone = leaveDeletedSource,
+            onOpenPlaybackSettings = openPlaybackSettings,
         )
         seriesDetailMobileScreen(
             onPlay = playEpisode,
@@ -250,6 +255,7 @@ fun LumoMobileNavHost(
                 navController.popBackStack()
                 if (!fromThatSeries) navController.navigate(SeriesDetailDestination.routeFor(seriesId))
             },
+            onOpenPlaybackSettings = openPlaybackSettings,
         )
         searchMobileScreen(
             onPlayChannel = playChannel,
