@@ -98,6 +98,25 @@ fun seriesPickOf(rows: List<EpisodeProgress>, order: List<String>): SeriesPick? 
 }
 
 /**
+ * The row a series' card names when it is **unavailable**, or null (S12-05, CW-28).
+ *
+ * The card follows the most recent row, as [seriesPickOf] does: when that episode
+ * is gone — a successful lookup did not answer it — the card says so rather than
+ * falling back on an older episode, which would be resuming something nobody chose
+ * (CW-27's "never silently another episode"). The same gates as the live card:
+ * hidden, or never earned, means no card at all.
+ *
+ * @param rows the series' saved rows, most recent first.
+ * @param gone episode ids a successful lookup left out.
+ */
+fun seriesGoneRow(rows: List<EpisodeProgress>, gone: Set<String>): EpisodeProgress? {
+    val latest = rows.firstOrNull() ?: return null
+    if (latest.hidden || latest.episodeId !in gone) return null
+    val earned = rows.any { it.inContinue || (it.finished && !it.hidden) }
+    return latest.takeIf { earned }
+}
+
+/**
  * The main action of a series sheet: which episode, and which button (S12-03).
  *
  * The rail's rule ([seriesPickOf]) without its gate — a sheet always offers

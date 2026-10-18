@@ -42,5 +42,11 @@
     <string name="feature_home_remove_continue">Retirer de Continuer</string>
     <string name="feature_home_remove_continue_failed">Le retrait n\'a pas abouti : la carte est conservée. Réessayez plus tard.</string>
     <string name="feature_home_cancel">Annuler</string>
+    <string name="feature_home_continue_unavailable_title">Contenu indisponible</string>
+    <string name="feature_home_continue_unavailable_subtitle">Plus disponible</string>
+    <string name="feature_home_continue_gone_message">Ce contenu n\'est plus dans le catalogue de votre source. Sa progression est conservée.</string>
+    <string name="feature_home_continue_gone_films">Retour aux films</string>
+    <string name="feature_home_continue_gone_series">Retour aux séries</string>
+    <string name="feature_home_close">Fermer</string>
     <string name="feature_home_card_options">Options de %1$s</string>
 </resources>

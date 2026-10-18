@@ -11,6 +11,12 @@ import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.data.model.WatchProgress
 import tv.lumo.android.core.data.model.resumableFilms
 import tv.lumo.android.core.data.model.seriesPickOf
+import tv.lumo.android.core.data.model.seriesGoneRow
+import tv.lumo.android.core.data.model.unavailableFilms
+import tv.lumo.android.core.data.model.continueWatchingOf
+import tv.lumo.android.core.data.model.ContinueItem
+import tv.lumo.android.core.data.model.ResumableFilm
+import tv.lumo.android.core.data.model.UnavailableKind
 import tv.lumo.android.core.data.model.seriesSheetPlayOf
 import tv.lumo.android.core.data.model.sheetPlayOf
 
@@ -177,6 +183,68 @@ class ContinueRulesTest {
         val (episode, play) = seriesSheetPlayOf(seasons, progress)!!
         assertThat(episode.id).isEqualTo("e1")
         assertThat(play.primary).isEqualTo(PrimaryPlay.WatchAgain)
+    }
+
+    // ---- content gone (S12-05, CW-28) ------------------------------------------
+
+    @Test
+    fun `CW-28 a gone film in the rail is an unavailable card with its last known title`() {
+        val rows = listOf(film("f1", inContinue = true), film("f2", inContinue = true))
+
+        val cards = unavailableFilms(rows, gone = mapOf("f2" to "Film f2"))
+
+        val card = cards.single()
+        assertThat(card.key).isEqualTo("film:f2")
+        assertThat(card.title).isEqualTo("Film f2")
+        assertThat(card.kind).isEqualTo(UnavailableKind.FILM)
+        assertThat(card.ref).isEqualTo("f2")
+    }
+
+    @Test
+    fun `CW-28 a gone film nobody had a card for gets none - hidden or not eligible`() {
+        val rows = listOf(film("f1", inContinue = false, hidden = true), film("f2", inContinue = false))
+
+        assertThat(unavailableFilms(rows, gone = mapOf("f1" to null, "f2" to null))).isEmpty()
+    }
+
+    @Test
+    fun `CW-28 gone cards take their place in the rail by recency`() {
+        val live = ResumableFilm(vod("f1"), film("f1", inContinue = true).copy(updatedAtMillis = 10))
+        val gone = ContinueItem.Unavailable("film:f2", SOURCE, 20, null, UnavailableKind.FILM, "f2")
+
+        val rail = continueWatchingOf(listOf(live), emptyList(), SOURCE, unavailable = listOf(gone))
+
+        assertThat(rail.map { it.key }).containsExactly("film:f2", "film:f1").inOrder()
+    }
+
+    @Test
+    fun `CW-28 a series whose latest episode is gone names that row, never an older episode`() {
+        val rows = listOf(ep("e2", 300_000, inContinue = true), ep("e1", FINISHED, inContinue = true))
+
+        assertThat(seriesGoneRow(rows, gone = setOf("e2"))?.episodeId).isEqualTo("e2")
+        // An older episode gone does not make the series unavailable.
+        assertThat(seriesGoneRow(rows, gone = setOf("e1"))).isNull()
+    }
+
+    @Test
+    fun `CW-28 a hidden or never earned series stays without a card when gone`() {
+        assertThat(seriesGoneRow(listOf(ep("e1", 300_000, inContinue = false, hidden = true)), setOf("e1"))).isNull()
+        assertThat(seriesGoneRow(listOf(ep("e1", 10_000, inContinue = false)), setOf("e1"))).isNull()
+    }
+
+    @Test
+    fun `CW-27 a card offering the next episode says so, a resume does not`() {
+        val series = tv.lumo.android.core.data.model.Series(
+            id = "series", sourceId = SOURCE, categoryId = null, name = "Series", posterUrl = null,
+            year = null, episodeRunTime = null, rating = null, plot = null, isAdult = false,
+        )
+        val next = tv.lumo.android.core.data.model.ResumableSeries(
+            series, episode("e2", 2), positionMs = 0, rowEpisodeId = "e1",
+        )
+        val resume = tv.lumo.android.core.data.model.ResumableSeries(series, episode("e2", 2), positionMs = 300_000)
+
+        assertThat(next.offersNext).isTrue()
+        assertThat(resume.offersNext).isFalse()
     }
 
     // ---- fixtures ---------------------------------------------------------------

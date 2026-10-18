@@ -28,6 +28,7 @@ import tv.lumo.android.core.player.PlaybackProgress
 import tv.lumo.android.core.player.PlaybackRequest
 import tv.lumo.android.core.player.PlaybackState
 import tv.lumo.android.core.player.SeekAvailability
+import tv.lumo.android.core.player.seekWhenSeekable
 import tv.lumo.android.network.generated.model.ErrorCode
 
 /**
@@ -78,6 +79,7 @@ class VodPlayerViewModel @Inject constructor(
     private var sourceId: String? = null
     private var resumeFromMs: Long = 0L
     private var saver: Job? = null
+    private var resumeSeek: Job? = null
 
     val state: StateFlow<VodPlayerUiState> =
         combine(
@@ -206,6 +208,7 @@ class VodPlayerViewModel @Inject constructor(
     private var currentTitle: String? = null
 
     private fun open(filmId: String, title: String?) {
+        resumeSeek?.cancel()
         _failure.value = null
         background.reset()
         currentTitle = title
@@ -224,11 +227,12 @@ class VodPlayerViewModel @Inject constructor(
                             isLive = false,
                         ),
                     )
-                    // After `play`, because the player has no timeline before it.
-                    // Ignored by `LumoPlayer` until the stream turns out to be
-                    // seekable, which is the honest outcome: a server that will
-                    // not serve part of a file cannot resume one either.
-                    if (resumeFromMs > 0L) player.seekTo(resumeFromMs)
+                    // After `play`, because the player has no timeline before it, and only
+                    // once the stream says it can be moved through: asked while that is
+                    // still unknown, the seek used to be dropped and every resume started
+                    // from zero (S12-05). A server that will not serve part of a file
+                    // cannot resume one either, and is not asked to.
+                    resumeSeek = viewModelScope.launch { player.seekWhenSeekable(resumeFromMs) }
                     startSaving()
                 }
 
@@ -245,6 +249,7 @@ class VodPlayerViewModel @Inject constructor(
      * the beginning of every film they leave.
      */
     fun stop() {
+        resumeSeek?.cancel()
         sourceGuard.stop()
         background.reset()
         // Nothing to save once the source is gone: its progress went with it.

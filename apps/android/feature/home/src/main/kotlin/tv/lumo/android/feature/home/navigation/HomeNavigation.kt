@@ -36,6 +36,11 @@ import tv.lumo.android.feature.home.HomeTvScreen
 data class HomeActions(
     val onResumeFilm: (filmId: String, sourceId: String, title: String, atMs: Long) -> Unit,
     val onResumeEpisode: (episodeId: String, title: String?, atMs: Long) -> Unit,
+    /**
+     * A series card offering the episode **after** the last one watched (CW-27): the
+     * player is told the series, so that a failure offers "Back to the series".
+     */
+    val onPlayNextEpisode: (episodeId: String, title: String?, atMs: Long, seriesId: String) -> Unit,
     val onOpenFilm: (filmId: String) -> Unit,
     val onOpenSeries: (seriesId: String) -> Unit,
     val onPlayChannel: (channelId: String, name: String?) -> Unit,

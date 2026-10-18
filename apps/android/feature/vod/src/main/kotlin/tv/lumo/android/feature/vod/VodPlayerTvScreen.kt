@@ -225,6 +225,7 @@ fun VodPlayerTvScreen(
                 onRetry = viewModel::retry,
                 onOpenSources = onOpenSources,
                 retryFocus = retry,
+                onBack = onBack,
             )
 
             overlay != Overlay.None -> OverlayBar(
@@ -393,8 +394,12 @@ private fun TvFailure(
     onRetry: () -> Unit,
     onOpenSources: () -> Unit,
     retryFocus: FocusRequester,
+    onBack: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
+    // The focus goes to the first button there is: Back is the only one when
+    // neither a retry nor "My sources" can help — never a panel with no target.
+    val backTakesFocus = !failure.isRetryable() && failure != VodPlayerFailure.CredentialsRefused
 
     Column(
         modifier = Modifier
@@ -455,6 +460,14 @@ private fun TvFailure(
                     .fillMaxWidth(fraction = 0.4f),
             )
         }
+
+        // A button as well as the BACK key (CW-25): Retry and Back are the two ways
+        // out of a failed launch, and the home screen puts the focus back on the card.
+        LumoTvButton(
+            text = stringResource(R.string.feature_vod_player_back),
+            onClick = onBack,
+            focusRequester = retryFocus.takeIf { backTakesFocus },
+        )
     }
 }
 

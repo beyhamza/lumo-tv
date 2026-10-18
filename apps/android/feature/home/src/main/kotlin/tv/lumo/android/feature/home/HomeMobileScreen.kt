@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -366,7 +368,32 @@ private fun ContinueRail(section: HomeSection.Continue, actions: HomeActions, on
 private fun ContinueCard(item: ContinueItem, actions: HomeActions, onRemove: (ContinueItem) -> Unit) {
     val view = continueCardOf(item)
     var menuOpen by remember { mutableStateOf(false) }
+    // A card whose content is gone (CW-28): pressing it explains, never plays.
+    var goneOpen by remember { mutableStateOf(false) }
     val optionsLabel = stringResource(R.string.feature_home_card_options, view.title)
+
+    view.unavailable?.let { kind ->
+        if (goneOpen) {
+            AlertDialog(
+                onDismissRequest = { goneOpen = false },
+                title = { Text(view.title) },
+                text = { Text(stringResource(R.string.feature_home_continue_gone_message)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            goneOpen = false
+                            actions.openCatalogueOf(kind)
+                        },
+                    ) {
+                        Text(stringResource(goneCatalogueLabel(kind)))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { goneOpen = false }) { Text(stringResource(R.string.feature_home_close)) }
+                },
+            )
+        }
+    }
 
     Column(
         modifier = Modifier.width(CONTINUE_CARD_WIDTH),
@@ -374,7 +401,7 @@ private fun ContinueCard(item: ContinueItem, actions: HomeActions, onRemove: (Co
     ) {
         Column(
             modifier = Modifier.combinedClickable(
-                onClick = { view.resume(actions) },
+                onClick = { if (view.unavailable != null) goneOpen = true else view.resume(actions) },
                 // The options are also on "⋮" below: a long press alone is a
                 // gesture nobody is told about (S12-04).
                 onLongClick = { menuOpen = true },
@@ -411,16 +438,22 @@ private fun ContinueCard(item: ContinueItem, actions: HomeActions, onRemove: (Co
 
         val detailsOf = stringResource(R.string.feature_home_details_of, view.title)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(
-                onClick = { view.open(actions) },
-                contentPadding = PaddingValues(horizontal = LumoSpacing.xs),
-                // Twelve buttons reading "Details" are twelve identical announcements
-                // to a screen reader; each one names what it opens.
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics { contentDescription = detailsOf },
-            ) {
-                Text(stringResource(R.string.feature_home_details))
+            val open = view.open
+            if (open == null) {
+                // No sheet to open for content that is gone (CW-28): only "⋮".
+                Spacer(Modifier.weight(1f))
+            } else {
+                TextButton(
+                    onClick = { open(actions) },
+                    contentPadding = PaddingValues(horizontal = LumoSpacing.xs),
+                    // Twelve buttons reading "Details" are twelve identical announcements
+                    // to a screen reader; each one names what it opens.
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { contentDescription = detailsOf },
+                ) {
+                    Text(stringResource(R.string.feature_home_details))
+                }
             }
             Box {
                 // A plain 40dp target rather than a TextButton: its 58dp minimum

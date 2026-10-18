@@ -3,6 +3,7 @@ package tv.lumo.android.feature.home
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import tv.lumo.android.core.data.model.ContinueItem
+import tv.lumo.android.core.data.model.UnavailableKind
 import tv.lumo.android.feature.home.navigation.HomeActions
 
 /**
@@ -24,8 +25,13 @@ internal class ContinueCardView(
     val fraction: Float?,
     /** The primary action: straight into the player, at the stored position. */
     val resume: (HomeActions) -> Unit,
-    /** The secondary one: the film's or the series' own screen. */
-    val open: (HomeActions) -> Unit,
+    /** The secondary one: the film's or the series' own screen. Null when there is none. */
+    val open: ((HomeActions) -> Unit)?,
+    /**
+     * Set when the film or episode is no longer in the catalogue (CW-28): pressing
+     * the card explains that instead of playing, and the only option is removing it.
+     */
+    val unavailable: UnavailableKind? = null,
 )
 
 @Composable
@@ -67,10 +73,42 @@ internal fun continueCardOf(item: ContinueItem): ContinueCardView = when (item) 
                 positionMs = item.resume.positionMs,
                 durationMs = episode.durationSeconds?.let { it * MILLIS_PER_SECOND },
             ),
-            resume = { it.onResumeEpisode(episode.id, playerTitle, item.resume.positionMs) },
+            resume = { actions ->
+                // The next episode is launched as such: should it fail, the player
+                // offers the series rather than another episode (CW-27).
+                if (item.resume.offersNext) {
+                    actions.onPlayNextEpisode(episode.id, playerTitle, item.resume.positionMs, series.id)
+                } else {
+                    actions.onResumeEpisode(episode.id, playerTitle, item.resume.positionMs)
+                }
+            },
             open = { it.onOpenSeries(series.id) },
         )
     }
+
+    is ContinueItem.Unavailable -> ContinueCardView(
+        key = item.key,
+        title = item.title ?: stringResource(R.string.feature_home_continue_unavailable_title),
+        subtitle = stringResource(R.string.feature_home_continue_unavailable_subtitle),
+        posterUrl = null,
+        fraction = null,
+        // Never a player: the screen explains, see `unavailable`.
+        resume = {},
+        open = null,
+        unavailable = item.kind,
+    )
+}
+
+/** The label of the way back to the catalogue a gone card belongs to (CW-28). */
+internal fun goneCatalogueLabel(kind: UnavailableKind): Int = when (kind) {
+    UnavailableKind.FILM -> R.string.feature_home_continue_gone_films
+    UnavailableKind.EPISODE -> R.string.feature_home_continue_gone_series
+}
+
+/** Where "Back to the catalogue" leads from a card whose content is gone (CW-28). */
+internal fun HomeActions.openCatalogueOf(kind: UnavailableKind) = when (kind) {
+    UnavailableKind.FILM -> onOpenFilms()
+    UnavailableKind.EPISODE -> onOpenSeriesCatalogue()
 }
 
 /**

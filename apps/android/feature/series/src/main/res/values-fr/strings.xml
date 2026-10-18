@@ -37,6 +37,7 @@
     <string name="feature_series_seek_refused">Votre serveur n\'autorise pas le déplacement dans cet épisode. Il se lit depuis le début.</string>
     <string name="feature_series_player_retry">Réessayer</string>
     <string name="feature_series_player_back">Retour</string>
+    <string name="feature_series_player_back_to_series">Retour à la série</string>
     <string name="feature_series_player_unreachable">Votre serveur n\'a pas répondu. Vérifiez votre connexion, puis réessayez.</string>
     <string name="feature_series_player_too_many_streams">Votre abonnement diffuse déjà autant de flux qu\'il l\'autorise. Arrêtez un autre flux, puis réessayez.</string>
     <string name="feature_series_player_too_many_streams_count">Votre abonnement autorise %1$d flux simultanés et ils sont tous utilisés. Arrêtez-en un, puis réessayez.</string>

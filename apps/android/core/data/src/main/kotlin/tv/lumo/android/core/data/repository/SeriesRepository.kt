@@ -31,6 +31,9 @@ import tv.lumo.android.core.data.model.ResumableSeries
 import tv.lumo.android.core.data.model.SeriesTree
 import tv.lumo.android.core.data.model.episodeAfter
 import tv.lumo.android.core.data.model.seriesPickOf
+import tv.lumo.android.core.data.model.seriesGoneRow
+import tv.lumo.android.core.data.model.ContinueItem
+import tv.lumo.android.core.data.model.UnavailableKind
 import tv.lumo.android.core.database.dao.CatalogueSyncDao
 import tv.lumo.android.core.database.dao.CategoryDao
 import tv.lumo.android.core.database.dao.SeriesDao
@@ -395,7 +398,7 @@ class SeriesRepository @Inject internal constructor(
      * The alternative would be a request per row at the moment a catalogue screen
      * opens, and a rail that costs twelve calls to the panel is not a rail.
      */
-    suspend fun resumable(rows: List<EpisodeProgress>): List<ResumableSeries> =
+    suspend fun resumable(rows: List<EpisodeProgress>, gone: Set<String> = emptySet()): List<ResumableSeries> =
         withContext(io) {
             val episodes = seriesDao.episodesByIds(rows.map { it.episodeId })
                 .associateBy { it.id }
@@ -406,7 +409,71 @@ class SeriesRepository @Inject internal constructor(
             // one step; each group stays most recent first.
             rows.mapNotNull { row -> episodes[row.episodeId]?.let { row to it } }
                 .groupBy({ (_, episode) -> episode.seriesId }, { (row, _) -> row })
+                // A series whose latest episode is gone gets an unavailable card
+                // instead ([unavailable]), never an older episode (CW-28).
+                .filterValues { seriesRows -> seriesGoneRow(seriesRows, gone) == null }
                 .mapNotNull { (seriesId, seriesRows) -> card(seriesId, seriesRows, episodes) }
+        }
+
+    /**
+     * The episode ids a successful lookup no longer answers (S12-05, CW-28), or the
+     * failure of the lookup — which proves nothing and must not be read as "gone".
+     *
+     * `GET /sources/{id}/episodes?ids=`, one request for the rail.
+     */
+    suspend fun goneEpisodes(sourceId: String, ids: List<String>): LumoResult<Set<String>> = withContext(io) {
+        val asked = ids.distinct().take(MAX_RESOLVED_IDS)
+            .mapNotNull { id -> runCatching { UUID.fromString(id) }.getOrNull()?.let { id to it } }
+        if (asked.isEmpty()) return@withContext LumoResult.Success(emptySet())
+
+        calls.call {
+            api.resolveEpisodes(UUID.fromString(sourceId), ids = asked.map { it.second }, page = 0, size = MAX_RESOLVED_IDS)
+        }.map { page ->
+            val answered = page.items.mapTo(HashSet()) { it.id.toString() }
+            asked.map { it.first }.filterNot { it in answered }.toSet()
+        }
+    }
+
+    /**
+     * The "Continue" cards of series whose episode is gone (CW-28): titled with the
+     * series when this device knows it, generic otherwise.
+     *
+     * Rows whose episode this device never cached cannot be grouped by series; each
+     * gets its own card, still only when the server had it in the rail.
+     */
+    suspend fun unavailable(rows: List<EpisodeProgress>, gone: Set<String>): List<ContinueItem.Unavailable> =
+        withContext(io) {
+            if (gone.isEmpty()) return@withContext emptyList()
+            val episodes = seriesDao.episodesByIds(rows.map { it.episodeId }).associateBy { it.id }
+
+            val grouped = rows.mapNotNull { row -> episodes[row.episodeId]?.let { row to it } }
+                .groupBy({ (_, episode) -> episode.seriesId }, { (row, _) -> row })
+                .mapNotNull { (seriesId, seriesRows) ->
+                    val row = seriesGoneRow(seriesRows, gone) ?: return@mapNotNull null
+                    ContinueItem.Unavailable(
+                        key = "series:$seriesId",
+                        sourceId = row.sourceId,
+                        updatedAtMillis = row.updatedAtMillis,
+                        title = seriesDao.byIds(listOf(seriesId)).firstOrNull()?.name,
+                        kind = UnavailableKind.EPISODE,
+                        ref = row.episodeId,
+                    )
+                }
+
+            val loose = rows.filter { it.episodeId !in episodes && it.episodeId in gone && it.inContinue }
+                .distinctBy { it.episodeId }
+                .map { row ->
+                    ContinueItem.Unavailable(
+                        key = "episode:${row.episodeId}",
+                        sourceId = row.sourceId,
+                        updatedAtMillis = row.updatedAtMillis,
+                        title = null,
+                        kind = UnavailableKind.EPISODE,
+                        ref = row.episodeId,
+                    )
+                }
+
+            grouped + loose
         }
 
     /**
@@ -508,6 +575,9 @@ class SeriesRepository @Inject internal constructor(
     private companion object {
         const val PAGE_SIZE = 200
         const val MAX_PAGES = 1_000
+
+        /** The contract bounds `ids` at one hundred; a rail never needs more. */
+        const val MAX_RESOLVED_IDS = 100
     }
 }
 

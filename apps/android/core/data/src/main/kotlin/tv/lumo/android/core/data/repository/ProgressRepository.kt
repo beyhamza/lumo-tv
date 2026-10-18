@@ -6,8 +6,17 @@ import java.time.ZoneOffset
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
+import tv.lumo.android.core.common.di.ApplicationScope
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.internal.ApiCaller
+import tv.lumo.android.core.data.internal.ConnectivityMonitor
+import tv.lumo.android.core.data.internal.PendingSave
+import tv.lumo.android.core.data.internal.ProgressKey
+import tv.lumo.android.core.data.internal.ProgressOutbox
 import tv.lumo.android.core.data.map
 import tv.lumo.android.core.data.model.EpisodeProgress
 import tv.lumo.android.core.data.model.WatchProgress
@@ -49,10 +58,50 @@ import tv.lumo.android.network.generated.model.WatchedSegment
  * What a channel gets instead is `PlaybackRepository.recordWatched`.
  */
 @Singleton
-class ProgressRepository @Inject internal constructor(
+class ProgressRepository internal constructor(
     private val userdata: UserdataApi,
     private val calls: ApiCaller,
+    private val outbox: ProgressOutbox = ProgressOutbox(),
+    reconnections: Flow<Unit> = emptyFlow(),
+    scope: CoroutineScope? = null,
 ) {
+
+    @Inject
+    internal constructor(
+        userdata: UserdataApi,
+        calls: ApiCaller,
+        connectivity: ConnectivityMonitor,
+        @ApplicationScope scope: CoroutineScope,
+    ) : this(userdata, calls, ProgressOutbox(), connectivity.regained, scope)
+
+    init {
+        // The network came back: what failed while it was gone goes now (S12-05),
+        // not at the next save — which may never come if the film was finished.
+        scope?.launch { reconnections.collect { resend() } }
+    }
+
+    /** Sends every save still pending. What a reconnection does; public for tests. */
+    internal suspend fun resend() = outbox.flush(::send)
+
+    private suspend fun send(save: PendingSave): LumoResult<Unit> =
+        calls.call { userdata.saveProgress(save.asRequest()) }.map { }
+
+    private suspend fun submit(
+        sourceId: String,
+        type: ProgressItemType,
+        ref: String,
+        positionMs: Long,
+        durationMs: Long?,
+        report: WatchReport,
+    ): LumoResult<Unit> = outbox.submit(
+        key = ProgressKey(sourceId, type, ref),
+        positionMs = positionMs,
+        durationMs = durationMs,
+        observedAtMs = report.observedAtMs,
+        sessionStartedAtMs = report.sessionStartedAtMs,
+        segments = report.segments,
+        send = ::send,
+    )
 
     /**
      * Saves a position.
@@ -65,6 +114,10 @@ class ProgressRepository @Inject internal constructor(
      * there is nothing here for a user to act on: this is bookkeeping around
      * watching a film, not a step of it, and a player that interrupted itself to
      * report a failed save would be worse than a rail that misses a minute.
+     *
+     * A save that fails for a reason a resend can fix is **kept** — position,
+     * observation and watched segments — and goes again with the next save or when
+     * the network comes back (S12-05, see `ProgressOutbox`).
      */
     suspend fun save(
         sourceId: String,
@@ -72,11 +125,7 @@ class ProgressRepository @Inject internal constructor(
         positionMs: Long,
         durationMs: Long?,
         report: WatchReport = WatchReport(),
-    ): LumoResult<Unit> = calls.call {
-        userdata.saveProgress(
-            saveRequest(sourceId, ProgressItemType.VOD, filmId, positionMs, durationMs, report),
-        )
-    }.map { }
+    ): LumoResult<Unit> = submit(sourceId, ProgressItemType.VOD, filmId, positionMs, durationMs, report)
 
     /**
      * Saves where somebody is in an episode (S6-08).
@@ -95,11 +144,7 @@ class ProgressRepository @Inject internal constructor(
         positionMs: Long,
         durationMs: Long?,
         report: WatchReport = WatchReport(),
-    ): LumoResult<Unit> = calls.call {
-        userdata.saveProgress(
-            saveRequest(sourceId, ProgressItemType.EPISODE, episodeId, positionMs, durationMs, report),
-        )
-    }.map { }
+    ): LumoResult<Unit> = submit(sourceId, ProgressItemType.EPISODE, episodeId, positionMs, durationMs, report)
 
     /**
      * Removes a film's card from "Continue watching" on every device (S12-04, CW-10).
@@ -232,31 +277,21 @@ class ProgressRepository @Inject internal constructor(
     }
 }
 
-private fun saveRequest(
-    sourceId: String,
-    type: ProgressItemType,
-    ref: String,
-    positionMs: Long,
-    durationMs: Long?,
-    report: WatchReport,
-) = SaveProgressRequest(
-    sourceId = UUID.fromString(sourceId),
-    itemType = type,
-    itemRef = ref,
+private fun PendingSave.asRequest() = SaveProgressRequest(
+    sourceId = UUID.fromString(key.sourceId),
+    itemType = key.type,
+    itemRef = key.ref,
     positionMs = positionMs,
     durationMs = durationMs,
     // Empty is omitted rather than sent: the field is optional, and an older
-    // server reads its absence the way it always did.
-    watchedSegments = report.segments
-        .take(MAX_SEGMENTS)
+    // server reads its absence the way it always did. At most twenty: the outbox
+    // splits anything longer.
+    watchedSegments = segments
         .map { (start, end) -> WatchedSegment(startedAt = start.asDateTime(), endedAt = end.asDateTime()) }
         .ifEmpty { null },
-    observedAt = report.observedAtMs?.asDateTime(),
-    sessionStartedAt = report.sessionStartedAtMs?.asDateTime(),
+    observedAt = observedAtMs.asDateTime(),
+    sessionStartedAt = sessionStartedAtMs?.asDateTime(),
 )
-
-/** SaveProgressRequest.watched_segments.maxItems. */
-private const val MAX_SEGMENTS = 20
 
 private fun Long.asDateTime(): OffsetDateTime =
     OffsetDateTime.ofInstant(Instant.ofEpochMilli(this), ZoneOffset.UTC)
