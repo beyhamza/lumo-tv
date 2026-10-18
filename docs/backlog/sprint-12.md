@@ -17,17 +17,26 @@ groupée avant la sortie 0.3.0.
   pas joignables depuis l'émulateur), renvoi des segments d'une sauvegarde échouée sur Android (S12-05).
 - [ ] S12-03 — fiches Regarder / Reprendre / Recommencer / Revoir — 85 % : web et Android (mobile, TV),
   épisode à poursuivre sur la fiche série. Parcours série non vérifié (banc sans progression de série).
-- [ ] S12-04 — rail Continuer unifié, masquage partagé — 80 % : rail piloté par `in_continue`, une carte
+- [ ] S12-04 — rail Continuer unifié, masquage partagé — 95 % : rail piloté par `in_continue`, une carte
   par série avec l'épisode suivant (CW-12/15/19/21), « Retirer de Continuer » (web, mobile, appui long OK
-  sur TV). Reste : la carte d'accueil reprend directement (US-019) au lieu d'ouvrir la fiche.
-- [ ] S12-05 — contenus disparus, conflits, hors ligne — 0 %
+  sur TV) ; la carte reprend directement (S12-05).
+- [ ] S12-05 — contenus disparus, conflits, hors ligne — 85 % (18/10) : reprise directe depuis une carte
+  Continuer (web, mobile, TV) ; échec de lancement avec Réessayer / Retour, progression conservée
+  (CW-25) ; épisode suivant indisponible → « Retour à la série », jamais un autre épisode (CW-27) ;
+  contenu absent d'une réponse réussie → carte « Indisponible » avec seulement « Retirer de Continuer »
+  (CW-28) ; Android garde en mémoire les sauvegardes échouées et les renvoie au retour du réseau.
+  **Correctif trouvé en route** : sur Android la reprise repartait toujours de 0 (la demande de position
+  partait avant que le flux l'accepte) — corrigé et vérifié sur émulateur. Branches
+  `feat/S12-05-web` (502/502, reprise directe vérifiée contre l'API) et `feat/S12-05-android`
+  (834/834, temps regardé réel et reprise vérifiés sur le téléphone). Non vérifiés sur appareil :
+  CW-25, CW-27, CW-28, hors ligne, application TV.
 
 Branches : `feat/S12-web-continue` (Vitest 484/484, vérifié sur un film contre l'API) et
 `feat/S12-android-continue` (tests 806/806, rail, retrait et fiches vérifiés sur émulateur).
 Question produit en attente : un épisode « terminé » par une simple avance passe-t-il la main au
 suivant dans Continuer ?
 
-**Avancement global ≈ 73 %**.
+**Avancement global ≈ 90 %**.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 ## Objectif
