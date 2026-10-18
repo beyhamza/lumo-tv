@@ -54,6 +54,7 @@ fun NavGraphBuilder.vodPlayerMobileScreen(
     onBack: () -> Unit,
     onOpenSources: () -> Unit,
     onSourceGone: () -> Unit,
+    onOpenPlaybackSettings: () -> Unit,
 ) {
     composable(
         route = VodPlayerDestination.route,
@@ -84,6 +85,7 @@ fun NavGraphBuilder.vodPlayerMobileScreen(
             onBack = onBack,
             onOpenSources = onOpenSources,
             onSourceGone = onSourceGone,
+            onOpenPlaybackSettings = onOpenPlaybackSettings,
         )
     }
 }

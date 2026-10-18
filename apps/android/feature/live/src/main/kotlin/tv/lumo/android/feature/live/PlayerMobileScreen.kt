@@ -35,12 +35,19 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.designsystem.component.LumoAcknowledgeDialog
-import tv.lumo.android.core.designsystem.component.LumoAudioTrackSheet
+import tv.lumo.android.core.data.NetworkBlock
+import tv.lumo.android.core.data.bodyRes
+import tv.lumo.android.core.data.titleRes
+import tv.lumo.android.core.designsystem.component.LumoNoticeAction
+import tv.lumo.android.core.designsystem.component.LumoPlayerNotice
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
 import tv.lumo.android.core.player.PlaybackState
+import tv.lumo.android.core.player.R as PlayerR
+import tv.lumo.android.core.player.TrackOptions
+import tv.lumo.android.core.player.ui.ALL_OPTION_GROUPS
 import tv.lumo.android.core.player.ui.LumoVideoSurface
 import tv.lumo.android.core.player.ui.PlayerLifecycleEffect
-import tv.lumo.android.core.player.ui.asChoices
+import tv.lumo.android.core.player.ui.PlayerOptionsSheet
 
 /**
  * Watching a channel on the phone (US-09).
@@ -72,11 +79,14 @@ fun PlayerMobileScreen(
     onBack: () -> Unit,
     onOpenSources: () -> Unit,
     onSourceGone: () -> Unit,
+    onOpenPlaybackSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val audioTracks by viewModel.audioTracks.collectAsStateWithLifecycle()
+    val trackOptions by viewModel.trackOptions.collectAsStateWithLifecycle()
+    val trackNotSaved by viewModel.trackNotSaved.collectAsStateWithLifecycle()
+    val networkBlock by viewModel.networkBlock.collectAsStateWithLifecycle()
     val sourceDeleted by viewModel.sourceDeleted.collectAsStateWithLifecycle()
 
     // Coming back to the foreground is one of the moments the product names for
@@ -128,6 +138,14 @@ fun PlayerMobileScreen(
                 onAcknowledge = { viewModel.onSourceDeletedAcknowledged(onSourceGone) },
             )
 
+            // Wi-Fi only, and this is not Wi-Fi (S13-05).
+            networkBlock != null -> NetworkNotice(
+                block = networkBlock!!,
+                onRetry = viewModel::retryAfterNetwork,
+                onOpenSettings = onOpenPlaybackSettings,
+                onBack = onBack,
+            )
+
             state.failure != null -> Failure(
                 failure = state.failure!!,
                 channelName = channelName,
@@ -146,35 +164,58 @@ fun PlayerMobileScreen(
         // only for a channel that carries a choice — which is why it is drawn
         // rather than hidden behind a tap that would have to be taught. A channel
         // with one audio track shows nothing and the screen is what it was.
-        if (audioTracks.size > 1 && state.failure == null && !sourceDeleted) {
+        // S13-01: subtitles and quality joined the audio tracks; the rule above
+        // still holds — a channel with nothing to choose shows nothing.
+        if (trackOptions.hasAnyChoice() && state.failure == null && !sourceDeleted && networkBlock == null) {
             TextButton(
                 onClick = { pickingAudio = true },
                 modifier = Modifier.align(Alignment.TopEnd),
             ) {
                 Text(
-                    text = stringResource(R.string.feature_live_audio_track),
+                    text = stringResource(PlayerR.string.core_player_options_title),
                     color = Color.White,
                 )
             }
         }
 
         if (pickingAudio) {
-            // `resources` rather than `stringResource`: the fallback name is
-            // resolved inside a plain lambda, which is not a composable scope.
-            val resources = LocalContext.current.resources
-            LumoAudioTrackSheet(
-                title = stringResource(R.string.feature_live_audio_track),
-                tracks = audioTracks.asChoices(
-                    unnamed = { position ->
-                        resources.getString(R.string.feature_live_audio_track_number, position)
-                    },
-                    unsupported = stringResource(R.string.feature_live_audio_unsupported),
-                ),
-                onSelect = viewModel::selectAudioTrack,
+            PlayerOptionsSheet(
+                options = trackOptions,
+                choices = viewModel.trackChoices,
+                notSaved = trackNotSaved,
+                groups = ALL_OPTION_GROUPS,
                 onDismiss = { pickingAudio = false },
             )
         }
     }
+}
+
+/** Something to choose: a second audio track, any subtitle, or two qualities. */
+private fun TrackOptions.hasAnyChoice(): Boolean =
+    known && (audio.size > 1 || subtitles.isNotEmpty() || offersQualityChoice)
+
+/** Wi-Fi only, and the network in use is not Wi-Fi (S13-05, Q7). */
+@Composable
+private fun NetworkNotice(
+    block: NetworkBlock,
+    onRetry: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val back = LumoNoticeAction(stringResource(DataR.string.core_data_network_back_action), onBack)
+    LumoPlayerNotice(
+        title = stringResource(block.titleRes),
+        message = block.bodyRes?.let { stringResource(it) },
+        actions = if (block.networkBack) {
+            listOf(LumoNoticeAction(stringResource(DataR.string.core_data_network_resume), onRetry), back)
+        } else {
+            listOf(
+                LumoNoticeAction(stringResource(DataR.string.core_data_network_retry), onRetry),
+                LumoNoticeAction(stringResource(DataR.string.core_data_network_settings), onOpenSettings),
+                back,
+            )
+        },
+    )
 }
 
 /**

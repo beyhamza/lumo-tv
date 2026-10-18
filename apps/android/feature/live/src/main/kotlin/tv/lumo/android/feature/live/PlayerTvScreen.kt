@@ -66,7 +66,7 @@ import tv.lumo.android.core.designsystem.theme.LumoTvShapes
 import tv.lumo.android.core.designsystem.tv.tvOverscan
 import tv.lumo.android.core.player.ui.LumoVideoSurface
 import tv.lumo.android.core.player.ui.PlayerLifecycleEffect
-import tv.lumo.android.core.player.ui.asChoices
+import tv.lumo.android.core.player.ui.TvPlayerOptionsSheet
 
 /**
  * The television player (US-09, US-10), laid out as `TV4 — Lecteur`.
@@ -121,7 +121,8 @@ fun PlayerTvScreen(
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val audioTracks by viewModel.audioTracks.collectAsStateWithLifecycle()
+    val trackOptions by viewModel.trackOptions.collectAsStateWithLifecycle()
+    val trackNotSaved by viewModel.trackNotSaved.collectAsStateWithLifecycle()
     val sourceDeleted by viewModel.sourceDeleted.collectAsStateWithLifecycle()
 
     // Coming back to the foreground is one of the moments the product names for
@@ -141,7 +142,10 @@ fun PlayerTvScreen(
     // Which pill said "[mock]" last, so the notice sits next to the bar rather
     // than interrupting it.
     var mockNotice by remember { mutableStateOf(false) }
-    val canPickAudio = audioTracks.size > 1
+    // A second audio track, any subtitle, or two qualities (S13-01). A channel
+    // with nothing to choose keeps UP free, as before.
+    val canPickAudio = trackOptions.known &&
+        (trackOptions.audio.size > 1 || trackOptions.subtitles.isNotEmpty() || trackOptions.offersQualityChoice)
     var activityTick by remember { mutableIntStateOf(0) }
 
     // The channel the player knows beats the one the route named: after
@@ -282,16 +286,10 @@ fun PlayerTvScreen(
         }
 
         if (pickingAudio) {
-            val resources = LocalContext.current.resources
-            LumoTvAudioTrackSheet(
-                title = stringResource(R.string.feature_live_audio_track),
-                tracks = audioTracks.asChoices(
-                    unnamed = { position ->
-                        resources.getString(R.string.feature_live_audio_track_number, position)
-                    },
-                    unsupported = stringResource(R.string.feature_live_audio_unsupported),
-                ),
-                onSelect = viewModel::selectAudioTrack,
+            TvPlayerOptionsSheet(
+                options = trackOptions,
+                choices = viewModel.trackChoices,
+                notSaved = trackNotSaved,
                 onDismiss = {
                     pickingAudio = false
                     runCatching { surface.requestFocus() }
