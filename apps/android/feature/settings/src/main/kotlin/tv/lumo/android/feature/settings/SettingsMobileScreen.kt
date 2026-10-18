@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -141,6 +142,34 @@ fun SettingsMobileScreen(
                 // and where it leads is the application's wire, not this module's.
                 onClick = onOpenSources,
             )
+        }
+
+        // S13-03/05: only the two switches the player reads. Languages are chosen
+        // in the player itself; the full Playback section is S13-04.
+        Section(title = stringResource(R.string.feature_settings_section_playback)) {
+            SettingsRow(
+                label = stringResource(R.string.feature_settings_autoplay_next),
+                note = stringResource(R.string.feature_settings_autoplay_next_note),
+                onClick = { viewModel.setAutoplayNext(!state.playback.autoplayNext) },
+            ) {
+                Switch(checked = state.playback.autoplayNext, onCheckedChange = viewModel::setAutoplayNext)
+            }
+            RowDivider()
+            SettingsRow(
+                label = stringResource(R.string.feature_settings_mobile_data),
+                note = stringResource(R.string.feature_settings_mobile_data_note),
+                onClick = { viewModel.setMobileDataAllowed(!state.playback.mobileDataAllowed) },
+            ) {
+                Switch(checked = state.playback.mobileDataAllowed, onCheckedChange = viewModel::setMobileDataAllowed)
+            }
+            if (state.playbackNotSaved) {
+                Text(
+                    text = stringResource(R.string.feature_settings_playback_not_saved),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(LumoSpacing.md),
+                )
+            }
         }
 
         Section(title = stringResource(R.string.feature_settings_section_application)) {
