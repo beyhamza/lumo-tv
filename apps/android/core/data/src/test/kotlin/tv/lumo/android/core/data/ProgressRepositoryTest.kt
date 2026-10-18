@@ -2,9 +2,11 @@ package tv.lumo.android.core.data
 
 import com.google.common.truth.Truth.assertThat
 import java.util.UUID
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -12,6 +14,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import tv.lumo.android.core.data.internal.ApiCaller
 import tv.lumo.android.core.data.internal.ProblemReader
+import tv.lumo.android.core.data.internal.ProgressOutbox
 import tv.lumo.android.core.data.model.WatchReport
 import tv.lumo.android.core.data.repository.ProgressRepository
 import tv.lumo.android.network.generated.api.UserdataApi
@@ -26,6 +29,7 @@ class ProgressRepositoryTest {
 
     private lateinit var server: MockWebServer
     private lateinit var repository: ProgressRepository
+    private lateinit var api: UserdataApi
     private val sourceId = UUID.randomUUID().toString()
     private val filmId = UUID.randomUUID().toString()
 
@@ -33,7 +37,7 @@ class ProgressRepositoryTest {
     fun start() {
         server = MockWebServer()
         server.start()
-        val api = Retrofit.Builder()
+        api = Retrofit.Builder()
             .baseUrl(server.url("/").toString())
             .addConverterFactory(MoshiConverterFactory.create(Serializer.moshiBuilder.build()))
             .build()
@@ -101,6 +105,47 @@ class ProgressRepositoryTest {
         repository.save(sourceId, filmId, positionMs = 1_000, durationMs = null, report = WatchReport())
 
         assertThat(server.takeRequest().body.readUtf8()).doesNotContain("watched_segments")
+    }
+
+    @Test
+    fun `S12-05 a save lost offline is resent once when the network comes back`() = runTest {
+        val reconnections = MutableSharedFlow<Unit>()
+        val repository = ProgressRepository(
+            userdata = api,
+            calls = ApiCaller(ProblemReader(Serializer.moshiBuilder.build())),
+            outbox = ProgressOutbox(),
+            reconnections = reconnections,
+            scope = backgroundScope,
+        )
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        val failed = repository.save(
+            sourceId = sourceId,
+            filmId = filmId,
+            positionMs = 30_000,
+            durationMs = 6_240_000,
+            report = WatchReport(
+                observedAtMs = 1_760_000_100_000,
+                sessionStartedAtMs = 1_760_000_000_000,
+                segments = listOf(1_760_000_000_000L to 1_760_000_030_000L),
+            ),
+        )
+        assertThat(failed).isInstanceOf(LumoResult.Failure::class.java)
+        server.takeRequest()
+
+        server.enqueue(MockResponse().setResponseCode(200).setBody(progressJson()))
+        // The collector subscribes before the first emission.
+        testScheduler.runCurrent()
+        reconnections.emit(Unit)
+        testScheduler.runCurrent()
+
+        val resent = server.takeRequest(5, java.util.concurrent.TimeUnit.SECONDS)!!.body.readUtf8()
+        assertThat(resent).contains("\"started_at\":\"2025-10-09T08:53:20Z\"")
+        assertThat(resent).contains("\"observed_at\":\"2025-10-09T08:55:00Z\"")
+
+        // Nothing left: a second reconnection sends nothing.
+        reconnections.emit(Unit)
+        testScheduler.runCurrent()
+        assertThat(server.takeRequest(500, java.util.concurrent.TimeUnit.MILLISECONDS)).isNull()
     }
 
     private fun progressJson() = """
