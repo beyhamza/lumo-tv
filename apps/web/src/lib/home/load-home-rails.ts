@@ -204,11 +204,20 @@ export async function loadHomeRails(
     loadEpgWindow(accessToken, sourceId, railIds, now, new Date(now.getTime() + NOW_WINDOW_MS)),
   ]);
 
-  const candidates = onePerSeries(rows, byId<Episode>(episodes?.items));
+  // What a lookup that *answered* was asked about: absent from its answer, an
+  // item is gone (CW-28). A failed lookup confirms nothing — an outage is never
+  // a removal — and its rows fall out under the rail's failure line (S11-05).
+  const candidates = onePerSeries(
+    rows,
+    byId<Episode>(episodes?.items),
+    episodes ? new Set(episodeIds) : new Set(),
+  );
 
   const seriesIds = unique(
     candidates.flatMap((candidate) =>
-      candidate.kind === "film" ? [] : [candidate.episode.series_id],
+      candidate.kind === "film" || candidate.kind === "gone"
+        ? []
+        : [candidate.episode.series_id],
     ),
   ).slice(0, HOME_RAIL_SIZE * 2);
   // The trees of the series whose latest episode is finished (S12-04): what
@@ -264,6 +273,10 @@ export async function loadHomeRails(
       byId<VodItem>(films?.items),
       byId<Series>(series?.items),
       HOME_RAIL_SIZE,
+      {
+        films: films ? new Set(filmIds) : undefined,
+        series: series ? new Set(seriesIds) : undefined,
+      },
     ),
     favorites: named(starred),
     recents: named(watched),

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Series, VodItem } from "@/lib/api/types";
 import {
+  cardLinks,
   continueCards,
   continueRows,
   onePerSeries,
@@ -167,7 +168,7 @@ describe("onePerSeries", () => {
     expect(seriesNeedingTree(picked)).toEqual(["series-1"]);
   });
 
-  it("drops an episode the last synchronisation removed, without taking its series' slot", () => {
+  it("drops an episode a failed lookup could not name, without taking its series' slot", () => {
     const rows = [
       row("EPISODE", "s1-gone", "2026-09-20T22:00:00Z"),
       row("EPISODE", "s1-e1", "2026-09-20T21:00:00Z"),
@@ -175,6 +176,64 @@ describe("onePerSeries", () => {
     expect(
       onePerSeries(rows, mapOf(episode("s1-e1", "series-1"))).map((c) => c.row.item_ref),
     ).toEqual(["s1-e1"]);
+  });
+
+  it("keeps an episode an answered lookup did not return, as gone (CW-28)", () => {
+    const rows = [
+      row("EPISODE", "s1-gone", "2026-09-20T22:00:00Z"),
+      row("EPISODE", "s1-e1", "2026-09-20T21:00:00Z"),
+      // Finished and gone: nothing to resume, no tree to hand over to.
+      row("EPISODE", "s2-gone", "2026-09-20T20:00:00Z", finished),
+    ];
+    const picked = onePerSeries(
+      rows,
+      mapOf(episode("s1-e1", "series-1")),
+      new Set(["s1-gone", "s1-e1", "s2-gone"]),
+    );
+    expect(picked.map((c) => [c.kind, c.row.item_ref])).toEqual([
+      ["gone", "s1-gone"],
+      // The gone episode claims no series: the series' card is still drawn.
+      ["episode", "s1-e1"],
+    ]);
+  });
+});
+
+describe("cardLinks", () => {
+  const SID = SOURCE;
+  const base = {
+    positionMs: 754_000,
+    durationMs: HOUR,
+    hide: { itemType: "VOD" as const, itemRef: "x" },
+  };
+
+  it("plays a film at once from its position, details on the bare sheet (US-019)", () => {
+    expect(cardLinks({ kind: "film", key: "film:f", film: film("f"), ...base }, SID)).toEqual({
+      play: `/app/sources/${SID}/vod/f?launch=resume&at=754000`,
+      details: `/app/sources/${SID}/vod/f`,
+    });
+  });
+
+  it("plays the episode resolveTargets chose, saying whether it is the next one", () => {
+    const links = cardLinks(
+      {
+        kind: "episode",
+        key: "series:s",
+        episode: episode("e5", "s", 2, 5),
+        series: series("s"),
+        launch: "next",
+        ...base,
+        positionMs: 0,
+      },
+      SID,
+    );
+    expect(links).toEqual({
+      play: `/app/sources/${SID}/series/s?season=2&play=e5&launch=next&at=0`,
+      details: `/app/sources/${SID}/series/s`,
+    });
+  });
+
+  it("gives an Unavailable card no link at all (CW-28)", () => {
+    expect(cardLinks({ kind: "gone", key: "gone:VOD:x", ...base }, SID)).toBeNull();
   });
 });
 
@@ -197,6 +256,7 @@ describe("resolveTargets", () => {
       {
         kind: "episode",
         episode: tree[1],
+        launch: "resume",
         positionMs: HOUR / 2,
         durationMs: HOUR,
         hide: { itemType: "EPISODE", itemRef: "e2" },
@@ -206,7 +266,13 @@ describe("resolveTargets", () => {
 
   it("proposes the next episode, never started, from zero (CW-19)", () => {
     const [target] = targetsFor([row("EPISODE", "e1", "2026-09-20T22:00:00Z", finished)]);
-    expect(target).toMatchObject({ kind: "episode", episode: { id: "e2" }, positionMs: 0 });
+    // Launched as `next`: a failure to start it goes back to the series (CW-27).
+    expect(target).toMatchObject({
+      kind: "episode",
+      episode: { id: "e2" },
+      launch: "next",
+      positionMs: 0,
+    });
     // Removing the card hides the series through the episode that has progress.
     expect(target.hide).toEqual({ itemType: "EPISODE", itemRef: "e1" });
   });
@@ -282,9 +348,46 @@ describe("continueCards", () => {
     });
   });
 
-  it("drops what the catalogue no longer holds", () => {
+  it("drops what lookups that did not answer could not name (S11-05)", () => {
+    // No confirmed ids: the film and series lookups failed. Never "gone".
     const cards = continueCards(targets, mapOf(film("film-a")), new Map(), 12);
     expect(cards.map((card) => card.key)).toEqual(["film:film-a"]);
+  });
+
+  it("turns what an answered lookup did not return into an Unavailable card (CW-28)", () => {
+    const cards = continueCards(targets, mapOf(film("film-a"), film("film-b")), new Map(), 12, {
+      films: new Set(["film-a", "film-gone", "film-b"]),
+      series: new Set(["series-1"]),
+    });
+    expect(cards.map((card) => card.key)).toEqual([
+      "film:film-a",
+      "gone:EPISODE:s1-e1",
+      "gone:VOD:film-gone",
+      "film:film-b",
+    ]);
+    // The progress is shown, never deleted; removing hides by the row's own ref.
+    expect(cards[2]).toEqual({
+      kind: "gone",
+      key: "gone:VOD:film-gone",
+      positionMs: HOUR / 2,
+      durationMs: HOUR,
+      hide: { itemType: "VOD", itemRef: "film-gone" },
+    });
+    // An episode known, its series gone: its numbers are still worth showing.
+    expect(cards[1]).toMatchObject({ kind: "gone", episode: { id: "s1-e1" } });
+  });
+
+  it("does not call gone what an answered lookup was never asked about", () => {
+    const cards = continueCards(targets, mapOf(film("film-a")), new Map(), 12, {
+      films: new Set(["film-a"]),
+      series: new Set(),
+    });
+    expect(cards.map((card) => card.key)).toEqual(["film:film-a"]);
+  });
+
+  it("carries how a series card launches", () => {
+    const cards = continueCards(targets, new Map(), mapOf(series("series-1")), 12);
+    expect(cards).toEqual([expect.objectContaining({ kind: "episode", launch: "resume" })]);
   });
 
   it("caps after dropping, so a missing film does not cost a card", () => {

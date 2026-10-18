@@ -6,7 +6,12 @@ import { saveEpisodeProgress, saveFilmProgress } from "@/actions/playback";
 import { PlaybackRefusalMessage } from "@/components/app/PlaybackRefusalMessage";
 import { SourceDeleted } from "@/components/app/SourceDeleted";
 import { advanceMs, audibility, browserDecodes } from "@/lib/playback/audibility";
-import { savableProgress } from "@/lib/playback/progress";
+import {
+  type LaunchKind,
+  autoplayRefused,
+  launchFailureActions,
+} from "@/lib/playback/continue-launch";
+import { asClock, savableProgress } from "@/lib/playback/progress";
 import type { PlayerActions } from "@/lib/playback/sheet-action";
 import { useSourceGone } from "@/lib/playback/use-source-gone";
 import { WatchMeter, isActuallyPlaying } from "@/lib/playback/watch-meter";
@@ -100,6 +105,21 @@ import { WatchMeter, isActuallyPlaying } from "@/lib/playback/watch-meter";
  * (US-024). The saving loop stops with it; its parting write is refused by the
  * server, the progress rows having gone with the source by cascade. An outage is
  * not a deletion and changes nothing here.
+ *
+ * <h2>Launched from a Continue card (S12-05)</h2>
+ *
+ * With `launch`, there are no buttons to press: the player starts at once, at
+ * the card's position (US-019). Two things can then go differently:
+ *
+ * - **The browser refuses to start with sound** without a gesture on this
+ *   page. That is not a failure — the file is there, the player sits at the
+ *   position — so it is not said as one: one clear Play button, nothing red.
+ * - **The launch fails** (refused by the API, a stream that will not play).
+ *   Nothing has been saved — no frame played, and a position of zero is never
+ *   written — so the card and its progress are as they were (CW-25). The
+ *   failure says so, with Retry when trying again can change something, and
+ *   Back: home, or the series for a next episode, never another episode in its
+ *   place (CW-27). See `lib/playback/continue-launch.ts`.
  */
 export function FilmPlayer({
   filmId,
@@ -111,6 +131,7 @@ export function FilmPlayer({
   audioCodec = null,
   sourceHref,
   continueHref,
+  launch,
 }: {
   filmId: string;
   /**
@@ -165,6 +186,11 @@ export function FilmPlayer({
   sourceHref: string;
   /** Where "Continue" goes once the source is gone: the home page. */
   continueHref: string;
+  /**
+   * Opened from a Continue card: start at once from `fromMs` (S12-05). Back
+   * after a failure goes home, or to `seriesHref` for a next episode (CW-27).
+   */
+  launch?: { kind: LaunchKind; fromMs: number; seriesHref?: string } | null;
 }) {
   const t = useTranslations("App");
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -180,14 +206,19 @@ export function FilmPlayer({
    * nothing when a `useState` setter is handed the value it already holds.
    */
   const [sound, setSound] = useState<"audible" | "silent" | "unknown">("unknown");
-  const [started, setStarted] = useState(false);
+  // A card's launch starts at once; a sheet opened by hand waits for a button.
+  const [started, setStarted] = useState(Boolean(launch));
+  /** The browser declined to start without a gesture here (S12-05): one press, not an error. */
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  /** Bumped by Retry after a failed launch: the same start, asked again (CW-25). */
+  const [attempt, setAttempt] = useState(0);
   /**
    * Where this playback was told to start.
    *
    * State rather than the prop, because "start over" changes it: the two buttons
    * are one player told two different things, not two players.
    */
-  const [startAtMs, setStartAtMs] = useState(actions.primary.fromMs);
+  const [startAtMs, setStartAtMs] = useState(launch ? launch.fromMs : actions.primary.fromMs);
   // Only once playback has been asked for: a film page that is merely open is a
   // page, and pages find out about a deletion by being navigated.
   const gone = useSourceGone(sourceId, started);
@@ -292,6 +323,7 @@ export function FilmPlayer({
 
     async function start() {
       setFailure(null);
+      setAutoplayBlocked(false);
       // A different file, or the same one from the beginning: nothing learnt
       // about the last playback applies, and a stale "no sound" line under a
       // film that has sound is the exact mistake this feature is meant to avoid.
@@ -339,10 +371,12 @@ export function FilmPlayer({
       // does nothing, which is the honest outcome — the same server cannot seek
       // either.
       if (startAtMs > 0) video.currentTime = startAtMs / 1000;
-      void video.play().catch(() => {
+      void video.play().catch((error: unknown) => {
         // Autoplay refused by policy is not a playback failure, and saying so
-        // would be wrong: the file loaded, the controls work, the visitor
-        // presses play. Only a real error reaches `onError` below.
+        // would be wrong: the file is there, the controls work, the visitor
+        // presses play — and after a card's launch, a button says where. Only
+        // a real error reaches `onError` below.
+        if (!disposed && autoplayRefused(error)) setAutoplayBlocked(true);
       });
     }
 
@@ -350,7 +384,7 @@ export function FilmPlayer({
     return () => {
       disposed = true;
     };
-  }, [filmId, started, startAtMs, playbackPath, gone]);
+  }, [filmId, started, startAtMs, playbackPath, gone, attempt]);
 
   // The thirty-second loop, plus the two moments that matter more than any tick:
   // the tab going away, and the component being taken down.
@@ -479,7 +513,10 @@ export function FilmPlayer({
         // Watched time (S12-02): every event that can start or stop real
         // playback re-reads the element. Seeking, waiting and ending close the
         // interval; playing and a finished seek reopen it if it really plays.
-        onPlaying={syncMeter}
+        onPlaying={() => {
+          setAutoplayBlocked(false);
+          syncMeter();
+        }}
         onWaiting={syncMeter}
         onSeeking={syncMeter}
         onSeeked={syncMeter}
@@ -500,6 +537,28 @@ export function FilmPlayer({
         }}
         className={started ? "mt-3 aspect-video w-full rounded-lg bg-black" : "hidden"}
       />
+
+      {/* The browser wanted a gesture (S12-05). Not an error: the player is at
+          the position and this one press starts it. */}
+      {autoplayBlocked && !failure ? (
+        <div
+          role="status"
+          className="border-border mt-3 flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3"
+        >
+          <p className="text-sm">{t("launchReadyAt", { at: asClock(startAtMs) })}</p>
+          <button
+            type="button"
+            onClick={() => {
+              void videoRef.current?.play().catch(() => {
+                // Still refused: the element's own controls remain.
+              });
+            }}
+            className="bg-primary text-primary-foreground focus-visible:ring-ring h-10 rounded-lg px-5 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none"
+          >
+            {t("launchPlay")}
+          </button>
+        </div>
+      ) : null}
 
       {maxConnections ? (
         <p className="text-muted-foreground mt-2 text-sm">
@@ -545,9 +604,63 @@ export function FilmPlayer({
           {failure.kind === "mixed-content" ? (
             <p className="text-muted-foreground mt-2 text-sm">{t("playerUseApps")}</p>
           ) : null}
+          {launch ? (
+            <LaunchFailureActions
+              kind={launch.kind}
+              failure={failure}
+              homeHref={continueHref}
+              seriesHref={launch.seriesHref}
+              onRetry={() => setAttempt((count) => count + 1)}
+            />
+          ) : null}
         </div>
       ) : null}
     </section>
+  );
+}
+
+/**
+ * Under a failed launch from a Continue card (CW-25, CW-27): the progress is
+ * kept — said, because it is the worry — then Retry when it can help, and Back.
+ */
+function LaunchFailureActions({
+  kind,
+  failure,
+  homeHref,
+  seriesHref,
+  onRetry,
+}: {
+  kind: LaunchKind;
+  failure: Failure;
+  homeHref: string;
+  seriesHref?: string;
+  onRetry: () => void;
+}) {
+  const t = useTranslations("App");
+  const { retry, back } = launchFailureActions(kind, failure);
+  const toSeries = back === "series" && seriesHref !== undefined;
+
+  return (
+    <>
+      <p className="text-muted-foreground mt-2 text-sm">{t("launchProgressKept")}</p>
+      <div className="mt-3 flex flex-wrap gap-3">
+        {retry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="bg-primary text-primary-foreground focus-visible:ring-ring h-10 rounded-lg px-5 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none"
+          >
+            {t("launchRetry")}
+          </button>
+        ) : null}
+        <a
+          href={toSeries ? seriesHref : homeHref}
+          className="bg-secondary text-secondary-foreground focus-visible:ring-ring inline-flex h-10 items-center rounded-lg px-5 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none"
+        >
+          {toSeries ? t("launchBackToSeries") : t("launchBack")}
+        </a>
+      </div>
+    </>
   );
 }
 

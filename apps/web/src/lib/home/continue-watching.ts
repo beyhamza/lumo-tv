@@ -1,4 +1,5 @@
 import type { Episode, PlaybackProgress, ProgressItemType, Series, VodItem } from "@/lib/api/types";
+import { type LaunchKind, launchQuery } from "@/lib/playback/continue-launch";
 import { isFinished } from "@/lib/playback/progress";
 import { nextAfter } from "@/lib/playback/sheet-action";
 
@@ -24,6 +25,20 @@ import { nextAfter } from "@/lib/playback/sheet-action";
  * whose latest episode is finished, to learn what comes next; films and series
  * by id, for a title and a poster. Each step below is the decision made between
  * two of those requests, so the page holds no rule of its own.
+ *
+ * <h2>Gone is not failed (CW-28, S12-05)</h2>
+ *
+ * A row whose film or episode a lookup did not return is one of two things, and
+ * only the loader knows which. The lookup **answered** and the item is not in
+ * it: the last re-synchronisation removed it, and the card says so —
+ * "Unavailable", with "Remove from Continue" as its only action, the progress
+ * untouched. The lookup **failed** — or was never asked, past a cap — and
+ * nothing is known: the row falls out of this rendering and the rail reports
+ * itself incomplete (S11-05). An outage never reads as a removal.
+ *
+ * So each step that resolves ids takes, beside what was found, the ids a
+ * *successful* lookup was asked about (`confirmed`). Absent from the answer and
+ * in that set: gone. Anything else absent: unknown.
  */
 
 type ProgressRow = Pick<
@@ -74,6 +89,8 @@ export function continueRows<R extends ProgressRow>(rows: readonly R[], sourceId
 /** A row that survived step two, with what is known about it so far. */
 export type ContinueCandidate<R extends ProgressRow, E extends EpisodeRef> =
   | { kind: "film"; row: R }
+  /** In Continue, and absent from an episode lookup that answered (CW-28). */
+  | { kind: "gone"; row: R }
   /** An episode to resume, the server having put it in Continue. */
   | { kind: "episode"; row: R; episode: E }
   /** A finished episode: its series carries on with the next one, if any. */
@@ -86,13 +103,20 @@ export type ContinueCandidate<R extends ProgressRow, E extends EpisodeRef> =
  * card: the episode to resume, or a finished one whose next episode is proposed.
  * Every later row of that series is skipped.
  *
- * An episode the resolver did not return was dropped by the last
- * re-synchronisation: it falls out, and does **not** claim its series' slot,
- * since the series it belonged to is precisely what is no longer known.
+ * An episode the resolver did not return does **not** claim its series' slot,
+ * since the series it belonged to is precisely what is no longer known. Asked
+ * of a lookup that answered (`confirmedEpisodes`), it was removed by the last
+ * re-synchronisation: in Continue, it becomes a `gone` card of its own (CW-28);
+ * finished, it had nothing to resume and no tree to hand over to, and falls
+ * out. Otherwise nothing is known about it and it falls out too.
+ *
+ * @param confirmedEpisodes the ids a successful episode lookup was asked
+ *   about; empty when that lookup failed
  */
 export function onePerSeries<R extends ProgressRow, E extends EpisodeRef>(
   rows: readonly R[],
   episodesById: ReadonlyMap<string, E>,
+  confirmedEpisodes: ReadonlySet<string> = new Set(),
 ): ContinueCandidate<R, E>[] {
   const seen = new Set<string>();
   const out: ContinueCandidate<R, E>[] = [];
@@ -103,7 +127,11 @@ export function onePerSeries<R extends ProgressRow, E extends EpisodeRef>(
       continue;
     }
     const episode = episodesById.get(row.item_ref);
-    if (!episode || seen.has(episode.series_id)) continue;
+    if (!episode) {
+      if (row.in_continue && confirmedEpisodes.has(row.item_ref)) out.push({ kind: "gone", row });
+      continue;
+    }
+    if (seen.has(episode.series_id)) continue;
     seen.add(episode.series_id);
     out.push({ kind: row.in_continue ? "episode" : "finished", row, episode });
   }
@@ -129,10 +157,17 @@ export type ContinueTarget<R extends ProgressRow, E extends EpisodeRef> =
   | {
       kind: "episode";
       episode: E;
+      /**
+       * How the card launches it (S12-05): `resume` the episode the card was
+       * saved on, or `next` — the series' next episode after a finished one,
+       * whose failure to start sends back to the series (CW-27).
+       */
+      launch: LaunchKind;
       positionMs: number;
       durationMs: number | null;
       hide: HideRef;
-    };
+    }
+  | { kind: "gone"; row: R; positionMs: number; durationMs: number | null; hide: HideRef };
 
 /**
  * What "Remove from Continue" sends. For a series it is the episode that holds
@@ -175,10 +210,22 @@ export function resolveTargets<R extends ProgressRow, E extends EpisodeRef>(
       continue;
     }
 
+    if (candidate.kind === "gone") {
+      out.push({
+        kind: "gone",
+        row: candidate.row,
+        positionMs: candidate.row.position_ms,
+        durationMs: candidate.row.duration_ms ?? null,
+        hide,
+      });
+      continue;
+    }
+
     if (candidate.kind === "episode") {
       out.push({
         kind: "episode",
         episode: candidate.episode,
+        launch: "resume",
         positionMs: candidate.row.position_ms,
         durationMs: candidate.row.duration_ms ?? null,
         hide,
@@ -205,6 +252,7 @@ export function resolveTargets<R extends ProgressRow, E extends EpisodeRef>(
     out.push({
       kind: "episode",
       episode,
+      launch: "next",
       positionMs: next.startMs,
       // A bar only where the episode has a duration of its own and a position to
       // show; a next episode never started draws none.
@@ -230,6 +278,21 @@ export type ContinueCard<E extends EpisodeRef> =
       key: string;
       episode: E;
       series: Series;
+      launch: LaunchKind;
+      positionMs: number;
+      durationMs: number | null;
+      hide: HideRef;
+    }
+  /**
+   * Unavailable (CW-28): its item is no longer in the catalogue. No title — a
+   * progress row carries none — but the episode's numbers when they are known
+   * (an episode found, its series gone). Its only action is "Remove from
+   * Continue"; its progress is never deleted.
+   */
+  | {
+      kind: "gone";
+      key: string;
+      episode?: E;
       positionMs: number;
       durationMs: number | null;
       hide: HideRef;
@@ -238,26 +301,48 @@ export type ContinueCard<E extends EpisodeRef> =
 /**
  * Step four: titles and posters, then the cap.
  *
- * **The cap comes last.** A film or a series the last re-synchronisation dropped
- * is absent from the lookups and falls out here; cutting to twelve before that
- * would leave a rail of nine for no reason anybody could see.
+ * A film or a series absent from a lookup that answered for it was dropped by
+ * the last re-synchronisation: its card says "Unavailable" (CW-28). Absent from
+ * a lookup that failed, or that was not asked about it, it falls out of this
+ * rendering — the rail then reports itself incomplete (S11-05).
+ *
+ * **The cap comes last**, so a row that falls out does not cost a card: cutting
+ * to twelve before would leave a rail of nine for no reason anybody could see.
+ *
+ * @param confirmed the ids a successful film and series lookup was asked about
  */
 export function continueCards<R extends ProgressRow, E extends EpisodeRef>(
   targets: readonly ContinueTarget<R, E>[],
   filmsById: ReadonlyMap<string, VodItem>,
   seriesById: ReadonlyMap<string, Series>,
   limit: number,
+  confirmed: { films?: ReadonlySet<string>; series?: ReadonlySet<string> } = {},
 ): ContinueCard<E>[] {
   const out: ContinueCard<E>[] = [];
+  const gone = (target: ContinueTarget<R, E>, episode?: E): ContinueCard<E> => ({
+    kind: "gone",
+    key: `gone:${target.hide.itemType}:${target.hide.itemRef}`,
+    ...(episode ? { episode } : {}),
+    positionMs: target.positionMs,
+    durationMs: target.durationMs,
+    hide: target.hide,
+  });
 
   for (const target of targets) {
     if (out.length === limit) break;
     const { positionMs, durationMs, hide } = target;
 
+    if (target.kind === "gone") {
+      out.push(gone(target));
+      continue;
+    }
+
     if (target.kind === "film") {
       const film = filmsById.get(target.row.item_ref);
       if (film) {
         out.push({ kind: "film", key: `film:${film.id}`, film, positionMs, durationMs, hide });
+      } else if (confirmed.films?.has(target.row.item_ref)) {
+        out.push(gone(target));
       }
       continue;
     }
@@ -269,11 +354,46 @@ export function continueCards<R extends ProgressRow, E extends EpisodeRef>(
         key: `series:${series.id}`,
         episode: target.episode,
         series,
+        launch: target.launch,
         positionMs,
         durationMs,
         hide,
       });
+    } else if (confirmed.series?.has(target.episode.series_id)) {
+      out.push(gone(target, target.episode));
     }
   }
   return out;
+}
+
+/**
+ * Where a card's two links go (US-019, S12-05), as paths without the locale.
+ *
+ * - **Main — play now.** The sheet that holds the player, with `launch` and
+ *   `at` (`lib/playback/continue-launch.ts`): the player starts at the card's
+ *   position, no "Resume" button to press. A film's sheet is its own page; an
+ *   episode's is its series' page with `season` and `play`.
+ * - **Secondary — the details.** The same sheet with nothing playing.
+ *
+ * A gone card has neither (CW-28): there is nothing left to open.
+ */
+export function cardLinks(
+  card: ContinueCard<EpisodeRef>,
+  sourceId: string,
+): { play: string; details: string } | null {
+  if (card.kind === "gone") return null;
+
+  if (card.kind === "film") {
+    const details = `/app/sources/${sourceId}/vod/${card.film.id}`;
+    const query = new URLSearchParams(launchQuery("resume", card.positionMs));
+    return { play: `${details}?${query}`, details };
+  }
+
+  const details = `/app/sources/${sourceId}/series/${card.series.id}`;
+  const query = new URLSearchParams({
+    season: String(card.episode.season_number),
+    play: card.episode.id,
+    ...launchQuery(card.launch, card.positionMs),
+  });
+  return { play: `${details}?${query}`, details };
 }

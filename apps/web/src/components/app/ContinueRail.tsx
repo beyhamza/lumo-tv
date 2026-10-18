@@ -7,14 +7,14 @@ import { RailFailureLine, type RailFailure } from "./RailFailure";
  *
  * <h2>Two actions per card, and they are two links</h2>
  *
- * - **Primary — resume.** The poster and the title are one link to the URL that
- *   resumes: the same one the films and series rails have always used, so a card
- *   here and a card there cannot disagree about where "resume" goes.
- * - **Secondary — the detail page.** A second, smaller link under the card, only
- *   when it leads somewhere else. A film's resume URL **is** its detail page —
- *   the player lives there — so a film card has one link: two links to one
- *   destination are two stops for a keyboard and two announcements for a screen
- *   reader, for nothing.
+ * - **Primary — play now** (S12-05). The poster and the title are one link to
+ *   the sheet with its player told to start at the card's position: no
+ *   "Resume" button to press in between (US-019).
+ * - **Secondary — the detail page.** A second, smaller link under the card: the
+ *   same sheet, nothing playing — for a film too, now that the main link no
+ *   longer stops there.
+ * - **Unavailable** (CW-28): a card whose item left the catalogue has no link,
+ *   a line saying so, and the removal below as its only action.
  *
  * - **Remove from Continue watching** (S12-04): a small form under each card,
  *   posted to a Server Action. The card hides on every device and its position
@@ -39,8 +39,14 @@ export type ContinueRailEntry = {
   posterUrl?: string | null;
   positionMs: number;
   durationMs: number | null;
-  resume: { href: string; label: string };
+  /** Plays at once from the card's position (S12-05). Absent on an unavailable card. */
+  resume?: { href: string; label: string };
   details?: { href: string; label: string; text: string };
+  /**
+   * Set on a card whose item is no longer in the catalogue (CW-28): the line
+   * said instead of a link. Its only action is the removal below.
+   */
+  unavailable?: string;
   /**
    * "Remove from Continue watching" (S12-04): the item the server hides, and the
    * words. For a series, the episode holding the card's progress — the server
@@ -75,22 +81,26 @@ export function ContinueRail({
         <ul aria-label={title} className="mt-3 flex gap-4 overflow-x-auto pb-2">
           {entries.map((entry) => (
             <li key={entry.key} className="w-32 shrink-0">
-              <a
-                href={entry.resume.href}
-                // "Resume <title>", because the visible text is a title and a
-                // title alone does not say what following the link will do.
-                aria-label={entry.resume.label}
-                className="focus-visible:ring-ring block rounded-lg focus-visible:ring-2 focus-visible:outline-none"
-              >
-                <div className="relative">
-                  <Poster url={entry.posterUrl ?? null} title={entry.title} />
-                  <PositionBar positionMs={entry.positionMs} durationMs={entry.durationMs} />
+              {entry.resume ? (
+                <a
+                  href={entry.resume.href}
+                  // "Resume <title>", because the visible text is a title and a
+                  // title alone does not say what following the link will do.
+                  aria-label={entry.resume.label}
+                  className="focus-visible:ring-ring block rounded-lg focus-visible:ring-2 focus-visible:outline-none"
+                >
+                  <CardFace entry={entry} />
+                </a>
+              ) : (
+                // Unavailable (CW-28): the same face, no link — there is nothing
+                // left to open — and a line saying why.
+                <div className="opacity-70">
+                  <CardFace entry={entry} />
+                  {entry.unavailable ? (
+                    <p className="text-muted-foreground mt-1 text-xs">{entry.unavailable}</p>
+                  ) : null}
                 </div>
-                <p className="mt-2 truncate text-xs font-medium">{entry.title}</p>
-                {entry.caption ? (
-                  <p className="text-muted-foreground truncate text-xs">{entry.caption}</p>
-                ) : null}
-              </a>
+              )}
               {entry.details ? (
                 <a
                   href={entry.details.href}
@@ -120,6 +130,22 @@ export function ContinueRail({
         </ul>
       )}
     </section>
+  );
+}
+
+/** Poster, position, title and caption: what every card shows, linked or not. */
+function CardFace({ entry }: { entry: ContinueRailEntry }) {
+  return (
+    <>
+      <div className="relative">
+        <Poster url={entry.posterUrl ?? null} title={entry.title} />
+        <PositionBar positionMs={entry.positionMs} durationMs={entry.durationMs} />
+      </div>
+      <p className="mt-2 truncate text-xs font-medium">{entry.title}</p>
+      {entry.caption ? (
+        <p className="text-muted-foreground truncate text-xs">{entry.caption}</p>
+      ) : null}
+    </>
   );
 }
 
