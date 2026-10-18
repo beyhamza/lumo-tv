@@ -34,4 +34,8 @@ dependencies {
     // for SessionManager directly would be a second place that knows how a
     // session is opened and closed.
     implementation(projects.core.data)
+
+    // BackHandler: on the phone, BACK closes the open section before leaving
+    // Settings (S13-04). Already in the catalogue, used by four features.
+    implementation(libs.androidx.activity.compose)
 }

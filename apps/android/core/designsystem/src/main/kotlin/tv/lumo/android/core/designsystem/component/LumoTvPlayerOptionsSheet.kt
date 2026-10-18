@@ -3,6 +3,7 @@ package tv.lumo.android.core.designsystem.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -22,7 +23,9 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
@@ -115,6 +118,24 @@ fun LumoTvPlayerOptionsSheet(
                             .padding(top = LumoSpacing.sm)
                             .semantics { heading() },
                     )
+                }
+                if (section.status != null) {
+                    // Under the block's title, never taking the focus: the remote
+                    // stays on the row that was pressed (asynchronous states do not
+                    // steal focus). Retry is reachable with UP from the rows.
+                    item(key = "status:${section.key}") {
+                        Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs)) {
+                            Text(
+                                text = section.status,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (section.statusIsError) LumoColors.Error else LumoColors.OnDarkMuted,
+                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                            )
+                            if (section.actionLabel != null && section.onAction != null) {
+                                LumoTvButton(text = section.actionLabel, onClick = section.onAction)
+                            }
+                        }
+                    }
                 }
                 items(section.choices, key = { "${section.key}:${it.id}" }) { choice ->
                     val key = "${section.key}:${choice.id}"

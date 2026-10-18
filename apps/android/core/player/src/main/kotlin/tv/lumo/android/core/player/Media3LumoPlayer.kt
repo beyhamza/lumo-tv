@@ -28,8 +28,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -105,6 +108,24 @@ internal class Media3LumoPlayer @Inject constructor(
     private var manualQualityId: String? = null
 
     private data class TrackSlot(val group: TrackGroup, val index: Int, val playable: Boolean)
+
+    /**
+     * What each unanswered change replaced (PS-07), by kind: the overrides of
+     * that track type, and the text switch or manual quality that go with them.
+     * Taken at the first choice of a kind and dropped when the change is
+     * settled, reverted, or the stream goes.
+     */
+    private data class ChangeSnapshot(
+        val overrides: List<TrackSelectionOverride>,
+        val textDisabled: Boolean,
+        val manualQualityId: String?,
+        val subtitleLanguageUnavailable: Boolean,
+    )
+
+    private val pendingChanges = HashMap<TrackKind, ChangeSnapshot>()
+
+    private val _trackChangeFailures = MutableSharedFlow<TrackKind>(extraBufferCapacity = 3)
+    override val trackChangeFailures: Flow<TrackKind> = _trackChangeFailures.asSharedFlow()
 
     private var currentTitle: String? = null
     private var isLive: Boolean = true
@@ -238,6 +259,7 @@ internal class Media3LumoPlayer @Inject constructor(
     override fun selectAudioTrack(id: String) {
         val slot = trackSlots[id] ?: return
         if (!slot.playable) return
+        beginChange(TrackKind.AUDIO)
 
         exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
             .buildUpon()
@@ -247,6 +269,7 @@ internal class Media3LumoPlayer @Inject constructor(
 
     override fun selectSubtitleTrack(id: String?) {
         if (id == null) {
+            beginChange(TrackKind.SUBTITLES)
             exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
                 .buildUpon()
                 .clearOverridesOfType(C.TRACK_TYPE_TEXT)
@@ -261,6 +284,7 @@ internal class Media3LumoPlayer @Inject constructor(
         }
         val slot = textSlots[id] ?: return
         if (!slot.playable) return
+        beginChange(TrackKind.SUBTITLES)
 
         exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
             .buildUpon()
@@ -273,6 +297,7 @@ internal class Media3LumoPlayer @Inject constructor(
 
     override fun selectVideoQuality(id: String?) {
         if (id == null) {
+            beginChange(TrackKind.QUALITY)
             manualQualityId = null
             exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
                 .buildUpon()
@@ -283,6 +308,7 @@ internal class Media3LumoPlayer @Inject constructor(
         }
         val slot = videoSlots[id] ?: return
         if (!slot.playable) return
+        beginChange(TrackKind.QUALITY)
 
         manualQualityId = id
         exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
@@ -290,6 +316,42 @@ internal class Media3LumoPlayer @Inject constructor(
             .setOverrideForType(TrackSelectionOverride(slot.group, slot.index))
             .build()
         publishOptions()
+    }
+
+    override fun settleTrackChange(kind: TrackKind) {
+        pendingChanges.remove(kind)
+    }
+
+    override fun revertTrackChange(kind: TrackKind) {
+        val before = pendingChanges.remove(kind) ?: return
+        restore(kind, before)
+        publishOptions()
+    }
+
+    private fun beginChange(kind: TrackKind) {
+        if (kind in pendingChanges) return
+        val parameters = exoPlayer.trackSelectionParameters
+        pendingChanges[kind] = ChangeSnapshot(
+            overrides = parameters.overrides.values.filter { it.type == kind.trackType() },
+            textDisabled = C.TRACK_TYPE_TEXT in parameters.disabledTrackTypes,
+            manualQualityId = manualQualityId,
+            subtitleLanguageUnavailable = subtitleLanguageUnavailable,
+        )
+    }
+
+    /** Puts back the overrides of [kind]'s track type only: another kind's confirmed choice stays. */
+    private fun restore(kind: TrackKind, before: ChangeSnapshot) {
+        val builder = exoPlayer.trackSelectionParameters.buildUpon().clearOverridesOfType(kind.trackType())
+        before.overrides.forEach { builder.addOverride(it) }
+        when (kind) {
+            TrackKind.SUBTITLES -> {
+                builder.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, before.textDisabled)
+                subtitleLanguageUnavailable = before.subtitleLanguageUnavailable
+            }
+            TrackKind.QUALITY -> manualQualityId = before.manualQualityId
+            TrackKind.AUDIO -> Unit
+        }
+        exoPlayer.trackSelectionParameters = builder.build()
     }
 
     override fun pause() {
@@ -350,6 +412,7 @@ internal class Media3LumoPlayer @Inject constructor(
         textSlots = emptyMap()
         videoSlots = emptyMap()
         manualQualityId = null
+        pendingChanges.clear()
         pendingPreferences = null
         subtitleLanguageUnavailable = false
         _cues.value = emptyList()
@@ -514,6 +577,7 @@ internal class Media3LumoPlayer @Inject constructor(
                             bitrate = format.declaredBitrate(),
                             selected = id == manualQualityId,
                             playable = playable,
+                            applied = group.isTrackSelected(index),
                         )
                     }
                 }
@@ -584,6 +648,20 @@ internal class Media3LumoPlayer @Inject constructor(
                 watched.onSeek()
                 exoPlayer.seekTo(positionBeforeSeek)
                 exoPlayer.prepare()
+                return
+            }
+
+            // An error while a track change is unanswered is the change's (PS-07):
+            // the previous selection goes back, the stream is prepared again from
+            // where it was, and the menu says the choice could not be applied. Once:
+            // the snapshots are gone, so a second error is the stream's own.
+            if (pendingChanges.isNotEmpty()) {
+                val failed = pendingChanges.toMap()
+                pendingChanges.clear()
+                failed.forEach { (kind, before) -> restore(kind, before) }
+                publishOptions()
+                exoPlayer.prepare()
+                failed.keys.forEach { _trackChangeFailures.tryEmit(it) }
                 return
             }
 
@@ -753,4 +831,10 @@ private fun PlaybackException.toLumoError(): PlaybackError = when (errorCode) {
     -> PlaybackError.UNPLAYABLE
 
     else -> PlaybackError.UNKNOWN
+}
+
+private fun TrackKind.trackType(): Int = when (this) {
+    TrackKind.AUDIO -> C.TRACK_TYPE_AUDIO
+    TrackKind.SUBTITLES -> C.TRACK_TYPE_TEXT
+    TrackKind.QUALITY -> C.TRACK_TYPE_VIDEO
 }

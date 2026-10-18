@@ -91,6 +91,32 @@ class PlaybackPreferencesTest {
     }
 
     @Test
+    fun `settings show the seed without writing it, then what was edited (S13-04)`() = runTest {
+        open { preferences ->
+            // Read before any playback: the would-be seed, and nothing written.
+            assertThat(preferences.settings.first().tracks)
+                .isEqualTo(TrackPreferences(audioLanguage = "fr", subtitlesEnabled = false, subtitleLanguage = "fr"))
+            interfaceLanguage = "en"
+            assertThat(preferences.settings.first().tracks.audioLanguage).isEqualTo("en")
+
+            // Edited in Settings → Playback: the player opens the next stream with it.
+            val edited = TrackPreferences(audioLanguage = "en", subtitlesEnabled = true, subtitleLanguage = "es")
+            assertThat(preferences.saveTrackPreferences(edited)).isTrue()
+            assertThat(preferences.settings.first().tracks).isEqualTo(edited)
+            assertThat(preferences.trackPreferences()).isEqualTo(edited)
+
+            // And a choice made in the player is what the settings show next.
+            preferences.saveTrackPreferences(edited.copy(subtitlesEnabled = false))
+            assertThat(preferences.settings.first().tracks.subtitlesEnabled).isFalse()
+            assertThat(preferences.settings.first().tracks.subtitleLanguage).isEqualTo("es")
+
+            account.value = "account-b"
+            assertThat(preferences.settings.first().tracks.subtitlesEnabled).isFalse()
+            assertThat(preferences.settings.first().tracks.subtitleLanguage).isEqualTo("en")
+        }
+    }
+
+    @Test
     fun `without an account nothing is written and the defaults are answered`() = runTest {
         account.value = null
         open { preferences ->

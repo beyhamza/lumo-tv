@@ -5,15 +5,6 @@
   (AGENTS.md §4); lint fails the build on a missing translation.
 -->
 <resources>
-    <!--
-      The sub-menu on the left, one panel per entry: Sources, Account and
-      devices, Application, About. No Playback until its settings exist (S13),
-      and Language folded into Application, read-only.
-    -->
-    <string name="feature_settings_tv_menu_sources">Sources</string>
-    <string name="feature_settings_tv_menu_account">Account and devices</string>
-    <string name="feature_settings_tv_menu_application">Application</string>
-    <string name="feature_settings_tv_menu_about">About</string>
 
     <string name="feature_settings_tv_sources_hint">Sources are managed from your phone or lumo.tv — nothing to type here.</string>
     <string name="feature_settings_tv_my_sources">My sources</string>
@@ -40,8 +31,6 @@
     <string name="feature_settings_tv_account_sign_out">Sign out of this television</string>
     <string name="feature_settings_tv_sign_out_title">Sign out of this television?</string>
     <string name="feature_settings_tv_sign_out_body">It will go back to its activation screen. Nothing is removed from your account.</string>
-
-    <string name="feature_settings_tv_language_value">Follows the television\'s language</string>
 
     <string name="feature_settings_tv_about_version">lumo tv v%1$s</string>
     <string name="feature_settings_tv_about_site">lumo.tv</string>

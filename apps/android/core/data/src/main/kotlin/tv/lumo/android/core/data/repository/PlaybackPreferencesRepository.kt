@@ -39,7 +39,12 @@ import tv.lumo.android.core.common.playback.TrackPreferences
  */
 interface PlaybackPreferencesRepository {
 
-    /** The settings screen's view: next episode and mobile data, for the current account. */
+    /**
+     * The settings screen's view, for the current account: languages, next
+     * episode and mobile data (S13-04). Languages not seeded yet are shown as
+     * they would be seeded — the interface language, subtitles off — without
+     * being written: reading the screen is not a first use.
+     */
     val settings: Flow<PlaybackSettings>
 
     /** The languages to open the next stream with, seeding them on first use. */
@@ -60,6 +65,8 @@ interface PlaybackPreferencesRepository {
 }
 
 data class PlaybackSettings(
+    /** Audio language, subtitles on/off and their language — the store the player opens streams with. */
+    val tracks: TrackPreferences = TrackPreferences.NONE,
     val autoplayNext: Boolean = true,
     val mobileDataAllowed: Boolean = true,
 )
@@ -84,6 +91,7 @@ internal class DataStorePlaybackPreferences(
 
     override val settings: Flow<PlaybackSettings> = combine(data, accountIds) { stored, account ->
         PlaybackSettings(
+            tracks = account?.let { tracksOf(stored, it) ?: seed() } ?: TrackPreferences.NONE,
             autoplayNext = account?.let { stored[autoplayKey(it)] } ?: true,
             mobileDataAllowed = stored[MOBILE_DATA_ALLOWED] ?: true,
         )
@@ -94,20 +102,30 @@ internal class DataStorePlaybackPreferences(
 
     override suspend fun trackPreferences(): TrackPreferences {
         val account = accountId() ?: return TrackPreferences.NONE
-        val stored = data.first()
-        if (stored[seededKey(account)] == true) {
-            return TrackPreferences(
+        tracksOf(data.first(), account)?.let { return it }
+
+        // First use on this device: the interface language, subtitles off (Q6).
+        val seeded = seed()
+        saveTrackPreferences(seeded)
+        return seeded
+    }
+
+    /** The account's stored languages, or null when they were never seeded here. */
+    private fun tracksOf(stored: Preferences, account: String): TrackPreferences? =
+        if (stored[seededKey(account)] != true) {
+            null
+        } else {
+            TrackPreferences(
                 audioLanguage = stored[audioKey(account)],
                 subtitlesEnabled = stored[subtitlesOnKey(account)] ?: false,
                 subtitleLanguage = stored[subtitleLanguageKey(account)],
             )
         }
 
-        // First use on this device: the interface language, subtitles off (Q6).
+    /** What a first use writes: the interface language for both, subtitles off (Q6). */
+    private fun seed(): TrackPreferences {
         val language = interfaceLanguage()?.takeIf { it.isNotBlank() }
-        val seeded = TrackPreferences(audioLanguage = language, subtitleLanguage = language)
-        saveTrackPreferences(seeded)
-        return seeded
+        return TrackPreferences(audioLanguage = language, subtitleLanguage = language)
     }
 
     override suspend fun saveTrackPreferences(preferences: TrackPreferences): Boolean {

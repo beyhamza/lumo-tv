@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import tv.lumo.android.core.common.playback.TrackPreferences
 import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.repository.AccountRepository
@@ -31,12 +32,12 @@ import tv.lumo.android.network.generated.model.Source
  *
  * <h2>Five sections, and only what is operational in them (S8-06)</h2>
  *
- * Account and devices, My sources, Application, Help and information — and no
- * Playback, whose settings do not exist yet (sprint 13). The rule of the sprint
- * is that what is not delivered is not shown: no `[mock]` row, no "coming soon"
- * switch. So the two rows this screen used to draw with nothing behind them —
- * the language *choice* and playback on mobile data — are gone; the language is
- * shown read-only, because that much is true.
+ * Account and devices, My sources, Playback, Application, Help and information
+ * ([SettingsSection], S13-04). The rule of the sprint is that what is not
+ * delivered is not shown: no `[mock]` row, no "coming soon" switch. Playback
+ * edits the store the player opens streams with ([PlaybackPreferencesRepository]);
+ * the interface language is the platform's per-app language, applied by the
+ * screens because it needs the activity (`InterfaceLanguage`).
  *
  * <h2>Why signing out lives here</h2>
  *
@@ -143,6 +144,21 @@ class SettingsViewModel @Inject constructor(
     fun dismissConfirmation() = _state.update { it.dismissConfirmation() }
 
     // ---- playback (S13-03/05) ----------------------------------------------
+
+    /** Preferred audio language (S13-04). The same store the player opens streams with. */
+    fun setAudioLanguage(language: String) = writeTracks { it.copy(audioLanguage = language) }
+
+    /** Subtitles on or off. Off keeps the language, so turning them back on finds it (Q6). */
+    fun setSubtitlesEnabled(enabled: Boolean) = writeTracks { it.copy(subtitlesEnabled = enabled) }
+
+    fun setSubtitleLanguage(language: String) = writeTracks { it.copy(subtitleLanguage = language) }
+
+    private fun writeTracks(change: (TrackPreferences) -> TrackPreferences) {
+        val current = _state.value.playback.tracks
+        val updated = change(current)
+        if (updated == current) return
+        writePlayback { playbackPreferences.saveTrackPreferences(updated) }
+    }
 
     /** "Next episode automatically". Per account on this device. */
     fun setAutoplayNext(enabled: Boolean) = writePlayback { playbackPreferences.setAutoplayNext(enabled) }
@@ -297,7 +313,7 @@ data class SettingsUiState(
 
     val confirmation: SettingsConfirmation? = null,
 
-    /** Next episode automatically, playback on mobile data (S13-03/05). Local to this device. */
+    /** Languages, next episode automatically, playback on mobile data (S13-02/03/04/05). Local to this device. */
     val playback: PlaybackSettings = PlaybackSettings(),
     /** The last playback switch could not be written: it is not announced as saved. */
     val playbackNotSaved: Boolean = false,

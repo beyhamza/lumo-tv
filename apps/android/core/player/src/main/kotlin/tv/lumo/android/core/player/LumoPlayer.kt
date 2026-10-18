@@ -1,7 +1,9 @@
 package tv.lumo.android.core.player
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import tv.lumo.android.core.common.playback.TrackPreferences
 
 /**
@@ -86,6 +88,20 @@ interface LumoPlayer {
      * content never inherits a manual choice (S13-02).
      */
     fun selectVideoQuality(id: String?) = Unit
+
+    /**
+     * Track changes that failed while being applied (PS-07): a player error
+     * arrived while a change of that kind was unanswered. The player has already
+     * put the previous selection back and resumed — the error is the change's,
+     * not the stream's, and is never published as [PlaybackState.Failed].
+     */
+    val trackChangeFailures: Flow<TrackKind> get() = emptyFlow()
+
+    /** The change of [kind] was confirmed: an error from now on is the stream's again. */
+    fun settleTrackChange(kind: TrackKind) = Unit
+
+    /** The change of [kind] went unanswered: put back the selection it replaced. */
+    fun revertTrackChange(kind: TrackKind) = Unit
 
     /**
      * Moves within the current stream.
@@ -221,6 +237,8 @@ data class SubtitleTrack(
  * @property selected true only for a variant chosen **manually**: in automatic
  *   mode every variant of the adaptive set is "selected" as far as Media3 is
  *   concerned, which says nothing a viewer can use.
+ * @property applied Media3 has this variant selected right now — the player's
+ *   answer to a manual choice, which is what confirms it (PS-07).
  */
 data class VideoQuality(
     val id: String,
@@ -230,6 +248,7 @@ data class VideoQuality(
     val bitrate: Int?,
     val selected: Boolean,
     val playable: Boolean,
+    val applied: Boolean = false,
 )
 
 /**
