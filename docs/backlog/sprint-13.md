@@ -28,7 +28,7 @@ relative : XL. Préférences de lecture locales à l'appareil : pas de changemen
 Branches : `feat/S13-web` (fusionnée, PR #76) et `feat/S13-android-player` (tests 879/879, menus,
 blocage Wi-Fi et retour TV vérifiés sur émulateur).
 
-**Avancement global ≈ 84 %**.
+**Avancement global ≈ 83 %**.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 ## Objectif
