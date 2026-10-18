@@ -83,5 +83,11 @@
     <string name="feature_home_remove_continue">Remove from Continue watching</string>
     <string name="feature_home_remove_continue_failed">The card couldn\'t be removed and has been kept. Try again later.</string>
     <string name="feature_home_cancel">Cancel</string>
+    <string name="feature_home_continue_unavailable_title">Unavailable content</string>
+    <string name="feature_home_continue_unavailable_subtitle">No longer available</string>
+    <string name="feature_home_continue_gone_message">This is no longer in your source\'s catalogue. Its progress is kept.</string>
+    <string name="feature_home_continue_gone_films">Back to Films</string>
+    <string name="feature_home_continue_gone_series">Back to Series</string>
+    <string name="feature_home_close">Close</string>
     <string name="feature_home_card_options">Options for %1$s</string>
 </resources>

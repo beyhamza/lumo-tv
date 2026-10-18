@@ -13,6 +13,7 @@ import tv.lumo.android.core.data.model.FavoriteChannel
 import tv.lumo.android.core.data.model.FavoriteGroup
 import tv.lumo.android.core.data.model.HOME_RAIL_SIZE
 import tv.lumo.android.core.data.model.ResumableFilm
+import tv.lumo.android.core.data.model.UnavailableKind
 import tv.lumo.android.core.data.model.VodItem
 import tv.lumo.android.core.data.model.WatchProgress
 import tv.lumo.android.network.generated.model.IngestionErrorCode
@@ -351,6 +352,40 @@ class HomeStateTest {
         assertThat(rail.railChannels("Details unavailable").map { it.name })
             .containsExactly("Channel channel-a", "Details unavailable").inOrder()
         assertThat(rail.unresolvedIds).containsExactly("channel-b")
+    }
+
+    // ---- content gone (S12-05, CW-28) ----------------------------------------
+
+    @Test
+    fun `CW-28 a gone card is part of the rail, and the screen is not blank`() {
+        val gone = ContinueItem.Unavailable("film:f2", SOURCE, 0, null, UnavailableKind.FILM, "f2")
+
+        val state = browsing(continueWatching = listOf(film("f1"), gone))
+
+        assertThat(state.sections.filterIsInstance<HomeSection.Continue>().single().items.map { it.key })
+            .containsExactly("film:f1", "film:f2").inOrder()
+        assertThat(state.blank).isFalse()
+    }
+
+    @Test
+    fun `CW-28 removing a gone card takes it out once the server confirms`() {
+        val gone = ContinueItem.Unavailable("film:f2", SOURCE, 0, "Film f2", UnavailableKind.FILM, "f2")
+
+        val state = browsing(continueWatching = listOf(film("f1"), gone))
+            .afterRemoval(SOURCE, gone.key, LumoResult.Success(Unit))
+
+        assertThat(state.continueWatching.map { it.key }).containsExactly("film:f1")
+    }
+
+    @Test
+    fun `CW-28 a failed lookup keeps the cards as they were`() {
+        val gone = ContinueItem.Unavailable("film:f2", SOURCE, 0, null, UnavailableKind.FILM, "f2")
+
+        val state = browsing(continueWatching = listOf(film("f1"), gone))
+            .withContinue(SOURCE, LumoResult.Failure(LumoError.Offline(java.io.IOException("offline"))))
+
+        assertThat(state.continueWatching.map { it.key }).containsExactly("film:f1", "film:f2").inOrder()
+        assertThat(state.continueFailed).isTrue()
     }
 
     // ---- fixtures ------------------------------------------------------------

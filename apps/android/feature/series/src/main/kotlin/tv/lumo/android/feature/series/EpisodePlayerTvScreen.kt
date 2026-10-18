@@ -107,6 +107,8 @@ fun EpisodePlayerTvScreen(
     onBack: () -> Unit,
     onOpenSources: () -> Unit,
     onSourceGone: () -> Unit,
+    onBackToSeries: (seriesId: String) -> Unit,
+    nextOfSeries: String? = null,
     modifier: Modifier = Modifier,
     viewModel: EpisodePlayerViewModel = hiltViewModel(),
 ) {
@@ -126,6 +128,7 @@ fun EpisodePlayerTvScreen(
             title = title,
             autoAdvanceSeconds = AUTO_ADVANCE_SECONDS,
             resumeFromMs = resumeFromMs,
+            nextOfSeries = nextOfSeries,
         )
     }
 
@@ -274,6 +277,9 @@ fun EpisodePlayerTvScreen(
                 onRetry = viewModel::retry,
                 onOpenSources = onOpenSources,
                 retryFocus = retry,
+                onBack = onBack,
+                // A next episode that failed: back to the series (CW-27).
+                onBackToSeries = state.seriesBack?.let { series -> { onBackToSeries(series) } },
             )
 
             overlay != Overlay.None -> OverlayBar(
@@ -509,8 +515,13 @@ private fun TvFailure(
     onRetry: () -> Unit,
     onOpenSources: () -> Unit,
     retryFocus: FocusRequester,
+    onBack: () -> Unit,
+    onBackToSeries: (() -> Unit)?,
 ) {
     var focused by remember { mutableStateOf(false) }
+    // The focus goes to the first button there is: Back is the only one when
+    // neither a retry nor "My sources" can help — never a panel with no target.
+    val backTakesFocus = !failure.isRetryable() && failure != EpisodePlayerFailure.CredentialsRefused
 
     Column(
         modifier = Modifier
@@ -571,6 +582,16 @@ private fun TvFailure(
                     .fillMaxWidth(fraction = RETRY_WIDTH_FRACTION),
             )
         }
+
+        // A button as well as the BACK key (CW-25): "Back" is one of the two ways
+        // out the failure offers, and a remote's BACK is not a thing everybody tries.
+        LumoTvButton(
+            text = stringResource(
+                if (onBackToSeries != null) R.string.feature_series_player_back_to_series else R.string.feature_series_player_back,
+            ),
+            onClick = onBackToSeries ?: onBack,
+            focusRequester = retryFocus.takeIf { backTakesFocus },
+        )
     }
 }
 

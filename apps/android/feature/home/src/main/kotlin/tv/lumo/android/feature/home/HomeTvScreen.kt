@@ -55,6 +55,7 @@ import tv.lumo.android.core.data.R as DataR
 import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.model.Channel
 import tv.lumo.android.core.data.model.ContinueItem
+import tv.lumo.android.core.data.model.UnavailableKind
 import tv.lumo.android.core.data.model.EpgProgramme
 import tv.lumo.android.core.data.wording
 import tv.lumo.android.core.designsystem.component.LumoPoster
@@ -224,6 +225,9 @@ private fun Browsing(
 
     // Hold OK on a "Continue" card: its options (S12-04), the favourites' pattern.
     var options by remember { mutableStateOf<ContinueItem?>(null) }
+    // OK on a card whose content is gone (CW-28): what happened, and the way back
+    // to its catalogue.
+    var gone by remember { mutableStateOf<ContinueItem?>(null) }
     // A removal asked for: the card, and where the focus goes once it has gone.
     // Applied when the rail no longer holds it; dropped if the server refused.
     var removal by remember { mutableStateOf<Pair<String, String?>?>(null) }
@@ -239,6 +243,22 @@ private fun Browsing(
             placedKey = null
             removal = null
         }
+    }
+
+    gone?.let { item ->
+        ContinueGone(
+            item = item,
+            onDismiss = {
+                gone = null
+                // Back on the card it was opened from.
+                returnKey = item.key
+                placedKey = null
+            },
+            onCatalogue = { kind ->
+                gone = null
+                actions.openCatalogueOf(kind)
+            },
+        )
     }
 
     options?.let { item ->
@@ -316,6 +336,7 @@ private fun Browsing(
                         actions = actions,
                         cards = cards,
                         onOptions = { options = it },
+                        onGone = { gone = it },
                     )
 
                     is HomeSection.Favorites -> ChannelRail(
@@ -411,14 +432,85 @@ private fun ContinueOptions(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                val open = view.open
+                if (open != null) {
+                    LumoTvButton(
+                        text = stringResource(R.string.feature_home_details),
+                        onClick = { onDetails(open) },
+                        primary = true,
+                        focusRequester = first,
+                    )
+                }
+                // The only option of a card whose content is gone (CW-28).
                 LumoTvButton(
-                    text = stringResource(R.string.feature_home_details),
-                    onClick = { onDetails(view.open) },
+                    text = stringResource(R.string.feature_home_remove_continue),
+                    onClick = onRemove,
+                    primary = open == null,
+                    focusRequester = first.takeIf { open == null },
+                )
+                LumoTvButton(text = stringResource(R.string.feature_home_cancel), onClick = onDismiss)
+            }
+        }
+    }
+}
+
+/**
+ * A card whose film or episode is no longer in the catalogue was pressed (CW-28).
+ *
+ * The options' dialog shape: one sentence, the way back to the catalogue focused,
+ * and Close. `BACK` closes it. Removing the card stays on the long press.
+ */
+@Composable
+private fun ContinueGone(
+    item: ContinueItem,
+    onDismiss: () -> Unit,
+    onCatalogue: (UnavailableKind) -> Unit,
+) {
+    val view = continueCardOf(item)
+    val kind = view.unavailable ?: return
+    val first = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        runCatching { first.requestFocus() }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(LumoColors.Scrim),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .width(OPTIONS_WIDTH)
+                    .clip(LumoTvShapes.large)
+                    .background(LumoColors.Surface)
+                    .padding(LumoSpacing.xl),
+                verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm),
+            ) {
+                Text(
+                    text = view.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = LumoColors.OnDark,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = stringResource(R.string.feature_home_continue_gone_message),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = LumoColors.OnDarkMuted,
+                )
+                LumoTvButton(
+                    text = stringResource(goneCatalogueLabel(kind)),
+                    onClick = { onCatalogue(kind) },
                     primary = true,
                     focusRequester = first,
                 )
-                LumoTvButton(text = stringResource(R.string.feature_home_remove_continue), onClick = onRemove)
-                LumoTvButton(text = stringResource(R.string.feature_home_cancel), onClick = onDismiss)
+                LumoTvButton(text = stringResource(R.string.feature_home_close), onClick = onDismiss)
             }
         }
     }
@@ -506,6 +598,7 @@ private fun ContinueRail(
     actions: HomeActions,
     cards: HomeCardFocus,
     onOptions: (ContinueItem) -> Unit,
+    onGone: (ContinueItem) -> Unit,
 ) {
     val listState = rememberLazyListState()
     PlaceFocus(keys = section.items.map { it.key }, cards = cards, scrollTo = listState::scrollToItem)
@@ -538,6 +631,7 @@ private fun ContinueRail(
                     actions = actions,
                     cards = cards,
                     onOptions = { onOptions(item) },
+                    onGone = { onGone(item) },
                 )
             }
         }
@@ -551,6 +645,7 @@ private fun ContinueCard(
     actions: HomeActions,
     cards: HomeCardFocus,
     onOptions: () -> Unit,
+    onGone: () -> Unit,
 ) {
     val view = continueCardOf(item)
     var focused by remember { mutableStateOf(false) }
@@ -576,8 +671,12 @@ private fun ContinueCard(
                 onLongClickLabel = stringResource(R.string.feature_home_card_options, view.title),
                 onLongClick = onOptions,
                 onClick = {
-                    cards.onLaunch(view.key)
-                    view.resume(actions)
+                    if (view.unavailable != null) {
+                        onGone()
+                    } else {
+                        cards.onLaunch(view.key)
+                        view.resume(actions)
+                    }
                 },
             )
             .padding(LumoSpacing.xs),

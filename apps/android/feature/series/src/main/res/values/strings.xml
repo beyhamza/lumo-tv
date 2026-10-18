@@ -47,6 +47,7 @@
     <string name="feature_series_seek_refused">Your server does not allow moving within this episode. It plays from the beginning.</string>
     <string name="feature_series_player_retry">Try again</string>
     <string name="feature_series_player_back">Back</string>
+    <string name="feature_series_player_back_to_series">Back to the series</string>
     <string name="feature_series_player_unreachable">Your server could not be reached. Check your connection, then try again.</string>
     <string name="feature_series_player_too_many_streams">Your subscription is already streaming as much as it allows. Stop another stream, then try again.</string>
     <string name="feature_series_player_too_many_streams_count">Your subscription allows %1$d simultaneous streams and they are all in use. Stop one, then try again.</string>

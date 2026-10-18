@@ -42,11 +42,15 @@ object SeriesDetailDestination : LumoDestination {
  * source is read from the episode in the cache instead.
  */
 object EpisodePlayerDestination : LumoDestination {
-    override val route: String = "series/player/{episodeId}?title={title}&at={at}"
+    override val route: String = "series/player/{episodeId}?title={title}&at={at}&series={series}"
     override val titleRes: Int = R.string.feature_series_title
 
-    fun routeFor(episodeId: String, title: String?, atMs: Long = 0L): String =
-        "series/player/$episodeId?title=${title.orEmpty()}&at=$atMs"
+    /**
+     * @param nextOfSeries the series id when a "Continue" card launches the **next**
+     *   episode of a series (CW-27): a failure then offers "Back to the series".
+     */
+    fun routeFor(episodeId: String, title: String?, atMs: Long = 0L, nextOfSeries: String? = null): String =
+        "series/player/$episodeId?title=${title.orEmpty()}&at=$atMs&series=${nextOfSeries.orEmpty()}"
 
     const val ARG_EPISODE_ID = "episodeId"
     const val ARG_TITLE = "title"
@@ -60,4 +64,7 @@ object EpisodePlayerDestination : LumoDestination {
      * The film player carries the same argument for the same reason.
      */
     const val ARG_AT = "at"
+
+    /** See [routeFor]'s `nextOfSeries`. Empty when the episode is not a next one. */
+    const val ARG_SERIES = "series"
 }

@@ -132,6 +132,11 @@ fun LumoMobileNavHost(
                     )
                 },
                 onResumeEpisode = playEpisode,
+                onPlayNextEpisode = { episodeId, title, atMs, seriesId ->
+                    navController.navigate(
+                        EpisodePlayerDestination.routeFor(episodeId, title, atMs, nextOfSeries = seriesId),
+                    )
+                },
                 onOpenFilm = { filmId ->
                     navController.navigate(VodDetailDestination.routeFor(filmId))
                 },
@@ -236,6 +241,15 @@ fun LumoMobileNavHost(
             onBack = { navController.popBackStack() },
             onOpenSources = leavePlayerForSources,
             onSourceGone = leaveDeletedSource,
+            // A next episode that failed to start (CW-27): its series' sheet. The
+            // one underneath when the player was opened from it, a new one otherwise.
+            onBackToSeries = { seriesId ->
+                val below = navController.previousBackStackEntry
+                val fromThatSeries = below?.destination?.route == SeriesDetailDestination.route &&
+                    below.arguments?.getString(SeriesDetailDestination.ARG_SERIES_ID) == seriesId
+                navController.popBackStack()
+                if (!fromThatSeries) navController.navigate(SeriesDetailDestination.routeFor(seriesId))
+            },
         )
         searchMobileScreen(
             onPlayChannel = playChannel,

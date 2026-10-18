@@ -133,6 +133,7 @@ class EpisodePlayerViewModel @Inject constructor(
                     ?: (playbackState as? PlaybackState.Failed)?.error?.asEpisodeFailure(target),
                 episode = playing.episode,
                 upNext = playing.upNext,
+                seriesBack = playing.seriesBack,
                 // Ended with nothing to follow. The screen leaves; there is no
                 // card to draw and a picture frozen on the last frame of a series
                 // is an application that has stopped answering.
@@ -176,22 +177,26 @@ class EpisodePlayerViewModel @Inject constructor(
      *   and it is a choice somebody made on the previous screen — never a default
      *   this player applied on their behalf. Episodes reached by advancing start
      *   at zero because that is where they start, not because it is a fallback.
+     * @param nextOfSeries the series, when a "Continue" card launched the **next**
+     *   episode of it (S12-05, CW-27). Should that episode fail, the way out offered
+     *   is "Back to the series" — never another episode picked on the viewer's behalf.
      */
     fun start(
         episodeId: String,
         title: String?,
         autoAdvanceSeconds: Int,
         resumeFromMs: Long = 0L,
+        nextOfSeries: String? = null,
     ) {
         if (this.episodeId == episodeId) return
         this.autoAdvanceSeconds = autoAdvanceSeconds
         this.resumeFromMs = resumeFromMs
-        open(episodeId, title)
+        open(episodeId, title, seriesBack = nextOfSeries)
     }
 
     fun retry() {
         val episodeId = episodeId ?: return
-        open(episodeId, currentTitle)
+        open(episodeId, currentTitle, seriesBack = _playing.value.seriesBack)
     }
 
     /**
@@ -241,10 +246,12 @@ class EpisodePlayerViewModel @Inject constructor(
         // the previous one's position forward would drop somebody forty minutes into
         // an episode that has not started.
         resumeFromMs = 0L
-        open(next.id, next.name)
+        // Advancing is the other way to reach a next episode: failing, it offers the
+        // series too (CW-27).
+        open(next.id, next.name, seriesBack = next.seriesId)
     }
 
-    private fun open(episodeId: String, title: String?) {
+    private fun open(episodeId: String, title: String?, seriesBack: String? = null) {
         // The episode being left keeps its own watched time and its last position
         // (the end, when advancing): taken now, before the next `play()` resets the
         // measure. Time is never carried from one episode to the next.
@@ -253,7 +260,7 @@ class EpisodePlayerViewModel @Inject constructor(
         this.currentTitle = title
         _failure.value = null
         background.reset()
-        _playing.value = Playing()
+        _playing.value = Playing(seriesBack = seriesBack)
 
         viewModelScope.launch {
             // From the cache, and before the stream: the label this screen shows
@@ -288,7 +295,12 @@ class EpisodePlayerViewModel @Inject constructor(
                     startSaving()
                 }
 
-                is LumoResult.Failure -> _failure.value = result.error.asEpisodeFailure()
+                is LumoResult.Failure -> {
+                    // Nothing chains from a failure (CW-27): no offer, no countdown.
+                    countdown?.cancel()
+                    countdown = null
+                    _failure.value = result.error.asEpisodeFailure()
+                }
             }
         }
     }
@@ -484,6 +496,7 @@ private data class Playing(
     val episode: Episode? = null,
     val upNext: UpNext? = null,
     val nextChecked: Boolean = false,
+    val seriesBack: String? = null,
 )
 
 /**
@@ -502,6 +515,11 @@ data class EpisodePlayerUiState(
     /** The episode being played, once the cache has been read. Carries its number. */
     val episode: Episode? = null,
     val upNext: UpNext? = null,
+    /**
+     * The series to offer "Back to the series" for when this episode fails — set
+     * when it is a *next* episode, from a "Continue" card or by advancing (CW-27).
+     */
+    val seriesBack: String? = null,
     /** The last episode of the series has ended. The screen leaves. */
     val finished: Boolean = false,
 )

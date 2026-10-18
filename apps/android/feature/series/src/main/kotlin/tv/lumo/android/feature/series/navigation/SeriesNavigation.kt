@@ -57,6 +57,7 @@ fun NavGraphBuilder.episodePlayerMobileScreen(
     onBack: () -> Unit,
     onOpenSources: () -> Unit,
     onSourceGone: () -> Unit,
+    onBackToSeries: (seriesId: String) -> Unit,
 ) {
     composable(
         route = EpisodePlayerDestination.route,
@@ -72,6 +73,10 @@ fun NavGraphBuilder.episodePlayerMobileScreen(
                 // here is one somebody chose on the screen before it.
                 defaultValue = 0L
             },
+            navArgument(EpisodePlayerDestination.ARG_SERIES) {
+                type = NavType.StringType
+                defaultValue = ""
+            },
         ),
     ) { entry ->
         EpisodePlayerMobileScreen(
@@ -80,9 +85,12 @@ fun NavGraphBuilder.episodePlayerMobileScreen(
             title = entry.arguments?.getString(EpisodePlayerDestination.ARG_TITLE)
                 ?.takeIf { it.isNotEmpty() },
             resumeFromMs = entry.arguments?.getLong(EpisodePlayerDestination.ARG_AT) ?: 0L,
+            nextOfSeries = entry.arguments?.getString(EpisodePlayerDestination.ARG_SERIES)
+                ?.takeIf { it.isNotEmpty() },
             onBack = onBack,
             onOpenSources = onOpenSources,
             onSourceGone = onSourceGone,
+            onBackToSeries = onBackToSeries,
         )
     }
 }
@@ -167,6 +175,7 @@ fun NavGraphBuilder.episodePlayerTvScreen(
     onBack: () -> Unit,
     onOpenSources: () -> Unit,
     onSourceGone: () -> Unit,
+    onBackToSeries: (seriesId: String) -> Unit,
 ) {
     composable(
         route = EpisodePlayerDestination.route,
@@ -182,6 +191,10 @@ fun NavGraphBuilder.episodePlayerTvScreen(
                 // here is one somebody chose on the screen before it.
                 defaultValue = 0L
             },
+            navArgument(EpisodePlayerDestination.ARG_SERIES) {
+                type = NavType.StringType
+                defaultValue = ""
+            },
         ),
     ) { entry ->
         EpisodePlayerTvScreen(
@@ -190,9 +203,12 @@ fun NavGraphBuilder.episodePlayerTvScreen(
             title = entry.arguments?.getString(EpisodePlayerDestination.ARG_TITLE)
                 ?.takeIf { it.isNotEmpty() },
             resumeFromMs = entry.arguments?.getLong(EpisodePlayerDestination.ARG_AT) ?: 0L,
+            nextOfSeries = entry.arguments?.getString(EpisodePlayerDestination.ARG_SERIES)
+                ?.takeIf { it.isNotEmpty() },
             onBack = onBack,
             onOpenSources = onOpenSources,
             onSourceGone = onSourceGone,
+            onBackToSeries = onBackToSeries,
         )
     }
 }
