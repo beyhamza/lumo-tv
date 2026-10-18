@@ -1,9 +1,11 @@
 package tv.lumo.android.core.player
 
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -26,6 +28,9 @@ class TrackChoicesTest {
         override fun selectAudioTrack(id: String) { calls += "audio:$id" }
         override fun selectSubtitleTrack(id: String?) { calls += "text:$id" }
         override fun selectVideoQuality(id: String?) { calls += "video:$id" }
+        override val trackChangeFailures = MutableSharedFlow<TrackKind>(extraBufferCapacity = 1)
+        override fun settleTrackChange(kind: TrackKind) { calls += "settle:$kind" }
+        override fun revertTrackChange(kind: TrackKind) { calls += "revert:$kind" }
         override fun seekTo(positionMs: Long) {}
         override fun pause() {}
         override fun resume() {}
@@ -35,7 +40,7 @@ class TrackChoicesTest {
 
     private val options = TrackOptions(
         known = true,
-        audio = listOf(audio("0:0", "en"), audio("0:1", "fr"), audio("0:2", null)),
+        audio = listOf(audio("0:0", "en", selected = true), audio("0:1", "fr"), audio("0:2", null)),
         subtitles = listOf(text("2:0", "fr"), text("2:1", null)),
         qualities = listOf(quality("1:0"), quality("1:1")),
     )
@@ -126,14 +131,89 @@ class TrackChoicesTest {
         assertThat(saved).isEmpty()
     }
 
-    private fun setUp(scope: TestScope, save: suspend (TrackPreferences) -> Boolean): Pair<FakePlayer, TrackChoices> {
-        val player = FakePlayer(options)
-        return player to TrackChoices(player, scope, save)
+    // ---- PS-07: changing, confirmed, failed -------------------------------------
+
+    @Test
+    fun `a choice is pending until the player shows it, then settled`() = runTest {
+        val (player, choices) = setUp(this) { true }
+        choices.opened(TrackPreferences.NONE)
+
+        choices.selectAudio("0:1")
+        runCurrent()
+        assertThat(choices.changes.value[TrackKind.AUDIO])
+            .isEqualTo(TrackChange.Pending(TrackKind.AUDIO, "0:1", "0:0", testScheduler.currentTime))
+
+        advanceTimeBy(2_000)
+        player.trackOptions.value = options.copy(
+            audio = listOf(audio("0:0", "en", selected = false), audio("0:1", "fr", selected = true), audio("0:2", null)),
+        )
+        runCurrent()
+
+        assertThat(choices.changes.value).isEmpty()
+        assertThat(player.calls).containsExactly("audio:0:1", "settle:AUDIO").inOrder()
     }
 
-    private fun audio(id: String, language: String?) = AudioTrack(
+    @Test
+    fun `no answer in time fails, the player puts the previous selection back, and nothing loops`() = runTest {
+        val (player, choices) = setUp(this) { true }
+        choices.opened(TrackPreferences.NONE)
+
+        choices.selectSubtitle("2:0")
+        advanceTimeBy(TrackChangeRules.TIMEOUT_MS - 1)
+        runCurrent()
+        assertThat(choices.changes.value[TrackKind.SUBTITLES]).isInstanceOf(TrackChange.Pending::class.java)
+
+        advanceTimeBy(2)
+        runCurrent()
+        assertThat(choices.changes.value[TrackKind.SUBTITLES])
+            .isEqualTo(TrackChange.Failed(TrackKind.SUBTITLES, target = "2:0", previous = null))
+        assertThat(player.calls).containsExactly("text:2:0", "revert:SUBTITLES").inOrder()
+
+        // An hour later: still one failure, no second attempt on its own.
+        advanceTimeBy(3_600_000)
+        runCurrent()
+        assertThat(player.calls).containsExactly("text:2:0", "revert:SUBTITLES").inOrder()
+    }
+
+    @Test
+    fun `a player error during the change fails it, and Retry asks once more`() = runTest {
+        val (player, choices) = setUp(this) { true }
+        choices.opened(TrackPreferences.NONE)
+
+        choices.selectQuality("1:1")
+        runCurrent()
+        player.trackChangeFailures.emit(TrackKind.QUALITY)
+        runCurrent()
+        assertThat(choices.changes.value[TrackKind.QUALITY])
+            .isEqualTo(TrackChange.Failed(TrackKind.QUALITY, target = "1:1", previous = null))
+        // The playback itself was never failed by this.
+        assertThat(player.state.value).isEqualTo(PlaybackState.Idle)
+
+        choices.retry(TrackKind.QUALITY)
+        runCurrent()
+        assertThat(choices.changes.value[TrackKind.QUALITY]).isInstanceOf(TrackChange.Pending::class.java)
+        assertThat(player.calls.filter { it.startsWith("video:") }).containsExactly("video:1:1", "video:1:1")
+    }
+
+    @Test
+    fun `a new stream forgets a pending change`() = runTest {
+        val (_, choices) = setUp(this) { true }
+        choices.opened(TrackPreferences.NONE)
+        choices.selectAudio("0:1")
+        runCurrent()
+
+        choices.opened(TrackPreferences.NONE)
+        assertThat(choices.changes.value).isEmpty()
+    }
+
+    private fun setUp(scope: TestScope, save: suspend (TrackPreferences) -> Boolean): Pair<FakePlayer, TrackChoices> {
+        val player = FakePlayer(options)
+        return player to TrackChoices(player, scope, clock = { scope.testScheduler.currentTime }, save = save)
+    }
+
+    private fun audio(id: String, language: String?, selected: Boolean = false) = AudioTrack(
         id = id, language = language, label = null, mimeType = null, channelCount = null,
-        selected = false, playable = true,
+        selected = selected, playable = true,
     )
 
     private fun text(id: String, language: String?) = SubtitleTrack(

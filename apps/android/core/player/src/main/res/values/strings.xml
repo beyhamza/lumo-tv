@@ -19,6 +19,10 @@
     <string name="core_player_subtitle_language_unavailable">Your subtitle language is unavailable</string>
     <string name="core_player_no_other_quality">No other quality available</string>
     <string name="core_player_preference_not_saved">Applied for this playback. Preference not saved</string>
+    <!-- PS-07: a track or quality change the player has not confirmed yet, or did not apply. -->
+    <string name="core_player_track_change_pending">Changing…</string>
+    <string name="core_player_track_change_failed">This choice could not be applied. The previous selection is kept.</string>
+    <string name="core_player_track_change_retry">Try again</string>
     <string name="core_player_quality_height" translatable="false">%1$dp</string>
     <string name="core_player_quality_bitrate">%1$s Mb/s</string>
 </resources>

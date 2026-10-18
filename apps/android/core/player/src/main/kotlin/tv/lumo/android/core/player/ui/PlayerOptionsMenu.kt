@@ -2,8 +2,10 @@ package tv.lumo.android.core.player.ui
 
 import android.content.res.Resources
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
 import tv.lumo.android.core.designsystem.component.LumoAudioTrackChoice
 import tv.lumo.android.core.designsystem.component.LumoOptionSection
@@ -11,7 +13,9 @@ import tv.lumo.android.core.designsystem.component.LumoPlayerOptionsSheet
 import tv.lumo.android.core.designsystem.component.LumoTvPlayerOptionsSheet
 import tv.lumo.android.core.player.R
 import tv.lumo.android.core.player.SubtitleTrack
+import tv.lumo.android.core.player.TrackChange
 import tv.lumo.android.core.player.TrackChoices
+import tv.lumo.android.core.player.TrackKind
 import tv.lumo.android.core.player.TrackOptions
 import tv.lumo.android.core.player.VideoQuality
 import tv.lumo.android.core.player.spokenName
@@ -32,6 +36,13 @@ import tv.lumo.android.core.player.spokenName
  *
  * The menu opens from the screens only once the stream has declared its tracks
  * ([TrackOptions.known]): before that, "no subtitles" would be a guess.
+ *
+ * <h2>A change in progress, or one that did not apply (PS-07)</h2>
+ *
+ * While the player has not confirmed a choice, its block says "Changing…" and
+ * keeps the tick on what is playing. If the change fails, the block says so with
+ * one Retry, and the tick stays on the previous selection — the player put it
+ * back. Read from [TrackChoices.changes]; the screens pass nothing more.
  */
 enum class PlayerOptionGroup { AUDIO, SUBTITLES, QUALITY }
 
@@ -49,11 +60,12 @@ fun PlayerOptionsSheet(
     groups: Set<PlayerOptionGroup>,
     onDismiss: () -> Unit,
 ) {
+    val changes by choices.changes.collectAsStateWithLifecycle()
     LumoPlayerOptionsSheet(
         title = stringResource(
             if (groups == setOf(PlayerOptionGroup.QUALITY)) R.string.core_player_quality else R.string.core_player_audio_subtitles,
         ),
-        sections = optionSections(options, groups),
+        sections = optionSections(options, groups, changes, choices::retry),
         onSelect = { section, id -> choices.onSelect(section, id) },
         onDismiss = onDismiss,
         banner = bannerOf(notSaved),
@@ -68,9 +80,10 @@ fun TvPlayerOptionsSheet(
     notSaved: Boolean,
     onDismiss: () -> Unit,
 ) {
+    val changes by choices.changes.collectAsStateWithLifecycle()
     LumoTvPlayerOptionsSheet(
         title = stringResource(R.string.core_player_options_title),
-        sections = optionSections(options, ALL_OPTION_GROUPS),
+        sections = optionSections(options, ALL_OPTION_GROUPS, changes, choices::retry),
         onSelect = { section, id -> choices.onSelect(section, id) },
         onDismiss = onDismiss,
         banner = bannerOf(notSaved),
@@ -94,7 +107,44 @@ private fun TrackChoices.onSelect(section: String, id: String) {
 }
 
 @Composable
-private fun optionSections(options: TrackOptions, groups: Set<PlayerOptionGroup>): List<LumoOptionSection> {
+private fun optionSections(
+    options: TrackOptions,
+    groups: Set<PlayerOptionGroup>,
+    changes: Map<TrackKind, TrackChange>,
+    onRetry: (TrackKind) -> Unit,
+): List<LumoOptionSection> {
+    val sections = plainSections(options, groups)
+    if (changes.isEmpty()) return sections
+    val changing = stringResource(R.string.core_player_track_change_pending)
+    val failed = stringResource(R.string.core_player_track_change_failed)
+    val retry = stringResource(R.string.core_player_track_change_retry)
+    return sections.map { section ->
+        val kind = section.key.kind() ?: return@map section
+        when (val change = changes[kind]) {
+            is TrackChange.Pending -> section.showingEffective(change.previous)
+                .copy(status = changing)
+            is TrackChange.Failed -> section.showingEffective(change.previous)
+                .copy(status = failed, statusIsError = true, actionLabel = retry, onAction = { onRetry(kind) })
+            else -> section
+        }
+    }
+}
+
+/** The tick on [previous] — what is playing — rather than on the choice not yet confirmed. */
+private fun LumoOptionSection.showingEffective(previous: String?): LumoOptionSection {
+    val shown = previous ?: if (key == SECTION_QUALITY) AUTO_ID else OFF_ID
+    return copy(choices = choices.map { it.copy(selected = it.id == shown) })
+}
+
+private fun String.kind(): TrackKind? = when (this) {
+    SECTION_AUDIO -> TrackKind.AUDIO
+    SECTION_SUBTITLES -> TrackKind.SUBTITLES
+    SECTION_QUALITY -> TrackKind.QUALITY
+    else -> null
+}
+
+@Composable
+private fun plainSections(options: TrackOptions, groups: Set<PlayerOptionGroup>): List<LumoOptionSection> {
     val resources = LocalContext.current.resources
     val numbered: (Int) -> String = { resources.getString(R.string.core_player_track_number, it) }
     val unsupported = stringResource(R.string.core_player_track_unsupported)
