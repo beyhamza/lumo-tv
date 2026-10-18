@@ -286,6 +286,13 @@ fun PlayerTvScreen(
         }
 
         if (pickingAudio) {
+            // BACK closes the panel and only the panel. The system delivers it to
+            // the back dispatcher before any key listener sees it, so without this
+            // handler — registered after the screen's — it left the player too.
+            BackHandler {
+                pickingAudio = false
+                runCatching { surface.requestFocus() }
+            }
             TvPlayerOptionsSheet(
                 options = trackOptions,
                 choices = viewModel.trackChoices,

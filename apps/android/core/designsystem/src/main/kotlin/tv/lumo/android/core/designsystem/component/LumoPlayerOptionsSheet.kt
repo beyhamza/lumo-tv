@@ -54,6 +54,7 @@ fun LumoPlayerOptionsSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     banner: String? = null,
+    bannerIsError: Boolean = false,
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -78,7 +79,11 @@ fun LumoPlayerOptionsSheet(
                         Text(
                             text = it,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
+                            color = if (bannerIsError) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         )
                     }

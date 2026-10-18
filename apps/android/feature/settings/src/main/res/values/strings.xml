@@ -50,7 +50,7 @@
     <string name="feature_settings_unknown_value" translatable="false">—</string>
 
     <!-- S13-03/05: the playback entries the player needs. The full Playback section is S13-04. -->
-    <string name="feature_settings_section_playback">Playback</string>
+    <string name="feature_settings_section_playback">PLAYBACK</string>
     <string name="feature_settings_autoplay_next">Next episode automatically</string>
     <string name="feature_settings_autoplay_next_note">On this device. Off: the next episode is offered without a countdown.</string>
     <string name="feature_settings_mobile_data">Playback on mobile data</string>

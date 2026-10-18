@@ -25,7 +25,7 @@
     <string name="feature_settings_guides">Guides</string>
     <string name="feature_settings_version">Version</string>
 
-    <string name="feature_settings_section_playback">Lecture</string>
+    <string name="feature_settings_section_playback">LECTURE</string>
     <string name="feature_settings_autoplay_next">Épisode suivant automatique</string>
     <string name="feature_settings_autoplay_next_note">Sur cet appareil. Désactivé : l\'épisode suivant est proposé sans décompte.</string>
     <string name="feature_settings_mobile_data">Lecture sur données mobiles</string>

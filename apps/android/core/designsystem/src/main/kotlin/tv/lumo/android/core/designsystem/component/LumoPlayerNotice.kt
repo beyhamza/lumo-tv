@@ -1,5 +1,6 @@
 package tv.lumo.android.core.designsystem.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,7 +18,10 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import tv.lumo.android.core.designsystem.theme.LumoShapes
 import tv.lumo.android.core.designsystem.theme.LumoSpacing
+
+private const val SCRIM_ALPHA = 0.8f
 
 /** One button of a [LumoPlayerNotice]. The first one is drawn as the main action. */
 data class LumoNoticeAction(val label: String, val onClick: () -> Unit)
@@ -39,6 +43,10 @@ fun LumoPlayerNotice(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .padding(LumoSpacing.md)
+            // The last frame can stay on the surface behind it: a scrim keeps the
+            // sentence readable over any picture.
+            .background(Color.Black.copy(alpha = SCRIM_ALPHA), LumoShapes.large)
             .padding(LumoSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LumoSpacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,

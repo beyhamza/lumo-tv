@@ -57,6 +57,7 @@ fun PlayerOptionsSheet(
         onSelect = { section, id -> choices.onSelect(section, id) },
         onDismiss = onDismiss,
         banner = bannerOf(notSaved),
+        bannerIsError = notSaved,
     )
 }
 
