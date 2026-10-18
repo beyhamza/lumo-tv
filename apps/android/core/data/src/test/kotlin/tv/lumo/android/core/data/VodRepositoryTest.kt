@@ -273,6 +273,36 @@ class VodRepositoryTest {
     }
 
     @Test
+    fun `CW-28 a film a successful lookup leaves out is gone, with the title the cache knew`() = runTest {
+        val kept = UUID.randomUUID().toString()
+        val dropped = UUID.randomUUID().toString()
+        // Both cached: the phone played them, then a resync dropped one.
+        server.enqueue(json("""{"items":[${vodItem(id = kept, name = "Le Phare", plot = "x")},${vodItem(id = dropped, name = "La Dune", plot = "x")}],"page":0,"size":100,"total_elements":2,"total_pages":1}"""))
+        repository().filmsByIds(sourceId, listOf(kept, dropped))
+        server.takeRequest()
+
+        server.enqueue(json("""{"items":[${vodItem(id = kept, name = "Le Phare", plot = "x")}],"page":0,"size":100,"total_elements":1,"total_pages":1}"""))
+        val lookup = repository().resolveFilms(sourceId, listOf(kept, dropped))
+
+        // Asked although both are cached: only the server can say one is gone.
+        assertThat(server.takeRequest().requestUrl?.queryParameterValues("ids")).containsExactly(kept, dropped)
+        assertThat(lookup.failure).isNull()
+        assertThat(lookup.found.map { it.id }).containsExactly(kept)
+        assertThat(lookup.gone).containsExactly(dropped, "La Dune")
+    }
+
+    @Test
+    fun `CW-28 a failed lookup proves nothing - the cache answers and nothing is gone`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(503))
+
+        val lookup = repository().resolveFilms(sourceId, listOf(UUID.randomUUID().toString()))
+
+        assertThat(lookup.gone).isEmpty()
+        assertThat(lookup.found).isEmpty()
+        assertThat(lookup.failure).isNotNull()
+    }
+
+    @Test
     fun `the film count is the listing's total, asked with one row`() = runTest {
         server.enqueue(
             json("""{"items":[],"page":0,"size":1,"total_elements":1248,"total_pages":1248}"""),

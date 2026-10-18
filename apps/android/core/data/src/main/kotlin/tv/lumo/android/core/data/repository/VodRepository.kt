@@ -336,6 +336,52 @@ class VodRepository @Inject internal constructor(
         vodDao.byIds(ids).map { it.asVodItem() }
     }
 
+    /**
+     * The films of a "Continue" rail, **always asked of the server** (S12-05, CW-28).
+     *
+     * Unlike [filmsByIds], which only asks for what the cache lacks, this asks for
+     * every id: the cache keeps a film a re-synchronisation dropped, and only the
+     * server can say it is gone. Still one request for the whole rail.
+     *
+     * - The server answered: what it answered is written to the cache and returned;
+     *   an id it was asked for and left out is **gone** — the contract's "unknown
+     *   identifiers are absent from the answer".
+     * - It did not (offline, `5xx`, `409` during a refresh): what the cache holds is
+     *   returned, nothing is gone, and [FilmLookup.failure] says why — an outage
+     *   proves nothing about a film (S11-05).
+     */
+    suspend fun resolveFilms(sourceId: String, ids: List<String>): FilmLookup = withContext(io) {
+        if (ids.isEmpty()) return@withContext FilmLookup(emptyList(), emptyMap(), failure = null)
+
+        val asked = ids.distinct().take(MAX_RESOLVED_IDS)
+            .mapNotNull { id -> runCatching { UUID.fromString(id) }.getOrNull()?.let { id to it } }
+        val cached = vodDao.byIds(ids).map { it.asVodItem() }
+
+        val resolved = if (asked.isEmpty()) {
+            null
+        } else {
+            calls.call {
+                api.listVod(UUID.fromString(sourceId), ids = asked.map { it.second }, page = 0, size = MAX_RESOLVED_IDS)
+            }
+        }
+        when (resolved) {
+            is LumoResult.Success -> {
+                vodDao.upsert(resolved.value.items.map { it.asEntity() })
+                val answered = resolved.value.items.mapTo(HashSet()) { it.id.toString() }
+                val gone = asked.map { it.first }.filterNot { it in answered }.toSet()
+                val names = cached.associate { it.id to it.name }
+                FilmLookup(
+                    found = vodDao.byIds(ids).map { it.asVodItem() }.filterNot { it.id in gone },
+                    gone = gone.associateWith { names[it] },
+                    failure = null,
+                )
+            }
+
+            is LumoResult.Failure -> FilmLookup(cached, emptyMap(), failure = resolved)
+            null -> FilmLookup(cached, emptyMap(), failure = null)
+        }
+    }
+
     /** How many films the cache holds for a source. Drives the empty state. */
     suspend fun cachedFilmCount(sourceId: String): Int =
         withContext(io) { vodDao.countForSource(sourceId) }
@@ -396,6 +442,20 @@ class VodRepository @Inject internal constructor(
             staleReason = stale[sourceId],
         )
     }
+
+    /**
+     * What [resolveFilms] found.
+     *
+     * @property gone the ids the server, asked, did not answer — with the title this
+     *   device last knew them by, or null.
+     * @property failure the lookup itself failed: [found] is the cache's answer and
+     *   [gone] is empty, because nothing was proven.
+     */
+    data class FilmLookup(
+        val found: List<VodItem>,
+        val gone: Map<String, String?>,
+        val failure: LumoResult.Failure?,
+    )
 
     private companion object {
         /** The contract's cap. Fewer round trips for the same thirty thousand rows. */

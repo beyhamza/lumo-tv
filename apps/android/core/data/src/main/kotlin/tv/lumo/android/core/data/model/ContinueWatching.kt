@@ -49,7 +49,53 @@ sealed interface ContinueItem {
         override val sourceId: String get() = resume.series.sourceId
         override val updatedAtMillis: Long get() = resume.updatedAtMillis
     }
+
+    /**
+     * A card whose film or episode the server no longer has (S12-05, CW-28).
+     *
+     * Only ever built from a **successful** lookup that left the item out; a lookup
+     * that failed proves nothing and keeps the cards as they were (S11-05). Its one
+     * action is "Remove from Continue watching"; selecting it says the content is no
+     * longer in the catalogue. The progress row is never deleted from here.
+     *
+     * @property title what this device last called it, or null for a generic label.
+     * @property ref the film or episode id of the progress row: what a removal names.
+     */
+    data class Unavailable(
+        override val key: String,
+        override val sourceId: String,
+        override val updatedAtMillis: Long,
+        val title: String?,
+        val kind: UnavailableKind,
+        val ref: String,
+    ) : ContinueItem
 }
+
+/** Which catalogue an [ContinueItem.Unavailable] card came from, and leads back to. */
+enum class UnavailableKind { FILM, EPISODE }
+
+/**
+ * The film rows whose film is gone, as cards (CW-28).
+ *
+ * The rail's own filter applies — in the rail, not hidden, not finished — so a gone
+ * film nobody would have seen a card for does not get one now.
+ *
+ * @param gone ids a successful lookup did not answer, with their last known title.
+ */
+fun unavailableFilms(rows: List<WatchProgress>, gone: Map<String, String?>): List<ContinueItem.Unavailable> =
+    rows.filter { it.inContinue && it.filmId in gone }
+        .distinctBy { it.filmId }
+        .map { row ->
+            ContinueItem.Unavailable(
+                // The film's own key: the card keeps its place and its focus.
+                key = "film:${row.filmId}",
+                sourceId = row.sourceId,
+                updatedAtMillis = row.updatedAtMillis,
+                title = gone[row.filmId],
+                kind = UnavailableKind.FILM,
+                ref = row.filmId,
+            )
+        }
 
 /**
  * How many cards a home rail holds.
@@ -101,6 +147,8 @@ fun resumableFilms(rows: List<WatchProgress>, films: List<VodItem>): List<Resuma
  *   reaches this far — it has no card — while a finished *episode* with a
  *   successor arrives as a card for that successor at position zero, which is not
  *   finished and stays.
+ * - **Gone items stay, as such** (CW-28): [unavailable] cards take their place in
+ *   the order like any other.
  * - **Capped at [limit]**, after the merge and not before: cutting each list first
  *   would let twelve old films push out the episode watched an hour ago.
  */
@@ -109,6 +157,7 @@ fun continueWatchingOf(
     series: List<ResumableSeries>,
     sourceId: String?,
     limit: Int = HOME_RAIL_SIZE,
+    unavailable: List<ContinueItem.Unavailable> = emptyList(),
 ): List<ContinueItem> {
     if (sourceId == null) return emptyList()
 
@@ -121,7 +170,11 @@ fun continueWatchingOf(
         .distinctBy { it.series.id }
         .map(ContinueItem::Show)
 
-    return (filmCards + seriesCards)
+    // A gone item never shares a key with a live card: the lookups exclude it.
+    val taken = (filmCards + seriesCards).mapTo(HashSet()) { it.key }
+    val goneCards = unavailable.distinctBy { it.key }.filterNot { it.key in taken }
+
+    return (filmCards + seriesCards + goneCards)
         .filter { it.sourceId == sourceId }
         .sortedByDescending { it.updatedAtMillis }
         .take(limit)

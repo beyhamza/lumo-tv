@@ -214,4 +214,12 @@ data class ResumableSeries(
     val positionMs: Long,
     val updatedAtMillis: Long = 0L,
     val rowEpisodeId: String = episode.id,
-)
+) {
+    /**
+     * The card offers the episode **after** the one last watched (CW-19/12/21). A
+     * launch that fails then leads back to the series, never to another episode
+     * (CW-27).
+     */
+    val offersNext: Boolean
+        get() = rowEpisodeId != episode.id
+}
