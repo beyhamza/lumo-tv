@@ -6,15 +6,29 @@ relative : XL. Préférences de lecture locales à l'appareil : pas de changemen
 
 ## Avancement
 
-- [ ] S13-00 — matrice des capacités des lecteurs — 0 % (établie par chaque surface au fil de S13-01)
-- [ ] S13-01 — audio, sous-titres, qualité avec états honnêtes — 0 % (web, Android en cours)
-- [ ] S13-02 — préférences locales, replis, retour Automatique — 0 % (web, Android en cours)
-- [ ] S13-03 — enchaînement d'épisodes, mode manuel, décomptes 10 s TV / 5 s mobile-web — 0 % (web, Android en cours)
-- [ ] S13-04 — cinq rubriques Réglages — 0 % (web en cours ; Android en seconde vague)
-- [ ] S13-05 — lancements bloqués hors Wi-Fi selon préférence (mobile) — 0 % (Android en cours)
+- [ ] S13-00 — matrice des capacités des lecteurs — 50 % : colonnes web et Android établies (pistes
+  exposées par le navigateur / Media3, limites nommées) ; **il manque des médias de banc autorisés**
+  multipistes, sous-titrés et multi-qualités pour vérifier les changements réels.
+- [ ] S13-01 — audio, sous-titres, qualité avec états honnêtes — 80 % : web (menus des trois lecteurs)
+  et Android (mobile, TV ; sous-titres bitmap indiqués « non pris en charge »). Changement réel de
+  piste non vérifié faute de média ; l'état « changement en cours / échec, réessayer » (PS-07) reste à
+  faire sur Android.
+- [ ] S13-02 — préférences locales, replis, retour Automatique — 85 % : web (localStorage par compte)
+  et Android (DataStore par compte), langue d'interface comme valeur initiale, sous-titres coupés.
+- [ ] S13-03 — enchaînement d'épisodes — 85 % : décompte 5 s web/mobile et 10 s TV, mode manuel,
+  dernier épisode, reprise d'un suivant déjà commencé. Vérifié de bout en bout sur le web ; sur
+  Android, tests seulement (flux de série du banc injoignables depuis l'émulateur).
+- [ ] S13-04 — cinq rubriques Réglages — 60 % : web fait (dont langue d'interface) ; Android : seuls
+  les interrupteurs de lecture sont posés, les rubriques restent à faire (seconde vague).
+- [ ] S13-05 — lecture bloquée hors Wi-Fi (mobile) — 90 % : réglage « Lecture sur données mobiles »,
+  aucun lancement ni requête bloqué, arrêt si le réseau bascule, reprise proposée au retour du Wi-Fi.
+  Vérifié sur l'émulateur téléphone.
 - [ ] S13-06 — recette des capacités — reportée à la recette groupée 0.3.0
 
-**Avancement global ≈ 0 %**.
+Branches : `feat/S13-web` (fusionnée, PR #76) et `feat/S13-android-player` (tests 879/879, menus,
+blocage Wi-Fi et retour TV vérifiés sur émulateur).
+
+**Avancement global ≈ 75 %**.
 Référence : [plan et DoD commune](../roadmap/0.2.0/delivery-plan.md).
 
 ## Objectif
