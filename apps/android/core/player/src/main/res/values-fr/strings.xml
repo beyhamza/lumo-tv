@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="core_player_options_title">Audio, sous-titres et qualité</string>
+    <string name="core_player_options_scope">Les langues sont mémorisées sur cet appareil. La qualité vaut pour cette lecture uniquement.</string>
+    <string name="core_player_options_hint_tv">▲ Audio, sous-titres et qualité</string>
+    <string name="core_player_audio_subtitles">Audio et sous-titres</string>
+    <string name="core_player_audio">Audio</string>
+    <string name="core_player_subtitles">Sous-titres</string>
+    <string name="core_player_quality">Qualité</string>
+    <string name="core_player_subtitles_off">Désactivés</string>
+    <string name="core_player_quality_auto">Automatique</string>
+    <string name="core_player_track_number">Piste %1$d</string>
+    <string name="core_player_track_unsupported">Cette piste n\'est pas prise en charge sur cet appareil</string>
+    <string name="core_player_subtitle_forced">Forcés</string>
+    <string name="core_player_no_audio">Ce flux ne déclare aucune piste audio</string>
+    <string name="core_player_no_other_audio">Aucune autre piste audio disponible</string>
+    <string name="core_player_no_subtitles">Aucun sous-titre dans ce flux</string>
+    <string name="core_player_subtitle_language_unavailable">Votre langue de sous-titres n\'est pas disponible</string>
+    <string name="core_player_no_other_quality">Aucune autre qualité disponible</string>
+    <string name="core_player_preference_not_saved">Appliqué pour cette lecture. Préférence non enregistrée</string>
+    <string name="core_player_quality_bitrate">%1$s Mb/s</string>
+</resources>

@@ -11,6 +11,9 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackGroup
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
+import androidx.media3.common.Format
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -31,6 +34,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import tv.lumo.android.core.common.playback.TrackPreferences
 
 /**
  * Media3 behind [LumoPlayer].
@@ -71,6 +75,34 @@ internal class Media3LumoPlayer @Inject constructor(
      * resolve to nothing instead of to whatever occupies that slot today.
      */
     private var trackSlots: Map<String, TrackSlot> = emptyMap()
+
+    /** As [trackSlots], for subtitles and video variants (S13-01). */
+    private var textSlots: Map<String, TrackSlot> = emptyMap()
+    private var videoSlots: Map<String, TrackSlot> = emptyMap()
+
+    private val _trackOptions = MutableStateFlow(TrackOptions())
+    override val trackOptions: StateFlow<TrackOptions> = _trackOptions.asStateFlow()
+
+    /**
+     * The text of the subtitles on screen right now, for `LumoVideoSurface`.
+     *
+     * Text only: bitmap formats are published as unplayable in [trackOptions]
+     * rather than drawn as nothing.
+     */
+    private val _cues = MutableStateFlow<List<String>>(emptyList())
+    override val cues: StateFlow<List<String>> = _cues.asStateFlow()
+
+    /**
+     * The languages to apply when the stream declares its tracks, then null.
+     *
+     * Applied once per stream: after that, what the viewer picks in the menu is
+     * the last word for this stream (PS rules, "un choix manuel prime").
+     */
+    private var pendingPreferences: TrackPreferences? = null
+    private var subtitleLanguageUnavailable: Boolean = false
+
+    /** The variant pinned by hand, or null in automatic. Never carried to the next stream. */
+    private var manualQualityId: String? = null
 
     private data class TrackSlot(val group: TrackGroup, val index: Int, val playable: Boolean)
 
@@ -142,6 +174,8 @@ internal class Media3LumoPlayer @Inject constructor(
         // is a real want, and a real feature — it is a preference expressed in
         // languages, not an index, and it is not this.
         clearAudioSelection()
+        clearOtherSelections()
+        preferTracks(request.trackPreferences)
         _state.value = PlaybackState.Buffering
         _progress.value = PlaybackProgress(
             seek = if (request.isLive) SeekAvailability.LIVE else SeekAvailability.UNKNOWN,
@@ -211,6 +245,53 @@ internal class Media3LumoPlayer @Inject constructor(
             .build()
     }
 
+    override fun selectSubtitleTrack(id: String?) {
+        if (id == null) {
+            exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                .buildUpon()
+                .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                // Disabled rather than "no override": with no override Media3 is
+                // free to pick a forced or default track by itself, and Off has to
+                // mean none at all (PS-05).
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+                .build()
+            subtitleLanguageUnavailable = false
+            publishOptions()
+            return
+        }
+        val slot = textSlots[id] ?: return
+        if (!slot.playable) return
+
+        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+            .buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+            .setOverrideForType(TrackSelectionOverride(slot.group, slot.index))
+            .build()
+        subtitleLanguageUnavailable = false
+        publishOptions()
+    }
+
+    override fun selectVideoQuality(id: String?) {
+        if (id == null) {
+            manualQualityId = null
+            exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                .buildUpon()
+                .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+                .build()
+            publishOptions()
+            return
+        }
+        val slot = videoSlots[id] ?: return
+        if (!slot.playable) return
+
+        manualQualityId = id
+        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+            .buildUpon()
+            .setOverrideForType(TrackSelectionOverride(slot.group, slot.index))
+            .build()
+        publishOptions()
+    }
+
     override fun pause() {
         exoPlayer.playWhenReady = false
     }
@@ -236,6 +317,7 @@ internal class Media3LumoPlayer @Inject constructor(
         currentTitle = null
         seekInFlight = false
         clearAudioSelection()
+        clearOtherSelections()
         _state.value = PlaybackState.Idle
         _progress.value = PlaybackProgress()
     }
@@ -256,6 +338,80 @@ internal class Media3LumoPlayer @Inject constructor(
             .buildUpon()
             .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
             .build()
+    }
+
+    /**
+     * Subtitles and quality, forgotten with the stream they were chosen in.
+     *
+     * The quality override above all: a variant pinned on one film must not
+     * follow somebody into the next one, which starts in automatic (S13-02).
+     */
+    private fun clearOtherSelections() {
+        textSlots = emptyMap()
+        videoSlots = emptyMap()
+        manualQualityId = null
+        pendingPreferences = null
+        subtitleLanguageUnavailable = false
+        _cues.value = emptyList()
+        _trackOptions.value = TrackOptions()
+        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+            .buildUpon()
+            .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+            .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+            .setPreferredAudioLanguage(null)
+            .setPreferredTextLanguage(null)
+            .build()
+    }
+
+    /**
+     * Hints Media3 towards the preferred languages before anything is loaded.
+     *
+     * Only a hint, so the first frames are already in the right language most of
+     * the time; the rules themselves are applied — and Media3's choice corrected
+     * where it differs — once the tracks are known, in [applyPreferences].
+     */
+    private fun preferTracks(preferences: TrackPreferences?) {
+        pendingPreferences = preferences
+        if (preferences == null) return
+        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+            .buildUpon()
+            .setPreferredAudioLanguage(preferences.audioLanguage)
+            .setPreferredTextLanguage(preferences.subtitleLanguage.takeIf { preferences.subtitlesEnabled })
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !preferences.subtitlesEnabled)
+            .build()
+    }
+
+    /** Once per stream, when its tracks are first known. See [chooseInitialTracks]. */
+    private fun applyPreferences(preferences: TrackPreferences) {
+        val options = _trackOptions.value
+        val initial = chooseInitialTracks(options.audio, options.subtitles, preferences)
+        subtitleLanguageUnavailable = initial.subtitleLanguageUnavailable
+
+        val builder = exoPlayer.trackSelectionParameters.buildUpon()
+        initial.audioId
+            ?.takeIf { id -> options.audio.none { it.id == id && it.selected } }
+            ?.let { trackSlots[it] }
+            ?.let { builder.setOverrideForType(TrackSelectionOverride(it.group, it.index)) }
+
+        val text = initial.subtitleId?.let { textSlots[it] }
+        if (text == null) {
+            builder.clearOverridesOfType(C.TRACK_TYPE_TEXT).setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+        } else {
+            builder.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                .setOverrideForType(TrackSelectionOverride(text.group, text.index))
+        }
+        exoPlayer.trackSelectionParameters = builder.build()
+    }
+
+    private fun publishOptions() {
+        _trackOptions.update {
+            it.copy(
+                qualityAuto = manualQualityId == null,
+                qualities = it.qualities.map { q -> q.copy(selected = q.id == manualQualityId) },
+                subtitleLanguageUnavailable = subtitleLanguageUnavailable,
+            )
+        }
     }
 
     override fun release() {
@@ -314,12 +470,81 @@ internal class Media3LumoPlayer @Inject constructor(
                         channelCount = format.channelCount.takeIf { it > 0 },
                         selected = group.isTrackSelected(index),
                         playable = playable,
+                        isDefault = (format.selectionFlags and C.SELECTION_FLAG_DEFAULT) != 0,
                     )
                 }
             }
 
             trackSlots = slots
             _audioTracks.value = published
+
+            val texts = LinkedHashMap<String, TrackSlot>()
+            val subtitles = ArrayList<SubtitleTrack>()
+            val videos = LinkedHashMap<String, TrackSlot>()
+            val qualities = ArrayList<VideoQuality>()
+
+            for ((groupIndex, group) in tracks.groups.withIndex()) {
+                when (group.type) {
+                    C.TRACK_TYPE_TEXT -> for (index in 0 until group.length) {
+                        val id = "$groupIndex:$index"
+                        val format = group.getTrackFormat(index)
+                        val playable = group.isTrackSupported(index) && !format.isBitmapSubtitle()
+                        texts[id] = TrackSlot(group.mediaTrackGroup, index, playable)
+                        subtitles += SubtitleTrack(
+                            id = id,
+                            language = format.language,
+                            label = format.label,
+                            mimeType = format.codecs ?: format.sampleMimeType,
+                            selected = group.isTrackSelected(index),
+                            playable = playable,
+                            forced = (format.selectionFlags and C.SELECTION_FLAG_FORCED) != 0,
+                            isDefault = (format.selectionFlags and C.SELECTION_FLAG_DEFAULT) != 0,
+                        )
+                    }
+
+                    C.TRACK_TYPE_VIDEO -> for (index in 0 until group.length) {
+                        val id = "$groupIndex:$index"
+                        val format = group.getTrackFormat(index)
+                        val playable = group.isTrackSupported(index)
+                        videos[id] = TrackSlot(group.mediaTrackGroup, index, playable)
+                        qualities += VideoQuality(
+                            id = id,
+                            width = format.width.takeIf { it > 0 },
+                            height = format.height.takeIf { it > 0 },
+                            bitrate = format.bitrate.takeIf { it > 0 },
+                            selected = id == manualQualityId,
+                            playable = playable,
+                        )
+                    }
+                }
+            }
+
+            textSlots = texts
+            videoSlots = videos
+            val known = !tracks.isEmpty
+            _trackOptions.value = TrackOptions(
+                known = known,
+                audio = published,
+                subtitles = subtitles,
+                qualities = qualities,
+                qualityAuto = manualQualityId == null,
+                subtitleLanguageUnavailable = subtitleLanguageUnavailable,
+            )
+
+            // Once, on the first answer: what the viewer picks afterwards is the
+            // last word for this stream.
+            val preferences = pendingPreferences
+            if (known && preferences != null) {
+                pendingPreferences = null
+                applyPreferences(preferences)
+                publishOptions()
+            }
+        }
+
+        override fun onCues(cueGroup: CueGroup) {
+            _cues.value = cueGroup.cues.mapNotNull { cue ->
+                cue.text?.toString()?.takeIf { it.isNotBlank() }
+            }
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -482,7 +707,27 @@ private const val PLAYER_READ_TIMEOUT_MS = 15_000
 /** Media3-aware view of [LumoPlayer], visible only inside `core:player`. */
 internal interface Media3Player : LumoPlayer {
     val exoPlayer: ExoPlayer
+
+    /** The subtitle text to draw over the picture right now. */
+    val cues: StateFlow<List<String>>
 }
+
+/**
+ * Subtitles that are pictures rather than text.
+ *
+ * Media3 parses them, but the product's subtitle layer draws text only, so they
+ * would show nothing: they are offered as unavailable instead (S13-01). Since
+ * Media3 1.4 subtitles are parsed during extraction and the original format
+ * moves to `codecs`, hence both fields.
+ */
+private fun Format.isBitmapSubtitle(): Boolean =
+    listOfNotNull(sampleMimeType, codecs).any { it in BITMAP_SUBTITLE_TYPES }
+
+private val BITMAP_SUBTITLE_TYPES = setOf(
+    MimeTypes.APPLICATION_PGS,
+    MimeTypes.APPLICATION_DVBSUBS,
+    MimeTypes.APPLICATION_VOBSUB,
+)
 
 private fun PlaybackException.toLumoError(): PlaybackError = when (errorCode) {
     PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,

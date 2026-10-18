@@ -120,7 +120,7 @@ fun LumoTvAudioTrackSheet(
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs)) {
                 items(tracks, key = { it.id }) { track ->
-                    TrackRow(
+                    TvTrackRow(
                         track = track,
                         onSelect = {
                             onSelect(track.id)
@@ -139,7 +139,7 @@ fun LumoTvAudioTrackSheet(
 }
 
 @Composable
-private fun TrackRow(
+internal fun TvTrackRow(
     track: LumoAudioTrackChoice,
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,

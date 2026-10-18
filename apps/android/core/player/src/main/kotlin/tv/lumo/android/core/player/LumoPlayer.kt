@@ -1,6 +1,8 @@
 package tv.lumo.android.core.player
 
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import tv.lumo.android.core.common.playback.TrackPreferences
 
 /**
  * Playback, with no opinion about the shape of the device.
@@ -44,6 +46,18 @@ interface LumoPlayer {
      */
     val audioTracks: StateFlow<List<AudioTrack>>
 
+    /**
+     * Audio, subtitles and quality of the loaded stream, in one value (S13-01).
+     *
+     * [TrackOptions.known] is false until the stream has declared its tracks: a
+     * menu drawn before that would say "no subtitles" about a stream that has not
+     * been asked yet. Reset by [play] and [stop], for the reason [audioTracks] is.
+     *
+     * The default is "never known", for a player that cannot tell — which is the
+     * limit PS rules ask to announce rather than to dress up as "no track".
+     */
+    val trackOptions: StateFlow<TrackOptions> get() = UNKNOWN_TRACK_OPTIONS
+
     /** Loads a stream and starts playing it. Replaces whatever was playing. */
     fun play(request: PlaybackRequest)
 
@@ -55,6 +69,23 @@ interface LumoPlayer {
      * choosing one would end the film rather than change its language.
      */
     fun selectAudioTrack(id: String)
+
+    /**
+     * Shows another subtitle track of the current stream, or none at all ([id] null).
+     *
+     * Null turns **every** text track off, a forced one included (PS-05). Ignored
+     * for an id the current stream does not carry or a track this device cannot
+     * render, as [selectAudioTrack] is.
+     */
+    fun selectSubtitleTrack(id: String?) = Unit
+
+    /**
+     * Pins one video variant of the current stream, or goes back to automatic ([id] null).
+     *
+     * For the current stream only: [play] returns to automatic, so the next
+     * content never inherits a manual choice (S13-02).
+     */
+    fun selectVideoQuality(id: String?) = Unit
 
     /**
      * Moves within the current stream.
@@ -112,6 +143,11 @@ data class PlaybackRequest(
     val title: String?,
     /** Live streams have no meaningful duration and cannot be seeked. */
     val isLive: Boolean = true,
+    /**
+     * The languages to start with (S13-02), read by the caller from this
+     * device's preferences. Null leaves the stream's own defaults alone.
+     */
+    val trackPreferences: TrackPreferences? = null,
 ) {
     override fun toString(): String = "PlaybackRequest(title=$title, isLive=$isLive)"
 }
@@ -152,7 +188,76 @@ data class AudioTrack(
     val channelCount: Int?,
     val selected: Boolean,
     val playable: Boolean,
+    /** The container marks it as the default track. Breaks ties within one language (PS-06). */
+    val isDefault: Boolean = false,
 )
+
+/**
+ * One subtitle track of the stream being played (S13-01).
+ *
+ * Passed through like [AudioTrack]: [language] and [label] are what the
+ * container declares, [forced] only when the container flags it — a role is
+ * never guessed from a name (PS-06).
+ *
+ * @property playable whether this device can **show** it. Bitmap formats (PGS,
+ *   DVB, VobSub) are decoded by Media3 but not drawn by the product's subtitle
+ *   layer, so they are offered as unavailable rather than as a choice that
+ *   would show nothing.
+ */
+data class SubtitleTrack(
+    val id: String,
+    val language: String?,
+    val label: String?,
+    val mimeType: String?,
+    val selected: Boolean,
+    val playable: Boolean,
+    val forced: Boolean = false,
+    val isDefault: Boolean = false,
+)
+
+/**
+ * One video variant the player can be pinned to (S13-01).
+ *
+ * @property selected true only for a variant chosen **manually**: in automatic
+ *   mode every variant of the adaptive set is "selected" as far as Media3 is
+ *   concerned, which says nothing a viewer can use.
+ */
+data class VideoQuality(
+    val id: String,
+    val width: Int?,
+    val height: Int?,
+    /** Bits per second, when the stream declares it. */
+    val bitrate: Int?,
+    val selected: Boolean,
+    val playable: Boolean,
+)
+
+/**
+ * Everything the "audio, subtitles and quality" menu is drawn from (S13-01).
+ *
+ * @property known false until the stream has declared its tracks.
+ * @property qualityAuto true while no variant is pinned — always the case when a
+ *   stream opens (S13-02).
+ * @property subtitleLanguageUnavailable subtitles are wanted, and the stream has
+ *   none in the preferred language: nothing was turned on, and the preference is
+ *   kept (PS-04). The menu says so.
+ */
+data class TrackOptions(
+    val known: Boolean = false,
+    val audio: List<AudioTrack> = emptyList(),
+    val subtitles: List<SubtitleTrack> = emptyList(),
+    val qualities: List<VideoQuality> = emptyList(),
+    val qualityAuto: Boolean = true,
+    val subtitleLanguageUnavailable: Boolean = false,
+) {
+    /** No text track is shown. */
+    val subtitlesOff: Boolean get() = subtitles.none { it.selected }
+
+    /** A manual quality is worth offering only between two variants that both play. */
+    val offersQualityChoice: Boolean get() = qualities.count { it.playable } > 1
+}
+
+private val UNKNOWN_TRACK_OPTIONS: StateFlow<TrackOptions> = MutableStateFlow(TrackOptions())
 
 sealed interface PlaybackState {
     data object Idle : PlaybackState

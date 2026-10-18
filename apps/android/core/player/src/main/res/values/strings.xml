@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The player's options menu (S13-01), shared by the film, episode and channel players. -->
+    <string name="core_player_options_title">Audio, subtitles and quality</string>
+    <string name="core_player_options_scope">Languages are remembered on this device. Quality applies to this playback only.</string>
+    <string name="core_player_options_hint_tv">▲ Audio, subtitles and quality</string>
+    <string name="core_player_audio_subtitles">Audio and subtitles</string>
+    <string name="core_player_audio">Audio</string>
+    <string name="core_player_subtitles">Subtitles</string>
+    <string name="core_player_quality">Quality</string>
+    <string name="core_player_subtitles_off">Off</string>
+    <string name="core_player_quality_auto">Automatic</string>
+    <string name="core_player_track_number">Track %1$d</string>
+    <string name="core_player_track_unsupported">This track is not supported on this device</string>
+    <string name="core_player_subtitle_forced">Forced</string>
+    <string name="core_player_no_audio">This stream declares no audio track</string>
+    <string name="core_player_no_other_audio">No other audio track available</string>
+    <string name="core_player_no_subtitles">No subtitles in this stream</string>
+    <string name="core_player_subtitle_language_unavailable">Your subtitle language is unavailable</string>
+    <string name="core_player_no_other_quality">No other quality available</string>
+    <string name="core_player_preference_not_saved">Applied for this playback. Preference not saved</string>
+    <string name="core_player_quality_height" translatable="false">%1$dp</string>
+    <string name="core_player_quality_bitrate">%1$s Mb/s</string>
+</resources>
