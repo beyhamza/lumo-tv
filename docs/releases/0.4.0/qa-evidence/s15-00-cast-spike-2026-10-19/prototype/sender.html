@@ -1,0 +1,144 @@
+<!doctype html>
+<!--
+  S15-00 throwaway Cast sender prototype. NOT product code.
+
+  Serve this folder on localhost (a secure context) and open it in Chrome:
+    python -m http.server 18090 --bind 127.0.0.1
+  With BENCH set to the bench's LAN address (a Chromecast cannot reach
+  "localhost"), each button sends one bench fixture to the Default Media
+  Receiver and logs every failure signal the sender can see.
+
+  The "Probe" section runs without any Cast device: it measures, in the local
+  Chromium, what the receiver's own Chromium would also have to do (decode
+  support, CORS on an XHR/MSE fetch, Range on a seek).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>S15-00 Cast sender prototype</title>
+<style>
+  body { font: 14px system-ui, sans-serif; margin: 16px; background: #fff; color: #111; }
+  button { margin: 2px; }
+  pre { background: #f4f4f4; padding: 8px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>S15-00 — Cast sender prototype</h1>
+<p>Bench base: <input id="bench" size="40" value="http://localhost:18081"></p>
+<p id="castState">Cast API: loading…</p>
+<div id="cases"></div>
+<h2>Probe (no device needed)</h2>
+<button id="probe">Run probe</button>
+<pre id="log"></pre>
+
+<script>
+const CASES = [
+  // [label, path, contentType, extra MediaInfo fields]
+  ['HLS + CORS (TS segments)', '/stream/index.m3u8', 'application/x-mpegurl', { hlsSegmentFormat: 'ts' }],
+  ['HLS without CORS', '/stream-nocors/index.m3u8', 'application/x-mpegurl', { hlsSegmentFormat: 'ts' }],
+  ['MP4 + Range', '/film/le-voyage.mp4', 'video/mp4', {}],
+  ['MP4 without Range', '/film-norange/le-voyage.mp4', 'video/mp4', {}],
+  ['MP4 on a panel path', '/movie/u/p/4001.mp4', 'video/mp4', {}],
+  ['MKV + Range', '/film/la-traversee.mkv', 'video/x-matroska', {}],
+  ['MKV declared as video/mp4', '/film/la-traversee.mkv', 'video/mp4', {}],
+  ['Raw MPEG-TS (one segment)', '/stream/seg0.ts', 'video/mp2t', {}],
+];
+
+const log = (...a) => {
+  document.getElementById('log').textContent +=
+    a.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(' ') + '\n';
+};
+const bench = () => document.getElementById('bench').value.replace(/\/$/, '');
+
+// ---- Sender -----------------------------------------------------------------
+window.__onGCastApiAvailable = (available) => {
+  document.getElementById('castState').textContent = 'Cast API available: ' + available;
+  log('__onGCastApiAvailable', available);
+  if (!available) return;
+  const ctx = cast.framework.CastContext.getInstance();
+  ctx.setOptions({
+    receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+    autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
+  });
+  ctx.addEventListener(cast.framework.CastContextEventType.CAST_STATE_CHANGED,
+    (e) => log('castState', e.castState)); // NO_DEVICES_AVAILABLE when nothing is on the LAN
+
+  const player = new cast.framework.RemotePlayer();
+  const ctl = new cast.framework.RemotePlayerController(player);
+  ctl.addEventListener(cast.framework.RemotePlayerEventType.PLAYER_STATE_CHANGED, () => {
+    const ms = ctx.getCurrentSession()?.getMediaSession();
+    log('playerState', player.playerState, 'idleReason', ms?.idleReason ?? null);
+  });
+
+  for (const [label, path, contentType, extra] of CASES) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.onclick = () => castCase(ctx, label, path, contentType, extra);
+    document.getElementById('cases').append(b);
+  }
+};
+
+async function castCase(ctx, label, path, contentType, extra) {
+  let session = ctx.getCurrentSession();
+  if (!session) {
+    const err = await ctx.requestSession().catch((e) => e);
+    if (err) { log(label, 'requestSession rejected', err); return; }
+    session = ctx.getCurrentSession();
+    // Raw media-namespace messages carry type=LOAD_FAILED / ERROR and detailedErrorCode.
+    session.addMessageListener('urn:x-cast:com.google.cast.media', (ns, msg) => {
+      const m = JSON.parse(msg);
+      if (m.type === 'LOAD_FAILED' || m.type === 'ERROR' || m.type === 'INVALID_REQUEST') log('media msg', m);
+    });
+  }
+  const info = new chrome.cast.media.MediaInfo(bench() + path, contentType);
+  Object.assign(info, extra);
+  info.metadata = new chrome.cast.media.GenericMediaMetadata();
+  info.metadata.title = 'S15-00 ' + label;
+  const t0 = performance.now();
+  const err = await session.loadMedia(new chrome.cast.media.LoadRequest(info)).catch((e) => e);
+  log(label, err ? 'loadMedia REJECTED ' + err : 'loadMedia ok', Math.round(performance.now() - t0) + ' ms');
+}
+
+// ---- Probe (local Chromium, as a stand-in for the receiver's) ---------------
+document.getElementById('probe').onclick = async () => {
+  const v = document.createElement('video');
+  const types = [
+    'application/vnd.apple.mpegurl', 'video/mp4', 'video/x-matroska', 'video/webm', 'video/mp2t',
+    'video/mp4; codecs="avc1.42E01E, mp4a.40.2"', 'video/mp2t; codecs="avc1.42E01E, mp4a.40.2"',
+    'audio/mp4; codecs="ac-3"', 'audio/mp4; codecs="ec-3"',
+  ];
+  for (const t of types) {
+    log('canPlayType', t, '=>', JSON.stringify(v.canPlayType(t)),
+      'MSE', window.MediaSource ? MediaSource.isTypeSupported(t) : 'n/a');
+  }
+  // What an MSE player (the receiver's HLS path) has to do: fetch() cross-origin.
+  for (const p of ['/stream/index.m3u8', '/stream-nocors/index.m3u8', '/stream/seg0.ts']) {
+    const r = await fetch(bench() + p).then((x) => 'HTTP ' + x.status).catch((e) => 'BLOCKED ' + e.name);
+    log('cross-origin fetch', p, '=>', r);
+  }
+  // What a progressive player does: <video src>, no CORS needed; seek needs Range.
+  for (const p of ['/film/le-voyage.mp4', '/film-norange/le-voyage.mp4', '/film/la-traversee.mkv',
+                   '/stream/seg0.ts', '/stream-nocors/index.m3u8']) {
+    log('<video src>', p, '=>', await tryVideo(bench() + p));
+  }
+  log('probe done');
+};
+
+function tryVideo(src) {
+  return new Promise((resolve) => {
+    const v = document.createElement('video');
+    v.muted = true;
+    const done = (s) => { clearTimeout(t); v.removeAttribute('src'); v.load(); resolve(s); };
+    const t = setTimeout(() => done('timeout'), 8000);
+    v.onerror = () => done('error code ' + v.error?.code + ' ' + (v.error?.message || ''));
+    v.onloadedmetadata = () => {
+      const seekable = v.seekable.length ? v.seekable.end(0).toFixed(2) : 0;
+      done(`metadata ok ${v.videoWidth}x${v.videoHeight}, duration ${v.duration.toFixed(2)}, seekable to ${seekable}`);
+    };
+    v.src = src;
+  });
+}
+</script>
+<script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+</body>
+</html>
