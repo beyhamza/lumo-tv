@@ -128,6 +128,46 @@ class AppStartDecisionTest {
         assertThat(api.calls).isEqualTo(1)
     }
 
+    @Test
+    fun `coming back to the application does not say loading again`() = runTest {
+        // Both shells collect with collectAsStateWithLifecycle: leaving the
+        // application cancels the collection and coming back starts a new one.
+        // A second Loading would drop the navigation graph for a frame and
+        // dispose the open screen — the player stopped and never restarted
+        // (BUG-S15-01-01).
+        val decision = decision(signedIn = true, sources = listOf(source()))
+
+        decision.stream.test {
+            assertThat(awaitItem()).isEqualTo(AppStart.Loading)
+            assertThat(awaitItem()).isEqualTo(AppStart.Ready)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        decision.stream.test {
+            assertThat(awaitItem()).isEqualTo(AppStart.Ready)
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `a session lost while away still moves the user on the way back`() = runTest {
+        val store = FakeSessionStore(tokens())
+        val decision = decision(store = store, sources = listOf(source()))
+
+        decision.stream.test {
+            assertThat(awaitItem()).isEqualTo(AppStart.Loading)
+            assertThat(awaitItem()).isEqualTo(AppStart.Ready)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        store.clear()
+
+        decision.stream.test {
+            assertThat(awaitItem()).isEqualTo(AppStart.Ready)
+            assertThat(awaitItem()).isEqualTo(AppStart.SignedOut)
+        }
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private fun decision(

@@ -21,8 +21,8 @@ Aucun changement de contrat prévu. Référence : [roadmap 0.4.0](../roadmap/0.4
   contrôles. Règles dans `FloatingWindowRules` (tests JVM). Vérifié sur l'émulateur Pixel (API 37)
   avec `mixed.m3u` : Accueil → fenêtre ; bouton → fenêtre ; pause depuis la fenêtre ; Pause + Direct
   sur une chaîne ; agrandir ; fermer → « Reprendre à 0:03 ». Reste : chemin Android 8–11
-  (`onUserLeaveHint`) non joué, vrai téléphone en S17, et `BUG-S15-01-01` (ci-dessous) qui casse le
-  retour au lecteur quand la fenêtre n'a **pas** été ouverte.
+  (`onUserLeaveHint`) non joué, vrai téléphone en S17. `BUG-S15-01-01` (retour au lecteur sans
+  fenêtre) corrigé, en recette.
 - [ ] S15-02 — préférence « Fenêtre flottante en quittant l'application » — 95 % : Réglages →
   Lecture, interrupteur activé par défaut, par compte sur l'appareil (DataStore S13), ligne absente
   sur TV et sur un téléphone sans PiP ; FR/EN. Tests `PlaybackPreferencesTest`, `SettingsSectionsTest`.
@@ -60,6 +60,13 @@ Branches : `feat/S15-web-pip` (web), `feat/S15-android-pip` (Android), `feat/S15
   puis retour laisse un lecteur vide sur « 0:00 / -- » dont « Lecture » ne fait rien. Constaté sur
   l'émulateur Pixel (API 37), film du banc. Piste : ne pas réémettre `Loading` au redémarrage de la
   collecte (état conservé, ou `collectAsState`), à vérifier aussi sur TV.
+  **Corrigé, en recette** (branche `fix/BUG-S15-01-01-resume-player`) : `AppStartDecision` ne dit
+  `Loading` qu'une fois par processus, une nouvelle collecte repart du dernier état atteint. La TV
+  (`TvActivity`) avait le même défaut, même collecte : corrigée par le même changement, dans
+  `core:data`. Tests `AppStartDecisionTest` (retour sans `Loading`, session perdue pendant
+  l'absence). Vérifié sur l'émulateur Pixel_10 (API 37), fenêtre désactivée, `mixed.m3u` : film
+  lancé, Accueil, retour → lecteur en pause à 0:04 avec l'image, « Lecture » reprend jusqu'à la
+  fin. Reste : la même vérification sur TV (non jouée sur l'émulateur), recette S17.
 - **BUG-S15-05-01 — web : la fin d'un flux en direct est annoncée comme un refus du fournisseur.**
   Mineur, vu sur le flux de banc de 12 s ([rapport S15-05](../releases/0.4.0/qa-evidence/s15-05-2026-10-19/RAPPORT.md)).
 
