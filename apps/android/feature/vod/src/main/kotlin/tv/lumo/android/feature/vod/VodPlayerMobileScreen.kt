@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -50,7 +51,10 @@ import tv.lumo.android.core.player.SeekAvailability
 import tv.lumo.android.core.player.ui.AUDIO_AND_SUBTITLES
 import tv.lumo.android.core.player.FloatingWindowRules
 import tv.lumo.android.core.player.ui.rememberFloatingWindow
-import tv.lumo.android.core.player.ui.LumoVideoSurface
+import tv.lumo.android.core.player.ui.CastButton
+import tv.lumo.android.core.player.ui.CastMessages
+import tv.lumo.android.core.player.ui.PlayerPicture
+import tv.lumo.android.core.player.ui.rememberCastUi
 import tv.lumo.android.core.player.ui.PlayerLifecycleEffect
 import tv.lumo.android.core.player.ui.PlayerOptionGroup
 import tv.lumo.android.core.player.ui.PlayerOptionsSheet
@@ -118,8 +122,10 @@ fun VodPlayerMobileScreen(
     // The floating window (S15-01): leaving during a playback, or the button.
     // Closing it stops and saves — the screen is left, which is what `stop()` does.
     val floatingWindowOnLeave by viewModel.floatingWindowOnLeave.collectAsStateWithLifecycle()
+    // Casting (S16): the picture is on the television, no window opens over the phone.
+    val cast = rememberCastUi(viewModel.player)
     val floatingWindow = rememberFloatingWindow(
-        playing = FloatingWindowRules.isPlaying(state.playback),
+        playing = !cast.casting && FloatingWindowRules.isPlaying(state.playback),
         live = false,
         enterOnLeave = floatingWindowOnLeave,
         onTogglePlay = viewModel::togglePlayPause,
@@ -141,7 +147,9 @@ fun VodPlayerMobileScreen(
             .background(Color.Black),
         contentAlignment = Alignment.Center,
     ) {
-        LumoVideoSurface(player = viewModel.player, modifier = Modifier.fillMaxSize())
+        // The picture, or the remote control while a Chromecast plays (S16-03): the
+        // scrubber and play/pause below drive whichever plays.
+        PlayerPicture(player = viewModel.player, modifier = Modifier.fillMaxSize())
 
         when {
             // The source was deleted from another device, and the server has
@@ -193,14 +201,28 @@ fun VodPlayerMobileScreen(
             )
         }
 
-        // In the corner the channel player uses for its options. Absent where the
-        // device has no window (a television never composes this screen).
-        if (floatingWindow.available && !floatingWindow.active && state.failure == null &&
-            !sourceDeleted && networkBlock == null
-        ) {
-            TextButton(onClick = floatingWindow::enter, modifier = Modifier.align(Alignment.TopEnd)) {
-                Text(text = stringResource(PlayerR.string.core_player_floating_window), color = Color.White)
+        // In the corner the channel player uses for its options. The window's button
+        // is absent where the device has no window (a television never composes this
+        // screen); the Cast button, where no device is detected (S16-01).
+        if (!floatingWindow.active && state.failure == null && !sourceDeleted && networkBlock == null) {
+            Row(modifier = Modifier.align(Alignment.TopEnd), verticalAlignment = Alignment.CenterVertically) {
+                CastButton(player = viewModel.player)
+                if (floatingWindow.available && !cast.casting) {
+                    TextButton(onClick = floatingWindow::enter) {
+                        Text(text = stringResource(PlayerR.string.core_player_floating_window), color = Color.White)
+                    }
+                }
             }
+        }
+
+        // Refused, or stopped with an offer to go on here (S16-03, S16-05).
+        if (!floatingWindow.active) {
+            CastMessages(
+                player = viewModel.player,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = CAST_MESSAGES_TOP),
+            )
         }
 
         picking?.takeUnless { floatingWindow.active }?.let { groups ->
@@ -454,3 +476,6 @@ private const val MILLIS_PER_SECOND = 1_000L
 private const val SECONDS_PER_MINUTE = 60L
 private const val MINUTES_PER_HOUR = 60L
 private const val SECONDS_PER_HOUR = 3_600L
+
+/** Below the row of the Cast and floating window buttons. */
+private val CAST_MESSAGES_TOP = 56.dp

@@ -24,6 +24,8 @@ dependencies {
     implementation(projects.core.database)
     implementation(projects.core.data)
     implementation(projects.core.player)
+    // Chromecast sender (S16, ADR 0013): the phone only. app-tv does not depend on it.
+    implementation(projects.core.cast)
 
     implementation(projects.feature.onboarding)
     implementation(projects.feature.auth)
@@ -38,6 +40,8 @@ dependencies {
     implementation(projects.feature.settings)
 
     implementation(libs.androidx.activity.compose)
+    // FragmentActivity: the Cast device picker is a DialogFragment (S16-01).
+    implementation(libs.androidx.fragment)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.navigation.compose)

@@ -28,4 +28,19 @@
     <string name="core_player_floating_window_pause">Pause</string>
     <string name="core_player_floating_window_live">Direct</string>
     <string name="core_player_floating_window_refused">La fenêtre flottante est désactivée pour Lumo dans les réglages d\'Android</string>
+    <!-- Chromecast (S16, ADR 0013). -->
+    <string name="core_player_cast_playing">Lecture sur un Chromecast</string>
+    <string name="core_player_cast_playing_on">Lecture sur %1$s</string>
+    <string name="core_player_cast_volume">Volume</string>
+    <string name="core_player_cast_volume_value">%1$d %%</string>
+    <string name="core_player_cast_stop">Arrêter la diffusion</string>
+    <string name="core_player_cast_refused">Ce flux ne peut pas être envoyé sur ce Chromecast</string>
+    <string name="core_player_cast_from_beginning">Le serveur de votre fournisseur ne permet pas la reprise : le Chromecast démarre au début</string>
+    <string name="core_player_cast_stopped">Diffusion arrêtée</string>
+    <string name="core_player_cast_stopped_at">Diffusion arrêtée à %1$s</string>
+    <string name="core_player_cast_resume_here">Reprendre sur cet appareil</string>
+    <string name="core_player_cast_later">Plus tard</string>
+    <string name="core_player_cast_dismiss">OK</string>
+    <string name="core_player_cast_play">Lecture</string>
+    <string name="core_player_cast_pause">Pause</string>
 </resources>

@@ -7,11 +7,24 @@ Essai préalable : [rapport S15-00](../releases/0.4.0/qa-evidence/s15-00-cast-sp
 ## Avancement
 
 - [x] S16-00 — périmètre fixé d'après S15-00 (décisions ci-dessous)
-- [ ] S16-01 — émetteur Cast Android — 0 %
+- [ ] S16-01 — émetteur Cast Android — 85 % : code livré (branche `feat/S16-android-cast`), module
+  `core:cast` (téléphone seulement), récepteur par défaut, bouton dans les trois lecteurs, `contentType`
+  d'après l'extension, tests JVM verts ; vérifié sur émulateur sans appareil Cast (bouton absent). Reste :
+  lancement réel sur un Chromecast (recette S17-02).
 - [ ] S16-02 — émetteur Cast web — 0 %
 - [ ] S16-03 — télécommande pendant la diffusion — 0 %
+  - Android — 80 % : lecture/pause, avance/recul, volume, arrêt, titre et affiche ; arrêter propose de
+    reprendre sur le téléphone à la position atteinte ; lecture locale arrêtée avant le `LOAD`. Logique
+    testée sur JVM. Reste : essai sur un vrai Chromecast (S17).
 - [ ] S16-04 — progression et « Continuer » pendant la diffusion — 0 %
+  - Android — 80 % : position et temps regardé (segments seulement quand le récepteur lit) passent par le
+    même lecteur que la lecture locale, donc par la même sauvegarde ; épisode suivant chargé sur le
+    récepteur. Testé sur JVM. Reste : essai sur un vrai Chromecast (S17).
 - [ ] S16-05 — flux refusé nommé, retour local — 0 %
+  - Android — 80 % : quatre signaux (refus du `LOAD`, erreur détaillée, `IDLE` sur erreur, 15 s de
+    silence) → message unique FR/EN et reprise locale à la position atteinte ; `904`, `LOAD` remplacé et
+    sélecteur fermé ignorés ; code journalisé sans l'URL. Testé sur JVM. Reste : mesure des codes réels sur
+    appareil (S17).
 
 **Avancement global ≈ 0 %**.
 
