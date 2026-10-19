@@ -9,8 +9,25 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
 - [ ] S16B-00 — décisions d'environnement — 40 % : VPS sous Docker (Hamza, 19/10) ; compte Google
   Play développeur existant. Reste : nom de domaine, fournisseur d'e-mails, accès au VPS.
 - [ ] S16B-01 — pile de production sur VPS — 0 %
-- [ ] S16B-02 — suppression de compte — 0 %
-- [ ] S16B-03 — politique de confidentialité — 0 %
+- [ ] S16B-02 — suppression de compte — 90 % (branche `feat/S16B-account-privacy`) :
+  - [x] contrat : `POST /me/delete` confirmé par le mot de passe, `403 INVALID_CREDENTIALS`, ce qui est
+    supprimé et l'effet sur les autres appareils ; clients régénérés ; [ADR 0014](../adr/0014-account-deletion.md)
+    (proposé, à accepter par Hamza)
+  - [x] API : suppression en cascade, jeton d'un compte supprimé refusé dès l'appel suivant, limitation
+    par compte ; `AccountDeletionIntegrationTest` (balayage de toutes les colonnes `user_id` / `source_id`)
+  - [x] web : Réglages → Compte et appareils, confirmation avec mot de passe puis déconnexion ; page
+    publique statique `/fr|en/delete-account` (lien à donner à Google Play) ; vérifié sur le web local
+  - [x] Android mobile et TV : Réglages → Compte et appareils, dialogue avec mot de passe, purge de fin
+    de session réutilisée ; tests unitaires ; parcours vérifié sur émulateur téléphone et TV (mauvais mot de
+    passe refusé, suppression, retour à la connexion / à l'activation)
+  - [ ] recette sur appareils réels et à la télécommande (S17) ; acceptation de l'ADR 0014 ; durée de
+    conservation des sauvegardes à écrire sur la page (S16B-00/01)
+- [ ] S16B-03 — politique de confidentialité — 75 % (même branche) :
+  - [x] page statique `/fr|en/privacy` (metadata, hreflang, sitemap), rédigée d'après le code, avec
+    l'avertissement « à valider par Hamza »
+  - [x] liens depuis le pied de page et Réglages → Aide sur le web, le mobile et la TV
+  - [ ] **validation du texte par Hamza** et passages entre crochets à compléter : responsable du
+    traitement, contact, hébergeur, fournisseur d'e-mails, durée de conservation (dépend de S16B-00)
 - [ ] S16B-04 — numéro de version et bundle de publication — 0 %
 - [ ] S16B-05 — fiche Play et formulaires — 0 %
 - [ ] S16B-06 — publication sur la piste de test interne — 0 %
