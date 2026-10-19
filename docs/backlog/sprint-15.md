@@ -10,11 +10,18 @@ Aucun changement de contrat prévu. Référence : [roadmap 0.4.0](../roadmap/0.4
 - [ ] S15-00 — essai Cast sur le récepteur par défaut — 0 %
 - [ ] S15-01 — PiP Android mobile — 0 %
 - [ ] S15-02 — préférence « Fenêtre flottante en quittant l'application » — 0 %
-- [ ] S15-03 — PiP web — 0 %
-- [ ] S15-04 — progression, temps regardé et épisode suivant en fenêtre flottante — 0 %
+- [ ] S15-03 — PiP web — 90 % : bouton « Fenêtre flottante » / « Revenir dans la page » sous les
+  lecteurs de film, d'épisode et de chaîne, absent sans l'API ; refus du navigateur nommé. Vérifié
+  dans Chromium sur le banc (film et chaîne). Reste : Firefox et Safari en recette S17.
+- [ ] S15-04 — progression, temps regardé et épisode suivant en fenêtre flottante — 40 % : web fait
+  (la fenêtre est l'élément `<video>` lui-même, sauvegardes et compteur inchangés ; vérifié sur le
+  banc). Limite web : passer à l'épisode suivant ou changer de chaîne ferme la fenêtre, le navigateur
+  exige un geste pour la rouvrir. Android à faire.
 - [ ] S15-05 — petits sujets embarqués — 0 %
 
-**Avancement global ≈ 0 %**.
+**Avancement global ≈ 22 %**.
+
+Branches : `feat/S15-web-pip` (web).
 
 ## Objectif
 

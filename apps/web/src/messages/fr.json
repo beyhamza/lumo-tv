@@ -721,6 +721,9 @@
   "Player": {
     "tracksButton": "Audio et sous-titres",
     "qualityButton": "Qualité",
+    "pipEnter": "Fenêtre flottante",
+    "pipExit": "Revenir dans la page",
+    "pipRefused": "Le navigateur a refusé d'ouvrir la fenêtre flottante. Réessayez une fois l'image affichée.",
     "audioLegend": "Audio",
     "subtitlesLegend": "Sous-titres",
     "subtitlesOff": "Désactivés",
