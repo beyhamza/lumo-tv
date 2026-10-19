@@ -219,6 +219,7 @@ export default async function FilmPage({
               filmId={row.id}
               sourceId={row.source_id}
               name={row.name}
+              posterUrl={row.poster_url ?? null}
               actions={actions}
               sourceHref={hrefFor(locale as Locale, `/app/sources/${row.source_id}`)}
               continueHref={home}

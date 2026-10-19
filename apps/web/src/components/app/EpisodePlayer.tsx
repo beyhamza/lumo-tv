@@ -59,6 +59,7 @@ export function EpisodePlayer({
   accountId,
   next,
   seriesHref,
+  posterUrl = null,
 }: {
   episodeId: string;
   sourceId: string;
@@ -90,6 +91,8 @@ export function EpisodePlayer({
   next: { href: string; season: number; episode: number; title: string | null; startMs: number } | null;
   /** The series sheet without a playing episode: where the last episode returns (CW-15). */
   seriesHref: string;
+  /** The series' poster, shown by the Chromecast while casting (US-027). */
+  posterUrl?: string | null;
 }) {
   const t = useTranslations("Player");
   const router = useRouter();
@@ -135,6 +138,7 @@ export function EpisodePlayer({
         continueHref={continueHref}
         launch={launch}
         accountId={accountId}
+        posterUrl={posterUrl}
         onEndedChange={(ended) => {
           if (!ended) {
             dispatch({ type: "resumed" });

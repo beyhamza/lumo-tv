@@ -8,12 +8,27 @@ Essai préalable : [rapport S15-00](../releases/0.4.0/qa-evidence/s15-00-cast-sp
 
 - [x] S16-00 — périmètre fixé d'après S15-00 (décisions ci-dessous)
 - [ ] S16-01 — émetteur Cast Android — 0 %
-- [ ] S16-02 — émetteur Cast web — 0 %
-- [ ] S16-03 — télécommande pendant la diffusion — 0 %
-- [ ] S16-04 — progression et « Continuer » pendant la diffusion — 0 %
-- [ ] S16-05 — flux refusé nommé, retour local — 0 %
+- [ ] S16-02 — émetteur Cast web — 85 % : SDK Google chargé à la demande sur les lecteurs seulement
+  (Chromium ; ailleurs rien), récepteur par défaut, bouton « Diffuser sur un appareil » visible
+  seulement si un appareil est détecté, absent pour une source à User-Agent ; type de flux déduit de
+  l'URL (`lib/playback/cast/media.ts`, testé). Vérifié dans Chromium avec le vrai SDK sans appareil
+  (script chargé au lancement de la lecture, état `NO_DEVICES_AVAILABLE`, aucun bouton, lecture locale
+  intacte) et avec un SDK simulé (film). Reste : vrai Chromecast en S17.
+- [ ] S16-03 — télécommande pendant la diffusion — web 85 % : « En diffusion sur … », position,
+  lecture/pause, ±10 s si le récepteur et le serveur le permettent, volume, arrêt, puis « Reprendre ici
+  à mm:ss ». Lecture locale en pause avant l'envoi. Vérifié avec le SDK simulé sur un film ; chaîne
+  (arrêt du chargement HLS, envoi en direct) non jouée. Android : à faire.
+- [ ] S16-04 — progression et « Continuer » pendant la diffusion — web 70 % : la position et le
+  compteur de temps regardé suivent le récepteur (segments seulement quand il lit), sauvegarde à la
+  pause, à l'arrêt et toutes les 30 s ; un épisode suivant se charge sur le récepteur si une session
+  tourne. Non vérifié de bout en bout (pas d'appareil). Android : à faire.
+- [ ] S16-05 — flux refusé nommé, retour local — web 85 % : quatre signaux (chargement rejeté,
+  erreur du récepteur, `IDLE` sur erreur, 15 s de silence), message unique, la lecture reprend ici à la
+  position ; code journalisé sans l'URL. Vérifié avec le SDK simulé (`LOAD_FAILED` 104). Android : à faire.
 
-**Avancement global ≈ 0 %**.
+**Avancement global ≈ 45 %** (web avancé, Android à venir).
+
+Branches : `feat/S16-web-cast` (web).
 
 ## Décisions d'ouverture (19/10/2026)
 
