@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -147,6 +149,9 @@ fun LumoTvConfirmDialog(
                     .width(DIALOG_WIDTH)
                     .clip(LumoTvShapes.large)
                     .background(LumoColors.Surface)
+                    // A long question, a field and a refusal can outgrow 1080
+                    // lines: scrolling keeps the focused button on screen.
+                    .verticalScroll(rememberScrollState())
                     .padding(LumoSpacing.xl),
                 verticalArrangement = Arrangement.spacedBy(LumoSpacing.lg),
             ) {

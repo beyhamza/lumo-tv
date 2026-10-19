@@ -69,6 +69,5 @@
 
     <string name="feature_settings_privacy">Politique de confidentialité</string>
     <string name="feature_settings_account_deletion">Comment supprimer son compte</string>
-    <string name="feature_settings_tv_about_privacy">Confidentialité : %1$s</string>
-    <string name="feature_settings_tv_about_deletion">Supprimer son compte : %1$s</string>
+    <string name="feature_settings_tv_about_legal">%1$s\nSupprimer son compte : %2$s</string>
 </resources>

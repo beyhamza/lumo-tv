@@ -97,6 +97,5 @@
     <!-- Help and information (S16B-03): the two public pages Google Play asks for. -->
     <string name="feature_settings_privacy">Privacy policy</string>
     <string name="feature_settings_account_deletion">How to delete your account</string>
-    <string name="feature_settings_tv_about_privacy">Privacy policy: %1$s</string>
-    <string name="feature_settings_tv_about_deletion">Deleting your account: %1$s</string>
+    <string name="feature_settings_tv_about_legal">%1$s\nDeleting your account: %2$s</string>
 </resources>

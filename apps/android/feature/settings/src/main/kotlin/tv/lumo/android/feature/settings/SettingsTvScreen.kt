@@ -257,7 +257,6 @@ private fun TvDeleteAccountDialog(
 ) {
     var password by remember { mutableStateOf("") }
     var focused by remember { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
     val label = stringResource(R.string.feature_settings_delete_password)
 
     LumoTvConfirmDialog(
@@ -270,6 +269,9 @@ private fun TvDeleteAccountDialog(
         busy = asked.busy,
         failure = asked.failure?.let { stringResource(deleteAccountFailureOf(it)) },
     ) {
+        // Read here, inside the dialog's window: the screen's own focus manager
+        // knows nothing of the buttons below, and DOWN would go nowhere.
+        val focusManager = LocalFocusManager.current
         Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs)) {
             Text(text = label, style = MaterialTheme.typography.labelLarge, color = LumoColors.OnDarkMuted)
             BasicTextField(
@@ -692,16 +694,19 @@ private fun AboutPanel(state: SettingsUiState) {
             subtitle = stringResource(R.string.feature_settings_tv_about_guides, SettingsLinks.label(guides)),
         )
     }
-    SettingsLinks.privacyUrlOf(state.activationUrl, currentInterfaceLanguage())?.let { privacy ->
+    // One row for both pages: the panel has no focusable row to scroll it, so a
+    // fourth row would fall under the bottom edge, out of reach of the remote.
+    val language = currentInterfaceLanguage()
+    val privacy = SettingsLinks.privacyUrlOf(state.activationUrl, language)
+    val deletion = SettingsLinks.accountDeletionUrlOf(state.activationUrl, language)
+    if (privacy != null && deletion != null) {
         PanelRow(
             title = stringResource(R.string.feature_settings_privacy),
-            subtitle = stringResource(R.string.feature_settings_tv_about_privacy, SettingsLinks.label(privacy)),
-        )
-    }
-    SettingsLinks.accountDeletionUrlOf(state.activationUrl, currentInterfaceLanguage())?.let { deletion ->
-        PanelRow(
-            title = stringResource(R.string.feature_settings_account_deletion),
-            subtitle = stringResource(R.string.feature_settings_tv_about_deletion, SettingsLinks.label(deletion)),
+            subtitle = stringResource(
+                R.string.feature_settings_tv_about_legal,
+                SettingsLinks.label(privacy),
+                SettingsLinks.label(deletion),
+            ),
         )
     }
 }
