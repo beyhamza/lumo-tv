@@ -26,7 +26,7 @@ lecteur et les réglages (0.3.0) et le lecteur avancé (0.4.0).
 |---|---|---|
 | S17-00 | Décider si la 0.3.0 sort seule avant la 0.4.0 ou si une seule 0.4.0 porte les deux | Décision Hamza dans `DECISIONS-PRODUIT.md` |
 | S17-01 | Rejouer les reports de la 0.3.0 : vraie TV et vrai téléphone, CW-25/27/28 et hors ligne, enchaînement d'épisodes Android, vrais changements de piste (médias multipistes), `BUG-S11-06-03`/`-05`, S11/S12/S13 non joués | Rapports dans `docs/releases/0.3.0/qa-evidence/` |
-| S17-02 | PiP sur téléphone et navigateurs, Cast vers un vrai Chromecast avec les flux du banc, flux refusé | Rapports dans `docs/releases/0.4.0/qa-evidence/` |
+| S17-02 | PiP sur téléphone et navigateurs ; Cast vers un vrai Chromecast : rejouer le tableau du rapport S15-00 (lignes 2, 7, 8, 9 d'abord) avec son émetteur prototype, puis l'émetteur produit avec les flux du banc et un flux refusé | Rapports dans `docs/releases/0.4.0/qa-evidence/` |
 | S17-03 | Corriger les défauts bloquants et rejouer les scénarios touchés | Régressions ciblées et nouvelle preuve |
 | S17-04 | Checks contract/API/Android/web verts, changelog, notes de sortie, limites connues | Sorties CI, `RELEASE-NOTES.md` |
 | S17-05 | Revue des critères de sortie ; candidate puis tag sur la fusion `release/<version> → main` ; publication seulement sur demande explicite | Décision de livraison |

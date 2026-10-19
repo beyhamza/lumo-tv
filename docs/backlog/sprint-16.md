@@ -1,12 +1,12 @@
 # Sprint 16 — Chromecast
 
-Statut : **prévu**, version **0.4.0**, en mode rapide. Taille relative : L, à réévaluer d'après
-l'essai S15-00. Référence : [roadmap 0.4.0](../roadmap/0.4.0/README.md),
+Statut : **ouvert le 19 octobre 2026**, version **0.4.0**, en mode rapide. Taille relative : L.
+Essai préalable : [rapport S15-00](../releases/0.4.0/qa-evidence/s15-00-cast-spike-2026-10-19/RAPPORT.md). Référence : [roadmap 0.4.0](../roadmap/0.4.0/README.md),
 [ADR 0013](../adr/0013-advanced-playback-pip-cast.md).
 
 ## Avancement
 
-- [ ] S16-00 — périmètre fixé d'après S15-00 — 0 %
+- [x] S16-00 — périmètre fixé d'après S15-00 (décisions ci-dessous)
 - [ ] S16-01 — émetteur Cast Android — 0 %
 - [ ] S16-02 — émetteur Cast web — 0 %
 - [ ] S16-03 — télécommande pendant la diffusion — 0 %
@@ -14,6 +14,27 @@ l'essai S15-00. Référence : [roadmap 0.4.0](../roadmap/0.4.0/README.md),
 - [ ] S16-05 — flux refusé nommé, retour local — 0 %
 
 **Avancement global ≈ 0 %**.
+
+## Décisions d'ouverture (19/10/2026)
+
+1. **Récepteur par défaut de Google**, pas de récepteur personnalisé ni de nouvel ADR (rapport S15-00 :
+   un récepteur à nous refuserait les mêmes flux, CORS et `.ts` brut).
+2. **Pas de vérification sur un vrai Chromecast pendant S16** (Hamza : « on ne recette pas le cast pour
+   l'instant ») : la reprise du tableau S15-00 sur appareil passe en recette S17 (S17-02). Le code est
+   vérifié par tests et, sur le web, par le SDK émetteur sans appareil.
+3. **Pas de changement de contrat en S16.** Le type de flux (`contentType`) est déduit côté client de
+   l'extension du chemin de l'URL, requête ignorée : `.m3u8` → HLS, `.mp4`/`.m4v` → MP4, `.mkv` →
+   Matroska (tenté), `.ts` → MPEG-TS (tenté), sinon HLS pour une chaîne et MP4 pour un film ou un
+   épisode. L'indice `container` proposé par S15-00 sera rediscuté après la mesure sur appareil.
+4. **Un seul message pour tous les refus** (« Ce flux ne peut pas être envoyé sur ce Chromecast »),
+   déclenché par les quatre signaux du rapport : `LOAD` refusé, erreur détaillée du récepteur, passage
+   à `IDLE` sur erreur, ou rien au bout de 15 s. `904`/`LOAD_CANCELLED` et la fermeture du sélecteur ne
+   sont pas des refus. Le code détaillé est journalisé, jamais l'URL.
+5. **La lecture locale s'arrête avant le `LOAD`** (abonnements à une connexion) et reprend à la
+   position atteinte si le `LOAD` échoue.
+6. **Source avec `user_agent`** : pas de diffusion proposée (le récepteur ne peut pas l'envoyer).
+7. **Film sans Range** : avance et recul désactivés sur le Chromecast comme en local ; une reprise
+   démarre à 0 et le dit.
 
 ## Objectif
 

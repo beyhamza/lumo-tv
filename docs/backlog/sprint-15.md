@@ -1,6 +1,7 @@
 # Sprint 15 — Picture-in-Picture et essai Cast
 
-Statut : **ouvert le 19 octobre 2026**, version **0.4.0**, en mode rapide (tests automatisés et
+Statut : **clos le 19 octobre 2026 à ≈ 88 %** (ouvert le même jour), version **0.4.0** ; le reste
+(vrais appareils, Firefox/Safari, Chromecast réel) rejoint la recette groupée en [S17](sprint-17.md). Mode rapide (tests automatisés et
 vérification rapide du chemin principal ; recette approfondie groupée en S17). Taille relative : M.
 Aucun changement de contrat prévu. Référence : [roadmap 0.4.0](../roadmap/0.4.0/README.md),
 [ADR 0013](../adr/0013-advanced-playback-pip-cast.md).
