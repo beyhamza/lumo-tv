@@ -98,3 +98,7 @@ docker-data/
 
 # Vignette vide que l'export Claude Design dépose à côté des canevas.
 docs/design/canvas/.thumbnail
+
+# Production stack on the VPS (deploy/): database dumps and optional Caddy sites.
+deploy/backups/
+deploy/caddy.d/*.caddy

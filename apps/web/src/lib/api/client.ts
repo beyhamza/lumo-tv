@@ -1,5 +1,6 @@
 import "server-only";
 
+import { headers } from "next/headers";
 import createClient from "openapi-fetch";
 import type { paths } from "@lumo/contracts";
 import { apiBaseUrl } from "@/lib/env";
@@ -23,12 +24,40 @@ import type { Problem } from "./types";
  * in JavaScript to be useful, which is the thing we are not doing.
  */
 export function api(accessToken?: string) {
-  return createClient<paths>({
+  const client = createClient<paths>({
     baseUrl: apiBaseUrl(),
     headers: accessToken
       ? { Authorization: `Bearer ${accessToken}` }
       : undefined,
   });
+  client.use({
+    async onRequest({ request }) {
+      const forwarded = await incomingForwardedFor();
+      if (forwarded) request.headers.set("X-Forwarded-For", forwarded);
+      return request;
+    },
+  });
+  return client;
+}
+
+/**
+ * The visitor's address chain, passed on to the API (S16B-01).
+ *
+ * Every call leaves from this server, so without it the API sees one client —
+ * this container — and its per-address limits (five sign-in attempts a minute)
+ * apply to every visitor at once. The header is forwarded as received; the API
+ * believes it only from the proxies listed in `LUMO_TRUSTED_PROXIES`, which in
+ * production are the TLS proxy and this server, and ignores it otherwise.
+ *
+ * Outside a request (the proxy's refresh, a build) there is nothing to pass on.
+ */
+async function incomingForwardedFor(): Promise<string | null> {
+  try {
+    const value = (await headers()).get("x-forwarded-for");
+    return value && value.trim() ? value.trim() : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
