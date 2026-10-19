@@ -51,6 +51,9 @@ import tv.lumo.android.core.designsystem.theme.LumoTvShapes
  * error colour and announced. The dialog stays open with both buttons live: the
  * design keeps the thing on a failure and offers a retry.
  * @param busy while the deed is on the wire; both buttons wait.
+ * @param content drawn between the message and the failure: what the deed
+ * needs besides a yes — the password that confirms an account deletion
+ * (S16B-02). Nothing by default.
  */
 @Composable
 fun LumoConfirmDialog(
@@ -62,6 +65,7 @@ fun LumoConfirmDialog(
     onCancel: () -> Unit,
     busy: Boolean = false,
     failure: String? = null,
+    content: (@Composable () -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = { if (!busy) onCancel() },
@@ -69,6 +73,7 @@ fun LumoConfirmDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.sm)) {
                 Text(message)
+                content?.invoke()
                 failure?.let {
                     Text(
                         text = it,
@@ -108,6 +113,7 @@ fun LumoTvConfirmDialog(
     onCancel: () -> Unit,
     busy: Boolean = false,
     failure: String? = null,
+    content: (@Composable () -> Unit)? = null,
 ) {
     val cancel = remember { FocusRequester() }
 
@@ -154,6 +160,7 @@ fun LumoTvConfirmDialog(
                     style = TvMaterialTheme.typography.bodyLarge,
                     color = LumoColors.OnDarkMuted,
                 )
+                content?.invoke()
                 failure?.let {
                     TvText(
                         text = it,

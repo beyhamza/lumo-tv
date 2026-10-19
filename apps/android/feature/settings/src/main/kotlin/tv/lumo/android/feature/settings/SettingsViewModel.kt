@@ -57,6 +57,14 @@ import tv.lumo.android.network.generated.model.Source
  * retry** (docs/design/0.2.0/settings.md): a row that disappeared after a
  * failed call would be the screen announcing a success it did not get.
  *
+ * <h2>Deleting the account (S16B-02)</h2>
+ *
+ * The same confirmation, with the account password in it (`POST /me/delete`,
+ * ADR 0014). Only a deletion the server confirmed ends the session, through
+ * the very purge a sign-out runs ([AccountRepository.deleteAccount]); a wrong
+ * password, a throttle or an outage keep the dialog open with the reason and
+ * say, by their wording, that nothing was deleted.
+ *
  * <h2>Nothing here navigates</h2>
  *
  * Signing out drops the session, `AppStartDecision` sees it go, and the shell
@@ -132,6 +140,28 @@ class SettingsViewModel @Inject constructor(
             // moment the session disappears. Reset anyway rather than leave a
             // spinner behind if it is not.
             _state.update { it.copy(signingOut = false) }
+        }
+    }
+
+    // ---- deleting the account -------------------------------------------------
+
+    /** Opens the confirmation. Nothing happens until [confirmDeleteAccount]. */
+    fun askDeleteAccount() = _state.update { it.askDeleteAccount() }
+
+    /**
+     * `POST /me/delete` with [password]. Success leaves the screen the way a
+     * sign-out does: the session goes, and the shell rebuilds onto the way in.
+     */
+    fun confirmDeleteAccount(password: String) {
+        val asked = _state.value.confirmation as? SettingsConfirmation.DeleteAccount ?: return
+        if (asked.busy || password.isEmpty()) return
+        _state.update { it.deletingAccount() }
+
+        viewModelScope.launch {
+            when (val result = account.deleteAccount(password)) {
+                is LumoResult.Success -> _state.update { it.copy(confirmation = null) }
+                is LumoResult.Failure -> _state.update { it.deleteAccountRefused(result.error) }
+            }
         }
     }
 
@@ -292,6 +322,17 @@ sealed interface SettingsConfirmation {
         val busy: Boolean = false,
         val failure: LumoError? = null,
     ) : SettingsConfirmation
+
+    /**
+     * "Permanently delete your account?", with the password field under it.
+     *
+     * @param busy the call is on the wire; both buttons wait.
+     * @param failure the refusal — nothing was deleted. Null until there is one.
+     */
+    data class DeleteAccount(
+        val busy: Boolean = false,
+        val failure: LumoError? = null,
+    ) : SettingsConfirmation
 }
 
 /** What the settings surfaces render. */
@@ -355,9 +396,30 @@ data class SettingsUiState(
     fun askRevoke(device: Device): SettingsUiState =
         if (confirmation != null) this else copy(confirmation = SettingsConfirmation.Revoke(device))
 
-    /** Closes the question — unless a revoke is on the wire, which must be seen through. */
-    fun dismissConfirmation(): SettingsUiState =
-        if ((confirmation as? SettingsConfirmation.Revoke)?.busy == true) this else copy(confirmation = null)
+    fun askDeleteAccount(): SettingsUiState =
+        if (!signedIn || signingOut || confirmation != null) {
+            this
+        } else {
+            copy(confirmation = SettingsConfirmation.DeleteAccount())
+        }
+
+    /** Closes the question — unless a call is on the wire, which must be seen through. */
+    fun dismissConfirmation(): SettingsUiState = when (val asked = confirmation) {
+        is SettingsConfirmation.Revoke -> if (asked.busy) this else copy(confirmation = null)
+        is SettingsConfirmation.DeleteAccount -> if (asked.busy) this else copy(confirmation = null)
+        else -> copy(confirmation = null)
+    }
+
+    fun deletingAccount(): SettingsUiState {
+        val asked = confirmation as? SettingsConfirmation.DeleteAccount ?: return this
+        return copy(confirmation = asked.copy(busy = true, failure = null))
+    }
+
+    /** Refused: the account is still there, and so are the question and the reason. */
+    fun deleteAccountRefused(error: LumoError): SettingsUiState {
+        val asked = confirmation as? SettingsConfirmation.DeleteAccount ?: return this
+        return copy(confirmation = asked.copy(busy = false, failure = error))
+    }
 
     fun revoking(): SettingsUiState {
         val asked = confirmation as? SettingsConfirmation.Revoke ?: return this
@@ -396,6 +458,20 @@ data class SettingsUiState(
  */
 private fun LumoError.isAlreadyGone(): Boolean =
     this is LumoError.Api && code == ErrorCode.DEVICE_NOT_FOUND
+
+/**
+ * Why a deletion was refused, in words that say nothing was deleted — once,
+ * for both surfaces.
+ */
+@StringRes
+internal fun deleteAccountFailureOf(error: LumoError): Int = when {
+    error is LumoError.Offline -> R.string.feature_settings_delete_offline
+    error is LumoError.Api && error.code == ErrorCode.INVALID_CREDENTIALS ->
+        R.string.feature_settings_delete_wrong_password
+    error is LumoError.Api && error.code == ErrorCode.RATE_LIMITED ->
+        R.string.feature_settings_delete_rate_limited
+    else -> R.string.feature_settings_delete_failed
+}
 
 /**
  * Maps the state to a string resource, once, for both surfaces.

@@ -11,6 +11,7 @@ import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import tv.lumo.android.core.auth.SessionManager
+import tv.lumo.android.core.auth.SessionTokens
 import tv.lumo.android.core.data.internal.ApiCaller
 import tv.lumo.android.core.data.internal.ProblemReader
 import tv.lumo.android.core.data.repository.AccountRepository
@@ -102,13 +103,57 @@ class AccountRepositoryTest {
         assertThat((error as LumoError.Api).code).isEqualTo(ErrorCode.DEVICE_NOT_FOUND)
     }
 
+    @Test
+    fun `a confirmed deletion sends the password and ends the local session`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(204))
+        val session = SessionManager(FakeSessionStore(signedIn()), RejectingRefresher)
+
+        val result = repository(session).deleteAccount("correct horse battery")
+
+        assertThat(result).isEqualTo(LumoResult.Success(Unit))
+        val request = server.takeRequest()
+        assertThat(request.method).isEqualTo("POST")
+        assertThat(request.path).isEqualTo("/me/delete")
+        assertThat(request.body.readUtf8()).isEqualTo("{\"password\":\"correct horse battery\"}")
+        // The purge of a sign-out, and no logout call after it: one request only.
+        assertThat(session.current()).isNull()
+        assertThat(server.requestCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `a wrong password is a known refusal and keeps the session`() = runBlocking {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(403)
+                .setHeader("Content-Type", "application/problem+json")
+                .setBody("""{"code":"INVALID_CREDENTIALS","detail":"Password does not match"}"""),
+        )
+        val session = SessionManager(FakeSessionStore(signedIn()), RejectingRefresher)
+
+        val result = repository(session).deleteAccount("not it")
+
+        val error = (result as LumoResult.Failure).error
+        assertThat((error as LumoError.Api).code).isEqualTo(ErrorCode.INVALID_CREDENTIALS)
+        assertThat(session.current()).isNotNull()
+    }
+
     // ---- helpers -----------------------------------------------------------
 
-    private fun repository() = AccountRepository(
+    private fun repository(
+        session: SessionManager = SessionManager(FakeSessionStore(), RejectingRefresher),
+    ) = AccountRepository(
         account = retrofit.create(AccountApi::class.java),
         auth = retrofit.create(AuthApi::class.java),
         calls = ApiCaller(ProblemReader(Serializer.moshiBuilder.build())),
-        session = SessionManager(FakeSessionStore(), RejectingRefresher),
+        session = session,
+    )
+
+    private fun signedIn() = SessionTokens(
+        accessToken = "access",
+        refreshToken = "refresh",
+        accessTokenExpiresAt = Long.MAX_VALUE,
+        userId = UUID.randomUUID().toString(),
+        deviceId = UUID.randomUUID().toString(),
     )
 
     private fun device(id: UUID, platform: Platform, current: Boolean): String = """
