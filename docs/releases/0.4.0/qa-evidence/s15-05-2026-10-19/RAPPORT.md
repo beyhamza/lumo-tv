@@ -13,4 +13,4 @@ Branche `feat/S15-05-small`. Vérification rapide du chemin principal (mode rapi
 
 - Le flux de banc dure 12 s. Arrivée à la fin, une chaîne affiche « Votre fournisseur n'autorise pas
   la lecture depuis un navigateur » : la fin d'un flux en direct est prise pour un refus. Sans effet
-  sur un vrai direct, mais le message est faux. Au backlog.
+  sur un vrai direct, mais le message est faux. Au backlog : `BUG-S15-05-01` (mineur, web).
