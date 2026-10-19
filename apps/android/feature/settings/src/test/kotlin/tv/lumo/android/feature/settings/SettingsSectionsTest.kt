@@ -41,6 +41,22 @@ class SettingsSectionsTest {
     }
 
     @Test
+    fun `the floating window is a phone row, where the device has one (S15-02)`() {
+        assertThat(SettingsSections.playbackRows(SettingsSurface.Mobile, pictureInPicture = true)).containsExactly(
+            PlaybackRow.AudioLanguage,
+            PlaybackRow.Subtitles,
+            PlaybackRow.SubtitleLanguage,
+            PlaybackRow.AutoplayNext,
+            PlaybackRow.FloatingWindow,
+            PlaybackRow.MobileData,
+        ).inOrder()
+        assertThat(SettingsSections.playbackRows(SettingsSurface.Mobile, pictureInPicture = false))
+            .doesNotContain(PlaybackRow.FloatingWindow)
+        assertThat(SettingsSections.playbackRows(SettingsSurface.Tv, pictureInPicture = true))
+            .doesNotContain(PlaybackRow.FloatingWindow)
+    }
+
+    @Test
     fun `mobile data is a phone row only`() {
         assertThat(SettingsSections.playbackRows(SettingsSurface.Mobile)).contains(PlaybackRow.MobileData)
         assertThat(SettingsSections.playbackRows(SettingsSurface.Tv)).containsExactly(

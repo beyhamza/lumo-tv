@@ -48,6 +48,8 @@ import tv.lumo.android.core.player.PlaybackState
 import tv.lumo.android.core.player.R as PlayerR
 import tv.lumo.android.core.player.SeekAvailability
 import tv.lumo.android.core.player.ui.AUDIO_AND_SUBTITLES
+import tv.lumo.android.core.player.FloatingWindowRules
+import tv.lumo.android.core.player.ui.rememberFloatingWindow
 import tv.lumo.android.core.player.ui.LumoVideoSurface
 import tv.lumo.android.core.player.ui.PlayerLifecycleEffect
 import tv.lumo.android.core.player.ui.PlayerOptionGroup
@@ -112,6 +114,19 @@ fun VodPlayerMobileScreen(
     // not — the Activity declares `configChanges` and the player is a singleton.
     LaunchedEffect(filmId) { viewModel.start(filmId, sourceId, title, resumeFromMs) }
 
+
+    // The floating window (S15-01): leaving during a playback, or the button.
+    // Closing it stops and saves — the screen is left, which is what `stop()` does.
+    val floatingWindowOnLeave by viewModel.floatingWindowOnLeave.collectAsStateWithLifecycle()
+    val floatingWindow = rememberFloatingWindow(
+        playing = FloatingWindowRules.isPlaying(state.playback),
+        live = false,
+        enterOnLeave = floatingWindowOnLeave,
+        onTogglePlay = viewModel::togglePlayPause,
+        onLive = {},
+        onClosed = onBack,
+    )
+
     ImmersiveWhileVisible()
 
     DisposableEffect(Unit) {
@@ -162,7 +177,9 @@ fun VodPlayerMobileScreen(
         // branch on purpose: a film that stopped playing has a position worth
         // seeing, and hiding the bar with the error would take away the one thing
         // that says how far in the failure happened.
-        if (state.failure == null && !sourceDeleted && networkBlock == null) {
+        // In the window there is room for the picture only; its own buttons
+        // play and pause (S15-01).
+        if (state.failure == null && !sourceDeleted && networkBlock == null && !floatingWindow.active) {
             Controls(
                 progress = state.progress,
                 playing = state.playback is PlaybackState.Playing,
@@ -176,7 +193,17 @@ fun VodPlayerMobileScreen(
             )
         }
 
-        picking?.let { groups ->
+        // In the corner the channel player uses for its options. Absent where the
+        // device has no window (a television never composes this screen).
+        if (floatingWindow.available && !floatingWindow.active && state.failure == null &&
+            !sourceDeleted && networkBlock == null
+        ) {
+            TextButton(onClick = floatingWindow::enter, modifier = Modifier.align(Alignment.TopEnd)) {
+                Text(text = stringResource(PlayerR.string.core_player_floating_window), color = Color.White)
+            }
+        }
+
+        picking?.takeUnless { floatingWindow.active }?.let { groups ->
             PlayerOptionsSheet(
                 options = trackOptions,
                 choices = viewModel.trackChoices,

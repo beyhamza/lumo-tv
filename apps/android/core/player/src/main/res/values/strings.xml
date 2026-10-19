@@ -25,4 +25,10 @@
     <string name="core_player_track_change_retry">Try again</string>
     <string name="core_player_quality_height" translatable="false">%1$dp</string>
     <string name="core_player_quality_bitrate">%1$s Mb/s</string>
+    <!-- The floating window (S15-01, ADR 0013): the player's button and the window's own buttons. -->
+    <string name="core_player_floating_window">Floating window</string>
+    <string name="core_player_floating_window_play">Play</string>
+    <string name="core_player_floating_window_pause">Pause</string>
+    <string name="core_player_floating_window_live">Live</string>
+    <string name="core_player_floating_window_refused">Floating window is turned off for Lumo in Android settings</string>
 </resources>

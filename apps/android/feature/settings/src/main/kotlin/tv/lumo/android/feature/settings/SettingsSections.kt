@@ -36,7 +36,7 @@ sealed interface SettingsTarget {
 }
 
 /** One row of the Playback section. Which ones exist depends on the surface. */
-enum class PlaybackRow { AudioLanguage, Subtitles, SubtitleLanguage, AutoplayNext, MobileData }
+enum class PlaybackRow { AudioLanguage, Subtitles, SubtitleLanguage, AutoplayNext, FloatingWindow, MobileData }
 
 object SettingsSections {
 
@@ -59,13 +59,15 @@ object SettingsSections {
 
     /**
      * Playback on mobile data exists on the phone only: a television is never
-     * gated by the network (S13-05). Everything else is the same on both.
+     * gated by the network (S13-05). The floating window is the phone's too, and
+     * only where the device has one (S15-02, ADR 0013): a switch for a window that
+     * cannot open is a setting that does nothing. Everything else is the same on both.
      */
-    fun playbackRows(surface: SettingsSurface): List<PlaybackRow> =
-        if (surface == SettingsSurface.Mobile) {
-            PlaybackRow.entries
-        } else {
-            PlaybackRow.entries - PlaybackRow.MobileData
+    fun playbackRows(surface: SettingsSurface, pictureInPicture: Boolean = false): List<PlaybackRow> =
+        when {
+            surface != SettingsSurface.Mobile -> PlaybackRow.entries - PlaybackRow.MobileData - PlaybackRow.FloatingWindow
+            pictureInPicture -> PlaybackRow.entries
+            else -> PlaybackRow.entries - PlaybackRow.FloatingWindow
         }
 
     /**

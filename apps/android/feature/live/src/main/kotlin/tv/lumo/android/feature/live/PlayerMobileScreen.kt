@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -45,6 +46,8 @@ import tv.lumo.android.core.player.PlaybackState
 import tv.lumo.android.core.player.R as PlayerR
 import tv.lumo.android.core.player.TrackOptions
 import tv.lumo.android.core.player.ui.ALL_OPTION_GROUPS
+import tv.lumo.android.core.player.FloatingWindowRules
+import tv.lumo.android.core.player.ui.rememberFloatingWindow
 import tv.lumo.android.core.player.ui.LumoVideoSurface
 import tv.lumo.android.core.player.ui.PlayerLifecycleEffect
 import tv.lumo.android.core.player.ui.PlayerOptionsSheet
@@ -103,6 +106,20 @@ fun PlayerMobileScreen(
     // Keyed on the channel: opening a different one restarts, turning the phone
     // does not.
     LaunchedEffect(channelId) { viewModel.start(channelId) }
+
+    // The floating window (S15-01): leaving during a playback, or the button.
+    // A channel paused from the window is "paused" by this screen's own flag,
+    // not the player's state — Media3 reports a rebuffering live stream as paused.
+    // Closing the window leaves the screen, which stops the stream.
+    val floatingWindowOnLeave by viewModel.floatingWindowOnLeave.collectAsStateWithLifecycle()
+    val floatingWindow = rememberFloatingWindow(
+        playing = !state.paused && FloatingWindowRules.isPlaying(state.playback),
+        live = true,
+        enterOnLeave = floatingWindowOnLeave,
+        onTogglePlay = viewModel::togglePause,
+        onLive = viewModel::goLive,
+        onClosed = onBack,
+    )
 
     ImmersiveWhileVisible()
 
@@ -166,19 +183,28 @@ fun PlayerMobileScreen(
         // with one audio track shows nothing and the screen is what it was.
         // S13-01: subtitles and quality joined the audio tracks; the rule above
         // still holds — a channel with nothing to choose shows nothing.
-        if (trackOptions.hasAnyChoice() && state.failure == null && !sourceDeleted && networkBlock == null) {
-            TextButton(
-                onClick = { pickingAudio = true },
-                modifier = Modifier.align(Alignment.TopEnd),
-            ) {
-                Text(
-                    text = stringResource(PlayerR.string.core_player_options_title),
-                    color = Color.White,
-                )
+        // S15-01: the floating window's button sits beside it, on any channel the
+        // device can float. Neither is drawn inside the window itself.
+        val controlsShown = state.failure == null && !sourceDeleted && networkBlock == null && !floatingWindow.active
+        if (controlsShown) {
+            Row(modifier = Modifier.align(Alignment.TopEnd)) {
+                if (floatingWindow.available) {
+                    TextButton(onClick = floatingWindow::enter) {
+                        Text(text = stringResource(PlayerR.string.core_player_floating_window), color = Color.White)
+                    }
+                }
+                if (trackOptions.hasAnyChoice()) {
+                    TextButton(onClick = { pickingAudio = true }) {
+                        Text(
+                            text = stringResource(PlayerR.string.core_player_options_title),
+                            color = Color.White,
+                        )
+                    }
+                }
             }
         }
 
-        if (pickingAudio) {
+        if (pickingAudio && !floatingWindow.active) {
             PlayerOptionsSheet(
                 options = trackOptions,
                 choices = viewModel.trackChoices,
