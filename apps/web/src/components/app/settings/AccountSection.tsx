@@ -1,14 +1,17 @@
 import { getTranslations } from "next-intl/server";
+import { deleteAccount } from "@/actions/account";
 import { signOut } from "@/actions/auth";
 import { revokeDevice } from "@/actions/devices";
 import { DeviceRows, deviceName } from "@/components/app/DeviceRows";
 import { NotBuiltYet, Unavailable } from "@/components/app/Unavailable";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { api } from "@/lib/api/client";
 import { fetched } from "@/lib/api/fetched";
 import type { Device } from "@/lib/api/types";
+import { deletionFailure } from "@/lib/settings/account-deletion";
 import { settingsSectionPath } from "@/lib/settings/sections";
 import { isUuid } from "@/lib/sources/active-source";
 
@@ -51,6 +54,14 @@ import { isUuid } from "@/lib/sources/active-source";
  * Signing out says what changes and what does not: this browser, and no other
  * device. It announces no deletion, because nothing is deleted
  * (docs/design/0.2.0/settings.md).
+ *
+ * <h2>Deleting the account (S16B-02)</h2>
+ *
+ * The third confirmation, on the same pattern, and the only one that asks
+ * for something: the account password, which `POST /me/delete` requires
+ * (ADR 0014). It lists what goes, says it cannot be undone and that the other
+ * devices are signed out. A refusal comes back as `delete=` and always says
+ * that nothing was deleted.
  */
 export async function AccountSection({
   locale,
@@ -66,6 +77,7 @@ export async function AccountSection({
     confirm?: string | string[];
     device?: string | string[];
     revoke?: string | string[];
+    delete?: string | string[];
   };
 }) {
   const t = await getTranslations("Settings");
@@ -88,6 +100,16 @@ export async function AccountSection({
       ? (others.find((device) => device.id === query.device) ?? null)
       : null;
   const signingOut = query.confirm === "signout";
+  const deleting = query.confirm === "delete";
+  const deleteFailure = deletionFailure(query.delete);
+  const deleteMessage =
+    deleteFailure === "wrong-password"
+      ? t("deleteWrongPassword")
+      : deleteFailure === "rate-limited"
+        ? t("deleteRateLimited")
+        : deleteFailure === "failed"
+          ? t("deleteFailed")
+          : null;
 
   const revokeHref = (device: Device) =>
     `${account}?confirm=revoke&device=${device.id}#revoke-confirmation`;
@@ -235,6 +257,80 @@ export async function AccountSection({
               className="text-destructive text-sm underline underline-offset-4"
             >
               {t("signOutLink")}
+            </a>
+          </p>
+        )}
+      </section>
+
+      <section aria-labelledby="settings-delete-title">
+        <h2 id="settings-delete-title" className="text-lg font-semibold tracking-tight">
+          {t("deleteTitle")}
+        </h2>
+        <p className="text-muted-foreground/80 mt-1 text-[13px]">{t("deleteIntro")}</p>
+
+        {deleting ? (
+          <section
+            id="delete-confirmation"
+            aria-labelledby="delete-confirmation-title"
+            className="border-destructive/40 mt-3 scroll-mt-6 space-y-3 rounded-xl border px-5 py-4"
+          >
+            <h3 id="delete-confirmation-title" className="font-medium">
+              {t("deleteConfirmTitle")}
+            </h3>
+
+            {deleteMessage ? (
+              <p role="alert" className="text-destructive text-sm">
+                {deleteMessage}
+              </p>
+            ) : null}
+
+            <p className="text-muted-foreground text-sm">{t("deleteConfirmBody")}</p>
+
+            <form action={deleteAccount} className="space-y-3">
+              <div className="max-w-sm space-y-1.5">
+                <label htmlFor="delete-password" className="text-sm font-medium">
+                  {t("deletePasswordLabel")}
+                </label>
+                <Input
+                  id="delete-password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  aria-describedby="delete-password-hint"
+                  aria-invalid={deleteFailure === "wrong-password" || undefined}
+                />
+                <p id="delete-password-hint" className="text-muted-foreground text-xs">
+                  {t("deletePasswordHint")}{" "}
+                  <a
+                    href={hrefFor(locale, "/forgot-password")}
+                    className="underline underline-offset-4"
+                  >
+                    {t("deleteNoPassword")}
+                  </a>
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href={account}
+                  className="bg-secondary text-secondary-foreground inline-flex h-8 items-center rounded-lg px-2.5 text-sm font-medium"
+                >
+                  {t("confirmCancel")}
+                </a>
+                <Button type="submit" variant="destructive">
+                  {t("deleteConfirm")}
+                </Button>
+              </div>
+            </form>
+          </section>
+        ) : (
+          <p className="mt-3">
+            <a
+              href={`${account}?confirm=delete#delete-confirmation`}
+              className="text-destructive text-sm underline underline-offset-4"
+            >
+              {t("deleteLink")}
             </a>
           </p>
         )}

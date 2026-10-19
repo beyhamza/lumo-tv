@@ -15,10 +15,10 @@ import { appVersion } from "@/lib/env.public";
  * asks for the one actually installed (docs/design/0.2.0/settings.md). When
  * the build carries none, the row is absent rather than showing "unknown".
  *
- * <h2>Privacy and terms are not linked, because they do not exist</h2>
+ * <h2>Privacy, and how to delete the account</h2>
  *
- * The marketing footer shows both as unlinked words for the same reason. The
- * day the pages exist, the links go here; until then a link to a 404 is not
+ * Both public pages (S16B-03, S16B-02) are linked here, as Google Play asks.
+ * Terms are still not: that page does not exist, and a link to a 404 is not
  * "information".
  */
 export async function AboutSection({ locale }: { locale: Locale }) {
@@ -50,6 +50,20 @@ export async function AboutSection({ locale }: { locale: Locale }) {
             {t("guidesLink")}
           </a>
           <p className="text-muted-foreground mt-1 max-w-[60ch]">{t("guidesBody")}</p>
+        </dd>
+        <dt className="text-muted-foreground/80 text-[11px] font-semibold tracking-[0.1em] uppercase sm:pt-0.5">
+          {t("legalLabel")}
+        </dt>
+        <dd className="flex flex-col gap-1">
+          <a href={hrefFor(locale, "/privacy")} className="text-foreground underline underline-offset-4">
+            {t("privacyLink")}
+          </a>
+          <a
+            href={hrefFor(locale, "/delete-account")}
+            className="text-foreground underline underline-offset-4"
+          >
+            {t("deletionLink")}
+          </a>
         </dd>
       </dl>
     </section>
