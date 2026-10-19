@@ -7,14 +7,18 @@ Aucun changement de contrat prévu. Référence : [roadmap 0.4.0](../roadmap/0.4
 
 ## Avancement
 
-- [ ] S15-00 — essai Cast sur le récepteur par défaut — 0 %
+- [ ] S15-00 — essai Cast sur le récepteur par défaut — 80 % : [rapport](../releases/0.4.0/qa-evidence/s15-00-cast-spike-2026-10-19/RAPPORT.md) versé
+  (tableau format × condition, détection des refus, avis sur le contrat), recommandation : récepteur
+  par défaut, pas de nouvel ADR. Aucun Chromecast disponible : tableau documenté et sondé dans
+  Chromium, pas mesuré sur récepteur. Reste : rejouer le prototype sur un appareil réel (proposé en
+  S16-00, bloquant pour S16).
 - [ ] S15-01 — PiP Android mobile — 0 %
 - [ ] S15-02 — préférence « Fenêtre flottante en quittant l'application » — 0 %
 - [ ] S15-03 — PiP web — 0 %
 - [ ] S15-04 — progression, temps regardé et épisode suivant en fenêtre flottante — 0 %
 - [ ] S15-05 — petits sujets embarqués — 0 %
 
-**Avancement global ≈ 0 %**.
+**Avancement global ≈ 13 %**.
 
 ## Objectif
 

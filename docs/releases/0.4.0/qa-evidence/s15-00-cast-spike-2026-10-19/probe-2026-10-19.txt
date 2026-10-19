@@ -1,0 +1,37 @@
+S15-00 — measurements of 2026-10-19 (local bench http://localhost:18081, prototype/sender.html served on http://localhost:18090)
+Browser: Chromium 152 (Claude desktop built-in browser, Windows 11). No Cast device on the LAN.
+
+## 1. Device discovery
+mDNS PTR query _googlecast._tcp.local on the three IPv4 interfaces (192.168.56.1, 192.168.1.158, 192.168.160.1): no responder.
+Sender: __onGCastApiAvailable true ; CastContext.getCastState() = NO_DEVICES_AVAILABLE
+CastContext.requestSession() with DEFAULT_MEDIA_RECEIVER_APP_ID => rejected "session_error"
+
+## 2. Bench HTTP behaviour (curl, Origin: https://www.gstatic.com, Range: bytes=100-199)
+/stream/index.m3u8            206  application/vnd.apple.mpegurl  ACAO *
+/stream/seg0.ts               206  video/mp2t                     ACAO *
+/stream-nocors/index.m3u8     206  application/vnd.apple.mpegurl  (no ACAO)
+/film/le-voyage.mp4           206  video/mp4                      ACAO *  Accept-Ranges bytes
+/film/la-traversee.mkv        206  video/x-matroska               ACAO *  Accept-Ranges bytes
+/film-norange/le-voyage.mp4   200  video/mp4 (whole body)         ACAO *  no Accept-Ranges
+/film-norange/la-traversee.mkv 200 video/x-matroska (whole body)  ACAO *  no Accept-Ranges
+/movie/u/p/4001.mp4           206  video/mp4                      ACAO *  Accept-Ranges bytes
+/live/u/p/1.m3u8              206  application/vnd.apple.mpegurl  ACAO *
+
+## 3. Local Chromium probe (stand-in for the receiver's Chromium, NOT a receiver measurement)
+canPlayType application/vnd.apple.mpegurl => "maybe"   MSE false
+canPlayType video/mp4 => "maybe"                        MSE false
+canPlayType video/x-matroska => "maybe"                 MSE false
+canPlayType video/webm => "maybe"                       MSE false
+canPlayType video/mp2t => ""                            MSE true
+canPlayType video/mp4; codecs="avc1.42E01E, mp4a.40.2" => "probably"  MSE true
+canPlayType video/mp2t; codecs="avc1.42E01E, mp4a.40.2" => ""         MSE true
+canPlayType audio/mp4; codecs="ac-3" => ""              MSE false
+canPlayType audio/mp4; codecs="ec-3" => ""              MSE false
+cross-origin fetch /stream/index.m3u8 => HTTP 200
+cross-origin fetch /stream-nocors/index.m3u8 => BLOCKED TypeError
+cross-origin fetch /stream/seg0.ts => HTTP 200
+<video src> /film/le-voyage.mp4 => metadata ok 640x360, duration 6.00, seekable to 6.00
+<video src> /film-norange/le-voyage.mp4 => metadata ok 640x360, duration 6.00, seekable to 0.00
+<video src> /film/la-traversee.mkv => metadata ok 640x360, duration 6.02, seekable to 6.02
+<video src> /stream/seg0.ts => error code 4 (MEDIA_ERR_SRC_NOT_SUPPORTED)
+<video src> /stream-nocors/index.m3u8 => metadata ok 320x180, duration 6.00, seekable to 6.00  (desktop Chromium's native HLS, which does not need CORS)
