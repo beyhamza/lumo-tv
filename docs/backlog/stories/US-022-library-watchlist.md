@@ -17,7 +17,8 @@ séries que j'ai enregistrés, afin de choisir facilement quoi regarder plus tar
 
 ## Critères d'acceptation validés
 
-- Ma bibliothèque présente deux sections : Chaînes favorites et À regarder.
+- Ma bibliothèque présente deux sections : Chaînes favorites et Ma liste (nommée « À regarder »
+  jusqu'au 19/10/2026, harmonisée en S15-05).
 - Les deux sections affichent uniquement les éléments de la source active.
 - Chaînes favorites donne accès à toutes les chaînes favorites et à leurs groupes
   personnalisés. Réutiliser US-12 et le travail des sprints 4 et 6.

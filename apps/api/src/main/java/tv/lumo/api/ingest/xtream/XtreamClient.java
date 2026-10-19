@@ -186,7 +186,7 @@ public class XtreamClient {
                     buildVodStreamUrl(host, username, password, streamId, extension),
                     extension,
                     parseYear(readText(node.path("year"))),
-                    parseSeconds(readText(node.path("episode_run_time"))),
+                    minutesToSeconds(readText(node.path("episode_run_time"))),
                     // Echoed verbatim: `7.4`, `PG-13` and `★★★★` all occur, and
                     // deciding which is meant would be this layer inventing a
                     // meaning the provider did not give.
@@ -435,6 +435,8 @@ public class XtreamClient {
                 // Often absent, and far more often than for a film. A client shows
                 // "Episode 4" rather than an empty line.
                 readText(node.path("title")),
+                // Already seconds, unlike the run times: multiplying it by sixty
+                // showed a 45-minute episode as "2700 min" (BUG-S11-06-09).
                 parseSeconds(readText(info.path("duration_secs"))),
                 readText(info.path("plot")),
                 buildEpisodeStreamUrl(host, username, password, episodeId, extension),
@@ -531,7 +533,7 @@ public class XtreamClient {
     }
 
     /** Xtream reports a run time in minutes. Null when it reports nothing usable. */
-    private static Integer parseSeconds(String minutes) {
+    private static Integer minutesToSeconds(String minutes) {
         if (minutes == null || minutes.isBlank()) {
             return null;
         }
@@ -541,6 +543,12 @@ public class XtreamClient {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /** A duration Xtream reports in seconds ({@code duration_secs}). Null when unusable. */
+    private static Integer parseSeconds(String seconds) {
+        Integer value = parseInt(seconds);
+        return value != null && value > 0 ? value : null;
     }
 
     private static String firstNonBlank(String first, String second) {

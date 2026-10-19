@@ -3,7 +3,7 @@ package tv.lumo.android.feature.watchlist
 import tv.lumo.android.core.common.navigation.LumoDestination
 
 /**
- * "My list" — *À regarder* (US-022, S11-E05).
+ * "My list" — *Ma liste* (US-022, S11-E05 ; S15-05).
  *
  * A module of its own beside `feature:favorites`, not inside it: the two halves of
  * the library share no state, no model and no server resource (ADR 0011, ruling 1),

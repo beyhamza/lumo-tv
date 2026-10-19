@@ -17,11 +17,14 @@ Aucun changement de contrat prévu. Référence : [roadmap 0.4.0](../roadmap/0.4
   (la fenêtre est l'élément `<video>` lui-même, sauvegardes et compteur inchangés ; vérifié sur le
   banc). Limite web : passer à l'épisode suivant ou changer de chaîne ferme la fenêtre, le navigateur
   exige un geste pour la rouvrir. Android à faire.
-- [ ] S15-05 — petits sujets embarqués — 0 %
+- [ ] S15-05 — petits sujets embarqués — 90 % : rail TV français sur une ligne, `BUG-S11-06-09`
+  corrigé dans l'API (durée lue deux fois en minutes), « Ma liste » partout, médias de banc
+  multipistes (`/multitrack.m3u`) vérifiés sur le web. Reste : changement de piste réel sur Android
+  avec ces médias (recette S17). [Rapport](../releases/0.4.0/qa-evidence/s15-05-2026-10-19/RAPPORT.md).
 
-**Avancement global ≈ 22 %**.
+**Avancement global ≈ 37 %**.
 
-Branches : `feat/S15-web-pip` (web).
+Branches : `feat/S15-web-pip` (web), `feat/S15-05-small` (petits sujets).
 
 ## Objectif
 
