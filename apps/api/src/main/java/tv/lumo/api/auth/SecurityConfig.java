@@ -52,7 +52,8 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                            ProblemAuthenticationEntryPoint entryPoint) throws Exception {
+                                            ProblemAuthenticationEntryPoint entryPoint,
+                                            UserRepository users) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 // withDefaults() rather than an injected CorsConfigurationSource:
@@ -68,7 +69,7 @@ public class SecurityConfig {
                         // television requires a signed-in web session.
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(SecurityConfig::toPrincipal))
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(token -> toPrincipal(token, users)))
                         .authenticationEntryPoint(entryPoint))
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint(entryPoint)
@@ -82,11 +83,20 @@ public class SecurityConfig {
      * <p>A token whose {@code did} claim is missing or malformed is rejected
      * rather than defaulted: a session with no device cannot be revoked
      * per-device, which would quietly defeat {@code DELETE /me/devices/{id}}.
+     *
+     * <p>A token whose account has been deleted is rejected too, although its
+     * signature and expiry are fine (ADR 0014). Without this, another device of a
+     * deleted account would keep calling the API for up to fifteen minutes,
+     * writing favourites and progress for a user who no longer exists. One
+     * primary-key probe per request is the price.
      */
-    private static AbstractAuthenticationToken toPrincipal(Jwt jwt) {
+    private static AbstractAuthenticationToken toPrincipal(Jwt jwt, UserRepository users) {
         UUID userId = parseUuid(jwt.getSubject(), "sub");
         UUID deviceId = parseUuid(jwt.getClaimAsString(AccessTokenService.DEVICE_CLAIM),
                 AccessTokenService.DEVICE_CLAIM);
+        if (!users.exists(userId)) {
+            throw new InvalidBearerTokenException("The account no longer exists");
+        }
         return new LumoAuthenticationToken(jwt, new AuthPrincipal(userId, deviceId));
     }
 

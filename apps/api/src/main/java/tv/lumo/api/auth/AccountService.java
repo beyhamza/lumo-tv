@@ -220,6 +220,29 @@ public class AccountService {
         log.info("Password reset completed; revoked {} live session(s) for the account", revoked);
     }
 
+    /**
+     * Deletes the caller's account for good, once its password confirms the
+     * request (ADR 0014).
+     *
+     * <p>A wrong password is {@code 403}, not {@code 401}: the session is fine,
+     * and every client treats a {@code 401} on an authenticated call as a session
+     * to refresh or to end. An account with no password (SSO only) never
+     * matches, and sets one through the password reset first.
+     */
+    @Transactional
+    public void deleteAccount(UUID userId, String password) {
+        UserRow user = users.findById(userId)
+                .orElseThrow(() -> ApiException.unauthenticated(ErrorCode.UNAUTHENTICATED,
+                        "The authenticated account no longer exists"));
+        if (!passwords.matches(password, user.passwordHash())) {
+            throw new ApiException(org.springframework.http.HttpStatus.FORBIDDEN,
+                    ErrorCode.INVALID_CREDENTIALS, "Password does not match the account");
+        }
+        users.delete(userId);
+        // No id, no email: the log line must not become the record of who left.
+        log.info("Account deleted");
+    }
+
     private void sendVerificationEmail(UserRow user) {
         String token = SecretTokens.generate();
         userTokens.insert(user.id(), UserTokenRepository.Purpose.EMAIL_VERIFICATION,
