@@ -1,6 +1,7 @@
 # Sprint 13 — Lecteur et réglages
 
-Statut : **ouvert le 18 octobre 2026**, version **0.3.0**, en mode rapide (tests automatisés et
+Statut : **clos le 19 octobre 2026 à ≈ 83 %** (ouvert le 18/10), version **0.3.0** ; le reste
+(S13-00 médias multipistes, S13-06) rejoint la recette groupée en [S17](sprint-17.md). Mode rapide (tests automatisés et
 vérification rapide du chemin principal ; recette approfondie groupée avant la sortie). Taille
 relative : XL. Préférences de lecture locales à l'appareil : pas de changement de contrat prévu.
 

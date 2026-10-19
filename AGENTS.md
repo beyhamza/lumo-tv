@@ -147,6 +147,11 @@ mutualisé inter-utilisateurs, application iOS, Play Billing.
 
 Tout cela est **v2**. Si une tâche t'y emmène, signale la sortie de périmètre.
 
+**Exception 0.4.0** ([ADR 0013](docs/adr/0013-advanced-playback-pip-cast.md), acceptée le
+18/10/2026) : le Picture-in-Picture (Android mobile, web) et Chromecast en émetteur (Android
+mobile, web, récepteur par défaut de Google) entrent dans le périmètre. Pas sur Android TV,
+pas de récepteur personnalisé, jamais de relais ni de transcodage de flux (ADR 0007).
+
 ---
 
 ## 7. Boucle de travail attendue
