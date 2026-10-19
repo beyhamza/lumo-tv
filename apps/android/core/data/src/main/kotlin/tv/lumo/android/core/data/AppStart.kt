@@ -5,6 +5,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import tv.lumo.android.core.auth.SessionManager
 import tv.lumo.android.core.data.repository.SourceRepository
@@ -60,6 +61,15 @@ sealed interface AppStart {
  * refresh would re-run the source lookup and re-emit a start state, and an
  * application that recreates its graph on a start state change (both of them do)
  * would throw the user back to the first screen every hour.
+ *
+ * <h2>[AppStart.Loading] is said once per process, not once per collection</h2>
+ *
+ * Both shells collect with `collectAsStateWithLifecycle`, which cancels the
+ * collection on `ON_STOP` and starts a new one on `ON_START`. Re-emitting
+ * `Loading` there would drop the navigation graph for a frame every time the
+ * user comes back to the application — disposing whatever screen was open,
+ * the player included (BUG-S15-01-01). So a new collection opens on the last
+ * state this decision reached, and only the very first one starts on `Loading`.
  */
 @Singleton
 class AppStartDecision @Inject internal constructor(
@@ -67,10 +77,14 @@ class AppStartDecision @Inject internal constructor(
     private val sources: SourceRepository,
 ) {
 
+    @Volatile
+    private var last: AppStart = AppStart.Loading
+
     val stream: Flow<AppStart> = session.isSignedIn
         .distinctUntilChanged()
         .map { signedIn -> if (signedIn) whereSignedIn() else AppStart.SignedOut }
-        .onStart { emit(AppStart.Loading) }
+        .onEach { last = it }
+        .onStart { emit(last) }
         .distinctUntilChanged()
 
     /**
