@@ -35,11 +35,11 @@ de permission à remplir dans la Console**.
 | `android.software.leanback` déclaré | ✅ | `required="true"` : l'application n'est proposée qu'aux téléviseurs |
 | Écran tactile non requis | ✅ | `android.hardware.touchscreen` `required="false"` ; aucune autre fonctionnalité matérielle impliquée (pas de caméra, micro, GPS, téléphonie) |
 | Activité `LEANBACK_LAUNCHER` | ✅ | `TvActivity`, `MAIN` + `LEANBACK_LAUNCHER` |
-| Bannière d'accueil 320 × 180 dp | ✅ présente · ⚠️ contenu | `android:banner="@drawable/tv_banner"` sur l'application et l'activité. La bannière ne montre que le logo, **sans le nom de l'application** ; les recommandations Android TV demandent le nom, en texte lisible. Ne bloque pas le test interne ; à corriger avant la production (proposition : reprendre [`graphismes/banniere-tv-1280x720.png`](graphismes/banniere-tv-1280x720.png), qui porte « Lumo TV », en ressource `drawable-xhdpi` 640 × 360) |
+| Bannière d'accueil 320 × 180 dp | ✅ présente · ⚠️ contenu | `android:banner="@drawable/tv_banner"` sur l'application et l'activité. La bannière ne montre que le logo, **sans le nom de l'application** ; les recommandations Android TV demandent le nom, en texte lisible. Constaté dans le lanceur de l'émulateur : [`captures/verifications/tv-banniere-dans-le-lanceur.png`](captures/verifications/tv-banniere-dans-le-lanceur.png). Ne bloque pas le test interne ; à corriger avant la production (proposition : reprendre [`graphismes/banniere-tv-1280x720.png`](graphismes/banniere-tv-1280x720.png), qui porte « Lumo TV », en ressource `drawable-xhdpi` 640 × 360) |
 | Orientation paysage | ✅ | `screenOrientation="landscape"` |
 | Navigation entièrement à la croix directionnelle | ⚠️ non vérifié ici | règles et tests instrumentés de focus en place (`apps/android/AGENTS.md` §6), mais l'application n'a **jamais été pilotée à la télécommande sur un vrai téléviseur** : c'est le premier cas de la recette S17 |
 | Bannière de fiche 1280 × 720 | ✅ | [`graphismes/banniere-tv-1280x720.png`](graphismes/banniere-tv-1280x720.png) |
-| Captures TV 1920 × 1080 | voir [`captures/`](captures/) | |
+| Captures TV 1920 × 1080 | ✅ | [`captures/tv/`](captures/tv/), FR et EN |
 | Facteur de forme TV accepté dans la Console | ❌ à faire par Hamza | Configuration avancée → Facteurs de forme → Android TV. Sans cela la fiche TV n'est pas examinée pour Google TV ; le test interne fonctionne quand même |
 
 ## Téléphone et tablette (`tv.lumo.android`)
@@ -49,7 +49,7 @@ de permission à remplir dans la Console**.
 | Activité `LAUNCHER` | ✅ | `MainActivity` |
 | N'apparaît pas dans le catalogue TV | ✅ | ni `leanback` ni `LEANBACK_LAUNCHER` : c'est voulu, la TV a sa fiche (ADR 0004) |
 | Image dans l'image | ✅ | `supportsPictureInPicture="true"`, aucune permission ni déclaration Play requise |
-| Icône adaptative | ⚠️ | `android:icon="@drawable/ic_lumo"` est un vecteur simple, pas une `adaptive-icon` : sur Android 8+ le lanceur l'affiche réduite dans une pastille. Ne bloque rien ; à corriger avant la production (le vecteur est déjà dessiné sur la grille 108 dp d'une icône adaptative) |
+| Icône adaptative | ⚠️ | `android:icon="@drawable/ic_lumo"` est un vecteur simple, pas une `adaptive-icon` : sur Android 8+ le système l'affiche réduite dans une pastille blanche — visible sur l'écran de démarrage de l'émulateur. Ne bloque rien ; à corriger avant la production (le vecteur est déjà dessiné sur la grille 108 dp d'une icône adaptative) |
 
 ## Fiche et règlement
 

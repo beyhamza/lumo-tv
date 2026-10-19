@@ -11,11 +11,23 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
 - [ ] S16B-01 — pile de production sur VPS — 0 %
 - [ ] S16B-02 — suppression de compte — 0 %
 - [ ] S16B-03 — politique de confidentialité — 0 %
-- [ ] S16B-04 — numéro de version et bundle de publication — 0 %
-- [ ] S16B-05 — fiche Play et formulaires — 0 %
+- [ ] S16B-04 — numéro de version et bundle de publication — 90 % : `LUMO_VERSION_CODE` /
+  `LUMO_VERSION_NAME` (défaut 0.4.0) lus à la construction par les deux applis ; `bundleRelease`
+  refuse de tourner sans clé d'envoi ni code de version ; deux AAB construits et signés avec une
+  clé de **test** hors dépôt (même empreinte, `versionCode 40001`) ; procédure dans
+  [`apps/android/RELEASE.md`](../../apps/android/RELEASE.md), état des exigences dans
+  [`exigences-play.md`](../releases/0.4.0/play/exigences-play.md). Reste : clé d'envoi réelle et
+  bundles définitifs (Hamza, adresse de l'API de S16B-00/01) ; avant la production, nom dans la
+  bannière TV et icône adaptative.
+- [ ] S16B-05 — fiche Play et formulaires — 85 % : fiches FR/EN des deux applis, sécurité des
+  données, classification, public visé, graphismes, captures du banc (téléphone et TV, FR/EN) et
+  checklist Play Console dans [`docs/releases/0.4.0/play/`](../releases/0.4.0/play/README.md).
+  Reste à confirmer par Hamza : URL de confidentialité (S16B-03) et de suppression (S16B-02),
+  conservation des IP (S16B-01), catégorie IARC, ressemblance du logo ; compte de démonstration
+  et source du banc en ligne pour l'accès vérificateur.
 - [ ] S16B-06 — publication sur la piste de test interne — 0 %
 
-**Avancement global ≈ 6 %**.
+**Avancement global ≈ 31 %**.
 
 ## Objectif
 
