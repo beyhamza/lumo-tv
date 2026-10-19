@@ -19,7 +19,7 @@ import tv.lumo.android.core.common.playback.TrackPreferences
  * <h2>Two scopes in one file</h2>
  *
  * - **Per account on this device**: audio language, subtitles on/off and their
- *   language, next episode automatically. Account A's choices are never applied
+ *   language, next episode automatically, floating window on leaving (S15-02). Account A's choices are never applied
  *   to account B, and A finds them again on coming back (PS-02).
  * - **Per installation**: playback on mobile data (Q7). Kept across a change of
  *   account — it is about the phone's data plan, not about a person.
@@ -29,7 +29,8 @@ import tv.lumo.android.core.common.playback.TrackPreferences
  * The first time an account plays something here, its audio and subtitle
  * languages are seeded from the interface language and **written**, so changing
  * the interface language later does not move them (PS-01). Subtitles start off,
- * the next episode starts automatically, mobile data is allowed.
+ * the next episode starts automatically, mobile data is allowed, and leaving the
+ * application during a playback opens the floating window.
  *
  * <h2>Writes say whether they happened</h2>
  *
@@ -56,6 +57,15 @@ interface PlaybackPreferencesRepository {
 
     suspend fun setAutoplayNext(enabled: Boolean): Boolean
 
+    /**
+     * "Floating window when leaving the application" (S15-02), Android mobile only.
+     * On by default. The player's button opens the window whatever this says: the
+     * setting is about leaving, not about the window.
+     */
+    val floatingWindowOnLeave: Flow<Boolean>
+
+    suspend fun setFloatingWindowOnLeave(enabled: Boolean): Boolean
+
     /** Android mobile only; a television never reads it. */
     suspend fun mobileDataAllowed(): Boolean
 
@@ -69,6 +79,8 @@ data class PlaybackSettings(
     val tracks: TrackPreferences = TrackPreferences.NONE,
     val autoplayNext: Boolean = true,
     val mobileDataAllowed: Boolean = true,
+    /** S15-02: leaving the application during a playback opens the floating window. */
+    val floatingWindowOnLeave: Boolean = true,
 )
 
 /**
@@ -94,8 +106,12 @@ internal class DataStorePlaybackPreferences(
             tracks = account?.let { tracksOf(stored, it) ?: seed() } ?: TrackPreferences.NONE,
             autoplayNext = account?.let { stored[autoplayKey(it)] } ?: true,
             mobileDataAllowed = stored[MOBILE_DATA_ALLOWED] ?: true,
+            floatingWindowOnLeave = account?.let { stored[floatingWindowKey(it)] } ?: true,
         )
     }
+
+    override val floatingWindowOnLeave: Flow<Boolean> =
+        combine(data, accountIds) { stored, account -> account?.let { stored[floatingWindowKey(it)] } ?: true }
 
     override val mobileDataAllowedChanges: Flow<Boolean> =
         combine(data, accountIds) { stored, _ -> stored[MOBILE_DATA_ALLOWED] ?: true }
@@ -148,6 +164,11 @@ internal class DataStorePlaybackPreferences(
         return write { it[autoplayKey(account)] = enabled }
     }
 
+    override suspend fun setFloatingWindowOnLeave(enabled: Boolean): Boolean {
+        val account = accountId() ?: return false
+        return write { it[floatingWindowKey(account)] = enabled }
+    }
+
     override suspend fun mobileDataAllowed(): Boolean = data.first()[MOBILE_DATA_ALLOWED] ?: true
 
     override suspend fun setMobileDataAllowed(allowed: Boolean): Boolean =
@@ -176,5 +197,6 @@ internal class DataStorePlaybackPreferences(
         fun subtitlesOnKey(account: String) = booleanPreferencesKey("$account.subtitles_enabled")
         fun subtitleLanguageKey(account: String) = stringPreferencesKey("$account.subtitle_language")
         fun autoplayKey(account: String) = booleanPreferencesKey("$account.autoplay_next")
+        fun floatingWindowKey(account: String) = booleanPreferencesKey("$account.floating_window_on_leave")
     }
 }

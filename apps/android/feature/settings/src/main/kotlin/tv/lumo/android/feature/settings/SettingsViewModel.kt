@@ -163,6 +163,10 @@ class SettingsViewModel @Inject constructor(
     /** "Next episode automatically". Per account on this device. */
     fun setAutoplayNext(enabled: Boolean) = writePlayback { playbackPreferences.setAutoplayNext(enabled) }
 
+    /** "Floating window when leaving the application", Android mobile (S15-02). Per account on this device. */
+    fun setFloatingWindowOnLeave(enabled: Boolean) =
+        writePlayback { playbackPreferences.setFloatingWindowOnLeave(enabled) }
+
     /** "Playback on mobile data", Android mobile. Off: video on Wi-Fi only. */
     fun setMobileDataAllowed(allowed: Boolean) = writePlayback { playbackPreferences.setMobileDataAllowed(allowed) }
 

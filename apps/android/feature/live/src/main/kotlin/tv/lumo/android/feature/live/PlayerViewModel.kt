@@ -94,6 +94,10 @@ class PlayerViewModel @Inject constructor(
     /** Video held back by the Wi-Fi only setting (S13-05). Never set on a television. */
     val networkBlock: StateFlow<NetworkBlock?> = networkGuard.block
 
+    /** S15-02: leaving the application during a playback opens the floating window. Phone only. */
+    val floatingWindowOnLeave: StateFlow<Boolean> = preferences.floatingWindowOnLeave
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
     init {
         // A channel has no position to keep: stopped, and *Resume* rejoins the
         // live edge of the current programme (Q7).
@@ -245,6 +249,16 @@ class PlayerViewModel @Inject constructor(
         // would resume a stream nobody had paused.
         if (_paused.value) player.resume() else player.pause()
         _paused.update { !it }
+    }
+
+    /**
+     * *Direct*, from the floating window (S15-01): back to the live edge, playing.
+     * A paused channel resumed with [togglePause] picks up near where the buffer
+     * stopped; this is the button that says "now".
+     */
+    fun goLive() {
+        _paused.value = false
+        player.resumeAtLiveEdge()
     }
 
     private fun open(channelId: String) {

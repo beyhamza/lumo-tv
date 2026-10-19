@@ -25,6 +25,8 @@
     <string name="feature_settings_version">Version</string>
     <string name="feature_settings_autoplay_next">Épisode suivant automatique</string>
     <string name="feature_settings_autoplay_next_note">Sur cet appareil. Désactivé : l\'épisode suivant est proposé sans décompte.</string>
+    <string name="feature_settings_floating_window">Fenêtre flottante en quittant l\'application</string>
+    <string name="feature_settings_floating_window_note">Sur cet appareil. Désactivée : quitter l\'application met la lecture en pause.</string>
     <string name="feature_settings_mobile_data">Lecture sur données mobiles</string>
     <string name="feature_settings_mobile_data_note">Désactivé : lecture uniquement en Wi-Fi. Le catalogue reste consultable.</string>
     <string name="feature_settings_on">Activé</string>

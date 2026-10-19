@@ -721,6 +721,9 @@
   "Player": {
     "tracksButton": "Audio and subtitles",
     "qualityButton": "Quality",
+    "pipEnter": "Floating window",
+    "pipExit": "Back to the page",
+    "pipRefused": "The browser refused to open the floating window. Try again once the picture shows.",
     "audioLegend": "Audio",
     "subtitlesLegend": "Subtitles",
     "subtitlesOff": "Off",

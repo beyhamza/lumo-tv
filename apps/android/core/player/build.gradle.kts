@@ -30,4 +30,7 @@ dependencies {
     implementation(libs.androidx.media3.ui.compose)
 
     implementation(libs.androidx.lifecycle.runtime.compose)
+    // The floating window (S15-01) is the Activity's: its mode-change and
+    // leave-hint listeners are on ComponentActivity, reached through LocalActivity.
+    implementation(libs.androidx.activity.compose)
 }

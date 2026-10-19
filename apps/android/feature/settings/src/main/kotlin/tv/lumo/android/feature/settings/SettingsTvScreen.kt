@@ -475,7 +475,7 @@ private fun PlaybackPanel(
                 trailing = { OnOff(state.playback.autoplayNext) },
                 onClick = { viewModel.setAutoplayNext(!state.playback.autoplayNext) },
             )
-            PlaybackRow.MobileData -> Unit
+            PlaybackRow.MobileData, PlaybackRow.FloatingWindow -> Unit
         }
     }
     if (state.playbackNotSaved) {

@@ -22,4 +22,10 @@
     <string name="core_player_track_change_failed">Ce choix n\'a pas pu être appliqué. La sélection précédente est conservée.</string>
     <string name="core_player_track_change_retry">Réessayer</string>
     <string name="core_player_quality_bitrate">%1$s Mb/s</string>
+    <!-- La fenêtre flottante (S15-01, ADR 0013) : le bouton du lecteur et les boutons de la fenêtre. -->
+    <string name="core_player_floating_window">Fenêtre flottante</string>
+    <string name="core_player_floating_window_play">Lecture</string>
+    <string name="core_player_floating_window_pause">Pause</string>
+    <string name="core_player_floating_window_live">Direct</string>
+    <string name="core_player_floating_window_refused">La fenêtre flottante est désactivée pour Lumo dans les réglages d\'Android</string>
 </resources>

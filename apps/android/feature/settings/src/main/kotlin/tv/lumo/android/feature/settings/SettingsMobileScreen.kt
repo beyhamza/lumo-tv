@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -43,6 +44,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import tv.lumo.android.core.common.playback.PictureInPictureSupport
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -313,9 +315,12 @@ private fun PlaybackSection(
     val tracks = state.playback.tracks
     val notSet = stringResource(R.string.feature_settings_language_not_set)
 
+    val context = LocalContext.current
+    val pictureInPicture = remember(context) { PictureInPictureSupport.deviceSupports(context) }
+
     Note(stringResource(R.string.feature_settings_playback_scope))
     Section(title = null) {
-        SettingsSections.playbackRows(SettingsSurface.Mobile).forEachIndexed { index, row ->
+        SettingsSections.playbackRows(SettingsSurface.Mobile, pictureInPicture).forEachIndexed { index, row ->
             if (index > 0) RowDivider()
             when (row) {
                 PlaybackRow.AudioLanguage -> SettingsRow(
@@ -344,6 +349,16 @@ private fun PlaybackSection(
                     onClick = { viewModel.setAutoplayNext(!state.playback.autoplayNext) },
                 ) {
                     Switch(checked = state.playback.autoplayNext, onCheckedChange = viewModel::setAutoplayNext)
+                }
+                PlaybackRow.FloatingWindow -> SettingsRow(
+                    label = stringResource(R.string.feature_settings_floating_window),
+                    note = stringResource(R.string.feature_settings_floating_window_note),
+                    onClick = { viewModel.setFloatingWindowOnLeave(!state.playback.floatingWindowOnLeave) },
+                ) {
+                    Switch(
+                        checked = state.playback.floatingWindowOnLeave,
+                        onCheckedChange = viewModel::setFloatingWindowOnLeave,
+                    )
                 }
                 PlaybackRow.MobileData -> SettingsRow(
                     label = stringResource(R.string.feature_settings_mobile_data),

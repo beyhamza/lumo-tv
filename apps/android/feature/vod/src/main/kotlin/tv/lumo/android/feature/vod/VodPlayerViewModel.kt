@@ -96,6 +96,10 @@ class VodPlayerViewModel @Inject constructor(
     /** Video held back by the Wi-Fi only setting (S13-05). Never set on a television. */
     val networkBlock: StateFlow<NetworkBlock?> = networkGuard.block
 
+    /** S15-02: leaving the application during a playback opens the floating window. Phone only. */
+    val floatingWindowOnLeave: StateFlow<Boolean> = preferences.floatingWindowOnLeave
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
     init {
         networkGuard.watch(viewModelScope, ::interruptForNetwork)
     }

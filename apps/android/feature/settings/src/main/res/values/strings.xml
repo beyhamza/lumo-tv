@@ -48,6 +48,8 @@
     <!-- S13-03/05: next episode and mobile data, in Playback. -->
     <string name="feature_settings_autoplay_next">Next episode automatically</string>
     <string name="feature_settings_autoplay_next_note">On this device. Off: the next episode is offered without a countdown.</string>
+    <string name="feature_settings_floating_window">Floating window when leaving the app</string>
+    <string name="feature_settings_floating_window_note">On this device. Off: leaving the app pauses playback.</string>
     <string name="feature_settings_mobile_data">Playback on mobile data</string>
     <string name="feature_settings_mobile_data_note">Off: playback on Wi-Fi only. The catalogue stays available.</string>
     <string name="feature_settings_on">On</string>
