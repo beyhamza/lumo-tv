@@ -10,6 +10,7 @@ relative : XL. Préférences de lecture locales à l'appareil : pas de changemen
 - [ ] S13-00 — matrice des capacités des lecteurs — 50 % : colonnes web et Android établies (pistes
   exposées par le navigateur / Media3, limites nommées) ; **il manque des médias de banc autorisés**
   multipistes, sous-titrés et multi-qualités pour vérifier les changements réels.
+  Médias livrés le 19/10 en S15-05 (`/multitrack.m3u` du banc) ; changements réels vérifiés sur le web.
 - [ ] S13-01 — audio, sous-titres, qualité avec états honnêtes — 90 % : web (menus des trois lecteurs)
   et Android (mobile, TV ; sous-titres bitmap indiqués « non pris en charge »). Changement réel de
   piste non vérifié faute de média ; « changement en cours / échec, réessayer » (PS-07) fait sur

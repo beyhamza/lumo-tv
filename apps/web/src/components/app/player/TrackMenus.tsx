@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { type RefObject, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { PipButton } from "@/components/app/player/PipButton";
 import type { PrefsHandle } from "@/components/app/player/use-playback-prefs";
 import type { PlaybackPrefs } from "@/lib/playback/preferences";
 import {
@@ -39,13 +40,18 @@ import type { TrackController, TrackSnapshot } from "@/lib/playback/tracks/types
  * Opening a menu puts focus on the effective choice, else the first usable
  * control, else Close. Escape and Close return it to the button that opened
  * the menu. Asynchronous updates never move focus.
+ *
+ * The same row carries "Floating window" when the player passes its element
+ * (`PipButton`, US-026).
  */
 export function TrackMenus({
   controller,
   prefsHandle,
+  videoRef,
 }: {
   controller: TrackController | null;
   prefsHandle: PrefsHandle;
+  videoRef?: RefObject<HTMLVideoElement | null>;
 }) {
   const t = useTranslations("Player");
   const locale = useLocale();
@@ -188,6 +194,7 @@ export function TrackMenus({
         >
           {t("qualityButton")}
         </button>
+        {videoRef ? <PipButton videoRef={videoRef} className={buttonClass} /> : null}
       </div>
 
       {subtitleLanguageMissing ? (

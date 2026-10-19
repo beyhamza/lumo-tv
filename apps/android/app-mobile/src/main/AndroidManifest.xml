@@ -27,6 +27,11 @@
         android:theme="@style/Theme.Lumo">
 
         <!--
+          supportsPictureInPicture: the floating window of the film, episode and
+          channel players (S15-01, ADR 0013). Phone only — the TV application
+          does not declare it. The configChanges below also keep the Activity
+          alive across the window's resizes.
+
           configChanges is what lets US-09's "pivoter sans interrompre la
           lecture" work: without it a rotation recreates the Activity, which
           tears down the player surface and restarts the stream from scratch.
@@ -38,6 +43,7 @@
             android:launchMode="singleTop"
             android:theme="@style/Theme.Lumo"
             android:windowSoftInputMode="adjustResize"
+            android:supportsPictureInPicture="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode">
 
             <intent-filter>

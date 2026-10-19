@@ -315,6 +315,20 @@ class XtreamClientTest {
     }
 
     @Test
+    @DisplayName("la durée d'un épisode est déjà en secondes, et reste vide quand le panneau ne la donne pas")
+    void readsEpisodeDurationInSeconds() {
+        // `duration_secs` is seconds, where the listings' run times are minutes.
+        // Reading it as minutes turned a 45-minute episode into "2700 min"
+        // (BUG-S11-06-09).
+        List<XtreamClient.XtreamSeason> tree =
+                client.fetchSeriesInfo(host, "user", "pass", "9001");
+
+        assertThat(tree.get(0).episodes().get(0).durationSeconds()).isEqualTo(2700);
+        assertThat(tree.get(1).episodes().get(0).durationSeconds()).isEqualTo(2650);
+        assertThat(tree.get(0).episodes().get(1).durationSeconds()).isNull();
+    }
+
+    @Test
     @DisplayName("l'arbre vient des épisodes, et une saison déclarée vide reste une saison")
     void readsTheTree() {
         List<XtreamClient.XtreamSeason> tree =

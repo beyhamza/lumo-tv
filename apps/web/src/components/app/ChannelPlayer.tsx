@@ -284,7 +284,7 @@ export function ChannelPlayer({
         className="mt-3 aspect-video w-full rounded-lg bg-black"
       />
 
-      {!failure ? <TrackMenus controller={tracks} prefsHandle={prefsHandle} /> : null}
+      {!failure ? <TrackMenus controller={tracks} prefsHandle={prefsHandle} videoRef={videoRef} /> : null}
 
       {maxConnections ? (
         <p className="text-muted-foreground mt-2 text-sm">

@@ -573,7 +573,7 @@ export function FilmPlayer({
         className={started ? "mt-3 aspect-video w-full rounded-lg bg-black" : "hidden"}
       />
 
-      {started && !failure ? <TrackMenus controller={tracks} prefsHandle={prefsHandle} /> : null}
+      {started && !failure ? <TrackMenus controller={tracks} prefsHandle={prefsHandle} videoRef={videoRef} /> : null}
 
       {/* The browser wanted a gesture (S12-05). Not an error: the player is at
           the position and this one press starts it. */}

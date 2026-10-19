@@ -26,6 +26,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.tv.material3.Text
 import tv.lumo.android.core.common.navigation.LumoDestination
 import tv.lumo.android.core.designsystem.theme.LumoColors
@@ -77,7 +78,7 @@ fun LumoTvNavRail(
             .width(RAIL_WIDTH)
             .background(LumoColors.Surface)
             .tvOverscanEdges(start = true, top = true, bottom = true)
-            .padding(end = LumoSpacing.md)
+            .padding(end = LumoSpacing.sm)
             // `LEFT` from the content comes back to the entry that is open, not
             // to whichever entry happens to be level with the card the remote
             // left (BUG-S11-06-07): the rail is one zone, and re-entering a zone
@@ -128,7 +129,7 @@ private fun LumoTvNavRailItem(
     // look to "the remote is here" and to "this is open".
     Text(
         text = stringResource(destination.titleRes),
-        style = LumoTypeScale.tv.label,
+        style = LumoTypeScale.tv.label.copy(letterSpacing = RAIL_LETTER_SPACING),
         color = when {
             selected -> LumoColors.Accent
             focused -> LumoColors.OnDark
@@ -146,7 +147,7 @@ private fun LumoTvNavRailItem(
                 indication = null,
                 onClick = onSelect,
             )
-            .padding(horizontal = LumoSpacing.md, vertical = RAIL_ITEM_VERTICAL_PADDING),
+            .padding(horizontal = LumoSpacing.sm, vertical = RAIL_ITEM_VERTICAL_PADDING),
     )
 }
 
@@ -163,6 +164,12 @@ private val RAIL_ITEM_VERTICAL_PADDING = 6.dp
 
 // Wide enough that the start overscan margin does not eat the label, and no
 // wider: the canvas has no rail at all, so every dp given to this column is a
-// dp taken from screens drawn for the full panel. 220 dp leaves the content
-// 1 384 px of a 1080p panel — enough for a sub-menu and its panel side by side.
-private val RAIL_WIDTH = 220.dp
+// dp taken from screens drawn for the full panel. 244 dp, with `sm` at its end and inside each
+// entry and the tighter tracking below, is the narrowest that keeps the longest
+// label, « Ma bibliothèque », on one line (S15-05); at 220 dp it broke inside
+// the word. It still leaves room for a sub-menu and its panel side by side.
+private val RAIL_WIDTH = 244.dp
+
+// The label style's 0.1 em tracking is drawn for short labels; in a column this
+// narrow it is what pushed French names onto a second line (S15-05).
+private val RAIL_LETTER_SPACING = 0.04.em

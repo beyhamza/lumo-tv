@@ -52,6 +52,7 @@ for playlist in "$WEB"/playlist*.m3u; do
     sed -i "s|__BENCH_PUBLIC_URL__|${BENCH_PUBLIC_URL}|g" "$playlist"
 done
 sed -i "s|__BENCH_PUBLIC_URL__|${BENCH_PUBLIC_URL}|g" "$WEB/mixed.m3u"
+sed -i "s|__BENCH_PUBLIC_URL__|${BENCH_PUBLIC_URL}|g" "$WEB/multitrack.m3u"
 
 # ---- The volume sizes (S9-07 §5.2) ------------------------------------------
 #

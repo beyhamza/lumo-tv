@@ -511,7 +511,7 @@
     "favoritesGroupOrderHint": "Monter et Descendre ne changent l’ordre que parmi les chaînes de cette source : celles de vos autres sources gardent leur place dans le groupe.",
     "watchlistTitle": "Ma liste",
     "watchlistMetaDescription": "Les films et séries que vous avez enregistrés pour plus tard, dans la source active.",
-    "watchlistOfSource": "À regarder dans {source}. Les listes de vos autres sources sont conservées : vous les retrouvez en changeant de source.",
+    "watchlistOfSource": "Ma liste pour {source}. Les listes de vos autres sources sont conservées : vous les retrouvez en changeant de source.",
     "watchlistChooseTitle": "Choisissez d’abord une source",
     "watchlistChooseBody": "Votre liste s’affiche une source à la fois. Choisissez la source à parcourir dans le menu, sous « Source active ».",
     "watchlistCount": "{total, plural, one {# titre} other {# titres}}",
@@ -721,6 +721,9 @@
   "Player": {
     "tracksButton": "Audio et sous-titres",
     "qualityButton": "Qualité",
+    "pipEnter": "Fenêtre flottante",
+    "pipExit": "Revenir dans la page",
+    "pipRefused": "Le navigateur a refusé d'ouvrir la fenêtre flottante. Réessayez une fois l'image affichée.",
     "audioLegend": "Audio",
     "subtitlesLegend": "Sous-titres",
     "subtitlesOff": "Désactivés",

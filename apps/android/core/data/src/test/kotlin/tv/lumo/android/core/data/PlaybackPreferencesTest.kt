@@ -79,6 +79,33 @@ class PlaybackPreferencesTest {
     }
 
     @Test
+    fun `floating window on leaving is on by default and per account (S15-02)`() = runTest {
+        open { preferences ->
+            assertThat(preferences.floatingWindowOnLeave.first()).isTrue()
+            assertThat(preferences.settings.first().floatingWindowOnLeave).isTrue()
+
+            assertThat(preferences.setFloatingWindowOnLeave(false)).isTrue()
+            assertThat(preferences.floatingWindowOnLeave.first()).isFalse()
+            assertThat(preferences.settings.first().floatingWindowOnLeave).isFalse()
+
+            account.value = "account-b"
+            assertThat(preferences.floatingWindowOnLeave.first()).isTrue()
+
+            account.value = "account-a"
+            assertThat(preferences.floatingWindowOnLeave.first()).isFalse()
+        }
+    }
+
+    @Test
+    fun `without an account the floating window stays on and nothing is written (S15-02)`() = runTest {
+        account.value = null
+        open { preferences ->
+            assertThat(preferences.setFloatingWindowOnLeave(false)).isFalse()
+            assertThat(preferences.floatingWindowOnLeave.first()).isTrue()
+        }
+    }
+
+    @Test
     fun `mobile data is allowed by default and belongs to the installation (Q7)`() = runTest {
         open { preferences ->
             assertThat(preferences.mobileDataAllowed()).isTrue()
