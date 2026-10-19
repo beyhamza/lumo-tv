@@ -113,7 +113,7 @@ Available in English and French.
 | Politique de confidentialité | URL publique de S16B-03 | **oui** — dépend de S16B-03 |
 | Icône 512 × 512 | [`graphismes/icone-512.png`](graphismes/icone-512.png) | voir la réserve sur l'icône dans [`exigences-play.md`](exigences-play.md) |
 | Image de présentation 1024 × 500 | [`graphismes/presentation-telephone-1024x500-fr.png`](graphismes/presentation-telephone-1024x500-fr.png), [`…-en.png`](graphismes/presentation-telephone-1024x500-en.png) | — |
-| Captures téléphone | [`captures/telephone/`](captures/telephone/) | — |
+| Captures téléphone | [`ecrans/telephone/`](ecrans/telephone/) | — |
 
 Les longueurs ont été comptées sur le texte exact des blocs ci-dessus ; la
 Console affiche le compteur en direct si on retouche.

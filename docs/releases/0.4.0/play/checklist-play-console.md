@@ -125,7 +125,7 @@ Pas obligatoire pour le test interne, nécessaire avant tout examen :
       [`fiche-tv.md`](fiche-tv.md) (ajouter l'anglais par « Gérer les
       traductions »).
 - [ ] Icône, image de présentation, bannière TV : [`graphismes/`](graphismes/).
-- [ ] Captures : [`captures/`](captures/) — téléphone pour Lumo, Android TV
+- [ ] Captures : [`ecrans/`](ecrans/) — téléphone pour Lumo, Android TV
       pour Lumo TV.
 - [ ] Catégorie **Lecteurs et éditeurs vidéo**, e-mail de contact, site web.
 

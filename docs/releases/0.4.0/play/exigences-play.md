@@ -35,11 +35,11 @@ de permission à remplir dans la Console**.
 | `android.software.leanback` déclaré | ✅ | `required="true"` : l'application n'est proposée qu'aux téléviseurs |
 | Écran tactile non requis | ✅ | `android.hardware.touchscreen` `required="false"` ; aucune autre fonctionnalité matérielle impliquée (pas de caméra, micro, GPS, téléphonie) |
 | Activité `LEANBACK_LAUNCHER` | ✅ | `TvActivity`, `MAIN` + `LEANBACK_LAUNCHER` |
-| Bannière d'accueil 320 × 180 dp | ✅ présente · ⚠️ contenu | `android:banner="@drawable/tv_banner"` sur l'application et l'activité. La bannière ne montre que le logo, **sans le nom de l'application** ; les recommandations Android TV demandent le nom, en texte lisible. Constaté dans le lanceur de l'émulateur : [`captures/verifications/tv-banniere-dans-le-lanceur.png`](captures/verifications/tv-banniere-dans-le-lanceur.png). Ne bloque pas le test interne ; à corriger avant la production (proposition : reprendre [`graphismes/banniere-tv-1280x720.png`](graphismes/banniere-tv-1280x720.png), qui porte « Lumo TV », en ressource `drawable-xhdpi` 640 × 360) |
+| Bannière d'accueil 320 × 180 dp | ✅ présente · ⚠️ contenu | `android:banner="@drawable/tv_banner"` sur l'application et l'activité. La bannière ne montre que le logo, **sans le nom de l'application** ; les recommandations Android TV demandent le nom, en texte lisible. Constaté dans le lanceur de l'émulateur : [`ecrans/verifications/tv-banniere-dans-le-lanceur.png`](ecrans/verifications/tv-banniere-dans-le-lanceur.png). Ne bloque pas le test interne ; à corriger avant la production (proposition : reprendre [`graphismes/banniere-tv-1280x720.png`](graphismes/banniere-tv-1280x720.png), qui porte « Lumo TV », en ressource `drawable-xhdpi` 640 × 360) |
 | Orientation paysage | ✅ | `screenOrientation="landscape"` |
 | Navigation entièrement à la croix directionnelle | ⚠️ non vérifié ici | règles et tests instrumentés de focus en place (`apps/android/AGENTS.md` §6), mais l'application n'a **jamais été pilotée à la télécommande sur un vrai téléviseur** : c'est le premier cas de la recette S17 |
 | Bannière de fiche 1280 × 720 | ✅ | [`graphismes/banniere-tv-1280x720.png`](graphismes/banniere-tv-1280x720.png) |
-| Captures TV 1920 × 1080 | ✅ | [`captures/tv/`](captures/tv/), FR et EN |
+| Captures TV 1920 × 1080 | ✅ | [`ecrans/tv/`](ecrans/tv/), FR et EN |
 | Facteur de forme TV accepté dans la Console | ❌ à faire par Hamza | Configuration avancée → Facteurs de forme → Android TV. Sans cela la fiche TV n'est pas examinée pour Google TV ; le test interne fonctionne quand même |
 
 ## Téléphone et tablette (`tv.lumo.android`)
@@ -56,7 +56,7 @@ de permission à remplir dans la Console**.
 | Point | État | Détail |
 |---|---|---|
 | Mention « aucun contenu fourni » | ✅ | dans la description courte et en tête de la longue, sur les deux fiches et les deux langues ; aussi sur l'image de présentation |
-| Captures sans contenu réel | ✅ | banc de test uniquement (« Chaîne 001 »…, guide généré), voir [`captures/README.md`](captures/README.md) |
+| Captures sans contenu réel | ✅ | banc de test uniquement (« Chaîne 001 »…, guide généré), voir [`ecrans/README.md`](ecrans/README.md) |
 | Ressemblance du logo | ⚠️ **à décider par Hamza** | le logo (rectangle arrondi plein + triangle de lecture) rappelle celui d'une grande plateforme vidéo. Le règlement « Usurpation d'identité » vise les icônes qui imitent une marque connue ; le risque est faible avec la couleur bleue, mais un vérificateur sévère peut le relever. Décision de marque, hors de ce lot |
 | Suppression de compte dans l'application et par le web | ❌ en cours | S16B-02 (autre session) ; obligatoire pour toute application qui crée des comptes, demandé dans le formulaire « Sécurité des données » |
 | Politique de confidentialité publiée | ❌ en cours | S16B-03 (autre session) ; URL obligatoire dans la Console |

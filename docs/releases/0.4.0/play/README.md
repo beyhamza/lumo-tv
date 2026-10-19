@@ -12,7 +12,7 @@ publie rien.
 | [`fiche-tv.md`](fiche-tv.md) | Fiche FR/EN de `tv.lumo.androidtv` |
 | [`securite-des-donnees.md`](securite-des-donnees.md) | Sécurité des données, classification IARC, public visé, avec ce qui reste à confirmer |
 | [`graphismes/`](graphismes/) | Icône 512, images de présentation 1024 × 500, bannière TV 1280 × 720, et le script qui les produit |
-| [`captures/`](captures/) | Captures téléphone et TV, banc de test uniquement |
+| [`ecrans/`](ecrans/) | Captures téléphone et TV, banc de test uniquement |
 | [`../../../../apps/android/RELEASE.md`](../../../../apps/android/RELEASE.md) | Clé d'envoi, variables de version, construction et vérification des bundles |
 
 Rien de secret dans ce dossier : ni mot de passe, ni empreinte de la vraie clé

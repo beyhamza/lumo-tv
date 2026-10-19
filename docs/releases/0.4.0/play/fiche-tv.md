@@ -102,5 +102,5 @@ Available in English and French.
 | Icône 512 × 512 | [`graphismes/icone-512.png`](graphismes/icone-512.png) | voir [`exigences-play.md`](exigences-play.md) |
 | Image de présentation 1024 × 500 | [`graphismes/presentation-tv-1024x500-fr.png`](graphismes/presentation-tv-1024x500-fr.png), [`…-en.png`](graphismes/presentation-tv-1024x500-en.png) | — |
 | **Bannière Android TV 1280 × 720** | [`graphismes/banniere-tv-1280x720.png`](graphismes/banniere-tv-1280x720.png) | — |
-| Captures Android TV (16:9, 1920 × 1080) | [`captures/tv/`](captures/tv/) | — |
+| Captures Android TV (16:9, 1920 × 1080) | [`ecrans/tv/`](ecrans/tv/) | — |
 | Facteur de forme | Configuration avancée → Facteurs de forme → **Android TV**, accepter le programme et les conditions TV | **Hamza** (acceptation de conditions) |
