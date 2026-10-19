@@ -8,7 +8,7 @@ import tv.lumo.android.feature.watchlist.WatchlistDestination
 
 /**
  * *Library*: the bar entry under which the phone gathers the two halves of "Ma
- * bibliothèque" (US-022) — **favourite channels** and **My list** (*À regarder*).
+ * bibliothèque" (US-022) — **favourite channels** and **My list** (*Ma liste*).
  *
  * Built exactly as [ExploreDestination] is, for the same reasons: a navigation
  * graph whose children are the two screens under the routes they already had, a

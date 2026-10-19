@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- "My list" (US-022, S11-E05). The French screen is "À regarder". -->
+    <!-- "My list" (US-022, S11-E05), "Ma liste" in French on every surface (S15-05). -->
     <string name="feature_watchlist_title">My list</string>
     <string name="feature_watchlist_loading">Loading your list…</string>
 

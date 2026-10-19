@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="feature_watchlist_title">À regarder</string>
+    <string name="feature_watchlist_title">Ma liste</string>
     <string name="feature_watchlist_loading">Chargement de votre liste…</string>
 
     <string name="feature_watchlist_filter_all">Tous</string>
