@@ -344,6 +344,11 @@ class EpisodePlayerViewModel @Inject constructor(
                             // channel does not.
                             isLive = false,
                             trackPreferences = languages,
+                            // S16: never offered to a Chromecast, which cannot send it.
+                            needsUserAgent = target.userAgent != null,
+                            // An episode has no artwork of its own: the series poster.
+                            artworkUrl = episode?.let { series.seriesByIds(listOf(it.seriesId)) }
+                                ?.firstOrNull()?.posterUrl,
                         ),
                     )
                     // After `play`, because the player has no timeline before it, and only

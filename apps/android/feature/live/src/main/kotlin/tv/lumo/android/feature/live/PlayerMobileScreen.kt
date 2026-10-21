@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +49,10 @@ import tv.lumo.android.core.player.TrackOptions
 import tv.lumo.android.core.player.ui.ALL_OPTION_GROUPS
 import tv.lumo.android.core.player.FloatingWindowRules
 import tv.lumo.android.core.player.ui.rememberFloatingWindow
-import tv.lumo.android.core.player.ui.LumoVideoSurface
+import tv.lumo.android.core.player.ui.CastButton
+import tv.lumo.android.core.player.ui.CastMessages
+import tv.lumo.android.core.player.ui.PlayerPicture
+import tv.lumo.android.core.player.ui.rememberCastUi
 import tv.lumo.android.core.player.ui.PlayerLifecycleEffect
 import tv.lumo.android.core.player.ui.PlayerOptionsSheet
 
@@ -112,8 +116,10 @@ fun PlayerMobileScreen(
     // not the player's state — Media3 reports a rebuffering live stream as paused.
     // Closing the window leaves the screen, which stops the stream.
     val floatingWindowOnLeave by viewModel.floatingWindowOnLeave.collectAsStateWithLifecycle()
+    // Casting (S16): the picture is on the television, no window opens over the phone.
+    val cast = rememberCastUi(viewModel.player)
     val floatingWindow = rememberFloatingWindow(
-        playing = !state.paused && FloatingWindowRules.isPlaying(state.playback),
+        playing = !cast.casting && !state.paused && FloatingWindowRules.isPlaying(state.playback),
         live = true,
         enterOnLeave = floatingWindowOnLeave,
         onTogglePlay = viewModel::togglePause,
@@ -140,9 +146,13 @@ fun PlayerMobileScreen(
             .background(Color.Black),
         contentAlignment = Alignment.Center,
     ) {
-        LumoVideoSurface(
+        // The picture, or the remote control while a Chromecast plays (S16-03). A
+        // channel has no play/pause of its own on the phone; the panel draws one.
+        PlayerPicture(
             player = viewModel.player,
             modifier = Modifier.fillMaxSize(),
+            onTogglePlay = viewModel::togglePause,
+            playing = !state.paused,
         )
 
         when {
@@ -187,8 +197,10 @@ fun PlayerMobileScreen(
         // device can float. Neither is drawn inside the window itself.
         val controlsShown = state.failure == null && !sourceDeleted && networkBlock == null && !floatingWindow.active
         if (controlsShown) {
-            Row(modifier = Modifier.align(Alignment.TopEnd)) {
-                if (floatingWindow.available) {
+            Row(modifier = Modifier.align(Alignment.TopEnd), verticalAlignment = Alignment.CenterVertically) {
+                // Only when a device is detected and the stream may be sent (S16-01).
+                CastButton(player = viewModel.player)
+                if (floatingWindow.available && !cast.casting) {
                     TextButton(onClick = floatingWindow::enter) {
                         Text(text = stringResource(PlayerR.string.core_player_floating_window), color = Color.White)
                     }
@@ -202,6 +214,16 @@ fun PlayerMobileScreen(
                     }
                 }
             }
+        }
+
+        // Refused, or stopped with an offer to go on here (S16-03, S16-05).
+        if (!floatingWindow.active) {
+            CastMessages(
+                player = viewModel.player,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = CAST_MESSAGES_TOP),
+            )
         }
 
         if (pickingAudio && !floatingWindow.active) {
@@ -355,3 +377,6 @@ private fun PlayerFailure.message(): String = when (this) {
     PlayerFailure.Unplayable -> stringResource(R.string.feature_live_player_unplayable)
     PlayerFailure.Unexpected -> stringResource(R.string.feature_live_player_unexpected)
 }
+
+/** Below the row of the Cast and options buttons. */
+private val CAST_MESSAGES_TOP = 56.dp

@@ -277,12 +277,18 @@ class PlayerViewModel @Inject constructor(
                     _target.value = target
                     val languages = preferences.trackPreferences()
                     trackChoices.opened(languages)
+                    // For a Chromecast's screen (S16-01): the cached row, read once.
+                    val channel = _channel.value?.takeIf { it.id == channelId } ?: catalogue.channel(channelId)
                     player.play(
                         PlaybackRequest(
                             streamUrl = target.streamUrl,
-                            title = null,
+                            // The channel's name: what a Chromecast shows (S16-01).
+                            title = channel?.name,
                             isLive = true,
                             trackPreferences = languages,
+                            // S16: never offered to a Chromecast, which cannot send it.
+                            needsUserAgent = target.userAgent != null,
+                            artworkUrl = channel?.logoUrl,
                         ),
                     )
                     recordWatched(channelId)
