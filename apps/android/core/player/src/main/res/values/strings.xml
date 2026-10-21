@@ -31,4 +31,19 @@
     <string name="core_player_floating_window_pause">Pause</string>
     <string name="core_player_floating_window_live">Live</string>
     <string name="core_player_floating_window_refused">Floating window is turned off for Lumo in Android settings</string>
+    <!-- Chromecast (S16, ADR 0013): the remote-control panel and what a cast has to say. -->
+    <string name="core_player_cast_playing">Playing on a Chromecast</string>
+    <string name="core_player_cast_playing_on">Playing on %1$s</string>
+    <string name="core_player_cast_volume">Volume</string>
+    <string name="core_player_cast_volume_value">%1$d %%</string>
+    <string name="core_player_cast_stop">Stop casting</string>
+    <string name="core_player_cast_refused">This stream cannot be sent to this Chromecast</string>
+    <string name="core_player_cast_from_beginning">Your provider\'s server does not allow resuming: the Chromecast starts from the beginning</string>
+    <string name="core_player_cast_stopped">Casting stopped</string>
+    <string name="core_player_cast_stopped_at">Casting stopped at %1$s</string>
+    <string name="core_player_cast_resume_here">Resume on this device</string>
+    <string name="core_player_cast_later">Not now</string>
+    <string name="core_player_cast_dismiss">OK</string>
+    <string name="core_player_cast_play">Play</string>
+    <string name="core_player_cast_pause">Pause</string>
 </resources>

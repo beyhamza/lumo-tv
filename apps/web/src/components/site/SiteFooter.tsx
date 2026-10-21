@@ -17,7 +17,8 @@ import type { Locale } from "@/i18n/routing";
  * provides, hosts and resells no content, and the place a visitor looks for that
  * is the footer.
  *
- * `Privacy`, `Terms` and `Contact` have no route yet
+ * `Privacy` links to the policy (S16B-03), followed by the account-deletion
+ * page (S16B-02). `Terms` and `Contact` have no route yet
  * (docs/design/web-sprint-1.md, "Delta avec la landing livrée"). They are
  * rendered as the mock-up shows them, unlinked and labelled as missing, rather
  * than as links to a 404.
@@ -39,7 +40,12 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
           <a href={hrefFor(locale, "/guides")} className="hover:text-foreground">
             {nav("guides")}
           </a>
-          <span>{t("privacy")}</span>
+          <a href={hrefFor(locale, "/privacy")} className="hover:text-foreground">
+            {t("privacy")}
+          </a>
+          <a href={hrefFor(locale, "/delete-account")} className="hover:text-foreground">
+            {t("deleteAccount")}
+          </a>
           <span>{t("terms")}</span>
           <span>{t("contact")}</span>
           <MockBadge />

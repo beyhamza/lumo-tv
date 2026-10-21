@@ -1,0 +1,38 @@
+# Lumo TV — TLS and reverse proxy (S16B-01, docs/ops/deploy-vps.md).
+#
+# Certificates come from Let's Encrypt on the first request to each domain;
+# ports 80 and 443 must reach this container and both DNS names must already
+# point at the VPS. Caddy sets X-Forwarded-For itself and ignores the one a
+# client sends; the API trusts it from this container only.
+#
+# LUMO_CADDY_GLOBAL is empty in production. A trial run on a workstation sets it
+# to `local_certs`, so Caddy signs its own certificates instead of asking
+# Let's Encrypt for names nobody outside can reach.
+
+{
+	email {$LUMO_ACME_EMAIL}
+	{$LUMO_CADDY_GLOBAL}
+}
+
+(common) {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+}
+
+{$LUMO_API_DOMAIN} {
+	import common
+	# Only health is exposed by the API (MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE).
+	reverse_proxy lumo-api:8080
+}
+
+{$LUMO_WEB_DOMAIN} {
+	import common
+	reverse_proxy lumo-web:3000
+}
+
+# Optional sites: deploy/caddy.d/*.caddy (the test bench, for instance).
+import /etc/caddy/caddy.d/*.caddy

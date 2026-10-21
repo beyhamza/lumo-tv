@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,12 +30,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -168,6 +180,7 @@ fun SettingsTvScreen(
                         state = state,
                         onRetryDevices = viewModel::reloadDevices,
                         onSignOut = viewModel::askSignOut,
+                        onDeleteAccount = viewModel::askDeleteAccount,
                     )
                     SettingsSection.Sources -> SourcesPanel(state, onOpenSources)
                     SettingsSection.Playback -> PlaybackPanel(
@@ -217,6 +230,75 @@ fun SettingsTvScreen(
             onCancel = viewModel::dismissConfirmation,
             busy = state.signingOut,
         )
+    }
+    (state.confirmation as? SettingsConfirmation.DeleteAccount)?.let { asked ->
+        TvDeleteAccountDialog(
+            asked = asked,
+            onConfirm = viewModel::confirmDeleteAccount,
+            onCancel = viewModel::dismissConfirmation,
+        )
+    }
+}
+
+/**
+ * The account deletion, for a remote control (S16B-02).
+ *
+ * The shared dialog's rules hold — Cancel takes the focus on arrival, `BACK`
+ * cancels — with the password field above the buttons: `UP` from Cancel
+ * reaches it, `OK` on it opens the platform's keyboard, `DOWN` leaves it for
+ * the buttons (a `BasicTextField` keeps the D-pad for its cursor otherwise).
+ * The password stays in this dialog's memory, never in the view model's state.
+ */
+@Composable
+private fun TvDeleteAccountDialog(
+    asked: SettingsConfirmation.DeleteAccount,
+    onConfirm: (String) -> Unit,
+    onCancel: () -> Unit,
+) {
+    var password by remember { mutableStateOf("") }
+    var focused by remember { mutableStateOf(false) }
+    val label = stringResource(R.string.feature_settings_delete_password)
+
+    LumoTvConfirmDialog(
+        title = stringResource(R.string.feature_settings_delete_title),
+        message = stringResource(R.string.feature_settings_delete_body),
+        confirmLabel = stringResource(R.string.feature_settings_delete_confirm),
+        cancelLabel = stringResource(R.string.feature_settings_cancel),
+        onConfirm = { if (password.isNotEmpty()) onConfirm(password) },
+        onCancel = onCancel,
+        busy = asked.busy,
+        failure = asked.failure?.let { stringResource(deleteAccountFailureOf(it)) },
+    ) {
+        // Read here, inside the dialog's window: the screen's own focus manager
+        // knows nothing of the buttons below, and DOWN would go nowhere.
+        val focusManager = LocalFocusManager.current
+        Column(verticalArrangement = Arrangement.spacedBy(LumoSpacing.xs)) {
+            Text(text = label, style = MaterialTheme.typography.labelLarge, color = LumoColors.OnDarkMuted)
+            BasicTextField(
+                value = password,
+                onValueChange = { password = it },
+                singleLine = true,
+                enabled = !asked.busy,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = LumoColors.OnDark),
+                cursorBrush = SolidColor(LumoColors.Accent),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focused = it.isFocused }
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown) {
+                            focusManager.moveFocus(FocusDirection.Down)
+                        } else {
+                            false
+                        }
+                    }
+                    .lumoTvFocus(focused)
+                    .clip(LumoTvShapes.medium)
+                    .background(if (focused) LumoColors.SurfaceRaised else LumoColors.Ink)
+                    .padding(horizontal = LumoSpacing.md, vertical = LumoSpacing.sm),
+            )
+        }
     }
 }
 
@@ -337,8 +419,8 @@ private fun SourceRow(source: Source) {
 /**
  * The account, this television, the other devices — read-only — and the way out.
  *
- * Two stops at most: "Try again" when the list could not be read, and "Sign
- * out". Every device row is text, on purpose: a stop with nothing behind it is
+ * Three stops at most: "Try again" when the list could not be read, "Sign
+ * out" and "Delete my account" (S16B-02). Every device row is text, on purpose: a stop with nothing behind it is
  * a dead end on the way `DOWN`, and the guidance line says where the decision
  * about a device is made.
  */
@@ -347,6 +429,7 @@ private fun AccountPanel(
     state: SettingsUiState,
     onRetryDevices: () -> Unit,
     onSignOut: () -> Unit,
+    onDeleteAccount: () -> Unit,
 ) {
     PanelRow(
         title = state.email ?: stringResource(R.string.feature_settings_session_none),
@@ -398,6 +481,11 @@ private fun AccountPanel(
             text = stringResource(R.string.feature_settings_tv_account_sign_out),
             onClick = { if (!state.signingOut) onSignOut() },
             primary = true,
+            enabled = !state.signingOut,
+        )
+        LumoTvButton(
+            text = stringResource(R.string.feature_settings_delete_account),
+            onClick = { if (!state.signingOut) onDeleteAccount() },
             enabled = !state.signingOut,
         )
     }
@@ -590,8 +678,9 @@ private fun ApplicationPanel() {
 /**
  * The version, and where the guides are. A television opens no browser, so the
  * address is printed for somebody to type on a phone — derived from the same
- * variable as the pairing page, so it names the same site. Privacy and terms
- * would follow, and do not: the website has no such pages yet.
+ * variable as the pairing page, so it names the same site. The privacy policy
+ * and the deletion page follow (S16B-02/03), printed the same way; terms do
+ * not: the website has no such page.
  */
 @Composable
 private fun AboutPanel(state: SettingsUiState) {
@@ -603,6 +692,21 @@ private fun AboutPanel(state: SettingsUiState) {
         PanelRow(
             title = stringResource(R.string.feature_settings_guides),
             subtitle = stringResource(R.string.feature_settings_tv_about_guides, SettingsLinks.label(guides)),
+        )
+    }
+    // One row for both pages: the panel has no focusable row to scroll it, so a
+    // fourth row would fall under the bottom edge, out of reach of the remote.
+    val language = currentInterfaceLanguage()
+    val privacy = SettingsLinks.privacyUrlOf(state.activationUrl, language)
+    val deletion = SettingsLinks.accountDeletionUrlOf(state.activationUrl, language)
+    if (privacy != null && deletion != null) {
+        PanelRow(
+            title = stringResource(R.string.feature_settings_privacy),
+            subtitle = stringResource(
+                R.string.feature_settings_tv_about_legal,
+                SettingsLinks.label(privacy),
+                SettingsLinks.label(deletion),
+            ),
         )
     }
 }

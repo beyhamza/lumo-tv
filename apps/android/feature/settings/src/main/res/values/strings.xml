@@ -82,4 +82,20 @@
     <!-- Application (S13-E08): the interface language, each named in itself. -->
     <string name="feature_settings_language_current">Current language</string>
     <string name="feature_settings_language_note">Applies to Lumo on this device. It does not change your account, your other devices or the playback languages.</string>
+
+    <!-- Deleting the account (S16B-02): password-confirmed, irreversible. -->
+    <string name="feature_settings_delete_account">Delete my account</string>
+    <string name="feature_settings_delete_title">Permanently delete your account?</string>
+    <string name="feature_settings_delete_body">Your account, your sources and their credentials, the imported catalogues, your favourites, your list, your progress and your devices will be deleted right away. This cannot be undone. Your other devices will be signed out.</string>
+    <string name="feature_settings_delete_password">Account password</string>
+    <string name="feature_settings_delete_confirm">Delete permanently</string>
+    <string name="feature_settings_delete_wrong_password">Incorrect password. Nothing was deleted.</string>
+    <string name="feature_settings_delete_rate_limited">Too many attempts. Wait a minute. Nothing was deleted.</string>
+    <string name="feature_settings_delete_offline">The service cannot be reached. Nothing was deleted.</string>
+    <string name="feature_settings_delete_failed">The deletion did not go through: your account still exists. You can try again.</string>
+
+    <!-- Help and information (S16B-03): the two public pages Google Play asks for. -->
+    <string name="feature_settings_privacy">Privacy policy</string>
+    <string name="feature_settings_account_deletion">How to delete your account</string>
+    <string name="feature_settings_tv_about_legal">%1$s\nDeleting your account: %2$s</string>
 </resources>

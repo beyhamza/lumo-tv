@@ -86,6 +86,32 @@ public class UserRepository {
                 .update();
     }
 
+    /**
+     * Whether the account still exists. Asked on every authenticated request
+     * (see {@code SecurityConfig}), hence a primary-key probe and nothing more.
+     */
+    public boolean exists(UUID userId) {
+        return jdbc.sql("SELECT EXISTS (SELECT 1 FROM \"user\" WHERE id = :id)")
+                .param("id", userId)
+                .query(Boolean.class)
+                .single();
+    }
+
+    /**
+     * Deletes the account and, by {@code ON DELETE CASCADE}, everything that
+     * references it: sources and their catalogues, user data, devices, tokens,
+     * entitlement (ADR 0014). Every table holding a {@code user_id} or a
+     * {@code source_id} cascades; {@code AccountDeletionIntegrationTest} checks
+     * that no row of the account survives in any of them.
+     *
+     * @return the number of {@code user} rows deleted, 0 or 1
+     */
+    public int delete(UUID userId) {
+        return jdbc.sql("DELETE FROM \"user\" WHERE id = :id")
+                .param("id", userId)
+                .update();
+    }
+
     public void markEmailVerified(UUID userId) {
         jdbc.sql("""
                 UPDATE "user"

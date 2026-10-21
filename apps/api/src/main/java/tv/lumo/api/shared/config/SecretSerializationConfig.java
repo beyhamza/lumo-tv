@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.JacksonModule;
 import tools.jackson.databind.module.SimpleModule;
 import tv.lumo.api.generated.model.CreateSourceRequest;
+import tv.lumo.api.generated.model.DeleteAccountRequest;
 import tv.lumo.api.generated.model.DeviceTokenRequest;
 import tv.lumo.api.generated.model.GoogleSignInRequest;
 import tv.lumo.api.generated.model.LoginRequest;
@@ -47,6 +48,7 @@ public class SecretSerializationConfig {
 
         module.setMixInAnnotation(RegisterRequest.class, PasswordMixin.class);
         module.setMixInAnnotation(LoginRequest.class, PasswordMixin.class);
+        module.setMixInAnnotation(DeleteAccountRequest.class, PasswordMixin.class);
         module.setMixInAnnotation(CreateSourceRequest.class, PasswordMixin.class);
         module.setMixInAnnotation(UpdateSourceRequest.class, PasswordMixin.class);
         module.setMixInAnnotation(ResetPasswordRequest.class, ResetPasswordMixin.class);

@@ -26,7 +26,8 @@
     "navLabel": "Pied de page",
     "privacy": "Confidentialité",
     "terms": "Conditions",
-    "contact": "Contact"
+    "contact": "Contact",
+    "deleteAccount": "Supprimer son compte"
   },
   "Landing": {
     "metaTitle": "Lumo TV — lecteur IPTV pour Android, Android TV et web",
@@ -138,7 +139,8 @@
     "forgotPassword": "Mot de passe oublié ?",
     "toRegister": "Créer un compte",
     "toLogin": "Se connecter",
-    "passwordResetDone": "Votre mot de passe a été changé. Connectez-vous avec le nouveau."
+    "passwordResetDone": "Votre mot de passe a été changé. Connectez-vous avec le nouveau.",
+    "accountDeleted": "Votre compte a été supprimé, avec tout ce qui s'y rattachait. Vous pouvez en créer un nouveau à tout moment."
   },
   "VerifyEmail": {
     "metaTitle": "Confirmer votre adresse email",
@@ -672,7 +674,22 @@
     "playbackNeedsScript": "Ces préférences s'appliquent dans le lecteur et demandent JavaScript.",
     "languageCurrent": "Langue actuelle",
     "playbackSubtitlesLabel": "Sous-titres",
-    "playbackNextLabel": "Épisode suivant"
+    "playbackNextLabel": "Épisode suivant",
+    "deleteTitle": "Supprimer le compte",
+    "deleteIntro": "Supprime définitivement ce compte et tout ce qui s'y rattache, sur tous vos appareils.",
+    "deleteLink": "Supprimer mon compte",
+    "deleteConfirmTitle": "Supprimer définitivement votre compte ?",
+    "deleteConfirmBody": "Votre compte, vos sources et leurs identifiants, les catalogues importés, vos favoris, votre liste, vos progressions et vos appareils seront supprimés tout de suite. C'est irréversible : rien ne pourra être récupéré. Vos autres appareils seront déconnectés.",
+    "deletePasswordLabel": "Mot de passe du compte",
+    "deletePasswordHint": "Pour confirmer que c'est bien vous.",
+    "deleteConfirm": "Supprimer définitivement",
+    "deleteWrongPassword": "Mot de passe incorrect. Rien n'a été supprimé.",
+    "deleteRateLimited": "Trop d'essais. Patientez une minute avant de réessayer. Rien n'a été supprimé.",
+    "deleteFailed": "La suppression n'a pas abouti : votre compte existe toujours. Vous pouvez réessayer.",
+    "deleteNoPassword": "Votre compte n'a pas de mot de passe ? Définissez-en un depuis « Mot de passe oublié », puis revenez ici.",
+    "legalLabel": "Confidentialité",
+    "privacyLink": "Politique de confidentialité",
+    "deletionLink": "Comment supprimer son compte"
   },
   "Errors": {
     "generic": "Une erreur est survenue. Réessayez.",
@@ -783,5 +800,155 @@
     "nextPlayNow": "Lire maintenant",
     "nextPlay": "Lire l'épisode suivant",
     "backToSeries": "Retour à la série"
+  },
+  "AccountDeletion": {
+    "metaTitle": "Supprimer son compte Lumo TV",
+    "metaDescription": "Comment supprimer votre compte Lumo TV depuis le site ou l'application, et ce qui est supprimé.",
+    "title": "Supprimer son compte Lumo TV",
+    "intro": "Vous pouvez supprimer votre compte à tout moment, vous-même, depuis le site ou depuis l'application Android (téléphone ou TV). La suppression est immédiate et définitive.",
+    "stepsTitle": "Comment faire",
+    "webTitle": "Sur le site",
+    "webSteps": [
+      "Connectez-vous sur le site.",
+      "Ouvrez Réglages, puis Compte et appareils.",
+      "Choisissez « Supprimer mon compte », saisissez votre mot de passe et confirmez."
+    ],
+    "appTitle": "Dans l'application Android, sur téléphone ou sur TV",
+    "appSteps": [
+      "Ouvrez Réglages, puis Compte et appareils.",
+      "Choisissez « Supprimer mon compte ».",
+      "Saisissez votre mot de passe et confirmez. L'application revient à l'écran de connexion."
+    ],
+    "noPassword": "Vous ne connaissez plus votre mot de passe, ou votre compte n'en a jamais eu ? Utilisez « Mot de passe oublié » sur l'écran de connexion pour en définir un, puis supprimez le compte comme ci-dessus.",
+    "deletedTitle": "Ce qui est supprimé",
+    "deletedItems": [
+      "votre compte : adresse email, mot de passe haché, nom affiché, langue ;",
+      "vos sources, y compris les identifiants Xtream chiffrés et les adresses de playlist et de guide ;",
+      "tout ce qui a été importé depuis vos sources : chaînes, films, séries, guide des programmes ;",
+      "vos favoris et groupes, votre liste, vos progressions de lecture et vos chaînes récentes ;",
+      "vos appareils connectés, vos sessions et les codes d'activation TV en attente."
+    ],
+    "deletedBody": "Tout est supprimé en une fois, sans délai de grâce : il n'existe pas de compte « en attente de suppression ». Rien n'est conservé pour des statistiques. Vous pourrez recréer un compte avec la même adresse, qui sera vide.",
+    "devicesTitle": "Vos autres appareils",
+    "devicesBody": "Tous vos appareils sont déconnectés : chacun revient à l'écran de connexion dès son prochain échange avec le service. Les données gardées en cache sur un appareil (catalogue, préférences) sont effacées quand il se déconnecte, ou en désinstallant l'application.",
+    "backupsTitle": "Sauvegardes",
+    "backupsBody": "Les sauvegardes de la base sont effacées automatiquement au bout de [durée à compléter]. Pendant ce délai, elles ne servent qu'à restaurer le service après un incident.",
+    "providerTitle": "Votre fournisseur IPTV",
+    "providerBody": "Supprimer votre compte Lumo ne résilie pas votre abonnement chez votre fournisseur IPTV : Lumo ne le connaît pas et n'y a pas accès.",
+    "helpTitle": "Besoin d'aide ?",
+    "helpBody": "Si vous ne pouvez plus vous connecter, écrivez à [adresse de contact à compléter] depuis l'adresse de votre compte.",
+    "privacyLink": "Lire la politique de confidentialité"
+  },
+  "Privacy": {
+    "metaTitle": "Politique de confidentialité",
+    "metaDescription": "Les données que Lumo TV traite, pourquoi, où elles vont et comment les supprimer.",
+    "title": "Politique de confidentialité",
+    "draftNotice": "Projet de texte, à valider par Hamza avant publication. Les passages entre crochets restent à compléter.",
+    "updated": "Version du 19 octobre 2026",
+    "intro": "Lumo TV est un lecteur IPTV : vous y ajoutez votre propre source, une playlist M3U ou un compte Xtream Codes. Lumo ne fournit, n'héberge et ne revend aucun contenu. Cette page décrit les données que le service traite réellement, d'après son fonctionnement.",
+    "sections": [
+      {
+        "title": "Ce que Lumo ne fait pas",
+        "items": [
+          "aucune publicité ;",
+          "aucun outil de mesure d'audience, de pistage ou de profilage, ni dans le site ni dans les applications ;",
+          "aucune vente ni location de vos données ;",
+          "aucun relais de vos flux : la vidéo ne passe jamais par les serveurs de Lumo."
+        ]
+      },
+      {
+        "title": "Responsable du traitement",
+        "body": [
+          "[Nom et adresse du responsable à compléter]. Contact : [adresse de contact à compléter]."
+        ]
+      },
+      {
+        "title": "Votre compte",
+        "body": [
+          "Votre adresse email, votre mot de passe, un nom affiché facultatif, votre langue, la date de création du compte et celle de la vérification de votre adresse. Le mot de passe n'est jamais stocké : seule son empreinte (Argon2id) l'est. Ces données servent à vous identifier et à vous écrire pour vérifier votre adresse ou réinitialiser votre mot de passe — jamais pour autre chose."
+        ]
+      },
+      {
+        "title": "Vos sources",
+        "body": [
+          "Ce que vous saisissez : un nom, l'adresse d'une playlist M3U et d'un guide des programmes, ou l'adresse d'un serveur Xtream avec un identifiant et un mot de passe. Le mot de passe Xtream est chiffré dans la base (AES-256-GCM) avec une clé gardée hors de la base, et n'est jamais renvoyé aux applications.",
+          "Le serveur de Lumo contacte votre fournisseur pour lire la playlist, le catalogue et le guide. C'est le seul échange entre Lumo et votre fournisseur ; il vient du serveur de Lumo, pas de votre appareil."
+        ]
+      },
+      {
+        "title": "Le catalogue importé",
+        "body": [
+          "Les noms des chaînes, films, séries et catégories, les adresses de leurs logos et affiches, le guide des programmes et les adresses des flux. Une adresse de flux peut contenir vos identifiants Xtream, comme votre fournisseur la construit : elle est conservée pour être remise à votre application au moment où vous lancez une lecture, une seule à la fois, et n'apparaît jamais dans une liste ni dans un journal."
+        ]
+      },
+      {
+        "title": "Votre activité",
+        "body": [
+          "Vos favoris et leurs groupes, votre liste « à regarder », vos positions de lecture et le temps regardé, vos chaînes récentes et les éléments que vous avez masqués. Ils servent à retrouver la même chose sur tous vos appareils."
+        ]
+      },
+      {
+        "title": "Vos appareils",
+        "body": [
+          "Pour chaque appareil connecté : son type (site, téléphone, TV), son nom et son modèle tels que l'appareil les donne, la version de l'application, la date de connexion et la dernière activité. Les jetons de session sont stockés sous forme d'empreinte. Le code d'activation d'une TV expire au bout de quelques minutes."
+        ]
+      },
+      {
+        "title": "La lecture",
+        "body": [
+          "La lecture est directe : votre navigateur ou votre application ouvre le flux chez votre fournisseur. Votre fournisseur voit donc votre adresse IP, comme avec n'importe quel lecteur. Si votre fournisseur refuse une lecture directe dans le navigateur, Lumo le dit ; il ne la fait pas passer par ses serveurs."
+        ]
+      },
+      {
+        "title": "Chromecast",
+        "body": [
+          "Quand vous envoyez une lecture vers un Chromecast, votre téléphone ou votre navigateur transmet au Chromecast de votre réseau l'adresse du flux — qui peut contenir vos identifiants Xtream — et le titre. Le Chromecast lit le flux avec le récepteur par défaut de Google, directement chez votre fournisseur. Lumo n'envoie rien à Google lui-même ; l'usage de Chromecast relève des règles de confidentialité de Google."
+        ]
+      },
+      {
+        "title": "Ce qui reste sur vos appareils",
+        "body": [
+          "Sur le site : un cookie de session chiffré et inaccessible aux scripts, et des cookies de préférence (source active, affichage, langue). Vos préférences de lecture restent dans le stockage local du navigateur. Ce sont des cookies nécessaires au service ; il n'y a aucun cookie de publicité ni de mesure, donc aucun bandeau de consentement.",
+          "Dans les applications Android : vos jetons de session, chiffrés par une clé du système, une copie du catalogue pour l'affichage et vos préférences. Tout est effacé à la déconnexion."
+        ]
+      },
+      {
+        "title": "Journaux techniques",
+        "body": [
+          "Le serveur garde des journaux pour fonctionner et se protéger : erreurs, synchronisations des sources, limitation des tentatives de connexion. Ils ne contiennent jamais de mot de passe, de jeton ni d'adresse de flux. Votre adresse IP sert, en mémoire, à limiter les tentatives de connexion ; [conservation des adresses IP par le serveur frontal : à compléter]."
+        ]
+      },
+      {
+        "title": "Emails",
+        "body": [
+          "Lumo n'envoie que deux emails : la vérification de votre adresse et la réinitialisation de votre mot de passe. Ils partent par [fournisseur d'emails à compléter]. Aucune lettre d'information."
+        ]
+      },
+      {
+        "title": "Hébergement et prestataires",
+        "body": [
+          "Le service est hébergé par [hébergeur et pays à compléter]. Les applications Android sont distribuées par Google Play. Aucun paiement n'est demandé dans cette version."
+        ]
+      },
+      {
+        "title": "Durée de conservation",
+        "body": [
+          "Vos données sont conservées tant que votre compte existe. Une source supprimée part avec tout ce qui en a été importé ; un compte supprimé part avec tout ce qui s'y rattache, immédiatement. Les sauvegardes de la base sont effacées au bout de [durée à compléter]."
+        ]
+      },
+      {
+        "title": "Vos droits",
+        "body": [
+          "Vous pouvez supprimer votre compte vous-même, depuis le site ou l'application. Vous pouvez aussi demander l'accès à vos données, leur correction, une copie dans un format lisible, ou vous opposer à un traitement. Pour toute demande : [adresse de contact à compléter]. Vous pouvez aussi saisir la CNIL."
+        ]
+      },
+      {
+        "title": "Modifications",
+        "body": [
+          "Cette page sera mise à jour si le service change sa façon de traiter vos données ; la date en tête indique la version en vigueur."
+        ]
+      }
+    ],
+    "deletionLink": "Comment supprimer son compte"
   }
 }

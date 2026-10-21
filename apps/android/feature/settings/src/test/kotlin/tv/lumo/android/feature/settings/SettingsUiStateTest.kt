@@ -119,6 +119,35 @@ class SettingsUiStateTest {
     }
 
     @Test
+    fun `deleting the account asks first, only when signed in, and waits for the server`() {
+        assertThat(SettingsUiState().askDeleteAccount().confirmation).isNull()
+
+        val asked = SettingsUiState(signedIn = true).askDeleteAccount()
+        assertThat(asked.confirmation).isEqualTo(SettingsConfirmation.DeleteAccount())
+
+        val busy = asked.deletingAccount()
+        // On the wire, the question cannot be dismissed from under the call.
+        assertThat(busy.dismissConfirmation().confirmation).isEqualTo(busy.confirmation)
+
+        val refused = busy.deleteAccountRefused(LumoError.Api(ErrorCode.INVALID_CREDENTIALS, null))
+        val question = refused.confirmation as SettingsConfirmation.DeleteAccount
+        assertThat(question.busy).isFalse()
+        assertThat(deleteAccountFailureOf(question.failure!!))
+            .isEqualTo(R.string.feature_settings_delete_wrong_password)
+        assertThat(refused.dismissConfirmation().confirmation).isNull()
+    }
+
+    @Test
+    fun `every refused deletion says why, and an unknown one says it failed`() {
+        assertThat(deleteAccountFailureOf(LumoError.Offline(IOException("no route"))))
+            .isEqualTo(R.string.feature_settings_delete_offline)
+        assertThat(deleteAccountFailureOf(LumoError.Api(ErrorCode.RATE_LIMITED, null)))
+            .isEqualTo(R.string.feature_settings_delete_rate_limited)
+        assertThat(deleteAccountFailureOf(LumoError.UnknownCode("SOMETHING_NEW")))
+            .isEqualTo(R.string.feature_settings_delete_failed)
+    }
+
+    @Test
     fun `revoking names the device and keeps it until the server agrees`() {
         val loaded = SettingsUiState(devices = DevicesState.Loaded(listOf(here, there)))
         val asked = loaded.askRevoke(there)

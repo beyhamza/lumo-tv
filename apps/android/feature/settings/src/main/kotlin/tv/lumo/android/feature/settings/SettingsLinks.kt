@@ -33,10 +33,24 @@ object SettingsLinks {
      * to build on — a blank build value, or one with no scheme. A row that leads
      * nowhere is not drawn (US-025: nothing that is not delivered is shown).
      */
-    fun guidesUrlOf(activationUrl: String, language: String): String? {
+    fun guidesUrlOf(activationUrl: String, language: String): String? =
+        pageUrlOf(activationUrl, language, "/guides")
+
+    /** The privacy policy (S16B-03), on the same site and in the same language. */
+    fun privacyUrlOf(activationUrl: String, language: String): String? =
+        pageUrlOf(activationUrl, language, "/privacy")
+
+    /**
+     * How to delete one's account (S16B-02): the public page given to Google
+     * Play, which also names where the action is in this application.
+     */
+    fun accountDeletionUrlOf(activationUrl: String, language: String): String? =
+        pageUrlOf(activationUrl, language, "/delete-account")
+
+    private fun pageUrlOf(activationUrl: String, language: String, path: String): String? {
         val origin = ORIGIN.find(activationUrl.trim())?.value ?: return null
         val locale = if (language.lowercase().startsWith("fr")) "fr" else "en"
-        return "$origin/$locale/guides"
+        return "$origin/$locale$path"
     }
 
     /** `lumo.tv/fr/guides`, as a row prints it — the address without its scheme. */

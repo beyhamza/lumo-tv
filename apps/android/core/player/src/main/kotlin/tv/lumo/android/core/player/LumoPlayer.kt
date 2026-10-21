@@ -143,6 +143,16 @@ interface LumoPlayer {
 
     /** Frees the codec and the socket. After this the instance is unusable. */
     fun release()
+
+    /**
+     * A Chromecast plays, not this device (S16, ADR 0013).
+     *
+     * Leaving the application must not pause it then: the picture is on the
+     * television, and the phone going to sleep is not the room going quiet
+     * ([BackgroundPlayback]). Nor does leaving open a floating window over a
+     * picture the phone is not showing.
+     */
+    val isRemote: Boolean get() = false
 }
 
 /**
@@ -164,6 +174,14 @@ data class PlaybackRequest(
      * device's preferences. Null leaves the stream's own defaults alone.
      */
     val trackPreferences: TrackPreferences? = null,
+    /**
+     * The source requires its own User-Agent (`user_agent` in the playback
+     * answer). A Cast receiver sends its own and cannot be told otherwise, so such
+     * a stream is never offered to one (S16, decision 6).
+     */
+    val needsUserAgent: Boolean = false,
+    /** The poster or the channel logo the user's own source advertises, for the Cast receiver. */
+    val artworkUrl: String? = null,
 ) {
     override fun toString(): String = "PlaybackRequest(title=$title, isLive=$isLive)"
 }

@@ -44,6 +44,13 @@ androidxRoom = "2.8.4"
 androidxPaging = "3.5.1"
 androidxMedia3 = "1.11.0"
 androidxHiltNavigationCompose = "1.4.0"
+# Chromecast sender (S16, ADR 0013 §5): phone application only, through core:cast.
+# The television application never depends on that module.
+playServicesCastFramework = "22.3.1"
+androidxMediarouter = "1.8.1"
+# The version mediarouter already resolves to. Declared because the phone's
+# Activity becomes a FragmentActivity: the Cast device picker is a DialogFragment.
+androidxFragment = "1.5.1"
 # Credential Manager and the Google identity library (US-03) used to be listed
 # here. They left with the Google button (US-025, 0.2.0 scope): the day the
 # decision is reopened, they come back with the code that calls them.
@@ -121,6 +128,10 @@ androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-com
 # one still pulls this in transitively, but a module that calls the function
 # declares the library that defines it.
 androidx-hilt-lifecycle-viewmodel-compose = { module = "androidx.hilt:hilt-lifecycle-viewmodel-compose", version.ref = "androidxHiltNavigationCompose" }
+
+play-services-cast-framework = { module = "com.google.android.gms:play-services-cast-framework", version.ref = "playServicesCastFramework" }
+androidx-fragment = { module = "androidx.fragment:fragment", version.ref = "androidxFragment" }
+androidx-mediarouter = { module = "androidx.mediarouter:mediarouter", version.ref = "androidxMediarouter" }
 
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }

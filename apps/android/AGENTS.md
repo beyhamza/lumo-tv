@@ -28,6 +28,7 @@ Un seul projet Gradle produit les **deux** applications (ADR 0004) :
 | Installer sur un appareil / émulateur | `./gradlew :app-mobile:installDebug` |
 | Installer la TV | `./gradlew :app-tv:installDebug` |
 | Régénérer le client du contrat | `./gradlew :core:network:openApiGenerate` |
+| Bundles Google Play signés | `./gradlew :app-mobile:bundleRelease :app-tv:bundleRelease` — clé d'envoi et `LUMO_VERSION_CODE` requis, voir [`RELEASE.md`](RELEASE.md) |
 
 **Prérequis.** Le SDK Android doit être trouvable, soit par `ANDROID_HOME`, soit
 par un `local.properties` avec `sdk.dir=…`. Ce fichier est gitignoré et ne se

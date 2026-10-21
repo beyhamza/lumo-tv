@@ -26,7 +26,8 @@
     "navLabel": "Footer",
     "privacy": "Privacy",
     "terms": "Terms",
-    "contact": "Contact"
+    "contact": "Contact",
+    "deleteAccount": "Delete your account"
   },
   "Landing": {
     "metaTitle": "Lumo TV — IPTV player for Android, Android TV and the web",
@@ -138,7 +139,8 @@
     "forgotPassword": "Forgotten your password?",
     "toRegister": "Create an account",
     "toLogin": "Sign in",
-    "passwordResetDone": "Your password has been changed. Sign in with the new one."
+    "passwordResetDone": "Your password has been changed. Sign in with the new one.",
+    "accountDeleted": "Your account has been deleted, with everything attached to it. You can create a new one at any time."
   },
   "VerifyEmail": {
     "metaTitle": "Confirm your email address",
@@ -672,7 +674,22 @@
     "playbackNeedsScript": "These preferences apply in the player and require JavaScript.",
     "languageCurrent": "Current language",
     "playbackSubtitlesLabel": "Subtitles",
-    "playbackNextLabel": "Next episode"
+    "playbackNextLabel": "Next episode",
+    "deleteTitle": "Delete the account",
+    "deleteIntro": "Permanently deletes this account and everything attached to it, on all your devices.",
+    "deleteLink": "Delete my account",
+    "deleteConfirmTitle": "Permanently delete your account?",
+    "deleteConfirmBody": "Your account, your sources and their credentials, the imported catalogues, your favourites, your list, your progress and your devices will be deleted right away. This cannot be undone: nothing can be recovered. Your other devices will be signed out.",
+    "deletePasswordLabel": "Account password",
+    "deletePasswordHint": "To confirm it is really you.",
+    "deleteConfirm": "Delete permanently",
+    "deleteWrongPassword": "Incorrect password. Nothing was deleted.",
+    "deleteRateLimited": "Too many attempts. Wait a minute before trying again. Nothing was deleted.",
+    "deleteFailed": "The deletion did not go through: your account still exists. You can try again.",
+    "deleteNoPassword": "Your account has no password? Set one from “Forgot password”, then come back here.",
+    "legalLabel": "Privacy",
+    "privacyLink": "Privacy policy",
+    "deletionLink": "How to delete your account"
   },
   "Errors": {
     "generic": "Something went wrong. Try again.",
@@ -783,5 +800,155 @@
     "nextPlayNow": "Play now",
     "nextPlay": "Play next episode",
     "backToSeries": "Back to the series"
+  },
+  "AccountDeletion": {
+    "metaTitle": "Delete your Lumo TV account",
+    "metaDescription": "How to delete your Lumo TV account from the website or the app, and what is deleted.",
+    "title": "Delete your Lumo TV account",
+    "intro": "You can delete your account at any time, yourself, from the website or from the Android app (phone or TV). The deletion is immediate and permanent.",
+    "stepsTitle": "How to do it",
+    "webTitle": "On the website",
+    "webSteps": [
+      "Sign in on the website.",
+      "Open Settings, then Account and devices.",
+      "Choose “Delete my account”, enter your password and confirm."
+    ],
+    "appTitle": "In the Android app, on a phone or a TV",
+    "appSteps": [
+      "Open Settings, then Account and devices.",
+      "Choose “Delete my account”.",
+      "Enter your password and confirm. The app returns to the sign-in screen."
+    ],
+    "noPassword": "Forgot your password, or your account never had one? Use “Forgot password” on the sign-in screen to set one, then delete the account as above.",
+    "deletedTitle": "What is deleted",
+    "deletedItems": [
+      "your account: email address, hashed password, display name, language;",
+      "your sources, including the encrypted Xtream credentials and the playlist and guide addresses;",
+      "everything imported from your sources: channels, films, series, programme guide;",
+      "your favourites and groups, your list, your playback progress and your recent channels;",
+      "your signed-in devices, your sessions and any pending TV activation codes."
+    ],
+    "deletedBody": "Everything is deleted at once, with no grace period: there is no account “pending deletion”. Nothing is kept for statistics. You can create a new account with the same address; it will be empty.",
+    "devicesTitle": "Your other devices",
+    "devicesBody": "All your devices are signed out: each returns to the sign-in screen at its next exchange with the service. Data cached on a device (catalogue, preferences) is erased when it signs out, or by uninstalling the app.",
+    "backupsTitle": "Backups",
+    "backupsBody": "Database backups are erased automatically after [duration to be completed]. Until then, they are only used to restore the service after an incident.",
+    "providerTitle": "Your IPTV provider",
+    "providerBody": "Deleting your Lumo account does not cancel your subscription with your IPTV provider: Lumo does not know it and has no access to it.",
+    "helpTitle": "Need help?",
+    "helpBody": "If you can no longer sign in, write to [contact address to be completed] from your account's address.",
+    "privacyLink": "Read the privacy policy"
+  },
+  "Privacy": {
+    "metaTitle": "Privacy policy",
+    "metaDescription": "The data Lumo TV processes, why, where it goes and how to delete it.",
+    "title": "Privacy policy",
+    "draftNotice": "Draft text, to be approved by Hamza before publication. Passages in square brackets remain to be completed.",
+    "updated": "Version of 19 October 2026",
+    "intro": "Lumo TV is an IPTV player: you add your own source, an M3U playlist or an Xtream Codes account. Lumo provides, hosts and resells no content. This page describes the data the service actually processes, based on how it works.",
+    "sections": [
+      {
+        "title": "What Lumo does not do",
+        "items": [
+          "no advertising;",
+          "no audience measurement, tracking or profiling tool, neither on the website nor in the apps;",
+          "no selling or renting of your data;",
+          "no relaying of your streams: video never goes through Lumo's servers."
+        ]
+      },
+      {
+        "title": "Data controller",
+        "body": [
+          "[Name and address of the controller to be completed]. Contact: [contact address to be completed]."
+        ]
+      },
+      {
+        "title": "Your account",
+        "body": [
+          "Your email address, your password, an optional display name, your language, the date the account was created and the date your address was verified. The password itself is never stored: only its hash (Argon2id) is. This data is used to identify you and to write to you to verify your address or reset your password — never for anything else."
+        ]
+      },
+      {
+        "title": "Your sources",
+        "body": [
+          "What you enter: a name, the address of an M3U playlist and of a programme guide, or the address of an Xtream server with a username and a password. The Xtream password is encrypted in the database (AES-256-GCM) with a key kept outside the database, and is never sent back to the apps.",
+          "Lumo's server contacts your provider to read the playlist, the catalogue and the guide. That is the only exchange between Lumo and your provider; it comes from Lumo's server, not from your device."
+        ]
+      },
+      {
+        "title": "The imported catalogue",
+        "body": [
+          "The names of channels, films, series and categories, the addresses of their logos and posters, the programme guide and the stream addresses. A stream address may contain your Xtream credentials, the way your provider builds it: it is kept so it can be handed to your app when you start playback, one at a time, and it never appears in a listing or in a log."
+        ]
+      },
+      {
+        "title": "Your activity",
+        "body": [
+          "Your favourites and their groups, your watchlist, your playback positions and time watched, your recent channels and the items you hid. They let you find the same things on all your devices."
+        ]
+      },
+      {
+        "title": "Your devices",
+        "body": [
+          "For each signed-in device: its type (website, phone, TV), its name and model as the device reports them, the app version, the date it was linked and its last activity. Session tokens are stored as hashes. A TV activation code expires after a few minutes."
+        ]
+      },
+      {
+        "title": "Playback",
+        "body": [
+          "Playback is direct: your browser or app opens the stream at your provider. Your provider therefore sees your IP address, as with any player. If your provider refuses direct playback in the browser, Lumo says so; it does not route it through its servers."
+        ]
+      },
+      {
+        "title": "Chromecast",
+        "body": [
+          "When you send playback to a Chromecast, your phone or browser passes the stream address — which may contain your Xtream credentials — and the title to the Chromecast on your network. The Chromecast plays the stream with Google's default receiver, directly from your provider. Lumo itself sends nothing to Google; using Chromecast is covered by Google's privacy rules."
+        ]
+      },
+      {
+        "title": "What stays on your devices",
+        "body": [
+          "On the website: an encrypted session cookie that scripts cannot read, and preference cookies (active source, display, language). Your playback preferences stay in the browser's local storage. These cookies are necessary for the service; there are no advertising or measurement cookies, hence no consent banner.",
+          "In the Android apps: your session tokens, encrypted with a system key, a copy of the catalogue for display, and your preferences. Everything is erased when you sign out."
+        ]
+      },
+      {
+        "title": "Technical logs",
+        "body": [
+          "The server keeps logs to run and protect itself: errors, source synchronisations, sign-in attempt limits. They never contain a password, a token or a stream address. Your IP address is used, in memory, to limit sign-in attempts; [retention of IP addresses by the front server: to be completed]."
+        ]
+      },
+      {
+        "title": "Emails",
+        "body": [
+          "Lumo sends two emails only: verifying your address and resetting your password. They are sent through [email provider to be completed]. No newsletter."
+        ]
+      },
+      {
+        "title": "Hosting and providers",
+        "body": [
+          "The service is hosted by [host and country to be completed]. The Android apps are distributed through Google Play. No payment is requested in this version."
+        ]
+      },
+      {
+        "title": "Retention",
+        "body": [
+          "Your data is kept as long as your account exists. A deleted source goes with everything imported from it; a deleted account goes with everything attached to it, immediately. Database backups are erased after [duration to be completed]."
+        ]
+      },
+      {
+        "title": "Your rights",
+        "body": [
+          "You can delete your account yourself, from the website or the app. You can also ask to access your data, to correct it, for a copy in a readable format, or object to its processing. For any request: [contact address to be completed]. You can also lodge a complaint with your data protection authority (in France, the CNIL)."
+        ]
+      },
+      {
+        "title": "Changes",
+        "body": [
+          "This page will be updated if the service changes how it processes your data; the date at the top gives the version in force."
+        ]
+      }
+    ],
+    "deletionLink": "How to delete your account"
   }
 }

@@ -20,6 +20,7 @@ import tv.lumo.android.core.data.model.VodPlaybackTarget
 import tv.lumo.android.core.data.model.WatchReport
 import tv.lumo.android.core.data.repository.PlaybackRepository
 import tv.lumo.android.core.data.repository.ProgressRepository
+import tv.lumo.android.core.data.repository.VodRepository
 import tv.lumo.android.core.data.NetworkBlock
 import tv.lumo.android.core.data.PlaybackNetworkGuard
 import tv.lumo.android.core.data.repository.PlaybackPreferencesRepository
@@ -76,6 +77,8 @@ class VodPlayerViewModel @Inject constructor(
     private val sourceGuard: PlaybackSourceGuard,
     private val preferences: PlaybackPreferencesRepository,
     private val networkGuard: PlaybackNetworkGuard,
+    /** The poster, from the cache, for a Chromecast (S16-01). */
+    private val vod: VodRepository,
     /** Exposed for the video surface, which needs the instance rather than its state. */
     val player: LumoPlayer,
 ) : ViewModel() {
@@ -273,6 +276,9 @@ class VodPlayerViewModel @Inject constructor(
                             // channel does not.
                             isLive = false,
                             trackPreferences = languages,
+                            // S16: never offered to a Chromecast, which cannot send it.
+                            needsUserAgent = target.userAgent != null,
+                            artworkUrl = vod.filmsByIds(listOf(filmId)).firstOrNull()?.posterUrl,
                         ),
                     )
                     // After `play`, because the player has no timeline before it, and only

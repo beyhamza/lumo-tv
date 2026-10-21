@@ -1,0 +1,18 @@
+# Build context for apps/web/Dockerfile (the repository root). Replaces the
+# root .dockerignore for this image, which leaves apps/web out on purpose.
+# Keep it small, and free of anything secret.
+
+**
+!packages/contracts/generated/**
+!apps/web/**
+apps/web/node_modules/
+apps/web/.next/
+apps/web/.next.keep/
+apps/web/e2e/.auth/
+apps/web/e2e/bench/fixtures/
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/**/.env
+apps/web/**/.env.*
+apps/web/*.iml
+apps/web/tsconfig.tsbuildinfo

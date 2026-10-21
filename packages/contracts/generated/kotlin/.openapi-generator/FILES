@@ -31,6 +31,7 @@ src/main/kotlin/tv/lumo/android/network/generated/model/CreateCheckoutSessionReq
 src/main/kotlin/tv/lumo/android/network/generated/model/CreateFavoriteGroupRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/CreatePortalSessionRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/CreateSourceRequest.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/DeleteAccountRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Device.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/DeviceApproval.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/DeviceCodeRequest.kt

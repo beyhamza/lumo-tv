@@ -67,6 +67,7 @@ include(":core:database")
 // from the network or from the cache.
 include(":core:data")
 include(":core:player")
+include(":core:cast")
 
 // ---- Features ---------------------------------------------------------------
 // A feature owns its state and its two UI surfaces (mobile and TV). It never

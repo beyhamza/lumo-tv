@@ -31,6 +31,8 @@ class BackgroundPlayback(private val player: LumoPlayer) {
      *         position, since this is the most likely last one of the evening.
      */
     fun onBackground(): Boolean {
+        // Casting: the television is still being watched (S16).
+        if (player.isRemote) return false
         val state = player.state.value
         if (state !is PlaybackState.Playing && state !is PlaybackState.Buffering) return false
         player.pause()

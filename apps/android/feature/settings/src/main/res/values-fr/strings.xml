@@ -56,4 +56,18 @@
 
     <string name="feature_settings_language_current">Langue actuelle</string>
     <string name="feature_settings_language_note">S\'applique à Lumo sur cet appareil. Ne change ni votre compte, ni vos autres appareils, ni les langues de lecture.</string>
+
+    <string name="feature_settings_delete_account">Supprimer mon compte</string>
+    <string name="feature_settings_delete_title">Supprimer définitivement votre compte ?</string>
+    <string name="feature_settings_delete_body">Votre compte, vos sources et leurs identifiants, les catalogues importés, vos favoris, votre liste, vos progressions et vos appareils seront supprimés tout de suite. C\'est irréversible. Vos autres appareils seront déconnectés.</string>
+    <string name="feature_settings_delete_password">Mot de passe du compte</string>
+    <string name="feature_settings_delete_confirm">Supprimer définitivement</string>
+    <string name="feature_settings_delete_wrong_password">Mot de passe incorrect. Rien n\'a été supprimé.</string>
+    <string name="feature_settings_delete_rate_limited">Trop d\'essais. Patientez une minute. Rien n\'a été supprimé.</string>
+    <string name="feature_settings_delete_offline">Le service est injoignable. Rien n\'a été supprimé.</string>
+    <string name="feature_settings_delete_failed">La suppression n\'a pas abouti : votre compte existe toujours. Vous pouvez réessayer.</string>
+
+    <string name="feature_settings_privacy">Politique de confidentialité</string>
+    <string name="feature_settings_account_deletion">Comment supprimer son compte</string>
+    <string name="feature_settings_tv_about_legal">%1$s\nSupprimer son compte : %2$s</string>
 </resources>

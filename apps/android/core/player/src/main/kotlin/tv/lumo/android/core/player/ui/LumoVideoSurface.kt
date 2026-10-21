@@ -22,6 +22,7 @@ import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.SURFACE_TYPE_SURFACE_VIEW
 import tv.lumo.android.core.player.LumoPlayer
 import tv.lumo.android.core.player.Media3Player
+import tv.lumo.android.core.player.cast.CastingLumoPlayer
 
 /**
  * The video itself. The only Composable in the product that touches Media3.
@@ -54,7 +55,8 @@ fun LumoVideoSurface(
     player: LumoPlayer,
     modifier: Modifier = Modifier,
 ) {
-    val media3 = player as? Media3Player
+    // The process's player sends to a Chromecast too (S16); the picture is always the phone's own.
+    val media3 = ((player as? CastingLumoPlayer)?.local ?: player) as? Media3Player
         ?: error("LumoVideoSurface requires the Media3 implementation of LumoPlayer")
     val cues by media3.cues.collectAsStateWithLifecycle()
 
