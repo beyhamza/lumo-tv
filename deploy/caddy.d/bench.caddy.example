@@ -1,0 +1,10 @@
+# The source test bench, for testers (profile `bench`). To serve it:
+#   cp caddy.d/bench.caddy.example caddy.d/bench.caddy
+#   docker compose -f docker-compose.prod.yml --env-file .env --profile bench up -d
+# and point LUMO_BENCH_DOMAIN's DNS at the VPS. Nothing real is in it:
+# generated test patterns and invented names only (apps/web/e2e/bench).
+
+{$LUMO_BENCH_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy bench:80
+}

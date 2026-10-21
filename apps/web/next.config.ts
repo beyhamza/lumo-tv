@@ -25,6 +25,11 @@ const nextConfig: NextConfig = {
 
   poweredByHeader: false,
 
+  // A self-contained server for the production image (apps/web/Dockerfile,
+  // S16B-01), and only there: `next start`, which the end-to-end suite runs,
+  // does not serve a standalone build.
+  output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
+
   // The version Settings shows under "Help and information" (US-025). Taken
   // from package.json at build time so that the page shows the build that is
   // running, never a constant somebody forgot to bump; a deployment that tags

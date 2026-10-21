@@ -7,15 +7,25 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
 ## Avancement
 
 - [ ] S16B-00 — décisions d'environnement — 40 % : VPS sous Docker (Hamza, 19/10) ; compte Google
-  Play développeur existant. Reste : nom de domaine, fournisseur d'e-mails, accès au VPS.
-- [ ] S16B-01 — pile de production sur VPS — 0 %
+  Play développeur existant. Reste : nom de domaine (API, site, banc), fournisseur SMTP, taille du VPS
+  (2 Go minimum), et accepter pour le test interne la clé de chiffrement en variable d'environnement
+  (`apps/api/.env.example` prévoit un KMS en production).
+- [ ] S16B-01 — pile de production sur VPS — 85 % : [`deploy/`](../../deploy) (PostgreSQL, API, site en
+  image Next.js autonome, Caddy avec Let's Encrypt, sauvegarde quotidienne, banc en option) et
+  [procédure](../ops/deploy-vps.md). Le serveur web transmet désormais l'adresse du visiteur à l'API
+  (sans ça, une seule limite de connexion pour tous les visiteurs du site). Vérifié par un essai
+  complet en local (certificats Caddy, noms `.localhost`) : santé de l'API et pages du site à
+  travers Caddy, seul Caddy exposé, sauvegarde écrite, `X-Forwarded-For` reçu par l'API depuis le
+  serveur web. Reste : la mise en ligne réelle sur le VPS, après S16B-00.
 - [ ] S16B-02 — suppression de compte — 0 %
 - [ ] S16B-03 — politique de confidentialité — 0 %
 - [ ] S16B-04 — numéro de version et bundle de publication — 0 %
 - [ ] S16B-05 — fiche Play et formulaires — 0 %
 - [ ] S16B-06 — publication sur la piste de test interne — 0 %
 
-**Avancement global ≈ 6 %**.
+**Avancement global ≈ 18 %**.
+
+Branches : `feat/S16B-prod-stack` (pile VPS).
 
 ## Objectif
 
