@@ -5,7 +5,9 @@ import { useLocale, useTranslations } from "next-intl";
 import { saveEpisodeProgress, saveFilmProgress } from "@/actions/playback";
 import { PlaybackRefusalMessage } from "@/components/app/PlaybackRefusalMessage";
 import { SourceDeleted } from "@/components/app/SourceDeleted";
+import { CastPanel } from "@/components/app/player/CastPanel";
 import { TrackMenus } from "@/components/app/player/TrackMenus";
+import { useCast } from "@/components/app/player/use-cast";
 import { usePlaybackPrefs } from "@/components/app/player/use-playback-prefs";
 import { advanceMs, audibility, browserDecodes } from "@/lib/playback/audibility";
 import {
@@ -146,6 +148,7 @@ export function FilmPlayer({
   launch,
   accountId,
   onEndedChange,
+  posterUrl = null,
 }: {
   filmId: string;
   /**
@@ -213,6 +216,8 @@ export function FilmPlayer({
    * 95 % mark: that one is the sheet's business, not the player's (CW-08).
    */
   onEndedChange?: (ended: boolean) => void;
+  /** Shown by the Chromecast while casting (US-027). */
+  posterUrl?: string | null;
 }) {
   const t = useTranslations("App");
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -272,12 +277,27 @@ export function FilmPlayer({
   const [watchMeter] = useState(() => new WatchMeter());
 
   /**
+   * The playback URL of this file, kept for Cast and never rendered: it carries
+   * the panel's credentials. With whether the provider needs a User-Agent, which
+   * a Chromecast cannot send (sprint 16, decision 6).
+   */
+  const stream = useRef<{ url: string; needsUserAgent: boolean } | null>(null);
+  /** True from the moment the receiver is asked to play until it stops or refuses. */
+  const castingRef = useRef(false);
+  const [castable, setCastable] = useState(false);
+  /** Where casting stopped, for "Resume here at…". */
+  const [resumeAtMs, setResumeAtMs] = useState<number | null>(null);
+
+  /**
    * Opens or closes the current interval from what the element reports. Called
    * on every media event that can change the answer, so no single event has to
    * be trusted to arrive — a seek within the buffer, for instance, fires no
    * `playing` when it ends.
    */
   const syncMeter = useCallback(() => {
+    // While casting, the receiver drives the meter (`useCast` callbacks): the
+    // paused element here says nothing about what is being watched.
+    if (castingRef.current) return;
     const video = videoRef.current;
     const now = Date.now();
     if (
@@ -342,6 +362,82 @@ export function FilmPlayer({
       .catch(() => watchMeter.giveBack(watchedSegments));
   }, [filmId, sourceId, itemType, watchMeter]);
 
+  /** Whether the receiver was playing at its last report, to save on a pause. */
+  const remotePlaying = useRef(false);
+
+  /**
+   * Casting (US-027, S16-02 to S16-05). The receiver reports its position and
+   * state; they feed the same position ref, watch meter and saves as the local
+   * element does, so "Continue" and watched time work while casting (ADR 0012:
+   * segments only while the receiver really plays).
+   */
+  const castApi = useCast({
+    enabled: started && castable && !gone,
+    callbacks: {
+      onProgress({ positionMs, durationMs, playing }) {
+        const now = Date.now();
+        position.current = { positionMs, durationMs, observedAt: new Date(now).toISOString() };
+        if (playing) watchMeter.start(now);
+        else watchMeter.stop(now);
+        if (remotePlaying.current && !playing) save();
+        remotePlaying.current = playing;
+      },
+      onEnded() {
+        watchMeter.stop(Date.now());
+        remotePlaying.current = false;
+        save();
+        onEndedChange?.(true);
+      },
+      onRefused(atMs) {
+        // Playback stays here, where it was (ADR 0013 §3).
+        castingRef.current = false;
+        remotePlaying.current = false;
+        const video = videoRef.current;
+        if (!video || !video.src) return;
+        if (atMs > 0) video.currentTime = atMs / 1000;
+        void video.play().catch(() => setAutoplayBlocked(true));
+      },
+      onStopped(atMs) {
+        castingRef.current = false;
+        remotePlaying.current = false;
+        watchMeter.stop(Date.now());
+        save();
+        setResumeAtMs(atMs);
+      },
+    },
+  });
+
+  /** Sends this file to the receiver from `fromMs`, or from where the element is. */
+  const castFrom = useCallback(
+    (fromMs?: number) => {
+      setResumeAtMs(null);
+      void castApi.cast(() => {
+        const current = stream.current;
+        if (!current) return null;
+        const video = videoRef.current;
+        const atMs = fromMs ?? (video ? Math.round(video.currentTime * 1000) : 0);
+        // Stopped before the load: a one-connection subscription cannot feed
+        // two players (sprint 16, decision 5).
+        video?.pause();
+        castingRef.current = true;
+        watchMeter.stop(Date.now());
+        save();
+        return {
+          url: current.url,
+          kind: itemType === "EPISODE" ? "episode" : "film",
+          title: name,
+          posterUrl,
+          startMs: atMs,
+        };
+      });
+    },
+    [castApi, itemType, name, posterUrl, save, watchMeter],
+  );
+  const castRef = useRef({ hasSession: castApi.hasSession, castFrom });
+  useEffect(() => {
+    castRef.current = { hasSession: castApi.hasSession, castFrom };
+  });
+
   useEffect(() => {
     if (!started || gone) return;
     let disposed = false;
@@ -356,7 +452,7 @@ export function FilmPlayer({
       setSound("unknown");
       played.current = { totalMs: 0, atMs: 0 };
 
-      let payload: { url: string; maxConnections: number | null };
+      let payload: { url: string; maxConnections: number | null; needsUserAgent?: boolean };
       try {
         // Fetched at the moment of playing and never rendered into the page: the
         // URL carries the user's panel credentials.
@@ -376,6 +472,10 @@ export function FilmPlayer({
 
       if (disposed) return;
       setMaxConnections(payload.maxConnections);
+      // Before the mixed-content check: a page that cannot play an `http`
+      // stream can still hand it to a Chromecast.
+      stream.current = { url: payload.url, needsUserAgent: Boolean(payload.needsUserAgent) };
+      setCastable(!payload.needsUserAgent);
 
       // Checked before anything is attempted, because the browser will not
       // report this one usefully: it refuses the request outright and the
@@ -403,6 +503,12 @@ export function FilmPlayer({
       // does nothing, which is the honest outcome — the same server cannot seek
       // either.
       if (startAtMs > 0) video.currentTime = startAtMs / 1000;
+      // A session already running — the previous episode was cast — takes
+      // this one too, without a second picker (S16-04).
+      if (castRef.current.hasSession() && !payload.needsUserAgent) {
+        castRef.current.castFrom(startAtMs);
+        return;
+      }
       void video.play().catch((error: unknown) => {
         // Autoplay refused by policy is not a playback failure, and saying so
         // would be wrong: the file is there, the controls work, the visitor
@@ -574,6 +680,34 @@ export function FilmPlayer({
       />
 
       {started && !failure ? <TrackMenus controller={tracks} prefsHandle={prefsHandle} videoRef={videoRef} /> : null}
+
+      {started && castable ? (
+        <CastPanel
+          view={castApi.view}
+          refused={castApi.refused}
+          seekable={seekable !== false}
+          resumeAtMs={resumeAtMs}
+          onCast={() => castFrom()}
+          onPlayPause={castApi.playOrPause}
+          onSeekBy={castApi.seekBy}
+          onVolume={castApi.setVolume}
+          onStop={castApi.stop}
+          onResumeHere={() => {
+            const video = videoRef.current;
+            const at = resumeAtMs;
+            setResumeAtMs(null);
+            if (!video || at === null) return;
+            if (!video.src) {
+              // Cast was started before anything played here (next episode).
+              setStartAtMs(at);
+              setAttempt((n) => n + 1);
+              return;
+            }
+            video.currentTime = at / 1000;
+            void video.play().catch(() => setAutoplayBlocked(true));
+          }}
+        />
+      ) : null}
 
       {/* The browser wanted a gesture (S12-05). Not an error: the player is at
           the position and this one press starts it. */}

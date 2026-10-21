@@ -5,7 +5,9 @@ import { useLocale, useTranslations } from "next-intl";
 import { recordWatched } from "@/actions/playback";
 import { PlaybackRefusalMessage } from "@/components/app/PlaybackRefusalMessage";
 import { SourceDeleted } from "@/components/app/SourceDeleted";
+import { CastPanel } from "@/components/app/player/CastPanel";
 import { TrackMenus } from "@/components/app/player/TrackMenus";
+import { useCast } from "@/components/app/player/use-cast";
 import { usePlaybackPrefs } from "@/components/app/player/use-playback-prefs";
 import { hlsTracks } from "@/lib/playback/tracks/hls";
 import { nativeTracks } from "@/lib/playback/tracks/native";
@@ -90,6 +92,50 @@ export function ChannelPlayer({
   // mounts it.
   const gone = useSourceGone(sourceId, true);
 
+  /** The stream URL, kept for Cast and never rendered (it carries credentials). */
+  const stream = useRef<{ url: string; needsUserAgent: boolean } | null>(null);
+  const [castable, setCastable] = useState(false);
+  /** True while the receiver has the channel: the page's own stream is stopped. */
+  const castingRef = useRef(false);
+  /** The hls.js instance, to stop and restart loading around a cast. */
+  const hlsRef = useRef<{ stopLoad: () => void; startLoad: () => void } | null>(null);
+
+  /** Back to this page's own playback after a refusal or a stop. */
+  const resumeHere = () => {
+    castingRef.current = false;
+    hlsRef.current?.startLoad();
+    void videoRef.current?.play().catch(() => {});
+  };
+
+  // A channel is live: no position to keep, nothing to save (US-027, S16-02).
+  const castApi = useCast({
+    enabled: castable && !gone,
+    callbacks: {
+      onProgress() {},
+      onEnded() {},
+      onRefused: resumeHere,
+      onStopped: resumeHere,
+    },
+  });
+
+  const castNow = () => {
+    void castApi.cast(() => {
+      const current = stream.current;
+      if (!current) return null;
+      // Stopped before the load: a one-connection subscription cannot feed
+      // two players (sprint 16, decision 5).
+      castingRef.current = true;
+      videoRef.current?.pause();
+      hlsRef.current?.stopLoad();
+      setFailure(null);
+      return { url: current.url, kind: "channel", title: name, posterUrl: null, startMs: 0 };
+    });
+  };
+  const castRef = useRef({ hasSession: castApi.hasSession, castNow });
+  useEffect(() => {
+    castRef.current = { hasSession: castApi.hasSession, castNow };
+  });
+
   useEffect(() => {
     // Part of this effect's dependencies on purpose: when the source is
     // confirmed gone, React runs the cleanup below — which destroys the hls.js
@@ -112,14 +158,15 @@ export function ChannelPlayer({
      */
     const giveUpAfterMs = 12_000;
     const watchdog = setTimeout(() => {
-      if (disposed) return;
+      // Nothing plays here while the receiver has the channel, by design.
+      if (disposed || castingRef.current) return;
       setFailure((current) => current ?? { kind: "blocked" });
     }, giveUpAfterMs);
 
     async function start() {
       setFailure(null);
 
-      let payload: { url: string; maxConnections: number | null };
+      let payload: { url: string; maxConnections: number | null; needsUserAgent?: boolean };
       try {
         // Fetched at the moment of playing, never rendered into the page: the
         // URL carries the user's panel credentials.
@@ -139,6 +186,15 @@ export function ChannelPlayer({
 
       if (disposed) return;
       setMaxConnections(payload.maxConnections);
+      // Before the mixed-content check: a page that cannot play an `http`
+      // stream can still hand it to a Chromecast.
+      stream.current = { url: payload.url, needsUserAgent: Boolean(payload.needsUserAgent) };
+      setCastable(!payload.needsUserAgent);
+      // Another channel while casting goes to the receiver too.
+      if (castRef.current.hasSession() && !payload.needsUserAgent) {
+        castRef.current.castNow();
+        return;
+      }
 
       // Checked before anything is attempted, because the browser will not even
       // report this one usefully: it refuses the request outright, and the
@@ -201,6 +257,7 @@ export function ChannelPlayer({
         },
       });
       hls = instance;
+      hlsRef.current = instance;
       // Before `loadSource`, so the manifest's tracks are heard as they are parsed.
       controller = hlsTracks(instance, Hls.Events);
       setTracks(controller);
@@ -285,6 +342,20 @@ export function ChannelPlayer({
       />
 
       {!failure ? <TrackMenus controller={tracks} prefsHandle={prefsHandle} videoRef={videoRef} /> : null}
+
+      {castable ? (
+        <CastPanel
+          view={castApi.view}
+          refused={castApi.refused}
+          seekable={false}
+          resumeAtMs={null}
+          onCast={castNow}
+          onPlayPause={castApi.playOrPause}
+          onSeekBy={castApi.seekBy}
+          onVolume={castApi.setVolume}
+          onStop={castApi.stop}
+        />
+      ) : null}
 
       {maxConnections ? (
         <p className="text-muted-foreground mt-2 text-sm">

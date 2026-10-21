@@ -333,6 +333,7 @@ export default async function SeriesDetailPage({
             episodeId={episode.id}
             sourceId={id}
             name={episodeLabel(episode, t)}
+            posterUrl={series.poster_url ?? null}
             actions={episodeActions}
             audioCodec={episode.audio_codec ?? null}
             sourceHref={hrefFor(locale as Locale, `/app/sources/${id}`)}
