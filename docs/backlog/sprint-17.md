@@ -1,7 +1,8 @@
 # Sprint 17 — Qualification 0.4.0
 
 Statut : **prévu**, version **0.4.0**. Taille relative : M, à réévaluer selon les défauts.
-Référence : [roadmap 0.4.0](../roadmap/0.4.0/README.md). Mode rapide (décision du 15/10) : c'est
+Référence : [roadmap 0.4.0](../roadmap/0.4.0/README.md). Les recettes Android se jouent sur les
+versions de la piste de test interne Google Play ([S16-bis](sprint-16-bis.md)). Mode rapide (décision du 15/10) : c'est
 ici qu'a lieu la recette approfondie groupée des versions 0.3.0 et 0.4.0.
 
 ## Avancement

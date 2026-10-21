@@ -29,6 +29,7 @@ le Picture-in-Picture y est marginal.
 |---|---|---|
 | [S15](../../backlog/sprint-15.md) — Picture-in-Picture et essai Cast | US-026 complet (mobile, web) ; `S15-00` essai technique Cast : quels flux un récepteur Chromecast accepte vraiment (HLS, MP4, MKV, `http`, CORS) | M |
 | [S16](../../backlog/sprint-16.md) — Chromecast | US-027 sur Android mobile et le web, selon le résultat de l'essai | L |
+| [S16-bis](../../backlog/sprint-16-bis.md) — Préparer le test interne Google Play | VPS sous Docker, suppression de compte, confidentialité, version, fiche Play | M |
 | [S17](../../backlog/sprint-17.md) — Qualification 0.4.0 | Recette groupée 0.3.0 + 0.4.0 sur appareils réels, puis sortie | M |
 
 ## Risque principal : les flux IPTV sur un récepteur Cast
