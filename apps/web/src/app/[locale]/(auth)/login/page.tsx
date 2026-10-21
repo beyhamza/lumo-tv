@@ -45,6 +45,13 @@ export default async function LoginPage({
         </p>
       ) : null}
 
+      {/* Where a confirmed account deletion lands (S16B-02). */}
+      {status === "account-deleted" ? (
+        <p role="status" className="mt-4 text-sm">
+          {t("accountDeleted")}
+        </p>
+      ) : null}
+
       {/* The email form is the whole of sign-in. Google is out of 0.2.0
           (docs/backlog/dette.md §1): no button, and no script fetched. */}
       <div className="mt-8">

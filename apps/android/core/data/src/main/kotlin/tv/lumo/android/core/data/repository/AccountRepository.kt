@@ -10,6 +10,7 @@ import tv.lumo.android.core.data.internal.ApiCaller
 import tv.lumo.android.core.data.map
 import tv.lumo.android.network.generated.api.AccountApi
 import tv.lumo.android.network.generated.api.AuthApi
+import tv.lumo.android.network.generated.model.DeleteAccountRequest
 import tv.lumo.android.network.generated.model.Device
 import tv.lumo.android.network.generated.model.Entitlement
 import tv.lumo.android.network.generated.model.RefreshRequest
@@ -87,5 +88,21 @@ class AccountRepository @Inject internal constructor(
 
         session.signOut()
         return told
+    }
+
+    /**
+     * Deletes the account for good (`POST /me/delete`, S16B-02, ADR 0014), then
+     * ends the session here through the same purge as a sign-out.
+     *
+     * Only a confirmed deletion purges. A wrong password (`403
+     * INVALID_CREDENTIALS`), a throttle or an outage leave the session and the
+     * cache exactly as they were: nothing was deleted, and the screen says so.
+     * No `POST /auth/logout` after a success — the refresh token went with the
+     * account, there is nothing left to revoke.
+     */
+    suspend fun deleteAccount(password: String): LumoResult<Unit> {
+        val result = calls.empty { account.deleteCurrentUser(DeleteAccountRequest(password = password)) }
+        if (result is LumoResult.Success) session.signOut()
+        return result
     }
 }

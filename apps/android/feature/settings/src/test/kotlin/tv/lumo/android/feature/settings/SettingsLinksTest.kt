@@ -23,6 +23,15 @@ class SettingsLinksTest {
     }
 
     @Test
+    fun `the privacy policy and the deletion page sit next to the guides`() {
+        assertThat(SettingsLinks.privacyUrlOf("https://lumo.tv/activate", "fr"))
+            .isEqualTo("https://lumo.tv/fr/privacy")
+        assertThat(SettingsLinks.accountDeletionUrlOf("http://10.0.2.2:3000/activate", "de"))
+            .isEqualTo("http://10.0.2.2:3000/en/delete-account")
+        assertThat(SettingsLinks.privacyUrlOf("", "fr")).isNull()
+    }
+
+    @Test
     fun `a local stack keeps its host and port, whatever the pairing path`() {
         assertThat(SettingsLinks.guidesUrlOf("http://10.0.2.2:3000/activate/", "fr"))
             .isEqualTo("http://10.0.2.2:3000/fr/guides")

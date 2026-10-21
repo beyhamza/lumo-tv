@@ -21,12 +21,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -52,6 +54,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -210,6 +214,50 @@ fun SettingsMobileScreen(
                 )
             },
         )
+
+        is SettingsConfirmation.DeleteAccount -> DeleteAccountDialog(
+            asked = asked,
+            onConfirm = viewModel::confirmDeleteAccount,
+            onCancel = viewModel::dismissConfirmation,
+        )
+    }
+}
+
+/**
+ * "Permanently delete your account?" with the password under it (S16B-02).
+ *
+ * The password lives in this dialog's memory only, never in the view model's
+ * state: it is not something to survive a process death, nor to land in a
+ * crash report through a `data class`. The deed stays disabled while it is
+ * empty.
+ */
+@Composable
+private fun DeleteAccountDialog(
+    asked: SettingsConfirmation.DeleteAccount,
+    onConfirm: (String) -> Unit,
+    onCancel: () -> Unit,
+) {
+    var password by remember { mutableStateOf("") }
+    LumoConfirmDialog(
+        title = stringResource(R.string.feature_settings_delete_title),
+        message = stringResource(R.string.feature_settings_delete_body),
+        confirmLabel = stringResource(R.string.feature_settings_delete_confirm),
+        cancelLabel = stringResource(R.string.feature_settings_cancel),
+        onConfirm = { if (password.isNotEmpty()) onConfirm(password) },
+        onCancel = onCancel,
+        busy = asked.busy,
+        failure = asked.failure?.let { stringResource(deleteAccountFailureOf(it)) },
+    ) {
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text(stringResource(R.string.feature_settings_delete_password)) },
+            singleLine = true,
+            enabled = !asked.busy,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -296,6 +344,12 @@ private fun AccountSection(state: SettingsUiState, viewModel: SettingsViewModel)
                     )
                 }
             }
+            RowDivider()
+            SettingsRow(
+                label = stringResource(R.string.feature_settings_delete_account),
+                labelColor = MaterialTheme.colorScheme.error,
+                onClick = if (state.signingOut) null else viewModel::askDeleteAccount,
+            )
         }
     }
 }
@@ -489,9 +543,24 @@ private fun AboutSection(state: SettingsUiState) {
             )
             RowDivider()
         }
-        // Privacy and terms would follow, and do not: the website has no
-        // such pages yet (docs/design/0.2.0/settings.md), and a link to a
-        // page that does not exist is a link somebody presses to find out.
+        // The two public pages Google Play asks for (S16B-02/03), on the same
+        // site. Terms would follow, and do not: the website has no such page.
+        SettingsLinks.privacyUrlOf(state.activationUrl, language)?.let { privacy ->
+            SettingsRow(
+                label = stringResource(R.string.feature_settings_privacy),
+                chevron = true,
+                onClick = { openInBrowser(context, privacy) },
+            )
+            RowDivider()
+        }
+        SettingsLinks.accountDeletionUrlOf(state.activationUrl, language)?.let { deletion ->
+            SettingsRow(
+                label = stringResource(R.string.feature_settings_account_deletion),
+                chevron = true,
+                onClick = { openInBrowser(context, deletion) },
+            )
+            RowDivider()
+        }
         SettingsRow(
             label = stringResource(R.string.feature_settings_version),
             value = state.appVersion ?: stringResource(R.string.feature_settings_unknown_value),

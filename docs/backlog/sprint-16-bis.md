@@ -17,15 +17,45 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
   complet en local (certificats Caddy, noms `.localhost`) : santé de l'API et pages du site à
   travers Caddy, seul Caddy exposé, sauvegarde écrite, `X-Forwarded-For` reçu par l'API depuis le
   serveur web. Reste : la mise en ligne réelle sur le VPS, après S16B-00.
-- [ ] S16B-02 — suppression de compte — 0 %
-- [ ] S16B-03 — politique de confidentialité — 0 %
-- [ ] S16B-04 — numéro de version et bundle de publication — 0 %
-- [ ] S16B-05 — fiche Play et formulaires — 0 %
+- [ ] S16B-02 — suppression de compte — 90 % (branche `feat/S16B-account-privacy`) :
+  - [x] contrat : `POST /me/delete` confirmé par le mot de passe, `403 INVALID_CREDENTIALS`, ce qui est
+    supprimé et l'effet sur les autres appareils ; clients régénérés ; [ADR 0014](../adr/0014-account-deletion.md)
+    (proposé, à accepter par Hamza)
+  - [x] API : suppression en cascade, jeton d'un compte supprimé refusé dès l'appel suivant, limitation
+    par compte ; `AccountDeletionIntegrationTest` (balayage de toutes les colonnes `user_id` / `source_id`)
+  - [x] web : Réglages → Compte et appareils, confirmation avec mot de passe puis déconnexion ; page
+    publique statique `/fr|en/delete-account` (lien à donner à Google Play) ; vérifié sur le web local
+  - [x] Android mobile et TV : Réglages → Compte et appareils, dialogue avec mot de passe, purge de fin
+    de session réutilisée ; tests unitaires ; parcours vérifié sur émulateur téléphone et TV (mauvais mot de
+    passe refusé, suppression, retour à la connexion / à l'activation)
+  - [ ] recette sur appareils réels et à la télécommande (S17) ; acceptation de l'ADR 0014 ; durée de
+    conservation des sauvegardes à écrire sur la page (S16B-00/01)
+- [ ] S16B-03 — politique de confidentialité — 75 % (même branche) :
+  - [x] page statique `/fr|en/privacy` (metadata, hreflang, sitemap), rédigée d'après le code, avec
+    l'avertissement « à valider par Hamza »
+  - [x] liens depuis le pied de page et Réglages → Aide sur le web, le mobile et la TV
+  - [ ] **validation du texte par Hamza** et passages entre crochets à compléter : responsable du
+    traitement, contact, hébergeur, fournisseur d'e-mails, durée de conservation (dépend de S16B-00)
+- [ ] S16B-04 — numéro de version et bundle de publication — 90 % : `LUMO_VERSION_CODE` /
+  `LUMO_VERSION_NAME` (défaut 0.4.0) lus à la construction par les deux applis ; `bundleRelease`
+  refuse de tourner sans clé d'envoi ni code de version ; deux AAB construits et signés avec une
+  clé de **test** hors dépôt (même empreinte, `versionCode 40001`) ; procédure dans
+  [`apps/android/RELEASE.md`](../../apps/android/RELEASE.md), état des exigences dans
+  [`exigences-play.md`](../releases/0.4.0/play/exigences-play.md). Reste : clé d'envoi réelle et
+  bundles définitifs (Hamza, adresse de l'API de S16B-00/01) ; avant la production, nom dans la
+  bannière TV et icône adaptative.
+- [ ] S16B-05 — fiche Play et formulaires — 85 % : fiches FR/EN des deux applis, sécurité des
+  données, classification, public visé, graphismes, captures du banc (téléphone et TV, FR/EN) et
+  checklist Play Console dans [`docs/releases/0.4.0/play/`](../releases/0.4.0/play/README.md).
+  Reste à confirmer par Hamza : URL de confidentialité (S16B-03) et de suppression (S16B-02),
+  conservation des IP (S16B-01), catégorie IARC, ressemblance du logo ; compte de démonstration
+  et source du banc en ligne pour l'accès vérificateur.
 - [ ] S16B-06 — publication sur la piste de test interne — 0 %
 
-**Avancement global ≈ 18 %**.
+**Avancement global ≈ 66 %**.
 
-Branches : `feat/S16B-prod-stack` (pile VPS).
+Branches : `feat/S16B-prod-stack` (pile VPS), `feat/S16B-account-privacy` (suppression de compte,
+confidentialité), `feat/S16B-play-release` (version, fiche Play) ; réunies dans `feat/merge-s16`.
 
 ## Objectif
 

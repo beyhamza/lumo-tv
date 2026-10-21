@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RestController;
 import tv.lumo.api.billing.EntitlementService;
 import tv.lumo.api.generated.api.AccountApi;
+import tv.lumo.api.generated.model.DeleteAccountRequest;
 import tv.lumo.api.generated.model.Device;
 import tv.lumo.api.generated.model.DeviceList;
 import tv.lumo.api.generated.model.Entitlement;
@@ -16,7 +17,10 @@ import tv.lumo.api.generated.model.ErrorCode;
 import tv.lumo.api.generated.model.Platform;
 import tv.lumo.api.generated.model.UpdateUserRequest;
 import tv.lumo.api.generated.model.User;
+import tv.lumo.api.shared.config.LumoProperties;
 import tv.lumo.api.shared.error.ApiException;
+import tv.lumo.api.shared.error.RateLimitedException;
+import tv.lumo.api.shared.ratelimit.RateLimiter;
 
 /**
  * Implements the generated {@code AccountApi}: the account, its devices and what
@@ -39,15 +43,24 @@ public class AccountController implements AccountApi {
     private final UserMapper userMapper;
     private final DeviceRepository devices;
     private final EntitlementService entitlements;
+    private final AccountService accounts;
+    private final RateLimiter rateLimiter;
+    private final LumoProperties properties;
 
     public AccountController(UserRepository users,
                              UserMapper userMapper,
                              DeviceRepository devices,
-                             EntitlementService entitlements) {
+                             EntitlementService entitlements,
+                             AccountService accounts,
+                             RateLimiter rateLimiter,
+                             LumoProperties properties) {
         this.users = users;
         this.userMapper = userMapper;
         this.devices = devices;
         this.entitlements = entitlements;
+        this.accounts = accounts;
+        this.rateLimiter = rateLimiter;
+        this.properties = properties;
     }
 
     @Override
@@ -103,6 +116,23 @@ public class AccountController implements AccountApi {
         // cascades. A revoked device's next refresh finds nothing at all rather
         // than finding something marked revoked.
         log.info("Device {} unlinked", id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Throttled per account, at the sign-in pace: the password check makes this
+     * an oracle for whoever holds a session but not the password.
+     */
+    @Override
+    public ResponseEntity<Void> deleteCurrentUser(DeleteAccountRequest request) {
+        UUID userId = CurrentUser.requireUserId();
+        RateLimiter.Decision decision = rateLimiter.attempt("account-delete:" + userId,
+                properties.rateLimit().authAttemptsPerMinute());
+        if (!decision.allowed()) {
+            throw new RateLimitedException(ErrorCode.RATE_LIMITED, decision.retryAfterSeconds(),
+                    "Too many attempts");
+        }
+        accounts.deleteAccount(userId, request.getPassword());
         return ResponseEntity.noContent().build();
     }
 

@@ -337,8 +337,13 @@ contorsions.
   `POST /auth/oauth/google` ; le réintroduire côté web est une décision produit.
 - Réglages (US-025, S8-06) : `/app/settings/{account|application|about}`,
   liste à gauche et rubrique à droite. Pas de rubrique Lecture (sprint 13), pas
-  de choix de langue (sprint 13), pas de lien confidentialité ni conditions —
-  ces pages n'existent pas. `/app/devices` redirige vers la rubrique Compte.
+  de choix de langue (sprint 13), pas de lien vers des conditions — la page
+  n'existe pas. `/app/devices` redirige vers la rubrique Compte. Depuis S16B,
+  Compte et appareils propose « Supprimer mon compte » (mot de passe,
+  `POST /me/delete`, ADR 0014), et Aide lie `/privacy` et `/delete-account`,
+  deux pages marketing statiques — la seconde est le lien de suppression donné
+  à Google Play. La politique porte un avertissement « à valider par Hamza »
+  et des passages entre crochets tant que S16B-00 n'est pas tranché.
 - **La lecture web est directe ou refusée, jamais relayée** (`adr/0007`). Elle ne
   marche donc pas chez tous les fournisseurs, et l`échec est nommé plutôt que
   silencieux — c'est la moitié du travail, pas un détail.
