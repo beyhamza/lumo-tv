@@ -38,13 +38,15 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
   - [x] liens depuis le pied de page et Réglages → Aide sur le web, le mobile et la TV
   - [ ] **validation du texte par Hamza** et passages entre crochets à compléter : responsable du
     traitement, contact, hébergeur, fournisseur d'e-mails, durée de conservation (dépend de S16B-00)
-- [ ] S16B-04 — numéro de version et bundle de publication — 90 % : `LUMO_VERSION_CODE` /
+- [ ] S16B-04 — numéro de version et bundle de publication — 95 % : `LUMO_VERSION_CODE` /
   `LUMO_VERSION_NAME` (défaut 0.4.0) lus à la construction par les deux applis ; `bundleRelease`
   refuse de tourner sans clé d'envoi ni code de version ; deux AAB construits et signés avec une
   clé de **test** hors dépôt (même empreinte, `versionCode 40001`) ; procédure dans
   [`apps/android/RELEASE.md`](../../apps/android/RELEASE.md), état des exigences dans
-  [`exigences-play.md`](../releases/0.4.0/play/exigences-play.md). Reste : clé d'envoi réelle et
-  bundles définitifs (Hamza, adresse de l'API de S16B-00/01) ; avant la production, nom dans la
+  [`exigences-play.md`](../releases/0.4.0/play/exigences-play.md). Le 26/10 : clé d'envoi réelle créée
+  par Hamza (hors dépôt), deux AAB construits avec elle (même empreinte, `versionCode 40001`, API
+  `https://api.lumo-tv.com/v1`, activation `https://lumo-tv.com/activate`). Reste : API en ligne à cette
+  adresse avant l'envoi aux testeurs (S16B-01) ; avant la production, nom dans la
   bannière TV et icône adaptative.
 - [ ] S16B-05 — fiche Play et formulaires — 85 % : fiches FR/EN des deux applis, sécurité des
   données, classification, public visé, graphismes, captures du banc (téléphone et TV, FR/EN) et
@@ -54,7 +56,7 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
   et source du banc en ligne pour l'accès vérificateur.
 - [ ] S16B-06 — publication sur la piste de test interne — 0 %
 
-**Avancement global ≈ 69 %**.
+**Avancement global ≈ 70 %**.
 
 Branches : `feat/S16B-prod-stack` (pile VPS), `feat/S16B-account-privacy` (suppression de compte,
 confidentialité), `feat/S16B-play-release` (version, fiche Play) ; réunies dans `feat/merge-s16`.
