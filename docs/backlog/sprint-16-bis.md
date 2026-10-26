@@ -6,8 +6,10 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
 
 ## Avancement
 
-- [ ] S16B-00 — décisions d'environnement — 40 % : VPS sous Docker (Hamza, 19/10) ; compte Google
-  Play développeur existant. Reste : nom de domaine (API, site, banc), fournisseur SMTP, taille du VPS
+- [ ] S16B-00 — décisions d'environnement — 55 % : VPS sous Docker (Hamza, 19/10) ; compte Google
+  Play développeur existant ; domaine `lumo-tv.com` (Hamza, 26/10) — site `lumo-tv.com`, API
+  `api.lumo-tv.com`, valeurs par défaut du dépôt et du contrat mises à jour. Reste : nom du banc, adresses
+  `no-reply@` et `legal@` à créer, fournisseur SMTP, taille du VPS
   (2 Go minimum), et accepter pour le test interne la clé de chiffrement en variable d'environnement
   (`apps/api/.env.example` prévoit un KMS en production).
 - [ ] S16B-01 — pile de production sur VPS — 85 % : [`deploy/`](../../deploy) (PostgreSQL, API, site en
@@ -52,7 +54,7 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
   et source du banc en ligne pour l'accès vérificateur.
 - [ ] S16B-06 — publication sur la piste de test interne — 0 %
 
-**Avancement global ≈ 66 %**.
+**Avancement global ≈ 69 %**.
 
 Branches : `feat/S16B-prod-stack` (pile VPS), `feat/S16B-account-privacy` (suppression de compte,
 confidentialité), `feat/S16B-play-release` (version, fiche Play) ; réunies dans `feat/merge-s16`.

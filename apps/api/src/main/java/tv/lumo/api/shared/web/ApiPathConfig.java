@@ -8,7 +8,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 /**
  * Puts every controller under {@code /v1}.
  *
- * <p>The contract declares its servers as {@code https://api.lumo.tv/v1}, and
+ * <p>The contract declares its servers as {@code https://api.lumo-tv.com/v1}, and
  * openapi-generator strips that base path from the generated paths — so the
  * generated interfaces map {@code /sources}, not {@code /v1/sources}.
  *

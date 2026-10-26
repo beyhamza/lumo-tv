@@ -107,7 +107,7 @@ lumo:
     # No default. Boot fails here rather than sign tokens with a guessable key.
     secret: ${LUMO_JWT_SECRET}
     access-ttl: ${LUMO_JWT_ACCESS_TTL_MINUTES:15}m
-    issuer: https://api.lumo.tv
+    issuer: https://api.lumo-tv.com
   refresh:
     ttl: ${LUMO_REFRESH_TTL_DAYS:30}d
   encryption:

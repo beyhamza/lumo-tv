@@ -40,7 +40,7 @@ android {
             buildConfigField(
                 "String",
                 "API_BASE_URL",
-                "\"${lumoEnv("LUMO_API_BASE_URL_RELEASE", default = "https://api.lumo.tv/v1")}\"",
+                "\"${lumoEnv("LUMO_API_BASE_URL_RELEASE", default = "https://api.lumo-tv.com/v1")}\"",
             )
         }
     }

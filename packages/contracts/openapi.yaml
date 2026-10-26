@@ -66,17 +66,17 @@ info:
     blocks an HTTP request.
   contact:
     name: Lumo TV
-    url: https://lumo.tv
+    url: https://lumo-tv.com
   license:
     name: Proprietary — All rights reserved
-    url: https://lumo.tv/legal/license
+    url: https://lumo-tv.com/legal/license
 
 servers:
   - url: http://localhost:8080/v1
     description: Local development (docker-compose)
   - url: http://10.0.2.2:8080/v1
     description: Local development, as seen from the Android emulator
-  - url: https://api.lumo.tv/v1
+  - url: https://api.lumo-tv.com/v1
     description: Production
 
 tags:
@@ -391,7 +391,7 @@ paths:
       operationId: approveDeviceCode
       summary: 'TV activation: approve a user code from an authenticated session'
       description: |
-        Called from `lumo.tv/activate` by an already signed-in user. Binds the
+        Called from `lumo-tv.com/activate` by an already signed-in user. Binds the
         pending authorization to the caller's account.
 
         Strictly rate-limited: `user_code` is short and guessable by design, so
@@ -2489,7 +2489,7 @@ components:
           type: string
           format: uri
           description: Stable URI identifying the problem type.
-          example: https://lumo.tv/errors/source-auth-failed
+          example: https://lumo-tv.com/errors/source-auth-failed
         title:
           type: string
           description: Short, human-readable, English, non-localised summary.
@@ -3101,7 +3101,7 @@ components:
           maxLength: 8
           pattern: '^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$'
           description: |
-            The 8 characters shown on screen and typed on `lumo.tv/activate`.
+            The 8 characters shown on screen and typed on `lumo-tv.com/activate`.
 
             Drawn from an alphabet with no ambiguous glyphs: `0`/`O` and
             `1`/`I`/`L` are all excluded, so what is read at three metres is what
@@ -3114,14 +3114,14 @@ components:
           type: string
           format: uri
           description: Page to open on a phone or a computer.
-          example: https://lumo.tv/activate
+          example: https://lumo-tv.com/activate
         verification_uri_complete:
           type: string
           format: uri
           description: |
             Same page with the code pre-filled — this is what the QR code on the
             television encodes, so the nominal path involves no typing at all.
-          example: https://lumo.tv/activate?code=K7RM4XPQ
+          example: https://lumo-tv.com/activate?code=K7RM4XPQ
         expires_in:
           type: integer
           format: int32

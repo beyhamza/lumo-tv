@@ -48,9 +48,9 @@ test.describe("espace compte", () => {
     // linked, and it is a WEB one: this browser — under "this device", with no
     // way to revoke it from here.
     await expect(page.getByText("WEB")).toBeVisible();
-    await expect(page.getByText(fr.App.deviceThisOne.replace("{name}", "lumo.tv"))).toBeVisible();
+    await expect(page.getByText(fr.App.deviceThisOne.replace("{name}", "lumo-tv.com"))).toBeVisible();
     await expect(
-      page.getByRole("link", { name: fr.App.deviceRevokeOf.replace("{name}", "lumo.tv") }),
+      page.getByRole("link", { name: fr.App.deviceRevokeOf.replace("{name}", "lumo-tv.com") }),
     ).toHaveCount(0);
     // Neither of the two fallbacks. "Not built yet" would mean the controller
     // vanished; "unavailable" would mean the API is down. Both are calm grey

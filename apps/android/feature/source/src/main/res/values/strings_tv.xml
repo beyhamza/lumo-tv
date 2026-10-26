@@ -10,12 +10,12 @@
     <string name="feature_source_tv_check_again">Check again</string>
 
     <!-- Credentials and addresses are corrected where they can be typed. -->
-    <string name="feature_source_tv_error_hint">Correct it from the phone app or lumo.tv.</string>
+    <string name="feature_source_tv_error_hint">Correct it from the phone app or lumo-tv.com.</string>
 
     <!--
       Where the rest is done. Not the activation wording, on purpose: pairing a
       television is about the account, and whoever reads this is signed in.
     -->
     <string name="feature_source_tv_guidance_title">Add, rename or delete a source</string>
-    <string name="feature_source_tv_guidance_body">From the phone app or lumo.tv — that is also where automatic refresh is turned on or off. Changes appear here by themselves.</string>
+    <string name="feature_source_tv_guidance_body">From the phone app or lumo-tv.com — that is also where automatic refresh is turned on or off. Changes appear here by themselves.</string>
 </resources>

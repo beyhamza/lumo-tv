@@ -232,7 +232,7 @@ class WireFormatSerializationTest extends PostgresIntegrationTest {
     @DisplayName("a Problem serialises with the stable code clients branch on")
     void problemCarriesStableCode() {
         Problem problem = new Problem(
-                java.net.URI.create("https://lumo.tv/errors/source-auth-failed"),
+                java.net.URI.create("https://lumo-tv.com/errors/source-auth-failed"),
                 "Source auth failed", 422, ErrorCode.SOURCE_AUTH_FAILED);
         problem.setDetail("The panel rejected the credentials");
         problem.setInstance("/v1/sources");
@@ -241,7 +241,7 @@ class WireFormatSerializationTest extends PostgresIntegrationTest {
 
         assertThat(json.get("code").stringValue()).isEqualTo("SOURCE_AUTH_FAILED");
         assertThat(json.get("status").intValue()).isEqualTo(422);
-        assertThat(json.get("type").stringValue()).isEqualTo("https://lumo.tv/errors/source-auth-failed");
+        assertThat(json.get("type").stringValue()).isEqualTo("https://lumo-tv.com/errors/source-auth-failed");
         assertThat(json.get("instance").stringValue()).isEqualTo("/v1/sources");
     }
 

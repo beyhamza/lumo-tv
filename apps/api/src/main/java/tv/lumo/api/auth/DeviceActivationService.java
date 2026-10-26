@@ -83,7 +83,7 @@ public class DeviceActivationService {
     }
 
     /**
-     * Called from lumo.tv/activate by a signed-in user.
+     * Called from lumo-tv.com/activate by a signed-in user.
      *
      * <p>Rate limiting happens in the controller: {@code user_code} is short and
      * guessable by design, so this is the endpoint an attacker brute-forces.

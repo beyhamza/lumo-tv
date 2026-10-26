@@ -8,7 +8,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-# AGENTS.md — `lumo.tv`
+# AGENTS.md — `lumo-tv.com`
 
 Complète l'[`AGENTS.md` racine](../../AGENTS.md), ne le contredit jamais. Lis
 celui-ci **en plus**, pas à la place.

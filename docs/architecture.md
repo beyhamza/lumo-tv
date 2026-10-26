@@ -4,7 +4,7 @@
 
 ```
                         ┌──────────────────┐
-                        │   lumo.tv (web)  │
+                        │   lumo-tv.com (web)  │
                         │  Next.js         │
                         │  SEO · compte    │
                         │  /activate       │
@@ -146,7 +146,7 @@ IPTV passe en revue manuelle et l'app TV est plus scrutée. Permet de livrer le 
 sans attendre. Conséquence : un achat sur une fiche n'est pas reconnu par l'autre, d'où
 les droits d'accès côté serveur (§5).
 
-## 4. Web — `lumo.tv`
+## 4. Web — `lumo-tv.com`
 
 Trois zones aux contraintes opposées, à ne pas mélanger :
 
@@ -182,7 +182,7 @@ TV                          lumo-api                      Téléphone
  │◄─────────────────────────────│                              │
  │                              │                              │
  │  affiche K7RM-4XPQ           │   utilisateur ouvre          │
- │                              │   lumo.tv/activate           │
+ │                              │   lumo-tv.com/activate           │
  │                              │◄─────────────────────────────│
  │                              │   POST /auth/device/approve  │
  │  POST /auth/device/token     │   (session web authentifiée) │

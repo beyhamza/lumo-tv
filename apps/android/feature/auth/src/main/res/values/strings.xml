@@ -41,7 +41,7 @@
       the two cannot be told apart; a message that announced "this address is
       taken" would hand back what that timing was hiding.
     -->
-    <string name="feature_auth_error_email_may_exist">If this address already has an account, sign in instead — or reset your password on lumo.tv.</string>
+    <string name="feature_auth_error_email_may_exist">If this address already has an account, sign in instead — or reset your password on lumo-tv.com.</string>
     <string name="feature_auth_error_password_too_weak">That password is too weak. Use at least ten characters.</string>
     <string name="feature_auth_error_invalid">Something in this form was refused. Check the address and try again.</string>
     <string name="feature_auth_error_rate_limited">Too many attempts. Try again in a moment.</string>
@@ -51,7 +51,7 @@
       the one way out that exists in the 0.2.0 scope: no plan to move to, so no
       plan is mentioned (US-025, decision of 17 September 2026).
     -->
-    <string name="feature_auth_error_device_limit">This account cannot sign in on another device. Disconnect one from Settings on a device that is signed in, or on lumo.tv.</string>
+    <string name="feature_auth_error_device_limit">This account cannot sign in on another device. Disconnect one from Settings on a device that is signed in, or on lumo-tv.com.</string>
     <string name="feature_auth_error_offline">No connection. Your details were not sent.</string>
     <string name="feature_auth_error_unexpected">Something went wrong. Please try again.</string>
 

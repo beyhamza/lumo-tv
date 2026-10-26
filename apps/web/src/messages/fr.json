@@ -2,7 +2,7 @@
   "Brand": {
     "name": "Lumo TV",
     "tagline": "Votre lecteur IPTV, votre source.",
-    "domain": "lumo.tv"
+    "domain": "lumo-tv.com"
   },
   "Mock": {
     "missingData": "[mock] données manquantes"

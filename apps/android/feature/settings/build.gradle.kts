@@ -19,7 +19,7 @@ android {
         buildConfigField(
             "String",
             "ACTIVATION_URL",
-            "\"${lumoEnv("LUMO_ACTIVATION_URL", default = "https://lumo.tv/activate")}\"",
+            "\"${lumoEnv("LUMO_ACTIVATION_URL", default = "https://lumo-tv.com/activate")}\"",
         )
     }
 }

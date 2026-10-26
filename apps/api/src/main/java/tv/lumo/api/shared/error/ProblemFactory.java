@@ -12,7 +12,7 @@ import tv.lumo.api.generated.model.Problem;
  * Builds the RFC 7807 bodies this API returns.
  *
  * <p>{@code type} is derived mechanically from the error code
- * ({@code SOURCE_AUTH_FAILED} → {@code https://lumo.tv/errors/source-auth-failed}),
+ * ({@code SOURCE_AUTH_FAILED} → {@code https://lumo-tv.com/errors/source-auth-failed}),
  * so a new code cannot ship with a missing or mistyped type URI.
  *
  * <p>{@code title} is English and non-localised by design: clients translate from
@@ -21,7 +21,7 @@ import tv.lumo.api.generated.model.Problem;
 @Component
 public class ProblemFactory {
 
-    private static final String TYPE_BASE = "https://lumo.tv/errors/";
+    private static final String TYPE_BASE = "https://lumo-tv.com/errors/";
 
     public Problem create(int status, ErrorCode code, String detail, String instance, List<FieldError> fieldErrors) {
         Problem problem = new Problem(typeFor(code), titleFor(code), status, code);

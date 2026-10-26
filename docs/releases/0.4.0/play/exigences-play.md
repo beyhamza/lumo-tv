@@ -17,7 +17,7 @@ Légende : ✅ conforme · ⚠️ à corriger ou à décider, ne bloque pas le t
 | Un bundle non publiable n'est pas produit par erreur | ✅ | sans clé ou sans `LUMO_VERSION_CODE`, `bundleRelease` échoue à la configuration ; un `LUMO_VERSION_CODE` non entier échoue aussi (vérifié) |
 | `targetSdk` exigé pour une nouvelle application | ✅ | `targetSdkVersion="37"` (exigence Play 2026 : 35 minimum), `minSdkVersion="24"` |
 | Rien de secret dans le bundle | ✅ | aucun fichier de clé, aucun `.env` dans le dépôt ; `.jks`/`.keystore`/`.env` gitignorés |
-| L'API de production existe à l'adresse compilée | ❌ **pour l'usage**, pas pour l'envoi | `LUMO_API_BASE_URL_RELEASE` vaut par défaut `https://api.lumo.tv/v1`, domaine non encore retenu (S16B-00) ni déployé (S16B-01). Un bundle envoyé avant s'installe mais ne crée aucun compte. À fixer au moment de construire le bundle d'envoi |
+| L'API de production existe à l'adresse compilée | ❌ **pour l'usage**, pas pour l'envoi | `LUMO_API_BASE_URL_RELEASE` vaut par défaut `https://api.lumo-tv.com/v1`, domaine retenu le 26/10 (S16B-00) mais pas encore déployé (S16B-01). Un bundle envoyé avant s'installe mais ne crée aucun compte. À fixer au moment de construire le bundle d'envoi |
 
 ## Permissions et fonctionnalités déclarées
 

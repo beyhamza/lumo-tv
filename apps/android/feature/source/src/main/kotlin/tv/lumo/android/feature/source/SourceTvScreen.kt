@@ -49,7 +49,7 @@ import tv.lumo.android.network.generated.model.SourceKind
  *
  * A television chooses the source it browses and asks for a refresh. It never
  * types (docs/architecture.md §5), so adding, renaming, deleting and the automatic
- * refresh are done **from the phone application or lumo.tv**, and a block under
+ * refresh are done **from the phone application or lumo-tv.com**, and a block under
  * the list says so in those words. That block is not the activation wording and
  * must not drift towards it: pairing a television is about the *account*, and
  * somebody reading this screen is already signed in. The `[mock]` "show the
