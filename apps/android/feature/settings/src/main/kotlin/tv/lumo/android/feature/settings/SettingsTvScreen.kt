@@ -84,7 +84,7 @@ import tv.lumo.android.network.generated.model.SourceStatus
  *
  * The account panel names this television, lists the other installations with
  * their last activity, and says where one is disconnected: on the phone or on
- * lumo.tv, with the same account (docs/design/0.2.0/settings.md, S13-E10). A
+ * lumo-tv.com, with the same account (docs/design/0.2.0/settings.md, S13-E10). A
  * remote is the wrong instrument for a decision that names a device, and a
  * list that cannot be acted on is text — no stop on any of its rows.
  *
@@ -377,7 +377,7 @@ private fun SourcesPanel(
     // "Refresh the lists now" and the automatic-refresh switch used to follow.
     // Refreshing is per source, in "My sources", where a refusal can be said
     // beside the source it concerns; automatic refresh is set from the phone or
-    // lumo.tv, which that screen says (US-024).
+    // lumo-tv.com, which that screen says (US-024).
 }
 
 /**

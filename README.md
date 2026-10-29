@@ -5,7 +5,7 @@ Codes) ; Lumo ne fournit aucun contenu.
 
 | Surface | Dossier | Stack |
 |---|---|---|
-| lumo.tv | `apps/web` | Next.js App Router |
+| lumo-tv.com | `apps/web` | Next.js App Router |
 | iptv-lumo (Android) | `apps/android/app-mobile` | Kotlin, Compose, Media3 |
 | iptv-lumo-tv (Android TV) | `apps/android/app-tv` | Kotlin, Compose for TV |
 | lumo-api | `apps/api` | Spring Boot, PostgreSQL |

@@ -40,7 +40,7 @@
 
     <!-- A television never types a source: it says where one is added. -->
     <string name="core_data_source_tv_none_title">No source configured</string>
-    <string name="core_data_source_tv_none_body">Add your source from your phone or lumo.tv — it will appear here automatically.</string>
+    <string name="core_data_source_tv_none_body">Add your source from your phone or lumo-tv.com — it will appear here automatically.</string>
 
     <!--
       The notice four screens put over their content while the source they

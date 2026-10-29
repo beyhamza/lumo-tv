@@ -9,7 +9,7 @@
   on its main platform — and it is the very promise ADR 0007 leans on when it
   tells a browser user to open the applications instead.
 
-  The domain rule is what keeps that from being a blanket. `api.lumo.tv` carries
+  The domain rule is what keeps that from being a blanket. `api.lumo-tv.com` carries
   the session tokens and every piece of account data, and it is the one host whose
   address we know at build time; downgrading it has to be impossible rather than
   merely unlikely, so it is refused by policy and not by everybody remembering to
@@ -24,7 +24,7 @@
     <base-config cleartextTrafficPermitted="true" />
 
     <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">api.lumo.tv</domain>
+        <domain includeSubdomains="true">api.lumo-tv.com</domain>
     </domain-config>
 
 </network-security-config>

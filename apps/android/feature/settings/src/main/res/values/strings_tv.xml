@@ -6,12 +6,12 @@
 -->
 <resources>
 
-    <string name="feature_settings_tv_sources_hint">Sources are managed from your phone or lumo.tv — nothing to type here.</string>
+    <string name="feature_settings_tv_sources_hint">Sources are managed from your phone or lumo-tv.com — nothing to type here.</string>
     <string name="feature_settings_tv_my_sources">My sources</string>
-    <string name="feature_settings_tv_sources_none">No source yet. Add one from your phone or lumo.tv.</string>
+    <string name="feature_settings_tv_sources_none">No source yet. Add one from your phone or lumo-tv.com.</string>
     <string name="feature_settings_tv_source_summary">%1$s · %2$d channels · checked %3$s</string>
     <string name="feature_settings_tv_source_unsynced">%1$s · not synchronised yet</string>
-    <string name="feature_settings_tv_source_error">In error — fix it from lumo.tv</string>
+    <string name="feature_settings_tv_source_error">In error — fix it from lumo-tv.com</string>
     <string name="feature_settings_tv_status_active">Ready</string>
     <string name="feature_settings_tv_status_error">Error</string>
     <string name="feature_settings_tv_status_syncing">Syncing</string>
@@ -27,13 +27,13 @@
     <string name="feature_settings_tv_this_device">This television</string>
     <string name="feature_settings_tv_other_devices">Other devices</string>
     <string name="feature_settings_tv_no_other_device">No other device is signed in to this account.</string>
-    <string name="feature_settings_tv_devices_guidance">To disconnect a device, open Settings › Account and devices on your phone or on lumo.tv, with the same account.</string>
+    <string name="feature_settings_tv_devices_guidance">To disconnect a device, open Settings › Account and devices on your phone or on lumo-tv.com, with the same account.</string>
     <string name="feature_settings_tv_account_sign_out">Sign out of this television</string>
     <string name="feature_settings_tv_sign_out_title">Sign out of this television?</string>
     <string name="feature_settings_tv_sign_out_body">It will go back to its activation screen. Nothing is removed from your account.</string>
 
     <string name="feature_settings_tv_about_version">lumo tv v%1$s</string>
-    <string name="feature_settings_tv_about_site">lumo.tv</string>
+    <string name="feature_settings_tv_about_site">lumo-tv.com</string>
     <!-- A television opens no browser: the address is printed, to be typed elsewhere. -->
     <string name="feature_settings_tv_about_guides">Guides: %1$s</string>
 </resources>

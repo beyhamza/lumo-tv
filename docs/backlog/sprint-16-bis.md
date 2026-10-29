@@ -6,8 +6,10 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
 
 ## Avancement
 
-- [ ] S16B-00 — décisions d'environnement — 40 % : VPS sous Docker (Hamza, 19/10) ; compte Google
-  Play développeur existant. Reste : nom de domaine (API, site, banc), fournisseur SMTP, taille du VPS
+- [ ] S16B-00 — décisions d'environnement — 55 % : VPS sous Docker (Hamza, 19/10) ; compte Google
+  Play développeur existant ; domaine `lumo-tv.com` (Hamza, 26/10) — site `lumo-tv.com`, API
+  `api.lumo-tv.com`, valeurs par défaut du dépôt et du contrat mises à jour. Reste : nom du banc, adresses
+  `no-reply@` et `legal@` à créer, fournisseur SMTP, taille du VPS
   (2 Go minimum), et accepter pour le test interne la clé de chiffrement en variable d'environnement
   (`apps/api/.env.example` prévoit un KMS en production).
 - [ ] S16B-01 — pile de production sur VPS — 85 % : [`deploy/`](../../deploy) (PostgreSQL, API, site en
@@ -16,7 +18,9 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
   (sans ça, une seule limite de connexion pour tous les visiteurs du site). Vérifié par un essai
   complet en local (certificats Caddy, noms `.localhost`) : santé de l'API et pages du site à
   travers Caddy, seul Caddy exposé, sauvegarde écrite, `X-Forwarded-For` reçu par l'API depuis le
-  serveur web. Reste : la mise en ligne réelle sur le VPS, après S16B-00.
+  serveur web. Images de l'API et du site publiées sur GHCR par le workflow `images` (tag de version
+  ou lancement manuel) et tirées par le serveur, qui ne construit plus rien (29/10). Reste : premier
+  passage du workflow, la mise en ligne réelle sur le VPS, après S16B-00.
 - [ ] S16B-02 — suppression de compte — 90 % (branche `feat/S16B-account-privacy`) :
   - [x] contrat : `POST /me/delete` confirmé par le mot de passe, `403 INVALID_CREDENTIALS`, ce qui est
     supprimé et l'effet sur les autres appareils ; clients régénérés ; [ADR 0014](../adr/0014-account-deletion.md)
@@ -36,13 +40,15 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
   - [x] liens depuis le pied de page et Réglages → Aide sur le web, le mobile et la TV
   - [ ] **validation du texte par Hamza** et passages entre crochets à compléter : responsable du
     traitement, contact, hébergeur, fournisseur d'e-mails, durée de conservation (dépend de S16B-00)
-- [ ] S16B-04 — numéro de version et bundle de publication — 90 % : `LUMO_VERSION_CODE` /
+- [ ] S16B-04 — numéro de version et bundle de publication — 95 % : `LUMO_VERSION_CODE` /
   `LUMO_VERSION_NAME` (défaut 0.4.0) lus à la construction par les deux applis ; `bundleRelease`
   refuse de tourner sans clé d'envoi ni code de version ; deux AAB construits et signés avec une
   clé de **test** hors dépôt (même empreinte, `versionCode 40001`) ; procédure dans
   [`apps/android/RELEASE.md`](../../apps/android/RELEASE.md), état des exigences dans
-  [`exigences-play.md`](../releases/0.4.0/play/exigences-play.md). Reste : clé d'envoi réelle et
-  bundles définitifs (Hamza, adresse de l'API de S16B-00/01) ; avant la production, nom dans la
+  [`exigences-play.md`](../releases/0.4.0/play/exigences-play.md). Le 26/10 : clé d'envoi réelle créée
+  par Hamza (hors dépôt), deux AAB construits avec elle (même empreinte, `versionCode 40001`, API
+  `https://api.lumo-tv.com/v1`, activation `https://lumo-tv.com/activate`). Reste : API en ligne à cette
+  adresse avant l'envoi aux testeurs (S16B-01) ; avant la production, nom dans la
   bannière TV et icône adaptative.
 - [ ] S16B-05 — fiche Play et formulaires — 85 % : fiches FR/EN des deux applis, sécurité des
   données, classification, public visé, graphismes, captures du banc (téléphone et TV, FR/EN) et
@@ -52,7 +58,7 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
   et source du banc en ligne pour l'accès vérificateur.
 - [ ] S16B-06 — publication sur la piste de test interne — 0 %
 
-**Avancement global ≈ 66 %**.
+**Avancement global ≈ 70 %**.
 
 Branches : `feat/S16B-prod-stack` (pile VPS), `feat/S16B-account-privacy` (suppression de compte,
 confidentialité), `feat/S16B-play-release` (version, fiche Play) ; réunies dans `feat/merge-s16`.

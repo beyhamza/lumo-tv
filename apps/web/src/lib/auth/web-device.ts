@@ -8,11 +8,11 @@ import type { DeviceRegistration } from "@/lib/api/types";
  * and that is what lets a user list and revoke their sessions from Settings.
  *
  * One constant rather than one per caller, because a second copy would drift and
- * the account page would list "lumo.tv" and "Lumo Web" as two different devices.
+ * the account page would list "lumo-tv.com" and "Lumo Web" as two different devices.
  */
 export const WEB_DEVICE: DeviceRegistration = {
   platform: "WEB",
-  name: "lumo.tv",
+  name: "lumo-tv.com",
   model: null,
   app_version: "0.2.0",
 };

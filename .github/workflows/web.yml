@@ -52,7 +52,7 @@ env:
   # session. The application refuses to start without one, so the build needs
   # something 32 characters long to get past that check.
   SESSION_SECRET: ci-build-only-secret-not-used-for-anything
-  NEXT_PUBLIC_SITE_URL: https://lumo.tv
+  NEXT_PUBLIC_SITE_URL: https://lumo-tv.com
   API_BASE_URL: http://localhost:8080/v1
   NEXT_PUBLIC_API_BASE_URL: http://localhost:8080/v1
   NEXT_TELEMETRY_DISABLED: '1'

@@ -1,0 +1,118 @@
+# ==============================================================================
+# Production images — lumo-api and lumo-web, pushed to GHCR (S16B-01,
+# docs/ops/deploy-vps.md).
+#
+# The VPS never builds: it pulls ghcr.io/<owner>/lumo-api:<version> and
+# lumo-web:<version>, which deploy/docker-compose.prod.yml names after
+# LUMO_VERSION. Building there would need the whole repository and a Gradle and
+# a Next.js build side by side on a 2–4 GB machine.
+#
+# Two triggers:
+#   - a version tag (`v0.4.0`, `v0.4.0-rc.1`), the normal path. AGENTS.md §7
+#     only tags commits whose CI run is green, so this does not re-run tests;
+#   - a manual run with an explicit version, for a build before any tag exists.
+#
+# The web image carries the public API and site addresses in its browser bundle
+# (they are build arguments, see apps/web/Dockerfile), so they come from the
+# repository variables LUMO_API_DOMAIN and LUMO_WEB_DOMAIN, defaulting to the
+# production names. An image built here is for those names only.
+# ==============================================================================
+
+name: images
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version, sans « v » (ex. 0.4.0-rc.1) : tag des images et version affichée par le site'
+        required: true
+        type: string
+
+concurrency:
+  group: images-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  API_DOMAIN: ${{ vars.LUMO_API_DOMAIN || 'api.lumo-tv.com' }}
+  WEB_DOMAIN: ${{ vars.LUMO_WEB_DOMAIN || 'lumo-tv.com' }}
+  # The VPS architecture. linux/arm64 for an ARM server; both is possible but
+  # the arm64 half runs under emulation and multiplies the Gradle build time.
+  PLATFORMS: ${{ vars.LUMO_IMAGE_PLATFORMS || 'linux/amd64' }}
+
+jobs:
+  build:
+    name: Build and push ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: lumo-api
+            dockerfile: apps/api/Dockerfile
+          - image: lumo-web
+            dockerfile: apps/web/Dockerfile
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # GHCR wants lowercase names, and a tag push gives `v0.4.0` where the
+      # image tag and the site's version are `0.4.0`.
+      - name: Resolve name and version
+        id: meta
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          version="${INPUT_VERSION:-${GITHUB_REF_NAME#v}}"
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then
+            echo "::error::not a version: '$version'"
+            exit 1
+          fi
+          owner="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "name=ghcr.io/$owner/${{ matrix.image }}" >> "$GITHUB_OUTPUT"
+
+      # The source label links the package to this repository, so it inherits
+      # the repository's visibility and access instead of being a loose package.
+      - name: Labels
+        id: labels
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.meta.outputs.name }}
+          tags: |
+            type=raw,value=${{ steps.meta.outputs.version }}
+            type=sha,format=short
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ env.PLATFORMS }}
+          push: true
+          tags: ${{ steps.labels.outputs.tags }}
+          labels: ${{ steps.labels.outputs.labels }}
+          # Ignored by lumo-api, whose Dockerfile declares none of them.
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=https://${{ env.API_DOMAIN }}/v1
+            NEXT_PUBLIC_SITE_URL=https://${{ env.WEB_DOMAIN }}
+            NEXT_PUBLIC_APP_VERSION=${{ steps.meta.outputs.version }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max

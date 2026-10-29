@@ -3,8 +3,8 @@
     <string name="feature_source_tv_loading">Lecture de vos sources…</string>
     <string name="feature_source_tv_check_again">Vérifier à nouveau</string>
 
-    <string name="feature_source_tv_error_hint">Corrigez-la depuis l\'application mobile ou lumo.tv.</string>
+    <string name="feature_source_tv_error_hint">Corrigez-la depuis l\'application mobile ou lumo-tv.com.</string>
 
     <string name="feature_source_tv_guidance_title">Ajouter, renommer ou supprimer une source</string>
-    <string name="feature_source_tv_guidance_body">Depuis l\'application mobile ou lumo.tv — c\'est aussi là que l\'actualisation automatique s\'active ou se désactive. Les changements apparaissent ici d\'eux-mêmes.</string>
+    <string name="feature_source_tv_guidance_body">Depuis l\'application mobile ou lumo-tv.com — c\'est aussi là que l\'actualisation automatique s\'active ou se désactive. Les changements apparaissent ici d\'eux-mêmes.</string>
 </resources>

@@ -6,7 +6,7 @@ package tv.lumo.android.feature.settings
  * <h2>Why the guides come from the activation URL</h2>
  *
  * `LUMO_ACTIVATION_URL` is the one address of the website this build knows —
- * `https://lumo.tv/activate` in production, a LAN host on a developer's stack —
+ * `https://lumo-tv.com/activate` in production, a LAN host on a developer's stack —
  * and the guides live on that same site under a locale prefix
  * (`apps/web/src/i18n/routing.ts`: `localePrefix: "always"`, so `/fr/guides` and
  * `/en/guides` and never a bare `/guides`). Deriving the second address from the
@@ -25,7 +25,7 @@ package tv.lumo.android.feature.settings
 object SettingsLinks {
 
     /**
-     * `https://lumo.tv/fr/guides` from `https://lumo.tv/activate` and `fr`.
+     * `https://lumo-tv.com/fr/guides` from `https://lumo-tv.com/activate` and `fr`.
      *
      * @param language the interface language's ISO code, as `Locale.language`
      * spells it. Anything but `fr` is English.
@@ -53,7 +53,7 @@ object SettingsLinks {
         return "$origin/$locale$path"
     }
 
-    /** `lumo.tv/fr/guides`, as a row prints it — the address without its scheme. */
+    /** `lumo-tv.com/fr/guides`, as a row prints it — the address without its scheme. */
     fun label(url: String): String =
         url.removePrefix("https://").removePrefix("http://").trimEnd('/')
 

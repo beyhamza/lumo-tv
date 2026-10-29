@@ -37,7 +37,7 @@ public class AccountMailer {
 
     public AccountMailer(JavaMailSender mailSender,
                       LumoProperties properties,
-                      @org.springframework.beans.factory.annotation.Value("${LUMO_MAIL_FROM:no-reply@lumo.tv}")
+                      @org.springframework.beans.factory.annotation.Value("${LUMO_MAIL_FROM:no-reply@lumo-tv.com}")
                       String from) {
         this.mailSender = mailSender;
         this.properties = properties;

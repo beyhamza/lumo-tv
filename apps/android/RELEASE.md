@@ -73,8 +73,8 @@ sinon une variable d'environnement. Toutes sont documentées dans
 | `LUMO_KEYSTORE_PASSWORD` | mot de passe du magasin | vide |
 | `LUMO_KEY_ALIAS` | alias de la clé (`upload` ci-dessus) | vide |
 | `LUMO_KEY_PASSWORD` | mot de passe de la clé (= celui du magasin en PKCS12) | vide |
-| `LUMO_API_BASE_URL_RELEASE` | API appelée par la version publiée | `https://api.lumo.tv/v1` |
-| `LUMO_ACTIVATION_URL` | page d'activation de la TV, et origine des guides web | `https://lumo.tv/activate` |
+| `LUMO_API_BASE_URL_RELEASE` | API appelée par la version publiée | `https://api.lumo-tv.com/v1` |
+| `LUMO_ACTIVATION_URL` | page d'activation de la TV, et origine des guides web | `https://lumo-tv.com/activate` |
 
 Les deux dernières dépendent du domaine retenu en S16B-00 : **un bundle construit
 avant que l'API soit en ligne à cette adresse s'installe mais ne peut créer aucun

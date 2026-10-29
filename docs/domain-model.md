@@ -323,7 +323,7 @@ que les clients traduisent. Le champ `detail` est destiné aux logs, jamais affi
 
 ```json
 {
-  "type": "https://lumo.tv/errors/source-unreachable",
+  "type": "https://lumo-tv.com/errors/source-unreachable",
   "title": "Source unreachable",
   "status": 422,
   "code": "SOURCE_UNREACHABLE",

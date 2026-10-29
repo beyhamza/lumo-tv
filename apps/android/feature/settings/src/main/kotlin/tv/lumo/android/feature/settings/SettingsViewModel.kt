@@ -368,7 +368,7 @@ data class SettingsUiState(
     val initial: String
         get() = email?.trim()?.firstOrNull()?.uppercase().orEmpty()
 
-    /** `lumo.tv/activate`, as the mock-up prints it — the URL without its scheme. */
+    /** `lumo-tv.com/activate`, as the mock-up prints it — the URL without its scheme. */
     val activationLabel: String
         get() = SettingsLinks.label(activationUrl)
 

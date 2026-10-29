@@ -47,7 +47,7 @@ public class DeviceRepository {
      * <p><b>Linked means holding a live refresh token</b>, not merely having a row.
      * Every sign-in inserts a {@code device}, so a list of rows would grow by one
      * every time the user opened the site in a private window and would show four
-     * "lumo.tv" entries for one browser. Worse, that count is what the plan limit
+     * "lumo-tv.com" entries for one browser. Worse, that count is what the plan limit
      * is measured against: counting dead rows would lock a two-device plan after
      * two sign-ins and never let go.
      *

@@ -33,7 +33,7 @@ import { WatchMeter, isActuallyPlaying } from "@/lib/playback/watch-meter";
  * element does the work.
  *
  * **ADR 0007's limit applies identically.** A panel served over `http://` is
- * mixed content from `https://lumo.tv`, the browser refuses it outright, and
+ * mixed content from `https://lumo-tv.com`, the browser refuses it outright, and
  * nothing on this site can work around that. Same decision, same named failure
  * as `S3-11` — there is nothing new to decide here.
  *

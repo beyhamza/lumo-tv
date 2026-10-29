@@ -6,7 +6,7 @@
  * and this is security logic, which means it ships with its tests
  * (AGENTS.md §5).
  *
- * The attack it closes: `lumo.tv/fr/login?next=https://evil.example` would send
+ * The attack it closes: `lumo-tv.com/fr/login?next=https://evil.example` would send
  * someone who has just typed their password straight to a page that looks like
  * ours. Anything that is not an in-site path is refused rather than sanitised —
  * refusing lands the visitor on their account page, which is harmless, while

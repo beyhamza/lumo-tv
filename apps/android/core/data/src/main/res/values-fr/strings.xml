@@ -19,7 +19,7 @@
     <string name="core_data_ingestion_unexpected">Une erreur est survenue. Réessayez.</string>
 
     <string name="core_data_source_tv_none_title">Aucune source configurée</string>
-    <string name="core_data_source_tv_none_body">Ajoutez votre source depuis votre téléphone ou lumo.tv — elle apparaîtra ici automatiquement.</string>
+    <string name="core_data_source_tv_none_body">Ajoutez votre source depuis votre téléphone ou lumo-tv.com — elle apparaîtra ici automatiquement.</string>
 
     <string name="core_data_notice_refreshing_title">Actualisation de votre source en cours</string>
     <string name="core_data_notice_refreshing_hint">Le catalogue précédent reste consultable. La lecture reprendra à la fin de l\'actualisation.</string>
