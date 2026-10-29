@@ -34,5 +34,12 @@
 	reverse_proxy lumo-web:3000
 }
 
+# The www name, when its DNS record exists, gets its own certificate and sends
+# every request to the bare domain, so the site has one address. Without a DNS
+# record Caddy only logs a failed certificate attempt for this name.
+www.{$LUMO_WEB_DOMAIN} {
+	redir https://{$LUMO_WEB_DOMAIN}{uri} permanent
+}
+
 # Optional sites: deploy/caddy.d/*.caddy (the test bench, for instance).
 import /etc/caddy/caddy.d/*.caddy

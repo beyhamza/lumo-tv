@@ -23,6 +23,9 @@ et publiées sur le registre de GitHub (`ghcr.io/beyhamza/lumo-api` et `lumo-web
   + Next.js ; 4 Go confortables), ports 80 et 443 ouverts et rien d'autre que SSH. Docker publie
   ses ports en contournant `ufw` : seul Caddy en publie, ne jamais en ajouter « pour tester ».
 - Deux noms DNS (trois avec le banc) pointant vers l'adresse du VPS : l'API (`api.…`) et le site.
+  `www.` peut s'y ajouter (CNAME vers le site) : Caddy le redirige vers le domaine nu. Aucun autre
+  enregistrement A sur ces noms — la page de parking d'un registraire, par exemple, en ajoute un et
+  fait échouer une partie des visites et le certificat Let's Encrypt.
   Les apps Android sont construites avec l'adresse de l'API (`LUMO_API_BASE_URL_RELEASE`) : la
   choisir avant de construire les bundles.
 - Un fournisseur SMTP (vérification d'adresse e-mail, mot de passe oublié), avec un expéditeur
