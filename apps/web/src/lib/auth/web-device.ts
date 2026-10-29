@@ -14,5 +14,5 @@ export const WEB_DEVICE: DeviceRegistration = {
   platform: "WEB",
   name: "lumo-tv.com",
   model: null,
-  app_version: "0.2.0",
+  app_version: "0.4.0",
 };

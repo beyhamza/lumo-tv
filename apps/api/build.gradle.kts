@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "tv.lumo"
-version = "0.2.0"
+version = "0.4.0"
 
 java {
     // ADR 0005 — Java 25 (LTS). JEP 491 (no carrier pinning on `synchronized`,
