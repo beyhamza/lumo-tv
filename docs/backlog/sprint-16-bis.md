@@ -18,7 +18,9 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
   (sans ça, une seule limite de connexion pour tous les visiteurs du site). Vérifié par un essai
   complet en local (certificats Caddy, noms `.localhost`) : santé de l'API et pages du site à
   travers Caddy, seul Caddy exposé, sauvegarde écrite, `X-Forwarded-For` reçu par l'API depuis le
-  serveur web. Reste : la mise en ligne réelle sur le VPS, après S16B-00.
+  serveur web. Images de l'API et du site publiées sur GHCR par le workflow `images` (tag de version
+  ou lancement manuel) et tirées par le serveur, qui ne construit plus rien (29/10). Reste : premier
+  passage du workflow, la mise en ligne réelle sur le VPS, après S16B-00.
 - [ ] S16B-02 — suppression de compte — 90 % (branche `feat/S16B-account-privacy`) :
   - [x] contrat : `POST /me/delete` confirmé par le mot de passe, `403 INVALID_CREDENTIALS`, ce qui est
     supprimé et l'effet sur les autres appareils ; clients régénérés ; [ADR 0014](../adr/0014-account-deletion.md)

@@ -1,0 +1,27 @@
+# ==============================================================================
+# Lumo TV — build the API and site images locally instead of pulling them
+# (S16B-01, docs/ops/deploy-vps.md, "Essai local de la pile").
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.build.yml \
+#     --env-file .env up -d --build
+#
+# Same arguments as .github/workflows/images.yml, so a local image differs from
+# the published one only by the domains in deploy/.env. Needs the whole
+# repository: the build context is its root.
+# ==============================================================================
+
+services:
+
+  lumo-api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+
+  lumo-web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: https://${LUMO_API_DOMAIN:?set LUMO_API_DOMAIN in deploy/.env}/v1
+        NEXT_PUBLIC_SITE_URL: https://${LUMO_WEB_DOMAIN:?set LUMO_WEB_DOMAIN in deploy/.env}
+        NEXT_PUBLIC_APP_VERSION: ${LUMO_VERSION}

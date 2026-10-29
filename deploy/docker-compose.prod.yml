@@ -2,7 +2,12 @@
 # Lumo TV — production stack on one VPS (S16B-01, docs/ops/deploy-vps.md).
 #
 #   cd deploy && cp .env.example .env     (then fill in every value)
-#   docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+#   docker compose -f docker-compose.prod.yml --env-file .env pull
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d
+#
+# The API and site images are pulled from GHCR, built by
+# .github/workflows/images.yml and tagged LUMO_VERSION; the server builds
+# nothing. docker-compose.build.yml builds them locally instead, for a trial run.
 #
 # Five services, one network, one port pair open to the world (80/443, Caddy):
 #   - postgres   the database, on a named volume, never published;
@@ -40,10 +45,7 @@ services:
         ipv4_address: 10.89.30.20
 
   lumo-api:
-    build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
-    image: lumo-api:${LUMO_VERSION:-local}
+    image: ${LUMO_IMAGE_PREFIX:-ghcr.io/beyhamza}/lumo-api:${LUMO_VERSION:?set LUMO_VERSION in deploy/.env}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -90,14 +92,7 @@ services:
         ipv4_address: 10.89.30.12
 
   lumo-web:
-    build:
-      context: ..
-      dockerfile: apps/web/Dockerfile
-      args:
-        NEXT_PUBLIC_API_BASE_URL: https://${LUMO_API_DOMAIN:?set LUMO_API_DOMAIN in deploy/.env}/v1
-        NEXT_PUBLIC_SITE_URL: https://${LUMO_WEB_DOMAIN}
-        NEXT_PUBLIC_APP_VERSION: ${LUMO_VERSION:-}
-    image: lumo-web:${LUMO_VERSION:-local}
+    image: ${LUMO_IMAGE_PREFIX:-ghcr.io/beyhamza}/lumo-web:${LUMO_VERSION:?set LUMO_VERSION in deploy/.env}
     restart: unless-stopped
     depends_on:
       lumo-api:
@@ -128,7 +123,7 @@ services:
       - "${LUMO_HTTPS_PORT:-443}:443"
       - "${LUMO_HTTPS_PORT:-443}:443/udp"
     environment:
-      LUMO_API_DOMAIN: ${LUMO_API_DOMAIN}
+      LUMO_API_DOMAIN: ${LUMO_API_DOMAIN:?set LUMO_API_DOMAIN in deploy/.env}
       LUMO_WEB_DOMAIN: ${LUMO_WEB_DOMAIN}
       LUMO_ACME_EMAIL: ${LUMO_ACME_EMAIL:?set LUMO_ACME_EMAIL in deploy/.env}
     volumes:
