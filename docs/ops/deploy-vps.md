@@ -29,8 +29,9 @@ et publiées sur le registre de GitHub (`ghcr.io/beyhamza/lumo-api` et `lumo-web
   fait échouer une partie des visites et le certificat Let's Encrypt.
   Les apps Android sont construites avec l'adresse de l'API (`LUMO_API_BASE_URL_RELEASE`) : la
   choisir avant de construire les bundles.
-- Un fournisseur SMTP (vérification d'adresse e-mail, mot de passe oublié), avec un expéditeur
-  vérifié.
+- Pour la vérification d'adresse e-mail et le mot de passe oublié : un fournisseur SMTP avec un
+  expéditeur vérifié ou, tant qu'il n'existe pas, le service `smtp4dev` (voir « E-mails sans
+  fournisseur SMTP »).
 
 ## Installer Docker (Ubuntu)
 
@@ -97,7 +98,8 @@ git clone git@github.com:beyhamza/lumo-tv.git lumo && cd lumo/deploy
 cp .env.example .env && chmod 600 .env
 ```
 
-Remplir `.env`. Les secrets se génèrent sur le serveur :
+`.env.example` porte déjà les valeurs de production. Restent à remplir `LUMO_ACME_EMAIL` et les
+secrets, qui se génèrent sur le serveur :
 
 ```bash
 openssl rand -base64 48
@@ -142,18 +144,47 @@ Puis ouvrir `https://<LUMO_WEB_DOMAIN>/fr`, créer un compte, recevoir l'e-mail 
 
 ### Le banc de test (optionnel)
 
-Pour que les testeurs aient une source sans rien de réel (mires et noms inventés) :
+Pour que les testeurs aient une source sans rien de réel (mires et noms inventés), ajouter le
+profil dans `.env` (`COMPOSE_PROFILES=smtp4dev,bench`), puis :
 
 ```bash
 cp caddy.d/bench.caddy.example caddy.d/bench.caddy
 ```
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env --profile bench up -d
+docker compose -f docker-compose.prod.yml --env-file .env up -d
 ```
 
 Sources à saisir dans l'app : `https://<LUMO_BENCH_DOMAIN>/mixed.m3u` (chaînes et films) ou
 `https://<LUMO_BENCH_DOMAIN>/multitrack.m3u` (pistes audio, sous-titres, qualités).
+
+### E-mails sans fournisseur SMTP
+
+`.env.example` envoie les e-mails de l'API au service `smtp4dev`, qui les garde sans jamais les
+transmettre : **aucun message n'arrive dans une vraie boîte**. S'inscrire et se connecter restent
+possibles, mais un testeur ne reçoit ni le lien de vérification ni celui du mot de passe oublié :
+c'est à l'opérateur de les retrouver et de les lui transmettre.
+
+La boîte n'a pas de mot de passe et montre ces liens : elle n'écoute que sur la boucle locale du
+serveur. Ne jamais la publier ni la mettre derrière Caddy. Depuis son poste, ouvrir un tunnel :
+
+```bash
+ssh -N -L 5080:127.0.0.1:5080 <utilisateur>@<serveur>
+```
+
+puis ouvrir `http://localhost:5080`. Les messages sont dans `LUMO_DATA_DIR/smtp4dev`.
+
+Quand un fournisseur existe, renseigner `SPRING_MAIL_*` dans `.env` (voir les commentaires de
+`.env.example`), retirer `smtp4dev` de `COMPOSE_PROFILES`, puis arrêter le service et relancer la
+pile :
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env --profile smtp4dev rm -sf smtp4dev
+```
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env up -d
+```
 
 ## Mettre à jour
 
@@ -256,7 +287,7 @@ docker compose -f docker-compose.prod.yml --env-file .env start lumo-api lumo-we
 
 ## Journaux
 
-Chaque service (`postgres`, `lumo-api`, `lumo-web`, `caddy`, `backup`, `bench`) écrit dans
+Chaque service (`postgres`, `lumo-api`, `lumo-web`, `caddy`, `backup`, `bench`, `smtp4dev`) écrit dans
 `LUMO_DATA_DIR/logs/<service>/<date UTC>.log`. Les fichiers de plus de `LUMO_LOG_KEEP_DAYS` jours
 sont supprimés au changement de jour et au démarrage du service. Ils ne sont lisibles que par
 root (ou le propriétaire du fichier) :
@@ -290,6 +321,8 @@ c'est le cas, c'est un défaut à ouvrir.
 
 ## Limites (à lever avant une production ouverte)
 
+- **Aucun e-mail réel avec `smtp4dev`.** Personne ne reçoit de lien de vérification ni de mot de
+  passe oublié : il faut un fournisseur SMTP avant une production.
 - **Clé de chiffrement en variable d'environnement.** `apps/api/.env.example` prévoit un KMS en
   production. Acceptable pour un test interne avec des testeurs connus ; à décider avant la
   production.

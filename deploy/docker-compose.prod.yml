@@ -17,6 +17,8 @@
 #   - backup     a pg_dump a day, kept LUMO_BACKUP_KEEP_DAYS days in ./backups.
 # Optional, profile `bench`: the source test bench, at LUMO_BENCH_DOMAIN, so
 # testers have a source with nothing real in it (apps/web/e2e/bench).
+# Optional, profile `smtp4dev`: catches every email the API sends, until a real
+# SMTP provider replaces it. Nothing leaves the server.
 #
 # Each service starts through log-tee.sh, which copies its output to
 # LUMO_DATA_DIR/logs/<service>. Its entrypoint below therefore names the image's
@@ -166,6 +168,7 @@ services:
       LUMO_API_DOMAIN: ${LUMO_API_DOMAIN:?set LUMO_API_DOMAIN in deploy/.env}
       LUMO_WEB_DOMAIN: ${LUMO_WEB_DOMAIN}
       LUMO_ACME_EMAIL: ${LUMO_ACME_EMAIL:?set LUMO_ACME_EMAIL in deploy/.env}
+      LUMO_CADDY_GLOBAL: ${LUMO_CADDY_GLOBAL:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./caddy.d:/etc/caddy/caddy.d:ro
@@ -219,6 +222,26 @@ services:
     networks:
       lumo:
         ipv4_address: 10.89.30.30
+
+  smtp4dev:
+    image: rnwood/smtp4dev:3.15.0
+    profiles: ["smtp4dev"]
+    restart: unless-stopped
+    entrypoint: ["sh", "/log-tee.sh", "dotnet", "/app/Rnwood.Smtp4dev.dll"]
+    environment:
+      LOG_KEEP_DAYS: ${LUMO_LOG_KEEP_DAYS:-14}
+    # Its inbox shows every password-reset link and has no login, so it is never
+    # behind Caddy: on the server's loopback only, reached through an SSH tunnel.
+    # The SMTP port stays on the private network.
+    ports:
+      - "127.0.0.1:${LUMO_SMTP4DEV_PORT:-5080}:80"
+    volumes:
+      - ${LUMO_DATA_DIR}/smtp4dev:/smtp4dev
+      - ${LUMO_DATA_DIR}/logs/smtp4dev:/logs
+      - ./log-tee.sh:/log-tee.sh:ro
+    networks:
+      lumo:
+        ipv4_address: 10.89.30.31
 
 networks:
   lumo:
