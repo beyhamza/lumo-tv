@@ -27,6 +27,8 @@ public class EpisodePlaybackInfo {
 
   private String streamUrl;
 
+  private @Nullable String secureStreamUrl = null;
+
   private @Nullable String userAgent = null;
 
   private @Nullable Integer maxConnections = null;
@@ -82,6 +84,25 @@ public class EpisodePlaybackInfo {
 
   public void setStreamUrl(String streamUrl) {
     this.streamUrl = streamUrl;
+  }
+
+  public EpisodePlaybackInfo secureStreamUrl(@Nullable String secureStreamUrl) {
+    this.secureStreamUrl = secureStreamUrl;
+    return this;
+  }
+
+  /**
+   * See `PlaybackInfo.secure_stream_url`. **Sensitive**, like `stream_url`. 
+   * @return secureStreamUrl
+   */
+  
+  @JsonProperty("secure_stream_url")
+  public @Nullable String getSecureStreamUrl() {
+    return secureStreamUrl;
+  }
+
+  public void setSecureStreamUrl(@Nullable String secureStreamUrl) {
+    this.secureStreamUrl = secureStreamUrl;
   }
 
   public EpisodePlaybackInfo userAgent(@Nullable String userAgent) {
@@ -152,6 +173,7 @@ public class EpisodePlaybackInfo {
     EpisodePlaybackInfo episodePlaybackInfo = (EpisodePlaybackInfo) o;
     return Objects.equals(this.episodeId, episodePlaybackInfo.episodeId) &&
         Objects.equals(this.streamUrl, episodePlaybackInfo.streamUrl) &&
+        Objects.equals(this.secureStreamUrl, episodePlaybackInfo.secureStreamUrl) &&
         Objects.equals(this.userAgent, episodePlaybackInfo.userAgent) &&
         Objects.equals(this.maxConnections, episodePlaybackInfo.maxConnections) &&
         Objects.equals(this.expiresAt, episodePlaybackInfo.expiresAt);
@@ -159,7 +181,7 @@ public class EpisodePlaybackInfo {
 
   @Override
   public int hashCode() {
-    return Objects.hash(episodeId, streamUrl, userAgent, maxConnections, expiresAt);
+    return Objects.hash(episodeId, streamUrl, secureStreamUrl, userAgent, maxConnections, expiresAt);
   }
 
   @Override
@@ -168,6 +190,7 @@ public class EpisodePlaybackInfo {
     sb.append("class EpisodePlaybackInfo {\n");
     sb.append("    episodeId: ").append(toIndentedString(episodeId)).append("\n");
     sb.append("    streamUrl: ").append("*").append("\n");
+    sb.append("    secureStreamUrl: ").append("*").append("\n");
     sb.append("    userAgent: ").append(toIndentedString(userAgent)).append("\n");
     sb.append("    maxConnections: ").append(toIndentedString(maxConnections)).append("\n");
     sb.append("    expiresAt: ").append(toIndentedString(expiresAt)).append("\n");

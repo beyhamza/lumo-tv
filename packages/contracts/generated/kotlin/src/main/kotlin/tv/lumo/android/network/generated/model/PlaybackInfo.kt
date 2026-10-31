@@ -24,6 +24,7 @@ import com.squareup.moshi.JsonClass
  *
  * @param channelId 
  * @param streamUrl **Sensitive.** Typed `format: password` rather than `format: uri` on purpose: both map to a plain string, but `password` makes every generator mask this property in `toString()`. A stream URL must never reach a log line at any level, `DEBUG` included (AGENTS.md §5), and the contract is the cheapest place to guarantee that.  Direct URL to the user's IPTV server, embedding their credentials in most Xtream panels.  Never logged, never persisted client-side beyond the playback session, never shared between accounts. The player opens it directly; it does not transit through Lumo. 
+ * @param secureStreamUrl **Sensitive**, under every rule written on `stream_url`.  The same stream at the `https` port the user's Xtream panel announces. Null when `stream_url` is already `https`, when the source is not Xtream, or when the panel announced no such port at the last synchronisation.  **An announcement, not a promise.** Nothing here checks that the port answers, that its certificate is valid or that the panel allows the request: finding out would mean a call to the user's panel for every playback. A browser on an `https` page, which cannot open an `http` `stream_url` at all, tries this one and says so if it fails. An application plays `stream_url` and can ignore this field. 
  * @param userAgent User-Agent the player should send, when the source requires a specific one. Null means the client's default. 
  * @param maxConnections Simultaneous streams the user's subscription allows, echoed from the source so the player can explain a rejected stream (US-09). 
  * @param expiresAt When this URL stops being valid, when the panel issues time-limited links. Null means no known expiry; the client re-requests on failure rather than assuming. 
@@ -38,6 +39,10 @@ data class PlaybackInfo (
     /* **Sensitive.** Typed `format: password` rather than `format: uri` on purpose: both map to a plain string, but `password` makes every generator mask this property in `toString()`. A stream URL must never reach a log line at any level, `DEBUG` included (AGENTS.md §5), and the contract is the cheapest place to guarantee that.  Direct URL to the user's IPTV server, embedding their credentials in most Xtream panels.  Never logged, never persisted client-side beyond the playback session, never shared between accounts. The player opens it directly; it does not transit through Lumo.  */
     @Json(name = "stream_url")
     val streamUrl: kotlin.String,
+
+    /* **Sensitive**, under every rule written on `stream_url`.  The same stream at the `https` port the user's Xtream panel announces. Null when `stream_url` is already `https`, when the source is not Xtream, or when the panel announced no such port at the last synchronisation.  **An announcement, not a promise.** Nothing here checks that the port answers, that its certificate is valid or that the panel allows the request: finding out would mean a call to the user's panel for every playback. A browser on an `https` page, which cannot open an `http` `stream_url` at all, tries this one and says so if it fails. An application plays `stream_url` and can ignore this field.  */
+    @Json(name = "secure_stream_url")
+    val secureStreamUrl: kotlin.String? = null,
 
     /* User-Agent the player should send, when the source requires a specific one. Null means the client's default.  */
     @Json(name = "user_agent")

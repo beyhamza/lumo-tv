@@ -4180,6 +4180,12 @@ components:
             **Sensitive**, and typed `format: password` for the reason given on
             `PlaybackInfo.stream_url`: it must never reach a log line at any
             level, `DEBUG` included.
+        secure_stream_url:
+          type: string
+          format: password
+          nullable: true
+          description: |
+            See `PlaybackInfo.secure_stream_url`. **Sensitive**, like `stream_url`.
         user_agent:
           type: string
           nullable: true
@@ -4226,6 +4232,24 @@ components:
             Never logged, never persisted client-side beyond the playback
             session, never shared between accounts. The player opens it directly;
             it does not transit through Lumo.
+        secure_stream_url:
+          type: string
+          format: password
+          nullable: true
+          description: |
+            **Sensitive**, under every rule written on `stream_url`.
+
+            The same stream at the `https` port the user's Xtream panel announces.
+            Null when `stream_url` is already `https`, when the source is not
+            Xtream, or when the panel announced no such port at the last
+            synchronisation.
+
+            **An announcement, not a promise.** Nothing here checks that the port
+            answers, that its certificate is valid or that the panel allows the
+            request: finding out would mean a call to the user's panel for every
+            playback. A browser on an `https` page, which cannot open an `http`
+            `stream_url` at all, tries this one and says so if it fails. An
+            application plays `stream_url` and can ignore this field.
         user_agent:
           type: string
           nullable: true
@@ -4278,6 +4302,12 @@ components:
             **Sensitive**, and typed `format: password` for the reason given on
             `PlaybackInfo.stream_url`: it must never reach a log line at any
             level, `DEBUG` included (AGENTS.md §5).
+        secure_stream_url:
+          type: string
+          format: password
+          nullable: true
+          description: |
+            See `PlaybackInfo.secure_stream_url`. **Sensitive**, like `stream_url`.
         user_agent:
           type: string
           nullable: true

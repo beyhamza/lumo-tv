@@ -74,7 +74,7 @@ public class DeviceCodeResponse {
   }
 
   /**
-   * The 8 characters shown on screen and typed on `lumo.tv/activate`.  Drawn from an alphabet with no ambiguous glyphs: `0`/`O` and `1`/`I`/`L` are all excluded, so what is read at three metres is what gets typed. Transmitted unformatted; a client may insert a separator for display, and the server accepts the code case-insensitively with separators and spaces stripped.  Single-use, valid 10 minutes. 
+   * The 8 characters shown on screen and typed on `lumo-tv.com/activate`.  Drawn from an alphabet with no ambiguous glyphs: `0`/`O` and `1`/`I`/`L` are all excluded, so what is read at three metres is what gets typed. Transmitted unformatted; a client may insert a separator for display, and the server accepts the code case-insensitively with separators and spaces stripped.  Single-use, valid 10 minutes. 
    * @return userCode
    */
   @NotNull @Pattern(regexp = "^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$") @Size(min = 8, max = 8) 

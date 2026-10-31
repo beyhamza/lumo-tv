@@ -27,6 +27,8 @@ public class PlaybackInfo {
 
   private String streamUrl;
 
+  private @Nullable String secureStreamUrl = null;
+
   private @Nullable String userAgent = null;
 
   private @Nullable Integer maxConnections = null;
@@ -82,6 +84,25 @@ public class PlaybackInfo {
 
   public void setStreamUrl(String streamUrl) {
     this.streamUrl = streamUrl;
+  }
+
+  public PlaybackInfo secureStreamUrl(@Nullable String secureStreamUrl) {
+    this.secureStreamUrl = secureStreamUrl;
+    return this;
+  }
+
+  /**
+   * **Sensitive**, under every rule written on `stream_url`.  The same stream at the `https` port the user's Xtream panel announces. Null when `stream_url` is already `https`, when the source is not Xtream, or when the panel announced no such port at the last synchronisation.  **An announcement, not a promise.** Nothing here checks that the port answers, that its certificate is valid or that the panel allows the request: finding out would mean a call to the user's panel for every playback. A browser on an `https` page, which cannot open an `http` `stream_url` at all, tries this one and says so if it fails. An application plays `stream_url` and can ignore this field. 
+   * @return secureStreamUrl
+   */
+  
+  @JsonProperty("secure_stream_url")
+  public @Nullable String getSecureStreamUrl() {
+    return secureStreamUrl;
+  }
+
+  public void setSecureStreamUrl(@Nullable String secureStreamUrl) {
+    this.secureStreamUrl = secureStreamUrl;
   }
 
   public PlaybackInfo userAgent(@Nullable String userAgent) {
@@ -152,6 +173,7 @@ public class PlaybackInfo {
     PlaybackInfo playbackInfo = (PlaybackInfo) o;
     return Objects.equals(this.channelId, playbackInfo.channelId) &&
         Objects.equals(this.streamUrl, playbackInfo.streamUrl) &&
+        Objects.equals(this.secureStreamUrl, playbackInfo.secureStreamUrl) &&
         Objects.equals(this.userAgent, playbackInfo.userAgent) &&
         Objects.equals(this.maxConnections, playbackInfo.maxConnections) &&
         Objects.equals(this.expiresAt, playbackInfo.expiresAt);
@@ -159,7 +181,7 @@ public class PlaybackInfo {
 
   @Override
   public int hashCode() {
-    return Objects.hash(channelId, streamUrl, userAgent, maxConnections, expiresAt);
+    return Objects.hash(channelId, streamUrl, secureStreamUrl, userAgent, maxConnections, expiresAt);
   }
 
   @Override
@@ -168,6 +190,7 @@ public class PlaybackInfo {
     sb.append("class PlaybackInfo {\n");
     sb.append("    channelId: ").append(toIndentedString(channelId)).append("\n");
     sb.append("    streamUrl: ").append("*").append("\n");
+    sb.append("    secureStreamUrl: ").append("*").append("\n");
     sb.append("    userAgent: ").append(toIndentedString(userAgent)).append("\n");
     sb.append("    maxConnections: ").append(toIndentedString(maxConnections)).append("\n");
     sb.append("    expiresAt: ").append(toIndentedString(expiresAt)).append("\n");

@@ -24,6 +24,7 @@ import com.squareup.moshi.JsonClass
  *
  * @param vodItemId 
  * @param streamUrl **Sensitive**, and typed `format: password` for the reason given on `PlaybackInfo.stream_url`: it must never reach a log line at any level, `DEBUG` included (AGENTS.md §5). 
+ * @param secureStreamUrl See `PlaybackInfo.secure_stream_url`. **Sensitive**, like `stream_url`. 
  * @param userAgent User-Agent the player should send, when the source requires a specific one. Null means the client's default. 
  * @param maxConnections Simultaneous streams the user's subscription allows. A film counts against that ceiling exactly as a channel does. 
  * @param expiresAt When this URL stops being valid, when the panel issues time-limited links. Null means no known expiry. 
@@ -38,6 +39,10 @@ data class VodPlaybackInfo (
     /* **Sensitive**, and typed `format: password` for the reason given on `PlaybackInfo.stream_url`: it must never reach a log line at any level, `DEBUG` included (AGENTS.md §5).  */
     @Json(name = "stream_url")
     val streamUrl: kotlin.String,
+
+    /* See `PlaybackInfo.secure_stream_url`. **Sensitive**, like `stream_url`.  */
+    @Json(name = "secure_stream_url")
+    val secureStreamUrl: kotlin.String? = null,
 
     /* User-Agent the player should send, when the source requires a specific one. Null means the client's default.  */
     @Json(name = "user_agent")

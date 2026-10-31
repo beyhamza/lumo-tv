@@ -23,7 +23,7 @@ import com.squareup.moshi.JsonClass
  * RFC 8628 device authorization response. Property names are the RFC's, verbatim. 
  *
  * @param deviceCode Secret held by the television and sent on every poll. Never displayed. Stored hashed server-side (`device_authorization.device_code_hash`). 
- * @param userCode The 8 characters shown on screen and typed on `lumo.tv/activate`.  Drawn from an alphabet with no ambiguous glyphs: `0`/`O` and `1`/`I`/`L` are all excluded, so what is read at three metres is what gets typed. Transmitted unformatted; a client may insert a separator for display, and the server accepts the code case-insensitively with separators and spaces stripped.  Single-use, valid 10 minutes. 
+ * @param userCode The 8 characters shown on screen and typed on `lumo-tv.com/activate`.  Drawn from an alphabet with no ambiguous glyphs: `0`/`O` and `1`/`I`/`L` are all excluded, so what is read at three metres is what gets typed. Transmitted unformatted; a client may insert a separator for display, and the server accepts the code case-insensitively with separators and spaces stripped.  Single-use, valid 10 minutes. 
  * @param verificationUri Page to open on a phone or a computer.
  * @param verificationUriComplete Same page with the code pre-filled — this is what the QR code on the television encodes, so the nominal path involves no typing at all. 
  * @param expiresIn Lifetime of the authorization, in seconds.
@@ -37,7 +37,7 @@ data class DeviceCodeResponse (
     @Json(name = "device_code")
     val deviceCode: kotlin.String,
 
-    /* The 8 characters shown on screen and typed on `lumo.tv/activate`.  Drawn from an alphabet with no ambiguous glyphs: `0`/`O` and `1`/`I`/`L` are all excluded, so what is read at three metres is what gets typed. Transmitted unformatted; a client may insert a separator for display, and the server accepts the code case-insensitively with separators and spaces stripped.  Single-use, valid 10 minutes.  */
+    /* The 8 characters shown on screen and typed on `lumo-tv.com/activate`.  Drawn from an alphabet with no ambiguous glyphs: `0`/`O` and `1`/`I`/`L` are all excluded, so what is read at three metres is what gets typed. Transmitted unformatted; a client may insert a separator for display, and the server accepts the code case-insensitively with separators and spaces stripped.  Single-use, valid 10 minutes.  */
     @Json(name = "user_code")
     val userCode: kotlin.String,
 

@@ -218,7 +218,7 @@ export interface paths {
         put?: never;
         /**
          * TV activation: approve a user code from an authenticated session
-         * @description Called from `lumo.tv/activate` by an already signed-in user. Binds the
+         * @description Called from `lumo-tv.com/activate` by an already signed-in user. Binds the
          *     pending authorization to the caller's account.
          *
          *     Strictly rate-limited: `user_code` is short and guessable by design, so
@@ -1389,7 +1389,7 @@ export interface components {
             /**
              * Format: uri
              * @description Stable URI identifying the problem type.
-             * @example https://lumo.tv/errors/source-auth-failed
+             * @example https://lumo-tv.com/errors/source-auth-failed
              */
             type: string;
             /**
@@ -1822,7 +1822,7 @@ export interface components {
              */
             device_code: string;
             /**
-             * @description The 8 characters shown on screen and typed on `lumo.tv/activate`.
+             * @description The 8 characters shown on screen and typed on `lumo-tv.com/activate`.
              *
              *     Drawn from an alphabet with no ambiguous glyphs: `0`/`O` and
              *     `1`/`I`/`L` are all excluded, so what is read at three metres is what
@@ -1836,14 +1836,14 @@ export interface components {
             /**
              * Format: uri
              * @description Page to open on a phone or a computer.
-             * @example https://lumo.tv/activate
+             * @example https://lumo-tv.com/activate
              */
             verification_uri: string;
             /**
              * Format: uri
              * @description Same page with the code pre-filled — this is what the QR code on the
              *     television encodes, so the nominal path involves no typing at all.
-             * @example https://lumo.tv/activate?code=K7RM4XPQ
+             * @example https://lumo-tv.com/activate?code=K7RM4XPQ
              */
             verification_uri_complete: string;
             /**
@@ -2666,6 +2666,11 @@ export interface components {
              */
             stream_url: string;
             /**
+             * Format: password
+             * @description See `PlaybackInfo.secure_stream_url`. **Sensitive**, like `stream_url`.
+             */
+            secure_stream_url?: string | null;
+            /**
              * @description User-Agent the player should send, when the source requires a
              *     specific one. Null means the client's default.
              */
@@ -2705,6 +2710,23 @@ export interface components {
              *     it does not transit through Lumo.
              */
             stream_url: string;
+            /**
+             * Format: password
+             * @description **Sensitive**, under every rule written on `stream_url`.
+             *
+             *     The same stream at the `https` port the user's Xtream panel announces.
+             *     Null when `stream_url` is already `https`, when the source is not
+             *     Xtream, or when the panel announced no such port at the last
+             *     synchronisation.
+             *
+             *     **An announcement, not a promise.** Nothing here checks that the port
+             *     answers, that its certificate is valid or that the panel allows the
+             *     request: finding out would mean a call to the user's panel for every
+             *     playback. A browser on an `https` page, which cannot open an `http`
+             *     `stream_url` at all, tries this one and says so if it fails. An
+             *     application plays `stream_url` and can ignore this field.
+             */
+            secure_stream_url?: string | null;
             /**
              * @description User-Agent the player should send, when the source requires a
              *     specific one. Null means the client's default.
@@ -2751,6 +2773,11 @@ export interface components {
              *     level, `DEBUG` included (AGENTS.md §5).
              */
             stream_url: string;
+            /**
+             * Format: password
+             * @description See `PlaybackInfo.secure_stream_url`. **Sensitive**, like `stream_url`.
+             */
+            secure_stream_url?: string | null;
             /**
              * @description User-Agent the player should send, when the source requires a
              *     specific one. Null means the client's default.
