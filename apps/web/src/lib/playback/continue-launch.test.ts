@@ -73,6 +73,7 @@ describe("launchFailureActions", () => {
 
   it("offers no retry where retrying cannot help", () => {
     expect(launchFailureActions("resume", { kind: "mixed-content" }).retry).toBe(false);
+    expect(launchFailureActions("resume", { kind: "blocked" }).retry).toBe(true);
     expect(launchFailureActions("resume", { kind: "api", code: "VOD_ITEM_NOT_FOUND" }).retry).toBe(
       false,
     );

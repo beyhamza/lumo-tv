@@ -10,6 +10,7 @@ import { TrackMenus } from "@/components/app/player/TrackMenus";
 import { useCast } from "@/components/app/player/use-cast";
 import { usePlaybackPrefs } from "@/components/app/player/use-playback-prefs";
 import { advanceMs, audibility, browserDecodes } from "@/lib/playback/audibility";
+import { browserStream } from "@/lib/playback/browser-stream";
 import {
   type LaunchKind,
   autoplayRefused,
@@ -226,6 +227,8 @@ export function FilmPlayer({
   const [tracks, setTracks] = useState<TrackController | null>(null);
 
   const [failure, setFailure] = useState<Failure | null>(null);
+  /** Whether the file being opened is at the https address its panel announces. */
+  const upgraded = useRef(false);
   const [maxConnections, setMaxConnections] = useState<number | null>(null);
   const [seekable, setSeekable] = useState<boolean | null>(null);
   /**
@@ -452,7 +455,12 @@ export function FilmPlayer({
       setSound("unknown");
       played.current = { totalMs: 0, atMs: 0 };
 
-      let payload: { url: string; maxConnections: number | null; needsUserAgent?: boolean };
+      let payload: {
+        url: string;
+        secureUrl?: string | null;
+        maxConnections: number | null;
+        needsUserAgent?: boolean;
+      };
       try {
         // Fetched at the moment of playing and never rendered into the page: the
         // URL carries the user's panel credentials.
@@ -480,10 +488,12 @@ export function FilmPlayer({
       // Checked before anything is attempted, because the browser will not
       // report this one usefully: it refuses the request outright and the
       // console message never reaches the user.
-      if (window.location.protocol === "https:" && payload.url.startsWith("http:")) {
+      const opened = browserStream(payload, window.location.protocol);
+      if (!opened) {
         setFailure({ kind: "mixed-content" });
         return;
       }
+      upgraded.current = opened.upgraded;
 
       const video = videoRef.current;
       if (!video) return;
@@ -491,12 +501,12 @@ export function FilmPlayer({
       // No `crossorigin` attribute, deliberately. Setting one would turn this
       // into a CORS request and break every panel that does not send the header
       // — for a capability (canvas, Web Audio) nothing here uses.
-      video.src = payload.url;
+      video.src = opened.url;
       // Per file: a new `src` is a new set of tracks, and nothing chosen for the
       // previous one is carried over (PS-06). A manifest played natively lets
       // the browser pick its variant; a file has only one.
       controller?.dispose();
-      controller = nativeTracks(video, isManifest(payload.url) ? "browser-chooses" : "single-file");
+      controller = nativeTracks(video, isManifest(opened.url) ? "browser-chooses" : "single-file");
       setTracks(controller);
       // Set before play, so the browser opens the file at the offset rather than
       // downloading its way there. On a server that ignores `Range` it silently
@@ -667,13 +677,19 @@ export function FilmPlayer({
           onEndedChange?.(true);
         }}
         onEmptied={syncMeter}
-        onError={() => {
+        onError={(event) => {
           // A broken file plays nothing, whatever its other flags say.
           watchMeter.stop(Date.now());
+          // Nothing read from an https address the panel merely announced: it
+          // most likely never answered, which "could not be decoded" would hide.
+          // An unsupported container looks the same from here and gets this
+          // sentence too; the element reports nothing that tells them apart.
+          const refused =
+            upgraded.current && event.currentTarget.readyState === HTMLMediaElement.HAVE_NOTHING;
           setFailure((current) =>
             // Not overwritten: a named failure set above is more specific than
             // anything the element can report.
-            current ?? { kind: "unplayable" },
+            current ?? { kind: refused ? "blocked" : "unplayable" },
           );
         }}
         className={started ? "mt-3 aspect-video w-full rounded-lg bg-black" : "hidden"}
@@ -772,7 +788,7 @@ export function FilmPlayer({
           {/* Offered only where it is true. A browser cannot get past mixed
               content, and telling someone to try again would be telling them to
               do the same thing twice. */}
-          {failure.kind === "mixed-content" ? (
+          {failure.kind === "mixed-content" || failure.kind === "blocked" ? (
             <p className="text-muted-foreground mt-2 text-sm">{t("playerUseApps")}</p>
           ) : null}
           {launch ? (
@@ -850,8 +866,16 @@ const SAVE_EVERY_MS = 30_000;
 type Failure =
   | { kind: "api"; code: string }
   | { kind: "mixed-content" }
+  | { kind: "blocked" }
   | { kind: "unplayable" };
 
 function bodyKey(kind: Exclude<Failure["kind"], "api">) {
-  return kind === "mixed-content" ? "playerMixedContent" : "playerUnplayable";
+  switch (kind) {
+    case "mixed-content":
+      return "playerMixedContent";
+    case "blocked":
+      return "playerBlocked";
+    default:
+      return "playerUnplayable";
+  }
 }

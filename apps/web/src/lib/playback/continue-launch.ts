@@ -88,6 +88,7 @@ export function withoutLaunch<Q extends Record<string, string | string[] | undef
 export type LaunchFailure =
   | { kind: "api"; code: string }
   | { kind: "mixed-content" }
+  | { kind: "blocked" }
   | { kind: "unplayable" };
 
 /**

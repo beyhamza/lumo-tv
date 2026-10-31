@@ -346,7 +346,10 @@ contorsions.
   et des passages entre crochets tant que S16B-00 n'est pas tranché.
 - **La lecture web est directe ou refusée, jamais relayée** (`adr/0007`). Elle ne
   marche donc pas chez tous les fournisseurs, et l`échec est nommé plutôt que
-  silencieux — c'est la moitié du travail, pas un détail.
+  silencieux — c'est la moitié du travail, pas un détail. Sur une page `https`, un
+  flux `http` cède la place à `secure_stream_url` quand le panel Xtream annonce un
+  port https (`lib/playback/browser-stream.ts`). L'annonce n'est pas vérifiée : si
+  l'adresse ne répond pas, le lecteur le dit (`playerBlocked`).
 - Les guides sont trois entrées statiques ; un CMS devra remplacer
   `src/content/guides.ts`.
 - Le rafraîchissement dédoublonne dans **un** processus. Derrière plusieurs

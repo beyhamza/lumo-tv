@@ -59,6 +59,8 @@ export async function GET(
     {
       // Sensitive. Never logged on this side, never rendered into a document.
       url: result.data.stream_url,
+      // Sensitive too: the same credentials, at the port the panel announces for https.
+      secureUrl: result.data.secure_stream_url ?? null,
       maxConnections: result.data.max_connections ?? null,
       // Whether the provider needs a User-Agent this application sends: a
       // Chromecast cannot, so Cast is not offered (sprint 16, decision 6).
