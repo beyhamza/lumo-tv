@@ -57,8 +57,14 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
   conservation des IP (S16B-01), catégorie IARC, ressemblance du logo ; compte de démonstration
   et source du banc en ligne pour l'accès vérificateur.
 - [ ] S16B-06 — publication sur la piste de test interne — 0 %
+- [ ] S16B-07 — lecture web en https quand le panel Xtream l'annonce — 80 % (demande de Hamza, 31/10) :
+  - [x] contrat : `secure_stream_url` sur les trois réponses de lecture, clients régénérés
+  - [x] API : `source.https_port` lu à chaque synchronisation, URL dérivée à la lecture ; tests
+  - [x] web : essai de l'adresse https sur une page https, échec nommé (`playerBlocked`) ; tests
+  - [ ] essai sur le site déployé avec un vrai panel : les sources existantes reçoivent le port à leur
+    prochaine synchronisation, et il faut que le panel serve vraiment ce port (certificat, CORS)
 
-**Avancement global ≈ 70 %**.
+**Avancement global ≈ 71 %**.
 
 Branches : `feat/S16B-prod-stack` (pile VPS), `feat/S16B-account-privacy` (suppression de compte,
 confidentialité), `feat/S16B-play-release` (version, fiche Play) ; réunies dans `feat/merge-s16`.

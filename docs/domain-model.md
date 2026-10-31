@@ -92,6 +92,7 @@ TV n'a pas interrogé une seule fois — le premier poll n'est jamais trop rapid
 | `last_synced_at` | timestamptz nullable | dernière ingestion **réussie**, inchangée par un échec |
 | `expires_at` | timestamptz nullable | Xtream : expiration du compte |
 | `max_connections` | int nullable | Xtream |
+| `https_port` | int nullable | Xtream : port https annoncé par le panel à la dernière synchronisation, non vérifié ; null si aucun |
 | `auto_sync` | boolean NOT NULL DEFAULT true | le serveur resynchronise-t-il seul |
 
 **`auto_sync` est sur la source**, pas sur le compte ni sur l'appareil. La
