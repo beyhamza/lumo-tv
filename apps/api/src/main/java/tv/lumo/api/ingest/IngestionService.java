@@ -180,6 +180,7 @@ public class IngestionService {
         String host = source.host();
 
         XtreamClient.XtreamAccount account = xtream.authenticate(host, source.username(), password);
+        sources.updateHttpsPort(source.id(), account.httpsPort());
         // The credentials were accepted and nothing has been parsed yet. This is
         // the step the onboarding checklist ticks second, and it is a real phase
         // rather than a reassuring one: an M3U source never reports it, because

@@ -100,7 +100,7 @@ public class XtreamClient {
                     "The subscription's simultaneous connection limit is already reached");
         }
 
-        return new XtreamAccount(expiresAt, maxConnections);
+        return new XtreamAccount(expiresAt, maxConnections, readPort(root.path("server_info").path("https_port")));
     }
 
     /** Streams the live categories, one at a time. */
@@ -672,6 +672,12 @@ public class XtreamClient {
         }
     }
 
+    /** A usable port, or null. Panels with no https at all send {@code 0} or an empty string. */
+    private static Integer readPort(JsonNode node) {
+        Integer port = readInt(node);
+        return port != null && port >= 1 && port <= 65535 ? port : null;
+    }
+
     /** Reads a value that may arrive as a string, a number, null or an empty string. */
     private static String readText(JsonNode node) {
         if (node == null || node.isMissingNode() || node.isNull()) {
@@ -681,8 +687,11 @@ public class XtreamClient {
         return value.isBlank() ? null : value.trim();
     }
 
-    /** @param expiresAt null when the panel reports no expiry */
-    public record XtreamAccount(OffsetDateTime expiresAt, Integer maxConnections) {
+    /**
+     * @param expiresAt null when the panel reports no expiry
+     * @param httpsPort what {@code server_info} announces, unverified; null when it announces none
+     */
+    public record XtreamAccount(OffsetDateTime expiresAt, Integer maxConnections, Integer httpsPort) {
     }
 
     public record XtreamCategory(String externalId, String name) {

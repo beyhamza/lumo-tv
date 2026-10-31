@@ -225,6 +225,17 @@ public class SourceRepository {
                 .update();
     }
 
+    /**
+     * Written as announced, null included, unlike the COALESCE of {@link #markReady}:
+     * a panel that stops announcing https must stop being offered it.
+     */
+    public void updateHttpsPort(UUID sourceId, Integer httpsPort) {
+        jdbc.sql("UPDATE source SET https_port = :httpsPort WHERE id = :id")
+                .param("httpsPort", httpsPort)
+                .param("id", sourceId)
+                .update();
+    }
+
     public void markError(UUID sourceId, IngestionErrorCode errorCode) {
         jdbc.sql("""
                 UPDATE source

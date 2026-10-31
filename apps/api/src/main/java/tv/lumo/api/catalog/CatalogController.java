@@ -292,6 +292,7 @@ public class CatalogController implements CatalogApi {
         requirePlayableSource(row);
 
         EpisodePlaybackInfo playback = new EpisodePlaybackInfo(id, row.streamUrl());
+        playback.setSecureStreamUrl(SecureStreamUrl.of(row.streamUrl(), row.sourceHttpsPort()));
         playback.setMaxConnections(row.maxConnections());
         // Nothing is logged here, exactly as for a channel and a film (AGENTS.md §5).
         return ResponseEntity.ok(playback);
@@ -315,6 +316,7 @@ public class CatalogController implements CatalogApi {
         requirePlayableSource(row);
 
         PlaybackInfo playback = new PlaybackInfo(id, row.streamUrl());
+        playback.setSecureStreamUrl(SecureStreamUrl.of(row.streamUrl(), row.sourceHttpsPort()));
         // Echoed so the player can explain a stream the panel refuses (US-09).
         playback.setMaxConnections(row.maxConnections());
         // Nothing is logged here. This response body is the single most sensitive
@@ -340,6 +342,7 @@ public class CatalogController implements CatalogApi {
         requirePlayableSource(row);
 
         VodPlaybackInfo playback = new VodPlaybackInfo(id, row.streamUrl());
+        playback.setSecureStreamUrl(SecureStreamUrl.of(row.streamUrl(), row.sourceHttpsPort()));
         playback.setMaxConnections(row.maxConnections());
         // Nothing is logged here, exactly as for a channel (AGENTS.md §5).
         return ResponseEntity.ok(playback);
