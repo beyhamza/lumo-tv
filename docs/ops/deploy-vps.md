@@ -12,6 +12,7 @@ Tout est dans [`deploy/`](../../deploy) :
 | `Caddyfile` | Certificats Let's Encrypt et proxy vers l'API et le site |
 | `caddy.d/bench.caddy.example` | Le banc de test sur son propre sous-domaine, à activer au besoin |
 | `backup.sh` | Un `pg_dump` par jour, gardé `LUMO_BACKUP_KEEP_DAYS` jours |
+| `log-tee.sh` | Copie la sortie de chaque service dans un fichier par jour, gardé `LUMO_LOG_KEEP_DAYS` jours |
 | `.env.example` | Toutes les variables ; la copie `deploy/.env` ne quitte jamais le serveur |
 
 Les images sont construites par [`.github/workflows/images.yml`](../../.github/workflows/images.yml)
@@ -112,7 +113,9 @@ openssl rand -base64 32
 **Garder une copie de `LUMO_ENCRYPTION_MASTER_KEY` hors du VPS** : la perdre rend illisibles tous
 les mots de passe de fournisseur enregistrés.
 
-`LUMO_VERSION` désigne des images déjà publiées (voir « Publier les images »).
+`LUMO_VERSION` désigne des images déjà publiées (voir « Publier les images »). `LUMO_DATA_DIR` est
+le dossier du serveur qui contiendra les données (voir « Données sur le serveur ») : `/srv/lumo`
+par défaut dans `.env.example`.
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env pull
@@ -179,6 +182,59 @@ docker image prune -f
 
 libère les images qui ne servent plus.
 
+## Données sur le serveur
+
+L'état de la pile est dans des dossiers de `LUMO_DATA_DIR`, pas dans des volumes Docker :
+
+| Dossier | Contenu |
+|---|---|
+| `postgres/pgdata` | La base. Copier ce dossier pendant que PostgreSQL tourne ne fait pas une sauvegarde : voir « Sauvegardes » |
+| `caddy/data` | Les certificats TLS. Les perdre oblige à les redemander, avec les limites de Let's Encrypt |
+| `caddy/config` | La configuration que Caddy régénère seul |
+| `logs/<service>` | Les journaux : voir « Journaux » |
+
+Ce dossier reste **hors du clone du dépôt** : un `git clean -fdx` ne doit pas pouvoir l'atteindre.
+
+### Passer des volumes Docker aux dossiers
+
+À faire une fois sur un serveur installé avant ce changement. Sans `LUMO_DATA_DIR`, Compose refuse
+de démarrer ; mais une fois la variable posée, **démarrer sans copier les données crée une base
+vide**. Le service est coupé pendant la copie.
+
+Récupérer la configuration, ajouter `LUMO_DATA_DIR=/srv/lumo` à `.env`, puis arrêter la pile, sans
+jamais ajouter `-v` :
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env down
+```
+
+```bash
+sudo mkdir -p /srv/lumo/postgres /srv/lumo/caddy
+```
+
+```bash
+docker run --rm -v lumo-prod_pg-data:/from:ro -v /srv/lumo/postgres:/to postgres:16-alpine cp -a /from /to/pgdata
+```
+
+```bash
+docker run --rm -v lumo-prod_caddy-data:/from:ro -v /srv/lumo/caddy:/to caddy:2.10-alpine cp -a /from /to/data
+```
+
+```bash
+docker run --rm -v lumo-prod_caddy-config:/from:ro -v /srv/lumo/caddy:/to caddy:2.10-alpine cp -a /from /to/config
+```
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env up -d
+```
+
+Vérifier que les comptes existants se connectent et que le site répond en HTTPS. Ensuite seulement,
+et après un `pg_dump` réussi, supprimer les anciens volumes :
+
+```bash
+docker volume rm lumo-prod_pg-data lumo-prod_caddy-data lumo-prod_caddy-config
+```
+
 ## Sauvegardes
 
 Un fichier `deploy/backups/lumo-<date>.dump` par jour. **Les copier ailleurs** (autre machine,
@@ -200,9 +256,24 @@ docker compose -f docker-compose.prod.yml --env-file .env start lumo-api lumo-we
 
 ## Journaux
 
+Chaque service (`postgres`, `lumo-api`, `lumo-web`, `caddy`, `backup`, `bench`) écrit dans
+`LUMO_DATA_DIR/logs/<service>/<date UTC>.log`. Les fichiers de plus de `LUMO_LOG_KEEP_DAYS` jours
+sont supprimés au changement de jour et au démarrage du service. Ils ne sont lisibles que par
+root (ou le propriétaire du fichier) :
+
+```bash
+sudo tail -f /srv/lumo/logs/lumo-api/$(date -u +%F).log
+```
+
+Le fil habituel de Docker continue de fonctionner :
+
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env logs -f lumo-api
 ```
+
+Ces fichiers contiennent exactement la sortie des services, pas plus. Caddy n'écrit donc pas de
+journal d'accès : l'activer enregistrerait les adresses IP des visiteurs et les paramètres d'URL,
+ce qui demande d'abord de trancher la durée de conservation des IP (S16B-05).
 
 Aucune URL de flux ni aucun identifiant ne doit apparaître dans les journaux (AGENTS.md §5) : si
 c'est le cas, c'est un défaut à ouvrir.
@@ -229,8 +300,8 @@ c'est le cas, c'est un défaut à ouvrir.
 ## Essai local de la pile
 
 Avant le premier déploiement, la pile peut tourner sur un poste, avec des certificats signés par
-Caddy (`LUMO_CADDY_GLOBAL=local_certs`), des noms en `.localhost` et d'autres ports
-(`LUMO_HTTP_PORT`, `LUMO_HTTPS_PORT`). C'est ainsi qu'elle a été vérifiée le 19/10/2026 (voir
+Caddy (`LUMO_CADDY_GLOBAL=local_certs`), des noms en `.localhost`, d'autres ports
+(`LUMO_HTTP_PORT`, `LUMO_HTTPS_PORT`) et un `LUMO_DATA_DIR` propre à l'essai. C'est ainsi qu'elle a été vérifiée le 19/10/2026 (voir
 `docs/backlog/sprint-16-bis.md`). Les images se construisent alors sur place, avec la surcouche :
 
 ```bash
