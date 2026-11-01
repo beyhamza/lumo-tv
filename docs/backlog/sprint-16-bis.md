@@ -34,9 +34,10 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
     passe refusé, suppression, retour à la connexion / à l'activation)
   - [ ] recette sur appareils réels et à la télécommande (S17) ; acceptation de l'ADR 0014 ; durée de
     conservation des sauvegardes à écrire sur la page (S16B-00/01)
-- [ ] S16B-03 — politique de confidentialité — 75 % (même branche) :
+- [ ] S16B-03 — politique de confidentialité — 80 % (même branche) :
   - [x] page statique `/fr|en/privacy` (metadata, hreflang, sitemap), rédigée d'après le code, avec
-    l'avertissement « à valider par Hamza »
+    l'avertissement « à valider par Hamza » ; depuis S16B-08, le texte se complète et se publie
+    dans l'administration, et l'avertissement disparaît à la première version publiée
   - [x] liens depuis le pied de page et Réglages → Aide sur le web, le mobile et la TV
   - [ ] **validation du texte par Hamza** et passages entre crochets à compléter : responsable du
     traitement, contact, hébergeur, fournisseur d'e-mails, durée de conservation (dépend de S16B-00)
@@ -63,8 +64,21 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
   - [x] web : essai de l'adresse https sur une page https, échec nommé (`playerBlocked`) ; tests
   - [ ] essai sur le site déployé avec un vrai panel : les sources existantes reçoivent le port à leur
     prochaine synchronisation, et il faut que le panel serve vraiment ce port (certificat, CORS)
+- [ ] S16B-08 — administration du site — 85 % (demande de Hamza, 31/10, branche
+  `feat/S16B-08-admin-backoffice`, [ADR 0015](../adr/0015-admin-role-and-legal-versions.md), proposé) :
+  - [x] contrat : `User.is_admin`, `/legal/{document_type}`, `/config`, `/admin/legal/versions`,
+    `/admin/settings`, `403 REGISTRATION_CLOSED` ; clients régénérés
+  - [x] API : droit relu à chaque requête, `/v1/admin/**` fermé par le filtre de sécurité, versions
+    immuables une fois publiées, fermeture des inscriptions ; `AdminBackofficeIntegrationTest`
+  - [x] web : `/app/admin` (documents légaux, configuration, Google Play), pages publiques
+    `/privacy`, `/terms`, `/terms-of-sale` restées statiques, contact et CGU dans le pied de page ;
+    tests unitaires, parcours vérifié sur le build de production local
+  - [x] Play : correspondance avec les tâches de la Console, déclaration du SDK Cast signalée
+  - [ ] Hamza : accepter l'ADR 0015, se désigner administrateur en production
+    ([procédure](../ops/deploy-vps.md)), compléter et publier la politique, rédiger CGU et CGV.
+    Android non modifié : la fermeture des inscriptions y affiche le message générique
 
-**Avancement global ≈ 71 %**.
+**Avancement global ≈ 72 %**.
 
 Branches : `feat/S16B-prod-stack` (pile VPS), `feat/S16B-account-privacy` (suppression de compte,
 confidentialité), `feat/S16B-play-release` (version, fiche Play) ; réunies dans `feat/merge-s16`.
@@ -92,6 +106,8 @@ confidentialité publiée.
 | S16B-04 | `versionCode` et `versionName` donnés à la construction (variables d'environnement, valeur par défaut pour le développement), 0.4.0 ; construction des deux bundles AAB signés, clé d'envoi hors dépôt | Android |
 | S16B-05 | Fiche Play FR/EN des deux applications (texte, captures du banc uniquement, bannière TV), formulaire « Sécurité des données », classification, public visé ; mention claire « aucun contenu fourni, l'utilisateur ajoute sa propre source » contre le refus des lecteurs IPTV | Docs ; S16B-03 |
 | S16B-06 | Envoi des deux bundles sur la piste de test interne, liste de testeurs. **Fait par Hamza** dans la Play Console : l'agent prépare, ne publie pas | Hamza ; tout le reste |
+| S16B-07 | Lecture web en https quand le panel Xtream l'annonce | Contrat, API, web |
+| S16B-08 | Administration réservée aux comptes administrateurs : versions des CGU, CGV et politique de confidentialité, configuration, réponses aux tâches de la Play Console | Contrat, API, web ; ADR 0015 |
 
 ## Sortie
 

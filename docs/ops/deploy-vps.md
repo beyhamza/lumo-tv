@@ -142,6 +142,18 @@ curl -fsS https://<LUMO_API_DOMAIN>/actuator/health
 
 Puis ouvrir `https://<LUMO_WEB_DOMAIN>/fr`, créer un compte, recevoir l'e-mail de vérification.
 
+### Désigner un administrateur
+
+Aucun écran ni endpoint ne donne ce droit (ADR 0015) : il se pose sur le serveur, une fois le
+compte créé. La commande doit répondre `UPDATE 1`. Le droit vaut dès la requête suivante, et
+l'entrée « Administration » apparaît dans le menu du site.
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "UPDATE \"user\" SET is_admin = true WHERE email = '\''ton-adresse@exemple.com'\''"'
+```
+
+Pour le retirer, la même commande avec `is_admin = false`.
+
 ### Le banc de test (optionnel)
 
 Pour que les testeurs aient une source sans rien de réel (mires et noms inventés), ajouter le

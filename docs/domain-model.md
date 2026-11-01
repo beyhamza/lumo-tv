@@ -33,6 +33,7 @@ de base. Pas de synonymes.
 | `password_hash` | text nullable | null si compte SSO uniquement |
 | `display_name` | text nullable | |
 | `locale` | text | `fr`, `en` |
+| `is_admin` | boolean | accès à l'administration, relu à chaque requête ; aucun endpoint ne l'écrit (ADR 0015) |
 | `email_verified_at` | timestamptz nullable | |
 | `created_at` / `updated_at` | timestamptz | |
 
@@ -198,6 +199,26 @@ l'ajout, affiché quand le contenu n'existe plus. Supprimer la source supprime s
 La réponse enregistrée pour chaque écriture acceptée sur la liste : rejouer une
 clé renvoie cette réponse sans rien changer (« un réessai n'est pas une nouvelle
 intention »). Gardée 24 h, purgée à l'écriture suivante du compte.
+
+### `legal_document_version`
+Une version d'un document légal, les deux langues dans la même ligne (ADR 0015).
+
+| Champ | Type | Note |
+|---|---|---|
+| `id` | uuid | |
+| `document_type` | text | `PRIVACY_POLICY`, `TERMS_OF_USE` (CGU), `TERMS_OF_SALE` (CGV) |
+| `status` | text | `DRAFT`, `PUBLISHED`, `ARCHIVED` ; au plus un brouillon et une version en vigueur par document |
+| `version` | int nullable | attribué à la publication, null pour un brouillon |
+| `title_fr` / `title_en` / `body_fr` / `body_en` | text | Markdown restreint ; requis à la publication |
+| `change_summary` | text nullable | ce qui change |
+| `published_at` | timestamptz nullable | |
+| `created_at` / `updated_at` | timestamptz | |
+
+Une version publiée ne change plus et ne se supprime pas.
+
+### `app_settings`
+Une seule ligne, une colonne par réglage (ADR 0015) : `support_email` (public, nullable),
+`registration_open`, `updated_at`. Les quotas d'offre n'y sont pas.
 
 ### `entitlement`
 `id`, `user_id`, `plan` (`FREE` | `PREMIUM`), `status` (`ACTIVE` | `TRIALING` |

@@ -96,11 +96,28 @@ Pour **Lumo** avec `app-mobile-release.aab`, puis pour **Lumo TV** avec
 
 ## 5. Contenu de l'application (« Règles et programmes → Contenu de l'application »)
 
+Les réponses sont aussi sur le site, dans **Administration → Google Play** (S16B-08), avec les
+adresses à copier et l'état de ce que le site peut vérifier. Dans une Console en anglais :
+
+| Tâche de la Console | Ici |
+|---|---|
+| Set privacy policy | Règles de confidentialité |
+| Sign in details | Accès à l'application |
+| Ads | Annonces |
+| Content rating | Classification du contenu |
+| Target audience | Public cible |
+| Data safety | Sécurité des données |
+| Government apps, Financial features, Health | Non à tout |
+| Select an app category and provide contact details | §6 : catégorie, e-mail, site web |
+| Set up your store listing | §6 : fiche principale |
+
 La Console dit dans **Vue d'ensemble de la publication** ce qui bloque un
 déploiement ; le test interne en exige moins que la production. Tout est prêt
 dans [`securite-des-donnees.md`](securite-des-donnees.md) :
 
-- [ ] Règles de confidentialité : URL publique de S16B-03.
+- [ ] Règles de confidentialité : URL publique de S16B-03, **après avoir publié une version**
+      dans Administration → Documents légaux. Tant qu'aucune version n'est publiée, la page
+      affiche l'avertissement « projet de texte » à l'examinateur.
 - [ ] **Accès à l'application** : « Toutes ou certaines fonctionnalités sont
       restreintes » → un compte de démonstration (e-mail + mot de passe) **et**
       les instructions pour ajouter une **source du banc** servie en ligne
@@ -127,7 +144,8 @@ Pas obligatoire pour le test interne, nécessaire avant tout examen :
 - [ ] Icône, image de présentation, bannière TV : [`graphismes/`](graphismes/).
 - [ ] Captures : [`ecrans/`](ecrans/) — téléphone pour Lumo, Android TV
       pour Lumo TV.
-- [ ] Catégorie **Lecteurs et éditeurs vidéo**, e-mail de contact, site web.
+- [ ] Catégorie **Lecteurs et éditeurs vidéo**, e-mail de contact (le même que dans
+      Administration → Configuration), site web.
 
 ## 7. Installer chez les testeurs
 
