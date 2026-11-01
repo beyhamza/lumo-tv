@@ -155,6 +155,7 @@ public interface AuthApi {
      * @param registerRequest  (required)
      * @return Account created; the caller is signed in. (status code 201)
      *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
+     *         or An administrator has closed the creation of accounts (&#x60;REGISTRATION_CLOSED&#x60;). (status code 403)
      *         or An account already exists for this email (&#x60;EMAIL_ALREADY_REGISTERED&#x60;). The client invites the user to sign in or reset their password.  (status code 409)
      *         or The password does not meet the strength requirement (&#x60;PASSWORD_TOO_WEAK&#x60;). (status code 422)
      *         or Rate limit exceeded (&#x60;RATE_LIMITED&#x60;). (status code 429)
@@ -243,6 +244,7 @@ public interface AuthApi {
      * @return Signed in. The account was created or linked as needed. (status code 200)
      *         or The request is malformed or fails validation (&#x60;VALIDATION_FAILED&#x60;). (status code 400)
      *         or The Google ID token failed verification (&#x60;OAUTH_TOKEN_INVALID&#x60;). (status code 401)
+     *         or No account exists for this identity and an administrator has closed the creation of accounts (&#x60;REGISTRATION_CLOSED&#x60;).  (status code 403)
      *         or Signing in here would link one device too many for the plan (&#x60;DEVICE_LIMIT_REACHED&#x60;). No session is issued.  The client&#39;s way out is to name the limit and offer both exits: unlink a device from another screen, or upgrade. It reads the ceiling from &#x60;Entitlement.max_devices&#x60; — never from a constant of its own (AGENTS.md §1).  (status code 409)
      *         or Rate limit exceeded (&#x60;RATE_LIMITED&#x60;). (status code 429)
      */

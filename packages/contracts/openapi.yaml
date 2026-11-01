@@ -95,6 +95,14 @@ tags:
       Opening a Stripe session. Nothing here grants access: the entitlement is
       written by the Stripe webhook and read from `GET /me/entitlement`
       (ADR 0003).
+  - name: legal
+    description: |
+      Versioned legal documents: the public reading of what is in force, and
+      the drafting and publishing reserved to administrators (ADR 0015).
+  - name: settings
+    description: |
+      The application's own configuration: what any visitor may read, and what
+      administrators change (ADR 0015).
 
 security:
   - bearerAuth: []
@@ -134,6 +142,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthSession'
         '400': { $ref: '#/components/responses/BadRequest' }
+        '403':
+          description: An administrator has closed the creation of accounts (`REGISTRATION_CLOSED`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '409':
           description: |
             An account already exists for this email (`EMAIL_ALREADY_REGISTERED`).
@@ -265,6 +278,13 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401':
           description: The Google ID token failed verification (`OAUTH_TOKEN_INVALID`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '403':
+          description: |
+            No account exists for this identity and an administrator has closed
+            the creation of accounts (`REGISTRATION_CLOSED`).
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
@@ -2321,6 +2341,224 @@ paths:
 # COMPONENTS
 # ==============================================================================
 
+  # --------------------------------------------------------------- legal ------
+
+  /legal/{document_type}:
+    get:
+      tags: [legal]
+      operationId: getPublishedLegalDocument
+      summary: The version of a legal document currently in force
+      description: |
+        Public, and the only legal read a non-administrator has: drafts and
+        archived versions are not reachable here. Both languages travel
+        together, and the caller renders its own.
+      security: []
+      parameters:
+        - name: document_type
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/LegalDocumentType'
+      responses:
+        '200':
+          description: The published version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalDocumentVersion'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404':
+          description: Nothing published for this document yet (`LEGAL_DOCUMENT_NOT_PUBLISHED`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /admin/legal/versions:
+    get:
+      tags: [legal]
+      operationId: listLegalVersions
+      summary: Every version of every legal document
+      description: Administrators only. Newest first within each document.
+      responses:
+        '200':
+          description: The versions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalDocumentVersionList'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AdminOnly' }
+    post:
+      tags: [legal]
+      operationId: createLegalDraft
+      summary: Start a new draft of a legal document
+      description: |
+        Administrators only. A document has **at most one draft**; a second one
+        answers `409 LEGAL_DRAFT_ALREADY_EXISTS`. Texts may be empty while
+        drafting. Publishing is what requires them.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLegalDraftRequest'
+      responses:
+        '201':
+          description: The draft.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalDocumentVersion'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AdminOnly' }
+        '409':
+          description: This document already has a draft (`LEGAL_DRAFT_ALREADY_EXISTS`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /admin/legal/versions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    get:
+      tags: [legal]
+      operationId: getLegalVersion
+      summary: One version, whatever its status
+      description: Administrators only.
+      responses:
+        '200':
+          description: The version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalDocumentVersion'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AdminOnly' }
+        '404': { $ref: '#/components/responses/LegalVersionNotFound' }
+    put:
+      tags: [legal]
+      operationId: updateLegalDraft
+      summary: Replace the content of a draft
+      description: |
+        Administrators only. Only a draft can change: a version that has been
+        published is a record of what people were told and stays as it was
+        (`409 LEGAL_VERSION_NOT_DRAFT`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLegalDraftRequest'
+      responses:
+        '200':
+          description: The updated draft.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalDocumentVersion'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AdminOnly' }
+        '404': { $ref: '#/components/responses/LegalVersionNotFound' }
+        '409': { $ref: '#/components/responses/LegalVersionNotDraft' }
+    delete:
+      tags: [legal]
+      operationId: deleteLegalDraft
+      summary: Discard a draft
+      description: Administrators only. Published and archived versions cannot be deleted.
+      responses:
+        '204':
+          description: The draft is gone.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AdminOnly' }
+        '404': { $ref: '#/components/responses/LegalVersionNotFound' }
+        '409': { $ref: '#/components/responses/LegalVersionNotDraft' }
+
+  /admin/legal/versions/{id}/publish:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    post:
+      tags: [legal]
+      operationId: publishLegalDraft
+      summary: Put a draft in force
+      description: |
+        Administrators only. Numbers the version, stamps `published_at` and
+        moves the previous published version of the document to `ARCHIVED`, in
+        one transaction. A title or a body missing in either language answers
+        `422 LEGAL_VERSION_INCOMPLETE`: FR and EN go out together.
+      responses:
+        '200':
+          description: The version now in force.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalDocumentVersion'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AdminOnly' }
+        '404': { $ref: '#/components/responses/LegalVersionNotFound' }
+        '409': { $ref: '#/components/responses/LegalVersionNotDraft' }
+        '422':
+          description: A title or a body is empty (`LEGAL_VERSION_INCOMPLETE`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  # ------------------------------------------------------------ settings ------
+
+  /config:
+    get:
+      tags: [settings]
+      operationId: getPublicConfig
+      summary: The part of the configuration any visitor may read
+      security: []
+      responses:
+        '200':
+          description: The public configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicConfig'
+
+  /admin/settings:
+    get:
+      tags: [settings]
+      operationId: getAppSettings
+      summary: The application's configuration
+      description: Administrators only.
+      responses:
+        '200':
+          description: The configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppSettings'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AdminOnly' }
+    put:
+      tags: [settings]
+      operationId: updateAppSettings
+      summary: Replace the application's configuration
+      description: |
+        Administrators only. Plan quotas are not here and will not be: what a
+        plan allows stays out of reach of this screen (ADR 0003, ADR 0015).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAppSettingsRequest'
+      responses:
+        '200':
+          description: The updated configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppSettings'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AdminOnly' }
+
 components:
 
   securitySchemes:
@@ -2404,6 +2642,21 @@ components:
         Missing, malformed or expired access token (`UNAUTHENTICATED`,
         `ACCESS_TOKEN_EXPIRED`). On `ACCESS_TOKEN_EXPIRED` the client refreshes
         once and replays the request.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    AdminOnly:
+      description: The caller is signed in and is not an administrator (`FORBIDDEN`).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    LegalVersionNotFound:
+      description: No such version (`LEGAL_VERSION_NOT_FOUND`).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    LegalVersionNotDraft:
+      description: This version has been published and cannot change (`LEGAL_VERSION_NOT_DRAFT`).
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
@@ -2589,6 +2842,11 @@ components:
           `INVALID_CREDENTIALS`, `PASSWORD_TOO_WEAK`, `OAUTH_TOKEN_INVALID`,
           `VERIFICATION_TOKEN_INVALID`, `VERIFICATION_TOKEN_EXPIRED`,
           `RESET_TOKEN_INVALID`, `RESET_TOKEN_EXPIRED`.
+          `REGISTRATION_CLOSED`, a `403` when an administrator has closed the
+          creation of new accounts. Existing accounts are not affected.
+        - **Legal documents** — `LEGAL_DOCUMENT_NOT_PUBLISHED`,
+          `LEGAL_VERSION_NOT_FOUND`, `LEGAL_DRAFT_ALREADY_EXISTS`,
+          `LEGAL_VERSION_NOT_DRAFT`, `LEGAL_VERSION_INCOMPLETE`.
         - **Sessions** — `REFRESH_TOKEN_INVALID`, `REFRESH_TOKEN_REUSED`,
           `DEVICE_NOT_FOUND`.
         - **TV activation (RFC 8628)** — `AUTHORIZATION_PENDING`, `SLOW_DOWN`,
@@ -2675,6 +2933,12 @@ components:
         - DEVICE_LIMIT_REACHED
         - ALREADY_SUBSCRIBED
         - BILLING_CUSTOMER_NOT_FOUND
+        - REGISTRATION_CLOSED
+        - LEGAL_DOCUMENT_NOT_PUBLISHED
+        - LEGAL_VERSION_NOT_FOUND
+        - LEGAL_DRAFT_ALREADY_EXISTS
+        - LEGAL_VERSION_NOT_DRAFT
+        - LEGAL_VERSION_INCOMPLETE
 
     # ---- enums -------------------------------------------------------------
 
@@ -3189,6 +3453,169 @@ components:
           maxLength: 512
           description: The secret returned by `POST /auth/device/code`. Masked in generated `toString()`.
 
+    # ---- legal -------------------------------------------------------------
+
+    LegalDocumentType:
+      type: string
+      description: |
+        `PRIVACY_POLICY` is the policy Google Play links to. `TERMS_OF_USE` are
+        the CGU, `TERMS_OF_SALE` the CGV.
+      enum:
+        - PRIVACY_POLICY
+        - TERMS_OF_USE
+        - TERMS_OF_SALE
+
+    LegalVersionStatus:
+      type: string
+      description: |
+        `DRAFT` can change and nobody but an administrator sees it. `PUBLISHED`
+        is the one version in force for its document. `ARCHIVED` was in force.
+      enum:
+        - DRAFT
+        - PUBLISHED
+        - ARCHIVED
+
+    LegalDocumentVersion:
+      type: object
+      description: |
+        One version of a legal document. Bodies are Markdown, limited to what
+        the site renders: `##` and `###` headings, `-` lists, `**bold**` and
+        `[links](https://…)`. HTML is shown as text.
+      required: [id, document_type, status, title_fr, title_en, body_fr, body_en, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        document_type:
+          $ref: '#/components/schemas/LegalDocumentType'
+        status:
+          $ref: '#/components/schemas/LegalVersionStatus'
+        version:
+          type: integer
+          format: int32
+          nullable: true
+          description: 1, 2, 3… within the document. Null until published.
+        title_fr:
+          type: string
+        title_en:
+          type: string
+        body_fr:
+          type: string
+        body_en:
+          type: string
+        change_summary:
+          type: string
+          nullable: true
+          description: What changed from the previous version.
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    LegalDocumentVersionList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LegalDocumentVersion'
+
+    UpdateLegalDraftRequest:
+      type: object
+      description: Replaces the whole content of the draft. Texts may be empty until publishing.
+      required: [title_fr, title_en, body_fr, body_en]
+      properties:
+        title_fr:
+          type: string
+          maxLength: 200
+        title_en:
+          type: string
+          maxLength: 200
+        body_fr:
+          type: string
+          maxLength: 200000
+        body_en:
+          type: string
+          maxLength: 200000
+        change_summary:
+          type: string
+          nullable: true
+          maxLength: 500
+
+    CreateLegalDraftRequest:
+      type: object
+      description: The first content of a new draft. Texts may be empty until publishing.
+      required: [document_type, title_fr, title_en, body_fr, body_en]
+      properties:
+        document_type:
+          $ref: '#/components/schemas/LegalDocumentType'
+        title_fr:
+          type: string
+          maxLength: 200
+        title_en:
+          type: string
+          maxLength: 200
+        body_fr:
+          type: string
+          maxLength: 200000
+        body_en:
+          type: string
+          maxLength: 200000
+        change_summary:
+          type: string
+          nullable: true
+          maxLength: 500
+
+    # ---- settings ----------------------------------------------------------
+
+    PublicConfig:
+      type: object
+      required: [support_email]
+      properties:
+        support_email:
+          type: string
+          format: email
+          nullable: true
+          description: Where users can write. Null until an administrator sets it.
+
+    AppSettings:
+      type: object
+      required: [support_email, registration_open, updated_at]
+      properties:
+        support_email:
+          type: string
+          format: email
+          nullable: true
+        registration_open:
+          type: boolean
+          description: |
+            Whether new accounts can be created. Closing it answers
+            `403 REGISTRATION_CLOSED` to `POST /auth/register`, and to a first
+            Google sign-in; existing accounts keep working.
+        updated_at:
+          type: string
+          format: date-time
+
+    UpdateAppSettingsRequest:
+      type: object
+      description: Replaces the whole configuration. Without `support_email`, none is set.
+      required: [registration_open]
+      properties:
+        support_email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 254
+        registration_open:
+          type: boolean
+
     # ---- account -----------------------------------------------------------
 
     User:
@@ -3196,7 +3623,7 @@ components:
       description: |
         The account. `password_hash` and `oauth_identity` rows are internal and
         appear in no response.
-      required: [id, email, locale, created_at, updated_at]
+      required: [id, email, locale, is_admin, created_at, updated_at]
       properties:
         id:
           type: string
@@ -3204,6 +3631,12 @@ components:
         email:
           type: string
           format: email
+        is_admin:
+          type: boolean
+          description: |
+            Whether this account reaches the administration screens. For display
+            only: every `/admin` endpoint checks it again on the server
+            (ADR 0015).
         display_name:
           type: string
           nullable: true

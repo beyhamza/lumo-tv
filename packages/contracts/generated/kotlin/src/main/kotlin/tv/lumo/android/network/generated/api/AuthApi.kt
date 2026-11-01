@@ -109,6 +109,7 @@ interface AuthApi {
      * Responses:
      *  - 201: Account created; the caller is signed in.
      *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
+     *  - 403: An administrator has closed the creation of accounts (`REGISTRATION_CLOSED`).
      *  - 409: An account already exists for this email (`EMAIL_ALREADY_REGISTERED`). The client invites the user to sign in or reset their password. 
      *  - 422: The password does not meet the strength requirement (`PASSWORD_TOO_WEAK`).
      *  - 429: Rate limit exceeded (`RATE_LIMITED`).
@@ -173,6 +174,7 @@ interface AuthApi {
      *  - 200: Signed in. The account was created or linked as needed.
      *  - 400: The request is malformed or fails validation (`VALIDATION_FAILED`).
      *  - 401: The Google ID token failed verification (`OAUTH_TOKEN_INVALID`).
+     *  - 403: No account exists for this identity and an administrator has closed the creation of accounts (`REGISTRATION_CLOSED`). 
      *  - 409: Signing in here would link one device too many for the plan (`DEVICE_LIMIT_REACHED`). No session is issued.  The client's way out is to name the limit and offer both exits: unlink a device from another screen, or upgrade. It reads the ceiling from `Entitlement.max_devices` — never from a constant of its own (AGENTS.md §1). 
      *  - 429: Rate limit exceeded (`RATE_LIMITED`).
      *
