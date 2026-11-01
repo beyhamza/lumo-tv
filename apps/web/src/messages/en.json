@@ -198,6 +198,7 @@
     "navWatchlist": "My list",
     "navSources": "Sources",
     "navSettings": "Settings",
+    "navAdmin": "Administration",
     "navLive": "Live",
     "navFilms": "Films",
     "navSeries": "Series",
@@ -689,6 +690,7 @@
     "deleteNoPassword": "Your account has no password? Set one from “Forgot password”, then come back here.",
     "legalLabel": "Privacy",
     "privacyLink": "Privacy policy",
+    "termsLink": "Terms of use",
     "deletionLink": "How to delete your account"
   },
   "Errors": {
@@ -697,6 +699,7 @@
     "VALIDATION_FAILED": "Some of the information is incorrect.",
     "INVALID_CREDENTIALS": "Incorrect email or password.",
     "EMAIL_ALREADY_REGISTERED": "An account already exists for this address. Sign in, or reset your password.",
+    "REGISTRATION_CLOSED": "Account creation is closed for now.",
     "PASSWORD_TOO_WEAK": "That password is too weak. Use at least ten characters.",
     "RATE_LIMITED": "Too many attempts. Wait a moment before trying again.",
     "UNAUTHENTICATED": "Your session has expired. Sign in again.",
@@ -902,7 +905,7 @@
       {
         "title": "Chromecast",
         "body": [
-          "When you send playback to a Chromecast, your phone or browser passes the stream address — which may contain your Xtream credentials — and the title to the Chromecast on your network. The Chromecast plays the stream with Google's default receiver, directly from your provider. Lumo itself sends nothing to Google; using Chromecast is covered by Google's privacy rules."
+          "When you send playback to a Chromecast, your phone or browser passes the stream address — which may contain your Xtream credentials — and the title to the Chromecast on your network. The Chromecast plays the stream with Google's default receiver, directly from your provider. Lumo itself sends nothing to Google. In the phone app, the Cast component supplied by Google sends it anonymous technical logs about Chromecast use; that use falls under Google's privacy rules."
         ]
       },
       {
@@ -950,5 +953,154 @@
       }
     ],
     "deletionLink": "How to delete your account"
+  },
+  "Legal": {
+    "versionLine": "Version {version}, in force since {date}",
+    "notPublished": "This document has not been published yet.",
+    "privacy": {
+      "title": "Privacy policy",
+      "description": "The data Lumo TV processes, why, where it goes and how to delete it."
+    },
+    "termsOfUse": {
+      "title": "Terms of use",
+      "description": "The terms of use of Lumo TV."
+    },
+    "termsOfSale": {
+      "title": "Terms of sale",
+      "description": "The terms of sale of Lumo TV."
+    }
+  },
+  "Admin": {
+    "title": "Administration",
+    "subtitle": "For administrator accounts only.",
+    "navLabel": "Administration sections",
+    "navLegal": "Legal documents",
+    "navSettings": "Configuration",
+    "navPlay": "Google Play",
+    "cancel": "Cancel",
+    "languageFr": "French",
+    "languageEn": "English",
+    "legalNothingPublished": "No published version.",
+    "legalNewDraft": "New draft",
+    "legalDraftLabel": "Draft",
+    "legalVersionLabel": "Version {version}",
+    "legalStatus": {
+      "DRAFT": "Not published",
+      "PUBLISHED": "In force",
+      "ARCHIVED": "Archived"
+    },
+    "legalBack": "Back to documents",
+    "legalSave": "Save draft",
+    "legalReview": "Save and review before publishing",
+    "legalPublishTitle": "Publish this version?",
+    "legalPublishBody": "It will replace the version in force at {path}, in French and in English, and can no longer be changed. To correct it afterwards, publish a new version. Nobody is asked to accept it again.",
+    "legalPlaceholdersLeft": "These bracketed passages are still to complete. Cancel, fix them, then come back to this step:",
+    "legalPublish": "Publish",
+    "legalDeleteTitle": "Delete this draft",
+    "legalDeleteBody": "The draft will be lost for good. Published versions do not change.",
+    "legalDelete": "Delete draft",
+    "fieldTitleFr": "Title in French",
+    "fieldTitleEn": "Title in English",
+    "fieldBodyFr": "Text in French",
+    "fieldBodyEn": "Text in English",
+    "fieldBodyHint": "Accepted formatting: ## heading, ### subheading, - list, **bold**, [link](https://…). Any other markup is shown as is.",
+    "fieldChangeSummary": "What changes from the previous version (optional)",
+    "fieldSupportEmail": "Contact address",
+    "fieldSupportEmailHint": "Public: shown in the site footer. It is also the address to give Google Play.",
+    "fieldRegistrationOpen": "Allow new accounts",
+    "fieldRegistrationOpenHint": "Unticked, nobody can create an account, on any surface. Existing accounts keep working.",
+    "settingsSave": "Save",
+    "notices": {
+      "draft-saved": "Draft saved.",
+      "published": "Version published. The site now shows this text.",
+      "draft-deleted": "Draft deleted.",
+      "settings-saved": "Configuration saved.",
+      "draft-exists": "This document already has a draft. Continue that one instead of creating another.",
+      "not-draft": "This version has been published: it can no longer change.",
+      "incomplete": "A title or a text is missing, in French or in English.",
+      "placeholders": "Bracketed passages are still to complete.",
+      "invalid": "A value is not valid. Check the address or the length of the texts.",
+      "failed": "That did not go through. Nothing changed; try again."
+    },
+    "play": {
+      "intro": "The \"Set up your app\" tasks of the Play Console, in their order, with the answer to give. The answers are the same for Lumo and Lumo TV unless stated. This page does not talk to Google: the Console remains the reference.",
+      "addressesTitle": "Addresses to copy",
+      "addressPrivacy": "Privacy policy",
+      "addressDeletion": "Account deletion",
+      "addressSite": "Website",
+      "privacyReady": "A version is in force.",
+      "privacyMissing": "To do: publish a version in Legal documents.",
+      "contactReady": "Address configured: {email}",
+      "contactMissing": "To do: set the contact address in Configuration.",
+      "tasks": [
+        {
+          "id": "privacy",
+          "title": "Set privacy policy",
+          "answer": "Give the privacy policy address shown above."
+        },
+        {
+          "id": "sign-in",
+          "title": "Sign in details",
+          "answer": "Some functionality is restricted: provide a demo account and a test bench source.",
+          "details": [
+            "Enter the demo account's email and password in the Console only.",
+            "Explain how to add the bench source, never a real channel.",
+            "Lumo TV: sign in to the site with this account and enter the code the TV shows."
+          ]
+        },
+        {
+          "id": "ads",
+          "title": "Ads",
+          "answer": "No, the app does not contain ads."
+        },
+        {
+          "id": "rating",
+          "title": "Content rating",
+          "answer": "Category \"All Other App Types\"; no to violence, sexuality, language, substances and gambling; no user interaction or location sharing; no purchases.",
+          "details": [
+            "Answer yes to unrestricted internet access: users play what their own source contains."
+          ]
+        },
+        {
+          "id": "audience",
+          "title": "Target audience",
+          "answer": "18 and over only. The app does not appeal to children."
+        },
+        {
+          "id": "data-safety",
+          "title": "Data safety",
+          "answer": "Yes, data is collected and none is shared. Encrypted in transit. Deletion available in the app and at the address above. Accounts by email and password.",
+          "details": [
+            "Collected: email address, name (optional), user IDs, other in-app actions, user-generated content (sources), device IDs.",
+            "Lumo (phone): the Google Cast SDK sends anonymous logs to Google. To settle before submitting, see securite-des-donnees.md."
+          ]
+        },
+        {
+          "id": "government",
+          "title": "Government apps",
+          "answer": "No."
+        },
+        {
+          "id": "financial",
+          "title": "Financial features",
+          "answer": "The app does not provide any financial features."
+        },
+        {
+          "id": "health",
+          "title": "Health",
+          "answer": "The app does not provide any health features."
+        },
+        {
+          "id": "contact",
+          "title": "App category and contact details",
+          "answer": "App, category \"Video Players & Editors\". Give the contact address and the website."
+        },
+        {
+          "id": "listing",
+          "title": "Store listing",
+          "answer": "FR and EN texts, icon, feature graphic and screenshots are ready in docs/releases/0.4.0/play/: fiche-telephone.md, fiche-tv.md, graphismes/ and ecrans/."
+        }
+      ]
+    }
   }
 }

@@ -17,9 +17,8 @@ import { appVersion } from "@/lib/env.public";
  *
  * <h2>Privacy, and how to delete the account</h2>
  *
- * Both public pages (S16B-03, S16B-02) are linked here, as Google Play asks.
- * Terms are still not: that page does not exist, and a link to a 404 is not
- * "information".
+ * Both public pages (S16B-03, S16B-02) are linked here, as Google Play asks,
+ * with the terms of use (S16B-08).
  */
 export async function AboutSection({ locale }: { locale: Locale }) {
   const t = await getTranslations("Settings");
@@ -57,6 +56,9 @@ export async function AboutSection({ locale }: { locale: Locale }) {
         <dd className="flex flex-col gap-1">
           <a href={hrefFor(locale, "/privacy")} className="text-foreground underline underline-offset-4">
             {t("privacyLink")}
+          </a>
+          <a href={hrefFor(locale, "/terms")} className="text-foreground underline underline-offset-4">
+            {t("termsLink")}
           </a>
           <a
             href={hrefFor(locale, "/delete-account")}

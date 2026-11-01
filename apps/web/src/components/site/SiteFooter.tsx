@@ -3,6 +3,7 @@ import { MockBadge } from "@/components/site/MockBadge";
 import { Wordmark } from "@/components/site/Wordmark";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { loadSupportEmail } from "@/lib/legal/published";
 
 /**
  * The marketing footer (W1): dark, logotype, `Guides` · `Privacy` · `Terms`
@@ -18,16 +19,17 @@ import type { Locale } from "@/i18n/routing";
  * is the footer.
  *
  * `Privacy` links to the policy (S16B-03), followed by the account-deletion
- * page (S16B-02). `Terms` and `Contact` have no route yet
- * (docs/design/web-sprint-1.md, "Delta avec la landing livrée"). They are
- * rendered as the mock-up shows them, unlinked and labelled as missing, rather
- * than as links to a 404.
+ * page (S16B-02) and the terms of use (S16B-08). `Contact` is the address set in
+ * the administration, read through a cached fetch that keeps these pages static;
+ * with none set, it stays as the mock-up shows it, unlinked and labelled as
+ * missing. The terms of sale are not listed: nothing is for sale in 0.4.0.
  */
 export async function SiteFooter({ locale }: { locale: Locale }) {
   const t = await getTranslations("Footer");
   const nav = await getTranslations("Nav");
   const brand = await getTranslations("Brand");
   const home = hrefFor(locale, "/");
+  const supportEmail = await loadSupportEmail();
 
   return (
     <footer className="dark bg-background text-foreground mt-auto">
@@ -46,9 +48,19 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
           <a href={hrefFor(locale, "/delete-account")} className="hover:text-foreground">
             {t("deleteAccount")}
           </a>
-          <span>{t("terms")}</span>
-          <span>{t("contact")}</span>
-          <MockBadge />
+          <a href={hrefFor(locale, "/terms")} className="hover:text-foreground">
+            {t("terms")}
+          </a>
+          {supportEmail ? (
+            <a href={`mailto:${supportEmail}`} className="hover:text-foreground">
+              {t("contact")}
+            </a>
+          ) : (
+            <>
+              <span>{t("contact")}</span>
+              <MockBadge />
+            </>
+          )}
         </nav>
 
         <span className="text-muted-foreground/70 ml-auto font-mono text-xs">{brand("domain")}</span>

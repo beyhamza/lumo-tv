@@ -25,7 +25,7 @@ import { resolveSettingsSection } from "@/lib/settings/sections";
  *
  * What the sections show — and, as deliberately, what they do not — is
  * documented on each of them. In one line: no subscription (removed from
- * 0.2.0), no terms link (no page to link to).
+ * 0.2.0).
  */
 export async function generateMetadata({
   params,

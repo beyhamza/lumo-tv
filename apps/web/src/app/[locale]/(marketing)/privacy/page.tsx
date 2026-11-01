@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { PublishedLegalArticle, legalTitle } from "@/components/site/LegalDocumentPage";
 import { hrefFor } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { loadPublishedLegal } from "@/lib/legal/published";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 /**
@@ -11,7 +13,11 @@ import { pageMetadata } from "@/lib/seo/metadata";
  * anchors (`apps/web/AGENTS.md` §2). The copy lives in the `Privacy`
  * namespace; it describes what the code actually stores, and the bracketed
  * passages are what only Hamza can fill in (controller, host, email
- * provider, retention). The draft notice stays until he approves the text.
+ * provider, retention).
+ *
+ * That copy is the fallback. From the first version published in the
+ * administration (S16B-08, ADR 0015), the page shows the version in force, and
+ * the draft notice goes with the copy it was warning about.
  */
 type Section = { title: string; body?: string[]; items?: string[] };
 
@@ -20,11 +26,15 @@ export async function generateMetadata({
 }: PageProps<"/[locale]/privacy">): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Privacy" });
+  const published = await loadPublishedLegal("PRIVACY_POLICY");
 
   return pageMetadata({
     locale: locale as Locale,
     href: "/privacy",
-    title: t("metaTitle"),
+    title:
+      published.state === "published"
+        ? legalTitle(published.version, locale as Locale)
+        : t("metaTitle"),
     description: t("metaDescription"),
   });
 }
@@ -34,6 +44,26 @@ export default async function PrivacyPage({ params }: PageProps<"/[locale]/priva
   setRequestLocale(locale);
 
   const t = await getTranslations("Privacy");
+  const published = await loadPublishedLegal("PRIVACY_POLICY");
+  const deletionLink = (
+    <p className="mt-12">
+      <a
+        href={hrefFor(locale as Locale, "/delete-account")}
+        className="underline underline-offset-4"
+      >
+        {t("deletionLink")}
+      </a>
+    </p>
+  );
+
+  if (published.state === "published") {
+    return (
+      <PublishedLegalArticle version={published.version} locale={locale as Locale}>
+        {deletionLink}
+      </PublishedLegalArticle>
+    );
+  }
+
   const sections = t.raw("sections") as Section[];
 
   return (
@@ -64,14 +94,7 @@ export default async function PrivacyPage({ params }: PageProps<"/[locale]/priva
         </section>
       ))}
 
-      <p className="mt-12">
-        <a
-          href={hrefFor(locale as Locale, "/delete-account")}
-          className="underline underline-offset-4"
-        >
-          {t("deletionLink")}
-        </a>
-      </p>
+      {deletionLink}
     </article>
   );
 }

@@ -64,8 +64,9 @@ en affiche la preuve.
 
 | Zone | Routes | Rendu | Marque dans `next build` |
 |---|---|---|---|
-| Marketing | `/[locale]`, `/[locale]/guides/*` | SSG + ISR (`revalidate = 3600`) | `●` |
+| Marketing | `/[locale]`, `/[locale]/guides/*`, `/privacy`, `/terms`, `/terms-of-sale`, `/delete-account` | SSG + ISR (`revalidate = 3600`) | `●` |
 | Compte | `/[locale]/app/*` | SSR authentifié | `ƒ` |
+| Administration | `/[locale]/app/admin/*` | SSR, 404 sauf administrateur (`requireAdmin`, ADR 0015) | `ƒ` |
 | Activation | `/[locale]/activate` | SSR minimal | `ƒ` |
 | Auth | `/[locale]/login`, `/[locale]/register` | SSR / prérendu | `ƒ` / `●` |
 
@@ -79,7 +80,10 @@ authentifié quelque part dans l'arbre.
 1. **Aucun composant client.** Pas un seul. Un `"use client"` dans ce sous-arbre
    ajoute un bundle d'hydratation à une page dont la cible est un LCP sous deux
    secondes.
-2. **Aucun appel d'API authentifié, aucun cookie.**
+2. **Aucun appel d'API authentifié, aucun cookie.** Les lectures publiques (documents
+   légaux, adresse de contact) passent par `lib/legal/published.ts`, un fetch mis en cache
+   sans en-tête : `api()` lit `headers()` et rendrait la page dynamique. Une publication
+   depuis l'administration les rafraîchit aussitôt (`revalidatePath`).
 3. **Les liens sont des `<a>`**, construits avec `hrefFor(locale, "/chemin")`.
    Le `Link` de next-intl est un composant client qui appelle `useLocale()` :
    l'utiliser dans un Server Component exigerait un `NextIntlClientProvider`
@@ -337,13 +341,17 @@ contorsions.
   `POST /auth/oauth/google` ; le réintroduire côté web est une décision produit.
 - Réglages (US-025, S8-06) : `/app/settings/{account|application|about}`,
   liste à gauche et rubrique à droite. Pas de rubrique Lecture (sprint 13), pas
-  de choix de langue (sprint 13), pas de lien vers des conditions — la page
-  n'existe pas. `/app/devices` redirige vers la rubrique Compte. Depuis S16B,
+  de choix de langue (sprint 13). `/app/devices` redirige vers la rubrique Compte. Depuis S16B,
   Compte et appareils propose « Supprimer mon compte » (mot de passe,
   `POST /me/delete`, ADR 0014), et Aide lie `/privacy` et `/delete-account`,
   deux pages marketing statiques — la seconde est le lien de suppression donné
   à Google Play. La politique porte un avertissement « à valider par Hamza »
-  et des passages entre crochets tant que S16B-00 n'est pas tranché.
+  et des passages entre crochets tant qu'aucune version n'est publiée.
+- **Administration (S16B-08, ADR 0015)** : `/app/admin/{legal|settings|play}`. Documents
+  légaux versionnés, configuration, réponses aux tâches de la Play Console. Le web refuse de
+  publier un texte qui garde des crochets. Pas d'historique de qui a publié, et aucune
+  acceptation des conditions n'est demandée ni tracée. Les CGV ne sont pas liées depuis le
+  pied de page tant que rien n'est vendu.
 - **La lecture web est directe ou refusée, jamais relayée** (`adr/0007`). Elle ne
   marche donc pas chez tous les fournisseurs, et l`échec est nommé plutôt que
   silencieux — c'est la moitié du travail, pas un détail. Sur une page `https`, un
