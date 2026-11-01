@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 public class UserRepository {
 
     private static final String COLUMNS = """
-            id, email, password_hash, display_name, locale,
+            id, email, password_hash, display_name, locale, is_admin,
             email_verified_at, created_at, updated_at
             """;
 
@@ -87,14 +87,16 @@ public class UserRepository {
     }
 
     /**
-     * Whether the account still exists. Asked on every authenticated request
-     * (see {@code SecurityConfig}), hence a primary-key probe and nothing more.
+     * Whether the account is an administrator, and empty when it no longer exists.
+     * Asked on every authenticated request (see {@code SecurityConfig}), hence a
+     * primary-key probe and nothing more. No method of this class writes the flag:
+     * no request can grant it (ADR 0015).
      */
-    public boolean exists(UUID userId) {
-        return jdbc.sql("SELECT EXISTS (SELECT 1 FROM \"user\" WHERE id = :id)")
+    public Optional<Boolean> findAdminFlag(UUID userId) {
+        return jdbc.sql("SELECT is_admin FROM \"user\" WHERE id = :id")
                 .param("id", userId)
                 .query(Boolean.class)
-                .single();
+                .optional();
     }
 
     /**
@@ -129,6 +131,7 @@ public class UserRepository {
                 rs.getString("password_hash"),
                 rs.getString("display_name"),
                 rs.getString("locale"),
+                rs.getBoolean("is_admin"),
                 rs.getObject("email_verified_at", OffsetDateTime.class),
                 rs.getObject("created_at", OffsetDateTime.class),
                 rs.getObject("updated_at", OffsetDateTime.class));

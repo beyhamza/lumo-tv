@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tv.lumo.api.billing.EntitlementService;
@@ -14,6 +15,7 @@ import tv.lumo.api.generated.model.DeviceRegistration;
 import tv.lumo.api.generated.model.ErrorCode;
 import tv.lumo.api.generated.model.LoginRequest;
 import tv.lumo.api.generated.model.RegisterRequest;
+import tv.lumo.api.settings.AppSettingsRepository;
 import tv.lumo.api.shared.error.ApiException;
 
 /**
@@ -50,6 +52,7 @@ public class AccountService {
     private final SessionService sessions;
     private final AccountMailer mail;
     private final EntitlementService entitlements;
+    private final AppSettingsRepository settings;
 
     public AccountService(UserRepository users,
                           OAuthIdentityRepository oauthIdentities,
@@ -59,7 +62,8 @@ public class AccountService {
                           PasswordHasher passwords,
                           SessionService sessions,
                           AccountMailer mail,
-                          EntitlementService entitlements) {
+                          EntitlementService entitlements,
+                          AppSettingsRepository settings) {
         this.users = users;
         this.oauthIdentities = oauthIdentities;
         this.devices = devices;
@@ -69,10 +73,12 @@ public class AccountService {
         this.sessions = sessions;
         this.mail = mail;
         this.entitlements = entitlements;
+        this.settings = settings;
     }
 
     @Transactional
     public AuthSession register(RegisterRequest request) {
+        requireRegistrationOpen();
         String email = normaliseEmail(request.getEmail());
         requireStrongPassword(request.getPassword());
 
@@ -96,6 +102,14 @@ public class AccountService {
         UUID deviceId = linkDevice(user.id(), request.getDevice());
         sendVerificationEmail(user);
         return sessions.openSession(user, deviceId);
+    }
+
+    /** Only the creation of an account: everyone who has one keeps signing in (ADR 0015). */
+    private void requireRegistrationOpen() {
+        if (!settings.get().registrationOpen()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, ErrorCode.REGISTRATION_CLOSED,
+                    "The creation of accounts is closed");
+        }
     }
 
     @Transactional
@@ -136,8 +150,11 @@ public class AccountService {
                         // SSO-only account: password_hash stays null, and
                         // PasswordHasher treats null as "never matches" rather
                         // than as "no password required".
-                        .orElseGet(() -> users.insert(UUID.randomUUID(), email, null,
-                                identity.displayName(), "en")));
+                        .orElseGet(() -> {
+                            requireRegistrationOpen();
+                            return users.insert(UUID.randomUUID(), email, null,
+                                    identity.displayName(), "en");
+                        }));
 
         oauthIdentities.link(user.id(), PROVIDER_GOOGLE, identity.subject());
 

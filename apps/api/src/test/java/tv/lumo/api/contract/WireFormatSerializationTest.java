@@ -327,7 +327,7 @@ class WireFormatSerializationTest extends PostgresIntegrationTest {
     }
 
     private static User user() {
-        User user = new User(UUID.randomUUID(), "someone@test.example", Locale.FR,
+        User user = new User(UUID.randomUUID(), "someone@test.example", false, Locale.FR,
                 OffsetDateTime.now(), OffsetDateTime.now());
         user.setDisplayName("Someone");
         return user;

@@ -9,6 +9,7 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
 import org.springframework.security.web.SecurityFilterChain;
@@ -50,6 +51,14 @@ public class SecurityConfig {
             "/v1/auth/device/token"
     };
 
+    /** Reads open to anyone, as the contract declares them (ADR 0015). */
+    private static final String[] PUBLIC_READS = {
+            "/v1/legal/*",
+            "/v1/config"
+    };
+
+    private static final String ADMIN_AUTHORITY = "ADMIN";
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
                                             ProblemAuthenticationEntryPoint entryPoint,
@@ -65,6 +74,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        .requestMatchers(HttpMethod.GET, PUBLIC_READS).permitAll()
+                        // Here rather than on each controller: an endpoint added
+                        // under this prefix cannot forget the check (ADR 0015).
+                        .requestMatchers("/v1/admin/**").hasAuthority(ADMIN_AUTHORITY)
                         // /v1/auth/device/approve is NOT here: approving a
                         // television requires a signed-in web session.
                         .anyRequest().authenticated())
@@ -89,15 +102,18 @@ public class SecurityConfig {
      * deleted account would keep calling the API for up to fifteen minutes,
      * writing favourites and progress for a user who no longer exists. One
      * primary-key probe per request is the price.
+     *
+     * <p>That same probe answers whether the account is an administrator, rather
+     * than a claim in the token: a right taken away stops working at the next
+     * call, not fifteen minutes later (ADR 0015).
      */
     private static AbstractAuthenticationToken toPrincipal(Jwt jwt, UserRepository users) {
         UUID userId = parseUuid(jwt.getSubject(), "sub");
         UUID deviceId = parseUuid(jwt.getClaimAsString(AccessTokenService.DEVICE_CLAIM),
                 AccessTokenService.DEVICE_CLAIM);
-        if (!users.exists(userId)) {
-            throw new InvalidBearerTokenException("The account no longer exists");
-        }
-        return new LumoAuthenticationToken(jwt, new AuthPrincipal(userId, deviceId));
+        boolean admin = users.findAdminFlag(userId)
+                .orElseThrow(() -> new InvalidBearerTokenException("The account no longer exists"));
+        return new LumoAuthenticationToken(jwt, new AuthPrincipal(userId, deviceId), admin);
     }
 
     private static UUID parseUuid(String value, String claim) {
@@ -131,8 +147,8 @@ public class SecurityConfig {
         private final transient Jwt jwt;
         private final transient AuthPrincipal principal;
 
-        LumoAuthenticationToken(Jwt jwt, AuthPrincipal principal) {
-            super(List.of());
+        LumoAuthenticationToken(Jwt jwt, AuthPrincipal principal, boolean admin) {
+            super(admin ? List.of(new SimpleGrantedAuthority(ADMIN_AUTHORITY)) : List.of());
             this.jwt = jwt;
             this.principal = principal;
             setAuthenticated(true);
