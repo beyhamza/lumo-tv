@@ -49,6 +49,8 @@ tv.lumo.api/
 ├─ epg/        # (vide en v1, voir package-info)
 ├─ userdata/   # favoris, groupes, progression, chaînes récentes
 ├─ billing/    # entitlements, quotas, sessions Stripe
+├─ legal/      # versions des documents légaux (ADR 0015)
+├─ settings/   # configuration de l'application (ADR 0015)
 └─ shared/     # error, crypto, ratelimit, config, web
 ```
 
@@ -57,8 +59,8 @@ ne doit pas y en avoir.** Un domaine contient son controller, ses services et
 ses repositories. Si tu cherches où mettre une classe, demande-toi de quel
 domaine elle parle, jamais de quelle couche technique elle relève.
 
-**Les six tags du contrat ont un contrôleur** — `auth`, `account`, `sources`,
-`catalog`, `userdata`, `billing`. Aucun chemin du contrat ne renvoie plus 404.
+**Les huit tags du contrat ont un contrôleur** — `auth`, `account`, `sources`,
+`catalog`, `userdata`, `billing`, `legal`, `settings`. Aucun chemin du contrat ne renvoie plus 404.
 
 Deux réserves, écrites dans `docs/design/api-gaps.md` plutôt que dans du code
 qui ferait semblant :
@@ -68,6 +70,10 @@ qui ferait semblant :
 - **une instance sans clé Stripe est un état supporté** : les deux endpoints
   `/billing/*` répondent 503 et tout le reste marche. C'est ce que fait le profil
   de test.
+
+**`/v1/admin/**` est fermé dans `SecurityConfig`**, avant tout contrôleur : un endpoint
+ajouté sous ce préfixe ne peut pas oublier le contrôle. Le droit (`user.is_admin`) est relu
+à chaque requête et aucun endpoint ne l'écrit (ADR 0015).
 
 Les quotas d'offre vivent dans `lumo.plans.*`, et nulle part ailleurs : un client
 qui embarque sa propre copie de « FREE = 1 source » calcule un droit d'accès

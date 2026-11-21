@@ -29,6 +29,8 @@ public class User {
 
   private String email;
 
+  private Boolean isAdmin;
+
   private @Nullable String displayName = null;
 
   private Locale locale;
@@ -49,9 +51,10 @@ public class User {
   /**
    * Constructor with only required parameters
    */
-  public User(UUID id, String email, Locale locale, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+  public User(UUID id, String email, Boolean isAdmin, Locale locale, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
     this.id = id;
     this.email = email;
+    this.isAdmin = isAdmin;
     this.locale = locale;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
@@ -93,6 +96,25 @@ public class User {
 
   public void setEmail(String email) {
     this.email = email;
+  }
+
+  public User isAdmin(Boolean isAdmin) {
+    this.isAdmin = isAdmin;
+    return this;
+  }
+
+  /**
+   * Whether this account reaches the administration screens. For display only: every `/admin` endpoint checks it again on the server (ADR 0015). 
+   * @return isAdmin
+   */
+  @NotNull 
+  @JsonProperty("is_admin")
+  public Boolean getIsAdmin() {
+    return isAdmin;
+  }
+
+  public void setIsAdmin(Boolean isAdmin) {
+    this.isAdmin = isAdmin;
   }
 
   public User displayName(@Nullable String displayName) {
@@ -201,6 +223,7 @@ public class User {
     User user = (User) o;
     return Objects.equals(this.id, user.id) &&
         Objects.equals(this.email, user.email) &&
+        Objects.equals(this.isAdmin, user.isAdmin) &&
         Objects.equals(this.displayName, user.displayName) &&
         Objects.equals(this.locale, user.locale) &&
         Objects.equals(this.emailVerifiedAt, user.emailVerifiedAt) &&
@@ -210,7 +233,7 @@ public class User {
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, email, displayName, locale, emailVerifiedAt, createdAt, updatedAt);
+    return Objects.hash(id, email, isAdmin, displayName, locale, emailVerifiedAt, createdAt, updatedAt);
   }
 
   @Override
@@ -219,6 +242,7 @@ public class User {
     sb.append("class User {\n");
     sb.append("    id: ").append(toIndentedString(id)).append("\n");
     sb.append("    email: ").append(toIndentedString(email)).append("\n");
+    sb.append("    isAdmin: ").append(toIndentedString(isAdmin)).append("\n");
     sb.append("    displayName: ").append(toIndentedString(displayName)).append("\n");
     sb.append("    locale: ").append(toIndentedString(locale)).append("\n");
     sb.append("    emailVerifiedAt: ").append(toIndentedString(emailVerifiedAt)).append("\n");

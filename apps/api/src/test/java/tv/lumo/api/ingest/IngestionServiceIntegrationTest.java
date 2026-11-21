@@ -143,6 +143,8 @@ class IngestionServiceIntegrationTest extends PostgresIntegrationTest {
         // Nothing is mid-flight any more. A step left behind is what a progress
         // screen would show for ever.
         assertThat(syncStep()).isNull();
+        // What a browser on an https page will be offered (ADR 0007).
+        assertThat(one("SELECT https_port::text FROM source WHERE id = :id")).isEqualTo("443");
     }
 
     @Test

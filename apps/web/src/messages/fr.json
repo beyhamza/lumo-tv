@@ -27,7 +27,8 @@
     "privacy": "Confidentialité",
     "terms": "Conditions",
     "contact": "Contact",
-    "deleteAccount": "Supprimer son compte"
+    "deleteAccount": "Supprimer son compte",
+    "deleteData": "Supprimer ses données"
   },
   "Landing": {
     "metaTitle": "Lumo TV — lecteur IPTV pour Android, Android TV et web",
@@ -198,6 +199,7 @@
     "navWatchlist": "Ma liste",
     "navSources": "Sources",
     "navSettings": "Réglages",
+    "navAdmin": "Administration",
     "navLive": "Direct",
     "navFilms": "Films",
     "navSeries": "Séries",
@@ -689,6 +691,7 @@
     "deleteNoPassword": "Votre compte n'a pas de mot de passe ? Définissez-en un depuis « Mot de passe oublié », puis revenez ici.",
     "legalLabel": "Confidentialité",
     "privacyLink": "Politique de confidentialité",
+    "termsLink": "Conditions générales d'utilisation",
     "deletionLink": "Comment supprimer son compte"
   },
   "Errors": {
@@ -697,6 +700,7 @@
     "VALIDATION_FAILED": "Certaines informations sont incorrectes.",
     "INVALID_CREDENTIALS": "Email ou mot de passe incorrect.",
     "EMAIL_ALREADY_REGISTERED": "Un compte existe déjà avec cette adresse. Connectez-vous ou réinitialisez votre mot de passe.",
+    "REGISTRATION_CLOSED": "La création de comptes est fermée pour le moment.",
     "PASSWORD_TOO_WEAK": "Ce mot de passe est trop faible. Utilisez au moins dix caractères.",
     "RATE_LIMITED": "Trop de tentatives. Patientez un instant avant de réessayer.",
     "UNAUTHENTICATED": "Votre session a expiré. Reconnectez-vous.",
@@ -839,6 +843,60 @@
     "helpBody": "Si vous ne pouvez plus vous connecter, écrivez à [adresse de contact à compléter] depuis l'adresse de votre compte.",
     "privacyLink": "Lire la politique de confidentialité"
   },
+  "DataDeletion": {
+    "metaTitle": "Supprimer ses données Lumo TV sans supprimer son compte",
+    "metaDescription": "Comment supprimer une partie de vos données Lumo TV (sources, favoris, liste, appareils) tout en gardant votre compte, et ce qui est conservé.",
+    "title": "Supprimer ses données sans supprimer son compte",
+    "intro": "Vous pouvez supprimer vous-même une partie de vos données Lumo TV à tout moment, en gardant votre compte. Chaque suppression ci-dessous est immédiate et définitive.",
+    "where": "Ces actions sont disponibles sur le site, une fois connecté, et dans l'application Android Lumo (téléphone ou TV), aux mêmes endroits.",
+    "items": [
+      {
+        "title": "Une source et tout ce qui en vient",
+        "steps": [
+          "Ouvrez Sources.",
+          "Ouvrez la source à supprimer.",
+          "Choisissez « Supprimer cette source » et confirmez."
+        ],
+        "removes": "Sont supprimés : l'adresse de la playlist et du guide ou les identifiants Xtream (chiffrés), le catalogue importé (chaînes, films, séries, guide des programmes), ainsi que vos favoris, progressions de lecture, chaînes récentes et les films et séries de « Ma liste » liés à cette source. Vos autres sources ne sont pas touchées."
+      },
+      {
+        "title": "Un favori",
+        "steps": [
+          "Ouvrez Favoris.",
+          "Sur la chaîne, choisissez « Retirer » (ou « Retirer de tous mes favoris »)."
+        ],
+        "removes": "La chaîne est retirée de vos favoris et de vos groupes."
+      },
+      {
+        "title": "Un élément de « Ma liste »",
+        "steps": [
+          "Ouvrez Ma liste.",
+          "Sur le film ou la série, choisissez « Retirer de ma liste »."
+        ],
+        "removes": "L'élément et l'intention associée sont supprimés."
+      },
+      {
+        "title": "Un appareil connecté",
+        "steps": [
+          "Ouvrez Réglages, puis Compte et appareils.",
+          "Sur l'appareil, choisissez « Déconnecter » et confirmez."
+        ],
+        "removes": "L'appareil et ses sessions sont supprimés ; il revient à l'écran de connexion."
+      }
+    ],
+    "keptTitle": "Ce qui est conservé",
+    "keptBody": "Votre compte (adresse email, mot de passe haché, nom affiché, langue), vos autres sources et les données qui y sont rattachées. « Retirer de Continuer » masque un titre de l'accueil mais garde sa position de lecture : pour l'effacer, supprimez la source concernée.",
+    "timingTitle": "Délais",
+    "timingBody": "La suppression est faite tout de suite, sans délai de grâce, et rien n'est conservé pour des statistiques. Les sauvegardes de la base, qui ne servent qu'à restaurer le service après un incident, s'effacent d'elles-mêmes selon leur durée de conservation.",
+    "localTitle": "Sur vos appareils",
+    "localBody": "Les copies en cache sur un appareil (catalogue, préférences) disparaissent à sa prochaine synchronisation, à sa déconnexion ou en désinstallant l'application.",
+    "helpTitle": "Autre demande",
+    "helpBody": "Pour toute autre demande de suppression, écrivez-nous via le lien Contact en bas de page, depuis l'adresse de votre compte.",
+    "everythingTitle": "Tout supprimer",
+    "everythingBody": "Pour effacer votre compte et l'ensemble de vos données en une fois, supprimez votre compte.",
+    "accountLink": "Supprimer son compte",
+    "privacyLink": "Lire la politique de confidentialité"
+  },
   "Privacy": {
     "metaTitle": "Politique de confidentialité",
     "metaDescription": "Les données que Lumo TV traite, pourquoi, où elles vont et comment les supprimer.",
@@ -902,7 +960,7 @@
       {
         "title": "Chromecast",
         "body": [
-          "Quand vous envoyez une lecture vers un Chromecast, votre téléphone ou votre navigateur transmet au Chromecast de votre réseau l'adresse du flux — qui peut contenir vos identifiants Xtream — et le titre. Le Chromecast lit le flux avec le récepteur par défaut de Google, directement chez votre fournisseur. Lumo n'envoie rien à Google lui-même ; l'usage de Chromecast relève des règles de confidentialité de Google."
+          "Quand vous envoyez une lecture vers un Chromecast, votre téléphone ou votre navigateur transmet au Chromecast de votre réseau l'adresse du flux — qui peut contenir vos identifiants Xtream — et le titre. Le Chromecast lit le flux avec le récepteur par défaut de Google, directement chez votre fournisseur. Lumo n'envoie rien à Google lui-même. Dans l'application téléphone, le composant Cast fourni par Google lui transmet des journaux techniques anonymes sur l'usage de Chromecast ; cet usage relève des règles de confidentialité de Google."
         ]
       },
       {
@@ -950,5 +1008,155 @@
       }
     ],
     "deletionLink": "Comment supprimer son compte"
+  },
+  "Legal": {
+    "versionLine": "Version {version}, en vigueur depuis le {date}",
+    "notPublished": "Ce document n'a pas encore été publié.",
+    "privacy": {
+      "title": "Politique de confidentialité",
+      "description": "Les données que Lumo TV traite, pourquoi, où elles vont et comment les supprimer."
+    },
+    "termsOfUse": {
+      "title": "Conditions générales d'utilisation",
+      "description": "Les conditions d'utilisation de Lumo TV."
+    },
+    "termsOfSale": {
+      "title": "Conditions générales de vente",
+      "description": "Les conditions de vente de Lumo TV."
+    }
+  },
+  "Admin": {
+    "title": "Administration",
+    "subtitle": "Réservée aux comptes administrateurs.",
+    "navLabel": "Rubriques de l'administration",
+    "navLegal": "Documents légaux",
+    "navSettings": "Configuration",
+    "navPlay": "Google Play",
+    "cancel": "Annuler",
+    "languageFr": "Français",
+    "languageEn": "Anglais",
+    "legalNothingPublished": "Aucune version publiée.",
+    "legalNewDraft": "Nouveau brouillon",
+    "legalDraftLabel": "Brouillon",
+    "legalVersionLabel": "Version {version}",
+    "legalStatus": {
+      "DRAFT": "Non publié",
+      "PUBLISHED": "En vigueur",
+      "ARCHIVED": "Archivée"
+    },
+    "legalBack": "Retour aux documents",
+    "legalSave": "Enregistrer le brouillon",
+    "legalReview": "Enregistrer et relire avant publication",
+    "legalPublishTitle": "Publier cette version ?",
+    "legalPublishBody": "Elle remplacera la version en vigueur sur {path}, en français et en anglais, et ne pourra plus être modifiée. Pour la corriger ensuite, il faudra publier une nouvelle version. Personne n'est invité à l'accepter à nouveau.",
+    "legalPlaceholdersLeft": "Ces passages entre crochets restent à compléter. Annulez, corrigez-les, puis revenez à cette étape :",
+    "legalPublish": "Publier",
+    "legalDeleteTitle": "Supprimer ce brouillon",
+    "legalDeleteBody": "Le brouillon sera définitivement perdu. Les versions publiées ne changent pas.",
+    "legalDelete": "Supprimer le brouillon",
+    "fieldTitleFr": "Titre en français",
+    "fieldTitleEn": "Titre en anglais",
+    "fieldBodyFr": "Texte en français",
+    "fieldBodyEn": "Texte en anglais",
+    "fieldBodyHint": "Mise en forme acceptée : ## titre, ### sous-titre, - liste, **gras**, [lien](https://…). Tout autre balisage s'affiche tel quel.",
+    "fieldChangeSummary": "Ce qui change par rapport à la version précédente (facultatif)",
+    "fieldSupportEmail": "Adresse de contact",
+    "fieldSupportEmailHint": "Publique : affichée dans le pied de page du site. C'est aussi l'adresse à donner à Google Play.",
+    "fieldRegistrationOpen": "Autoriser la création de comptes",
+    "fieldRegistrationOpenHint": "Décoché, personne ne peut créer de compte, sur aucune surface. Les comptes existants continuent de fonctionner.",
+    "settingsSave": "Enregistrer",
+    "notices": {
+      "draft-saved": "Brouillon enregistré.",
+      "published": "Version publiée. Le site affiche maintenant ce texte.",
+      "draft-deleted": "Brouillon supprimé.",
+      "settings-saved": "Configuration enregistrée.",
+      "draft-exists": "Ce document a déjà un brouillon. Reprenez-le plutôt que d'en créer un autre.",
+      "not-draft": "Cette version a été publiée : elle ne peut plus changer.",
+      "incomplete": "Il manque un titre ou un texte, en français ou en anglais.",
+      "placeholders": "Des passages entre crochets restent à compléter.",
+      "invalid": "Une valeur n'est pas valide. Vérifiez l'adresse ou la longueur des textes.",
+      "failed": "L'opération n'a pas abouti. Rien n'a changé ; réessayez."
+    },
+    "play": {
+      "intro": "Les tâches de « Configurer votre application » dans la Play Console, dans leur ordre, avec la réponse à donner. Ces réponses sont les mêmes pour Lumo et Lumo TV, sauf mention contraire. Cette page ne communique pas avec Google : c'est la Console qui fait foi.",
+      "addressesTitle": "Adresses à copier",
+      "addressPrivacy": "Politique de confidentialité",
+      "addressDeletion": "Suppression de compte",
+      "addressSite": "Site web",
+      "privacyReady": "Une version est en vigueur.",
+      "privacyMissing": "À faire : publier une version dans Documents légaux.",
+      "contactReady": "Adresse configurée : {email}",
+      "contactMissing": "À faire : renseigner l'adresse de contact dans Configuration.",
+      "tasks": [
+        {
+          "id": "privacy",
+          "title": "Règles de confidentialité (Set privacy policy)",
+          "answer": "Donner l'adresse de la politique de confidentialité indiquée plus haut."
+        },
+        {
+          "id": "sign-in",
+          "title": "Accès à l'application (Sign in details)",
+          "answer": "Certaines fonctionnalités sont restreintes : fournir un compte de démonstration et une source du banc de test.",
+          "details": [
+            "Saisir l'adresse et le mot de passe du compte de démonstration uniquement dans la Console.",
+            "Expliquer comment ajouter la source du banc, jamais une vraie chaîne.",
+            "Lumo TV : se connecter au site avec ce compte et saisir le code affiché par la TV."
+          ]
+        },
+        {
+          "id": "ads",
+          "title": "Annonces (Ads)",
+          "answer": "Non, l'application ne contient pas d'annonces."
+        },
+        {
+          "id": "rating",
+          "title": "Classification du contenu (Content rating)",
+          "answer": "Catégorie « Toutes les autres catégories d'applications » ; non à la violence, à la sexualité, au langage, aux substances et aux jeux d'argent ; aucune interaction entre utilisateurs ni partage de position ; aucun achat.",
+          "details": [
+            "Répondre oui à l'accès non restreint à Internet : l'utilisateur lit ce que contient sa propre source."
+          ]
+        },
+        {
+          "id": "audience",
+          "title": "Public cible (Target audience)",
+          "answer": "18 ans et plus uniquement. L'application n'attire pas les enfants."
+        },
+        {
+          "id": "data-safety",
+          "title": "Sécurité des données (Data safety)",
+          "answer": "Oui, des données sont collectées et aucune n'est partagée. Chiffrées en transit. Suppression possible dans l'application et par l'adresse indiquée plus haut. Comptes par e-mail et mot de passe.",
+          "details": [
+            "Collectées : adresse e-mail, nom (facultatif), identifiants utilisateur, autres actions dans l'application, contenu généré par l'utilisateur (sources), identifiants d'appareil.",
+            "Lumo (téléphone) : le SDK Google Cast envoie à Google des journaux anonymes. À trancher avant de soumettre, voir securite-des-donnees.md."
+          ]
+        },
+        {
+          "id": "government",
+          "title": "Applications gouvernementales (Government apps)",
+          "answer": "Non."
+        },
+        {
+          "id": "financial",
+          "title": "Fonctionnalités financières (Financial features)",
+          "answer": "L'application ne propose aucune fonctionnalité financière."
+        },
+        {
+          "id": "health",
+          "title": "Santé (Health)",
+          "answer": "L'application ne propose aucune fonctionnalité de santé."
+        },
+        {
+          "id": "contact",
+          "title": "Catégorie et coordonnées (App category and contact details)",
+          "answer": "Application, catégorie « Lecteurs et éditeurs vidéo ». Donner l'adresse de contact et le site web."
+        },
+        {
+          "id": "listing",
+          "title": "Fiche Play (Store listing)",
+          "answer": "Textes FR et EN, icône, image de présentation et captures sont prêts dans docs/releases/0.4.0/play/ : fiche-telephone.md, fiche-tv.md, graphismes/ et ecrans/."
+        }
+      ],
+      "addressDataDeletion": "Suppression de données"
+    }
   }
 }

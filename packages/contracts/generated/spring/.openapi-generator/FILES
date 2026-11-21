@@ -4,10 +4,13 @@ src/main/java/tv/lumo/api/generated/api/ApiUtil.java
 src/main/java/tv/lumo/api/generated/api/AuthApi.java
 src/main/java/tv/lumo/api/generated/api/BillingApi.java
 src/main/java/tv/lumo/api/generated/api/CatalogApi.java
+src/main/java/tv/lumo/api/generated/api/LegalApi.java
+src/main/java/tv/lumo/api/generated/api/SettingsApi.java
 src/main/java/tv/lumo/api/generated/api/SourcesApi.java
 src/main/java/tv/lumo/api/generated/api/UserdataApi.java
 src/main/java/tv/lumo/api/generated/model/AddFavoriteRequest.java
 src/main/java/tv/lumo/api/generated/model/AddWatchlistItemRequest.java
+src/main/java/tv/lumo/api/generated/model/AppSettings.java
 src/main/java/tv/lumo/api/generated/model/ApproveDeviceRequest.java
 src/main/java/tv/lumo/api/generated/model/AuthSession.java
 src/main/java/tv/lumo/api/generated/model/BillingSession.java
@@ -18,6 +21,7 @@ src/main/java/tv/lumo/api/generated/model/ChannelPage.java
 src/main/java/tv/lumo/api/generated/model/ContentType.java
 src/main/java/tv/lumo/api/generated/model/CreateCheckoutSessionRequest.java
 src/main/java/tv/lumo/api/generated/model/CreateFavoriteGroupRequest.java
+src/main/java/tv/lumo/api/generated/model/CreateLegalDraftRequest.java
 src/main/java/tv/lumo/api/generated/model/CreatePortalSessionRequest.java
 src/main/java/tv/lumo/api/generated/model/CreateSourceRequest.java
 src/main/java/tv/lumo/api/generated/model/DeleteAccountRequest.java
@@ -51,6 +55,10 @@ src/main/java/tv/lumo/api/generated/model/ForgotPasswordRequest.java
 src/main/java/tv/lumo/api/generated/model/GoogleSignInRequest.java
 src/main/java/tv/lumo/api/generated/model/HideProgressRequest.java
 src/main/java/tv/lumo/api/generated/model/IngestionErrorCode.java
+src/main/java/tv/lumo/api/generated/model/LegalDocumentType.java
+src/main/java/tv/lumo/api/generated/model/LegalDocumentVersion.java
+src/main/java/tv/lumo/api/generated/model/LegalDocumentVersionList.java
+src/main/java/tv/lumo/api/generated/model/LegalVersionStatus.java
 src/main/java/tv/lumo/api/generated/model/Locale.java
 src/main/java/tv/lumo/api/generated/model/LoginRequest.java
 src/main/java/tv/lumo/api/generated/model/Plan.java
@@ -60,6 +68,7 @@ src/main/java/tv/lumo/api/generated/model/PlaybackProgress.java
 src/main/java/tv/lumo/api/generated/model/PlaybackProgressPage.java
 src/main/java/tv/lumo/api/generated/model/Problem.java
 src/main/java/tv/lumo/api/generated/model/ProgressItemType.java
+src/main/java/tv/lumo/api/generated/model/PublicConfig.java
 src/main/java/tv/lumo/api/generated/model/RecentChannel.java
 src/main/java/tv/lumo/api/generated/model/RecentChannelList.java
 src/main/java/tv/lumo/api/generated/model/RecordRecentChannelRequest.java
@@ -77,8 +86,10 @@ src/main/java/tv/lumo/api/generated/model/SourceList.java
 src/main/java/tv/lumo/api/generated/model/SourceStatus.java
 src/main/java/tv/lumo/api/generated/model/SyncStep.java
 src/main/java/tv/lumo/api/generated/model/TokenPair.java
+src/main/java/tv/lumo/api/generated/model/UpdateAppSettingsRequest.java
 src/main/java/tv/lumo/api/generated/model/UpdateFavoriteGroupRequest.java
 src/main/java/tv/lumo/api/generated/model/UpdateFavoriteRequest.java
+src/main/java/tv/lumo/api/generated/model/UpdateLegalDraftRequest.java
 src/main/java/tv/lumo/api/generated/model/UpdateSourceRequest.java
 src/main/java/tv/lumo/api/generated/model/UpdateUserRequest.java
 src/main/java/tv/lumo/api/generated/model/User.java

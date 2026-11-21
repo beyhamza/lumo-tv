@@ -9,6 +9,7 @@ import { CastPanel } from "@/components/app/player/CastPanel";
 import { TrackMenus } from "@/components/app/player/TrackMenus";
 import { useCast } from "@/components/app/player/use-cast";
 import { usePlaybackPrefs } from "@/components/app/player/use-playback-prefs";
+import { browserStream } from "@/lib/playback/browser-stream";
 import { hlsTracks } from "@/lib/playback/tracks/hls";
 import { nativeTracks } from "@/lib/playback/tracks/native";
 import type { TrackController } from "@/lib/playback/tracks/types";
@@ -166,7 +167,12 @@ export function ChannelPlayer({
     async function start() {
       setFailure(null);
 
-      let payload: { url: string; maxConnections: number | null; needsUserAgent?: boolean };
+      let payload: {
+        url: string;
+        secureUrl?: string | null;
+        maxConnections: number | null;
+        needsUserAgent?: boolean;
+      };
       try {
         // Fetched at the moment of playing, never rendered into the page: the
         // URL carries the user's panel credentials.
@@ -199,7 +205,8 @@ export function ChannelPlayer({
       // Checked before anything is attempted, because the browser will not even
       // report this one usefully: it refuses the request outright, and the
       // console message never reaches the user.
-      if (window.location.protocol === "https:" && payload.url.startsWith("http:")) {
+      const opened = browserStream(payload, window.location.protocol);
+      if (!opened) {
         setFailure({ kind: "mixed-content" });
         return;
       }
@@ -227,7 +234,7 @@ export function ChannelPlayer({
       // MSE at all — iOS Safari among them — keep the native, CORS-free path.
       if (!Hls.isSupported()) {
         if (video.canPlayType("application/vnd.apple.mpegurl")) {
-          video.src = payload.url;
+          video.src = opened.url;
           controller = nativeTracks(video, "browser-chooses");
           setTracks(controller);
           return;
@@ -291,7 +298,7 @@ export function ChannelPlayer({
         );
         instance.destroy();
       });
-      instance.loadSource(payload.url);
+      instance.loadSource(opened.url);
       instance.attachMedia(video);
     }
 

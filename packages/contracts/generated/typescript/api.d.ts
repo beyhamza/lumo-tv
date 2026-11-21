@@ -218,7 +218,7 @@ export interface paths {
         put?: never;
         /**
          * TV activation: approve a user code from an authenticated session
-         * @description Called from `lumo.tv/activate` by an already signed-in user. Binds the
+         * @description Called from `lumo-tv.com/activate` by an already signed-in user. Binds the
          *     pending authorization to the caller's account.
          *
          *     Strictly rate-limited: `user_code` is short and guessable by design, so
@@ -1373,6 +1373,155 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/legal/{document_type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The version of a legal document currently in force
+         * @description Public, and the only legal read a non-administrator has: drafts and
+         *     archived versions are not reachable here. Both languages travel
+         *     together, and the caller renders its own.
+         */
+        get: operations["getPublishedLegalDocument"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/legal/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every version of every legal document
+         * @description Administrators only. Newest first within each document.
+         */
+        get: operations["listLegalVersions"];
+        put?: never;
+        /**
+         * Start a new draft of a legal document
+         * @description Administrators only. A document has **at most one draft**; a second one
+         *     answers `409 LEGAL_DRAFT_ALREADY_EXISTS`. Texts may be empty while
+         *     drafting. Publishing is what requires them.
+         */
+        post: operations["createLegalDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/legal/versions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * One version, whatever its status
+         * @description Administrators only.
+         */
+        get: operations["getLegalVersion"];
+        /**
+         * Replace the content of a draft
+         * @description Administrators only. Only a draft can change: a version that has been
+         *     published is a record of what people were told and stays as it was
+         *     (`409 LEGAL_VERSION_NOT_DRAFT`).
+         */
+        put: operations["updateLegalDraft"];
+        post?: never;
+        /**
+         * Discard a draft
+         * @description Administrators only. Published and archived versions cannot be deleted.
+         */
+        delete: operations["deleteLegalDraft"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/legal/versions/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Put a draft in force
+         * @description Administrators only. Numbers the version, stamps `published_at` and
+         *     moves the previous published version of the document to `ARCHIVED`, in
+         *     one transaction. A title or a body missing in either language answers
+         *     `422 LEGAL_VERSION_INCOMPLETE`: FR and EN go out together.
+         */
+        post: operations["publishLegalDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The part of the configuration any visitor may read */
+        get: operations["getPublicConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The application's configuration
+         * @description Administrators only.
+         */
+        get: operations["getAppSettings"];
+        /**
+         * Replace the application's configuration
+         * @description Administrators only. Plan quotas are not here and will not be: what a
+         *     plan allows stays out of reach of this screen (ADR 0003, ADR 0015).
+         */
+        put: operations["updateAppSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1389,7 +1538,7 @@ export interface components {
             /**
              * Format: uri
              * @description Stable URI identifying the problem type.
-             * @example https://lumo.tv/errors/source-auth-failed
+             * @example https://lumo-tv.com/errors/source-auth-failed
              */
             type: string;
             /**
@@ -1472,6 +1621,11 @@ export interface components {
          *       `INVALID_CREDENTIALS`, `PASSWORD_TOO_WEAK`, `OAUTH_TOKEN_INVALID`,
          *       `VERIFICATION_TOKEN_INVALID`, `VERIFICATION_TOKEN_EXPIRED`,
          *       `RESET_TOKEN_INVALID`, `RESET_TOKEN_EXPIRED`.
+         *       `REGISTRATION_CLOSED`, a `403` when an administrator has closed the
+         *       creation of new accounts. Existing accounts are not affected.
+         *     - **Legal documents** — `LEGAL_DOCUMENT_NOT_PUBLISHED`,
+         *       `LEGAL_VERSION_NOT_FOUND`, `LEGAL_DRAFT_ALREADY_EXISTS`,
+         *       `LEGAL_VERSION_NOT_DRAFT`, `LEGAL_VERSION_INCOMPLETE`.
          *     - **Sessions** — `REFRESH_TOKEN_INVALID`, `REFRESH_TOKEN_REUSED`,
          *       `DEVICE_NOT_FOUND`.
          *     - **TV activation (RFC 8628)** — `AUTHORIZATION_PENDING`, `SLOW_DOWN`,
@@ -1506,7 +1660,7 @@ export interface components {
          *       second: removing something, or upgrading.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "VOD_ITEM_NOT_FOUND" | "SERIES_NOT_FOUND" | "EPISODE_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_DELETABLE" | "WATCHLIST_ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "EPG_WINDOW_TOO_LARGE" | "SOURCE_LIMIT_REACHED" | "DEVICE_LIMIT_REACHED" | "ALREADY_SUBSCRIBED" | "BILLING_CUSTOMER_NOT_FOUND";
+        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "ACCESS_TOKEN_EXPIRED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "RATE_LIMITED" | "INTERNAL_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INVALID_CREDENTIALS" | "PASSWORD_TOO_WEAK" | "OAUTH_TOKEN_INVALID" | "VERIFICATION_TOKEN_INVALID" | "VERIFICATION_TOKEN_EXPIRED" | "RESET_TOKEN_INVALID" | "RESET_TOKEN_EXPIRED" | "REFRESH_TOKEN_INVALID" | "REFRESH_TOKEN_REUSED" | "DEVICE_NOT_FOUND" | "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "ACCESS_DENIED" | "EXPIRED_TOKEN" | "DEVICE_CODE_NOT_FOUND" | "DEVICE_CODE_EXPIRED" | "DEVICE_CODE_ALREADY_USED" | "SOURCE_NOT_FOUND" | "SOURCE_NOT_READY" | "SOURCE_SYNC_IN_PROGRESS" | "SOURCE_SYNC_RATE_LIMITED" | "SOURCE_UNREACHABLE" | "SOURCE_AUTH_FAILED" | "SOURCE_EXPIRED" | "SOURCE_MAX_CONNECTIONS" | "SOURCE_INVALID_FORMAT" | "SOURCE_EMPTY" | "SOURCE_TOO_LARGE" | "CHANNEL_NOT_FOUND" | "VOD_ITEM_NOT_FOUND" | "SERIES_NOT_FOUND" | "EPISODE_NOT_FOUND" | "FAVORITE_NOT_FOUND" | "FAVORITE_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_FOUND" | "FAVORITE_GROUP_ALREADY_EXISTS" | "FAVORITE_GROUP_NOT_DELETABLE" | "WATCHLIST_ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REUSED" | "EPG_WINDOW_TOO_LARGE" | "SOURCE_LIMIT_REACHED" | "DEVICE_LIMIT_REACHED" | "ALREADY_SUBSCRIBED" | "BILLING_CUSTOMER_NOT_FOUND" | "REGISTRATION_CLOSED" | "LEGAL_DOCUMENT_NOT_PUBLISHED" | "LEGAL_VERSION_NOT_FOUND" | "LEGAL_DRAFT_ALREADY_EXISTS" | "LEGAL_VERSION_NOT_DRAFT" | "LEGAL_VERSION_INCOMPLETE";
         /**
          * @description UI language. FR and EN are supported from the first screen.
          * @enum {string}
@@ -1822,7 +1976,7 @@ export interface components {
              */
             device_code: string;
             /**
-             * @description The 8 characters shown on screen and typed on `lumo.tv/activate`.
+             * @description The 8 characters shown on screen and typed on `lumo-tv.com/activate`.
              *
              *     Drawn from an alphabet with no ambiguous glyphs: `0`/`O` and
              *     `1`/`I`/`L` are all excluded, so what is read at three metres is what
@@ -1836,14 +1990,14 @@ export interface components {
             /**
              * Format: uri
              * @description Page to open on a phone or a computer.
-             * @example https://lumo.tv/activate
+             * @example https://lumo-tv.com/activate
              */
             verification_uri: string;
             /**
              * Format: uri
              * @description Same page with the code pre-filled — this is what the QR code on the
              *     television encodes, so the nominal path involves no typing at all.
-             * @example https://lumo.tv/activate?code=K7RM4XPQ
+             * @example https://lumo-tv.com/activate?code=K7RM4XPQ
              */
             verification_uri_complete: string;
             /**
@@ -1900,6 +2054,91 @@ export interface components {
             device_code: string;
         };
         /**
+         * @description `PRIVACY_POLICY` is the policy Google Play links to. `TERMS_OF_USE` are
+         *     the CGU, `TERMS_OF_SALE` the CGV.
+         * @enum {string}
+         */
+        LegalDocumentType: "PRIVACY_POLICY" | "TERMS_OF_USE" | "TERMS_OF_SALE";
+        /**
+         * @description `DRAFT` can change and nobody but an administrator sees it. `PUBLISHED`
+         *     is the one version in force for its document. `ARCHIVED` was in force.
+         * @enum {string}
+         */
+        LegalVersionStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+        /**
+         * @description One version of a legal document. Bodies are Markdown, limited to what
+         *     the site renders: `##` and `###` headings, `-` lists, `**bold**` and
+         *     `[links](https://…)`. HTML is shown as text.
+         */
+        LegalDocumentVersion: {
+            /** Format: uuid */
+            id: string;
+            document_type: components["schemas"]["LegalDocumentType"];
+            status: components["schemas"]["LegalVersionStatus"];
+            /**
+             * Format: int32
+             * @description 1, 2, 3… within the document. Null until published.
+             */
+            version?: number | null;
+            title_fr: string;
+            title_en: string;
+            body_fr: string;
+            body_en: string;
+            /** @description What changed from the previous version. */
+            change_summary?: string | null;
+            /** Format: date-time */
+            published_at?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        LegalDocumentVersionList: {
+            items: components["schemas"]["LegalDocumentVersion"][];
+        };
+        /** @description Replaces the whole content of the draft. Texts may be empty until publishing. */
+        UpdateLegalDraftRequest: {
+            title_fr: string;
+            title_en: string;
+            body_fr: string;
+            body_en: string;
+            change_summary?: string | null;
+        };
+        /** @description The first content of a new draft. Texts may be empty until publishing. */
+        CreateLegalDraftRequest: {
+            document_type: components["schemas"]["LegalDocumentType"];
+            title_fr: string;
+            title_en: string;
+            body_fr: string;
+            body_en: string;
+            change_summary?: string | null;
+        };
+        PublicConfig: {
+            /**
+             * Format: email
+             * @description Where users can write. Null until an administrator sets it.
+             */
+            support_email: string | null;
+        };
+        AppSettings: {
+            /** Format: email */
+            support_email: string | null;
+            /**
+             * @description Whether new accounts can be created. Closing it answers
+             *     `403 REGISTRATION_CLOSED` to `POST /auth/register`, and to a first
+             *     Google sign-in; existing accounts keep working.
+             */
+            registration_open: boolean;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description Replaces the whole configuration. Without `support_email`, none is set. */
+        UpdateAppSettingsRequest: {
+            /** Format: email */
+            support_email?: string | null;
+            registration_open: boolean;
+        };
+        /**
          * @description The account. `password_hash` and `oauth_identity` rows are internal and
          *     appear in no response.
          */
@@ -1908,6 +2147,12 @@ export interface components {
             id: string;
             /** Format: email */
             email: string;
+            /**
+             * @description Whether this account reaches the administration screens. For display
+             *     only: every `/admin` endpoint checks it again on the server
+             *     (ADR 0015).
+             */
+            is_admin: boolean;
             display_name?: string | null;
             locale: components["schemas"]["Locale"];
             /**
@@ -2666,6 +2911,11 @@ export interface components {
              */
             stream_url: string;
             /**
+             * Format: password
+             * @description See `PlaybackInfo.secure_stream_url`. **Sensitive**, like `stream_url`.
+             */
+            secure_stream_url?: string | null;
+            /**
              * @description User-Agent the player should send, when the source requires a
              *     specific one. Null means the client's default.
              */
@@ -2705,6 +2955,23 @@ export interface components {
              *     it does not transit through Lumo.
              */
             stream_url: string;
+            /**
+             * Format: password
+             * @description **Sensitive**, under every rule written on `stream_url`.
+             *
+             *     The same stream at the `https` port the user's Xtream panel announces.
+             *     Null when `stream_url` is already `https`, when the source is not
+             *     Xtream, or when the panel announced no such port at the last
+             *     synchronisation.
+             *
+             *     **An announcement, not a promise.** Nothing here checks that the port
+             *     answers, that its certificate is valid or that the panel allows the
+             *     request: finding out would mean a call to the user's panel for every
+             *     playback. A browser on an `https` page, which cannot open an `http`
+             *     `stream_url` at all, tries this one and says so if it fails. An
+             *     application plays `stream_url` and can ignore this field.
+             */
+            secure_stream_url?: string | null;
             /**
              * @description User-Agent the player should send, when the source requires a
              *     specific one. Null means the client's default.
@@ -2751,6 +3018,11 @@ export interface components {
              *     level, `DEBUG` included (AGENTS.md §5).
              */
             stream_url: string;
+            /**
+             * Format: password
+             * @description See `PlaybackInfo.secure_stream_url`. **Sensitive**, like `stream_url`.
+             */
+            secure_stream_url?: string | null;
             /**
              * @description User-Agent the player should send, when the source requires a
              *     specific one. Null means the client's default.
@@ -3410,6 +3682,33 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description The caller is signed in and is not an administrator (`FORBIDDEN`). */
+        AdminOnly: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description No such version (`LEGAL_VERSION_NOT_FOUND`). */
+        LegalVersionNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description This version has been published and cannot change (`LEGAL_VERSION_NOT_DRAFT`). */
+        LegalVersionNotDraft: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description Rate limit exceeded (`RATE_LIMITED`). */
         TooManyRequests: {
             headers: {
@@ -3548,6 +3847,15 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            /** @description An administrator has closed the creation of accounts (`REGISTRATION_CLOSED`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /**
              * @description An account already exists for this email (`EMAIL_ALREADY_REGISTERED`).
              *     The client invites the user to sign in or reset their password.
@@ -3695,6 +4003,18 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             /** @description The Google ID token failed verification (`OAUTH_TOKEN_INVALID`). */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /**
+             * @description No account exists for this identity and an administrator has closed
+             *     the creation of accounts (`REGISTRATION_CLOSED`).
+             */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5644,6 +5964,284 @@ export interface operations {
                 };
             };
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getPublishedLegalDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_type: components["schemas"]["LegalDocumentType"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The published version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            /** @description Nothing published for this document yet (`LEGAL_DOCUMENT_NOT_PUBLISHED`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listLegalVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The versions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentVersionList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["AdminOnly"];
+        };
+    };
+    createLegalDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLegalDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description The draft. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["AdminOnly"];
+            /** @description This document already has a draft (`LEGAL_DRAFT_ALREADY_EXISTS`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getLegalVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentVersion"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["AdminOnly"];
+            404: components["responses"]["LegalVersionNotFound"];
+        };
+    };
+    updateLegalDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLegalDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated draft. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["AdminOnly"];
+            404: components["responses"]["LegalVersionNotFound"];
+            409: components["responses"]["LegalVersionNotDraft"];
+        };
+    };
+    deleteLegalDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The draft is gone. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["AdminOnly"];
+            404: components["responses"]["LegalVersionNotFound"];
+            409: components["responses"]["LegalVersionNotDraft"];
+        };
+    };
+    publishLegalDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource identifier. */
+                id: components["parameters"]["PathId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The version now in force. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentVersion"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["AdminOnly"];
+            404: components["responses"]["LegalVersionNotFound"];
+            409: components["responses"]["LegalVersionNotDraft"];
+            /** @description A title or a body is empty (`LEGAL_VERSION_INCOMPLETE`). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getPublicConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The public configuration. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicConfig"];
+                };
+            };
+        };
+    };
+    getAppSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The configuration. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["AdminOnly"];
+        };
+    };
+    updateAppSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAppSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated configuration. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["AdminOnly"];
         };
     };
 }

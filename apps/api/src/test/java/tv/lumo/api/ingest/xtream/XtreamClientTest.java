@@ -127,6 +127,23 @@ class XtreamClientTest {
 
         assertThat(account.maxConnections()).isEqualTo(2);
         assertThat(account.expiresAt()).isNotNull();
+        assertThat(account.httpsPort()).isEqualTo(8443);
+    }
+
+    @Test
+    @DisplayName("un port https nul, vide, absent ou impossible vaut « aucun port annoncé »")
+    void ignoresAnUnusableHttpsPort() {
+        for (String serverInfo : List.of(
+                "{\"https_port\":\"0\"}", "{\"https_port\":\"\"}", "{\"https_port\":\"70000\"}",
+                "{\"https_port\":\"N/A\"}", "{}")) {
+            server.removeContext("/player_api.php");
+            server.createContext("/player_api.php", exchange -> respondGzipped(exchange, """
+                    {"user_info":{"auth":1,"status":"Active"},"server_info":%s}
+                    """.formatted(serverInfo)));
+
+            assertThat(client.authenticate(host, "user", "secret").httpsPort())
+                    .as(serverInfo).isNull();
+        }
     }
 
     @Test
@@ -387,7 +404,7 @@ class XtreamClientTest {
     private static final String ACCOUNT = """
             {"user_info":{"username":"user","auth":1,"status":"Active",
              "exp_date":"1900000000","max_connections":"2","active_cons":"0"},
-             "server_info":{"url":"127.0.0.1","port":"80"}}
+             "server_info":{"url":"127.0.0.1","port":"80","https_port":"8443"}}
             """;
 
     private static final String CATEGORIES = """

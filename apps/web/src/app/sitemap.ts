@@ -44,6 +44,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...entry("/guides", { priority: 0.8, changeFrequency: "weekly" }),
     ...entry("/privacy", { priority: 0.3, changeFrequency: "yearly" }),
     ...entry("/delete-account", { priority: 0.3, changeFrequency: "yearly" }),
+    ...entry("/delete-data", { priority: 0.3, changeFrequency: "yearly" }),
     ...guideSlugs.flatMap((slug) =>
       entry(`/guides/${slug}`, {
         priority: 0.7,

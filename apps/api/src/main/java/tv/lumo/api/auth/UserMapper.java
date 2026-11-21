@@ -15,7 +15,7 @@ import tv.lumo.api.generated.model.User;
 public class UserMapper {
 
     public User toApi(UserRow row) {
-        User user = new User(row.id(), row.email(), Locale.fromValue(row.locale()),
+        User user = new User(row.id(), row.email(), row.admin(), Locale.fromValue(row.locale()),
                 row.createdAt(), row.updatedAt());
         user.setDisplayName(row.displayName());
         user.setEmailVerifiedAt(row.emailVerifiedAt());
