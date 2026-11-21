@@ -7,6 +7,7 @@ publie rien.
 | Document | Contenu |
 |---|---|
 | [`checklist-play-console.md`](checklist-play-console.md) | **Le pas à pas** : créer « Lumo » et « Lumo TV », envoyer les AAB, ajouter les testeurs |
+| [`test-ouvert.md`](test-ouvert.md) | Ce qu'il faut **en plus** pour la piste de test ouvert : verrou du compte personnel, politique publiée, contact, accès examinateur, fiche complète |
 | [`exigences-play.md`](exigences-play.md) | Ce qui a été vérifié dans les bundles et les manifestes, et ce qui manque |
 | [`fiche-telephone.md`](fiche-telephone.md) | Fiche FR/EN de `tv.lumo.android` |
 | [`fiche-tv.md`](fiche-tv.md) | Fiche FR/EN de `tv.lumo.androidtv` |

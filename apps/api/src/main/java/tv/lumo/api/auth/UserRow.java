@@ -16,6 +16,7 @@ public record UserRow(
         String passwordHash,
         String displayName,
         String locale,
+        boolean admin,
         OffsetDateTime emailVerifiedAt,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt

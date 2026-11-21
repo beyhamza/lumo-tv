@@ -59,5 +59,7 @@ de permission à remplir dans la Console**.
 | Captures sans contenu réel | ✅ | banc de test uniquement (« Chaîne 001 »…, guide généré), voir [`ecrans/README.md`](ecrans/README.md) |
 | Ressemblance du logo | ⚠️ **à décider par Hamza** | le logo (rectangle arrondi plein + triangle de lecture) rappelle celui d'une grande plateforme vidéo. Le règlement « Usurpation d'identité » vise les icônes qui imitent une marque connue ; le risque est faible avec la couleur bleue, mais un vérificateur sévère peut le relever. Décision de marque, hors de ce lot |
 | Suppression de compte dans l'application et par le web | ❌ en cours | S16B-02 (autre session) ; obligatoire pour toute application qui crée des comptes, demandé dans le formulaire « Sécurité des données » |
-| Politique de confidentialité publiée | ❌ en cours | S16B-03 (autre session) ; URL obligatoire dans la Console |
+| Politique de confidentialité publiée | ❌ à publier | page et administration prêtes (S16B-03, S16B-08) ; reste à compléter le texte et publier une version. URL obligatoire dans la Console |
+| Coordonnées de contact | ❌ à faire | l'adresse se règle dans Administration → Configuration, après création de l'adresse (S16B-00) |
+| SDK Google Cast déclaré (téléphone) | ⚠️ à décider par Hamza | [`securite-des-donnees.md`](securite-des-donnees.md) §1 et §5 |
 | Accès pour le vérificateur | ❌ à préparer | un compte de démonstration **et** une source du banc joignable sur Internet ; voir [`checklist-play-console.md`](checklist-play-console.md) §5 |

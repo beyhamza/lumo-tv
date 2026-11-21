@@ -25,6 +25,7 @@ import com.squareup.moshi.JsonClass
  *
  * @param id 
  * @param email 
+ * @param isAdmin Whether this account reaches the administration screens. For display only: every `/admin` endpoint checks it again on the server (ADR 0015). 
  * @param locale 
  * @param createdAt 
  * @param updatedAt 
@@ -40,6 +41,10 @@ data class User (
 
     @Json(name = "email")
     val email: kotlin.String,
+
+    /* Whether this account reaches the administration screens. For display only: every `/admin` endpoint checks it again on the server (ADR 0015).  */
+    @Json(name = "is_admin")
+    val isAdmin: kotlin.Boolean,
 
     @Json(name = "locale")
     val locale: Locale,

@@ -29,11 +29,19 @@ serveur : **les réponses sont identiques pour `tv.lumo.android` et
 
 Ce que l'application **ne fait pas** (vérifié dans les dépendances et les
 manifestes) : aucune publicité, aucun SDK d'analyse ni de rapport de plantage
-(ni Firebase, ni Crashlytics, ni Sentry), aucun service Google Play
-(`play-services`), aucune localisation, aucun accès aux contacts, photos,
+(ni Firebase, ni Crashlytics, ni Sentry), aucune localisation, aucun accès aux contacts, photos,
 fichiers, micro ou caméra, aucun achat intégré. La lecture des flux se fait
 **directement** entre l'appareil et le serveur du fournisseur de l'utilisateur :
 le flux vidéo ne passe pas par les serveurs Lumo.
+
+**Correction du 01/11/2026 : Chromecast (S16).** Ce document disait « aucun service Google
+Play », ce qui n'est plus vrai pour l'application téléphone : elle embarque
+`play-services-cast-framework` (S16, ADR 0013). L'application TV n'est pas concernée. Selon
+[la page de Google](https://developers.google.com/cast/docs/android_sender/data_disclosure),
+ce SDK envoie à Google des journaux sur les interactions avec les appareils Cast, anonymes
+et chiffrés en transit, sans partage à des tiers et sans possibilité de les désactiver ; Google
+laisse au développeur le soin de décider de sa déclaration. **À confirmer**, voir §5. Les
+permissions ajoutées par ce SDK sont aussi à relire dans le manifeste fusionné du prochain bundle.
 
 ---
 
@@ -120,7 +128,9 @@ note porte sur l'application, pas sur ce que l'utilisateur y branche.
 2. Proxy TLS en place et adresse de l'API de production (S16B-00, S16B-01).
 3. Conservation des adresses IP dans les journaux de production (S16B-01) :
    déclaration ou non.
+   Le SDK Google Cast de l'application téléphone (§1) : relire la page de Google et
+   décider de sa déclaration pour **Lumo** uniquement.
 4. Catégorie IARC : « Toutes les autres » (proposé) ou « Divertissement ».
 5. Si une fonction est ajoutée d'ici l'envoi (historique de recherche, rapport
-   de plantage, Chromecast, achat), **refaire ce formulaire avant l'envoi** :
+   de plantage, achat), **refaire ce formulaire avant l'envoi** :
    une déclaration fausse est un motif de retrait, pas seulement de refus.

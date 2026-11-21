@@ -7,6 +7,8 @@ import tv.lumo.api.generated.model.EpgAttemptStatus;
 import tv.lumo.api.generated.model.EpgMappingStatus;
 import tv.lumo.api.generated.model.ErrorCode;
 import tv.lumo.api.generated.model.IngestionErrorCode;
+import tv.lumo.api.generated.model.LegalDocumentType;
+import tv.lumo.api.generated.model.LegalVersionStatus;
 import tv.lumo.api.generated.model.Locale;
 import tv.lumo.api.generated.model.Plan;
 import tv.lumo.api.generated.model.Platform;
@@ -83,6 +85,24 @@ public class EnumConverterConfiguration {
             @Override
             public IngestionErrorCode convert(String source) {
                 return IngestionErrorCode.fromValue(source);
+            }
+        };
+    }
+    @Bean(name = "org.openapitools.configuration.EnumConverterConfiguration.legalDocumentTypeConverter")
+    Converter<String, LegalDocumentType> legalDocumentTypeConverter() {
+        return new Converter<String, LegalDocumentType>() {
+            @Override
+            public LegalDocumentType convert(String source) {
+                return LegalDocumentType.fromValue(source);
+            }
+        };
+    }
+    @Bean(name = "org.openapitools.configuration.EnumConverterConfiguration.legalVersionStatusConverter")
+    Converter<String, LegalVersionStatus> legalVersionStatusConverter() {
+        return new Converter<String, LegalVersionStatus>() {
+            @Override
+            public LegalVersionStatus convert(String source) {
+                return LegalVersionStatus.fromValue(source);
             }
         };
     }

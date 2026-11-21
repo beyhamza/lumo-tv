@@ -163,6 +163,9 @@ export default async function AppLayout({
     // Current on every section: the sections are under `/app/settings`, and
     // nothing more specific is listed (`lib/settings/sections.test.ts`).
     entry("/app/settings", t("navSettings")),
+    // Only drawn for an administrator. What closes these pages is `requireAdmin`
+    // and the API, not the absence of a link (ADR 0015).
+    ...(me.state === "ok" && me.data.is_admin ? [entry("/app/admin", t("navAdmin"))] : []),
   ];
 
   // One current entry across both groups, not one per group and never two. The

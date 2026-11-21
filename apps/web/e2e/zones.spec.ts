@@ -74,6 +74,14 @@ test.describe("marketing", () => {
     expect(blocks.length).toBeGreaterThan(0);
     for (const block of blocks) expect(() => JSON.parse(block)).not.toThrow();
   });
+
+  test("the legal pages answer without a session", async ({ page }) => {
+    for (const path of ["/fr/privacy", "/en/terms", "/fr/terms-of-sale", "/fr/delete-account", "/en/delete-data"]) {
+      const response = await page.goto(path);
+      expect(response?.status(), path).toBe(200);
+      await expect(page.getByRole("heading", { level: 1 }), path).toBeVisible();
+    }
+  });
 });
 
 test.describe("account", () => {
@@ -84,6 +92,12 @@ test.describe("account", () => {
     // The `next` parameter is what returns the visitor to where they were
     // going; losing it is the kind of regression nobody notices in review.
     expect(new URL(page.url()).searchParams.get("next")).toContain("/app/sources");
+  });
+
+  test("the administration sends an anonymous visitor to sign-in too", async ({ page }) => {
+    await page.goto("/fr/app/admin/legal");
+
+    await expect(page).toHaveURL(/\/fr\/login\?next=/);
   });
 
   test("the session cookie is not readable from JavaScript", async ({ page }) => {

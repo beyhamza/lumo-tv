@@ -2,6 +2,8 @@ src/main/kotlin/tv/lumo/android/network/generated/api/AccountApi.kt
 src/main/kotlin/tv/lumo/android/network/generated/api/AuthApi.kt
 src/main/kotlin/tv/lumo/android/network/generated/api/BillingApi.kt
 src/main/kotlin/tv/lumo/android/network/generated/api/CatalogApi.kt
+src/main/kotlin/tv/lumo/android/network/generated/api/LegalApi.kt
+src/main/kotlin/tv/lumo/android/network/generated/api/SettingsApi.kt
 src/main/kotlin/tv/lumo/android/network/generated/api/SourcesApi.kt
 src/main/kotlin/tv/lumo/android/network/generated/api/UserdataApi.kt
 src/main/kotlin/tv/lumo/android/network/generated/auth/HttpBearerAuth.kt
@@ -19,6 +21,7 @@ src/main/kotlin/tv/lumo/android/network/generated/infrastructure/URIAdapter.kt
 src/main/kotlin/tv/lumo/android/network/generated/infrastructure/UUIDAdapter.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/AddFavoriteRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/AddWatchlistItemRequest.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/AppSettings.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/ApproveDeviceRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/AuthSession.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/BillingSession.kt
@@ -29,6 +32,7 @@ src/main/kotlin/tv/lumo/android/network/generated/model/ChannelPage.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/ContentType.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/CreateCheckoutSessionRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/CreateFavoriteGroupRequest.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/CreateLegalDraftRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/CreatePortalSessionRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/CreateSourceRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/DeleteAccountRequest.kt
@@ -62,6 +66,10 @@ src/main/kotlin/tv/lumo/android/network/generated/model/ForgotPasswordRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/GoogleSignInRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/HideProgressRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/IngestionErrorCode.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/LegalDocumentType.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/LegalDocumentVersion.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/LegalDocumentVersionList.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/LegalVersionStatus.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Locale.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/LoginRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Plan.kt
@@ -71,6 +79,7 @@ src/main/kotlin/tv/lumo/android/network/generated/model/PlaybackProgress.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/PlaybackProgressPage.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/Problem.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/ProgressItemType.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/PublicConfig.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/RecentChannel.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/RecentChannelList.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/RecordRecentChannelRequest.kt
@@ -88,8 +97,10 @@ src/main/kotlin/tv/lumo/android/network/generated/model/SourceList.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/SourceStatus.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/SyncStep.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/TokenPair.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/UpdateAppSettingsRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/UpdateFavoriteGroupRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/UpdateFavoriteRequest.kt
+src/main/kotlin/tv/lumo/android/network/generated/model/UpdateLegalDraftRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/UpdateSourceRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/UpdateUserRequest.kt
 src/main/kotlin/tv/lumo/android/network/generated/model/User.kt
