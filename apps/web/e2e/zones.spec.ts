@@ -76,7 +76,7 @@ test.describe("marketing", () => {
   });
 
   test("the legal pages answer without a session", async ({ page }) => {
-    for (const path of ["/fr/privacy", "/en/terms", "/fr/terms-of-sale"]) {
+    for (const path of ["/fr/privacy", "/en/terms", "/fr/terms-of-sale", "/fr/delete-account", "/en/delete-data"]) {
       const response = await page.goto(path);
       expect(response?.status(), path).toBe(200);
       await expect(page.getByRole("heading", { level: 1 }), path).toBeVisible();

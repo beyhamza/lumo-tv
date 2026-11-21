@@ -48,6 +48,9 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
           <a href={hrefFor(locale, "/delete-account")} className="hover:text-foreground">
             {t("deleteAccount")}
           </a>
+          <a href={hrefFor(locale, "/delete-data")} className="hover:text-foreground">
+            {t("deleteData")}
+          </a>
           <a href={hrefFor(locale, "/terms")} className="hover:text-foreground">
             {t("terms")}
           </a>

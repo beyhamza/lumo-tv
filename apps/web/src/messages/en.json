@@ -27,7 +27,8 @@
     "privacy": "Privacy",
     "terms": "Terms",
     "contact": "Contact",
-    "deleteAccount": "Delete your account"
+    "deleteAccount": "Delete your account",
+    "deleteData": "Delete your data"
   },
   "Landing": {
     "metaTitle": "Lumo TV — IPTV player for Android, Android TV and the web",
@@ -842,6 +843,60 @@
     "helpBody": "If you can no longer sign in, write to [contact address to be completed] from your account's address.",
     "privacyLink": "Read the privacy policy"
   },
+  "DataDeletion": {
+    "metaTitle": "Delete your Lumo TV data without deleting your account",
+    "metaDescription": "How to delete some of your Lumo TV data (sources, favourites, list, devices) while keeping your account, and what is kept.",
+    "title": "Delete your data without deleting your account",
+    "intro": "You can delete part of your Lumo TV data yourself at any time and keep your account. Each deletion below is immediate and permanent.",
+    "where": "These actions are available on the website, once signed in, and in the Lumo Android app (phone or TV), in the same places.",
+    "items": [
+      {
+        "title": "A source and everything that comes from it",
+        "steps": [
+          "Open Sources.",
+          "Open the source to delete.",
+          "Choose “Delete this source” and confirm."
+        ],
+        "removes": "Deleted: the playlist and guide addresses or the Xtream credentials (encrypted), the imported catalogue (channels, films, series, programme guide), and your favourites, playback progress, recent channels and the films and series in “My list” from that source. Your other sources are not touched."
+      },
+      {
+        "title": "A favourite",
+        "steps": [
+          "Open Favourites.",
+          "On the channel, choose “Remove” (or “Remove from all my favourites”)."
+        ],
+        "removes": "The channel is removed from your favourites and your groups."
+      },
+      {
+        "title": "An item in “My list”",
+        "steps": [
+          "Open My list.",
+          "On the film or series, choose “Remove from my list”."
+        ],
+        "removes": "The item and its intention are deleted."
+      },
+      {
+        "title": "A connected device",
+        "steps": [
+          "Open Settings, then Account and devices.",
+          "On the device, choose “Sign out” and confirm."
+        ],
+        "removes": "The device and its sessions are deleted; it returns to the sign-in screen."
+      }
+    ],
+    "keptTitle": "What is kept",
+    "keptBody": "Your account (email address, hashed password, display name, language), your other sources and the data attached to them. “Remove from Continue” hides a title from the home screen but keeps its playback position: to erase it, delete the source it belongs to.",
+    "timingTitle": "Timing",
+    "timingBody": "Deletion happens immediately, with no grace period, and nothing is kept for analytics. Database backups, used only to restore the service after an incident, expire on their own retention schedule.",
+    "localTitle": "On your devices",
+    "localBody": "Copies cached on a device (catalogue, preferences) disappear at its next synchronisation, when it signs out, or when the app is uninstalled.",
+    "helpTitle": "Other requests",
+    "helpBody": "For any other deletion request, write to us through the Contact link at the bottom of the page, from your account's address.",
+    "everythingTitle": "Delete everything",
+    "everythingBody": "To erase your account and all your data at once, delete your account.",
+    "accountLink": "Delete your account",
+    "privacyLink": "Read the privacy policy"
+  },
   "Privacy": {
     "metaTitle": "Privacy policy",
     "metaDescription": "The data Lumo TV processes, why, where it goes and how to delete it.",
@@ -1100,7 +1155,8 @@
           "title": "Store listing",
           "answer": "FR and EN texts, icon, feature graphic and screenshots are ready in docs/releases/0.4.0/play/: fiche-telephone.md, fiche-tv.md, graphismes/ and ecrans/."
         }
-      ]
+      ],
+      "addressDataDeletion": "Data deletion"
     }
   }
 }

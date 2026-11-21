@@ -27,7 +27,8 @@
     "privacy": "Confidentialité",
     "terms": "Conditions",
     "contact": "Contact",
-    "deleteAccount": "Supprimer son compte"
+    "deleteAccount": "Supprimer son compte",
+    "deleteData": "Supprimer ses données"
   },
   "Landing": {
     "metaTitle": "Lumo TV — lecteur IPTV pour Android, Android TV et web",
@@ -842,6 +843,60 @@
     "helpBody": "Si vous ne pouvez plus vous connecter, écrivez à [adresse de contact à compléter] depuis l'adresse de votre compte.",
     "privacyLink": "Lire la politique de confidentialité"
   },
+  "DataDeletion": {
+    "metaTitle": "Supprimer ses données Lumo TV sans supprimer son compte",
+    "metaDescription": "Comment supprimer une partie de vos données Lumo TV (sources, favoris, liste, appareils) tout en gardant votre compte, et ce qui est conservé.",
+    "title": "Supprimer ses données sans supprimer son compte",
+    "intro": "Vous pouvez supprimer vous-même une partie de vos données Lumo TV à tout moment, en gardant votre compte. Chaque suppression ci-dessous est immédiate et définitive.",
+    "where": "Ces actions sont disponibles sur le site, une fois connecté, et dans l'application Android Lumo (téléphone ou TV), aux mêmes endroits.",
+    "items": [
+      {
+        "title": "Une source et tout ce qui en vient",
+        "steps": [
+          "Ouvrez Sources.",
+          "Ouvrez la source à supprimer.",
+          "Choisissez « Supprimer cette source » et confirmez."
+        ],
+        "removes": "Sont supprimés : l'adresse de la playlist et du guide ou les identifiants Xtream (chiffrés), le catalogue importé (chaînes, films, séries, guide des programmes), ainsi que vos favoris, progressions de lecture, chaînes récentes et les films et séries de « Ma liste » liés à cette source. Vos autres sources ne sont pas touchées."
+      },
+      {
+        "title": "Un favori",
+        "steps": [
+          "Ouvrez Favoris.",
+          "Sur la chaîne, choisissez « Retirer » (ou « Retirer de tous mes favoris »)."
+        ],
+        "removes": "La chaîne est retirée de vos favoris et de vos groupes."
+      },
+      {
+        "title": "Un élément de « Ma liste »",
+        "steps": [
+          "Ouvrez Ma liste.",
+          "Sur le film ou la série, choisissez « Retirer de ma liste »."
+        ],
+        "removes": "L'élément et l'intention associée sont supprimés."
+      },
+      {
+        "title": "Un appareil connecté",
+        "steps": [
+          "Ouvrez Réglages, puis Compte et appareils.",
+          "Sur l'appareil, choisissez « Déconnecter » et confirmez."
+        ],
+        "removes": "L'appareil et ses sessions sont supprimés ; il revient à l'écran de connexion."
+      }
+    ],
+    "keptTitle": "Ce qui est conservé",
+    "keptBody": "Votre compte (adresse email, mot de passe haché, nom affiché, langue), vos autres sources et les données qui y sont rattachées. « Retirer de Continuer » masque un titre de l'accueil mais garde sa position de lecture : pour l'effacer, supprimez la source concernée.",
+    "timingTitle": "Délais",
+    "timingBody": "La suppression est faite tout de suite, sans délai de grâce, et rien n'est conservé pour des statistiques. Les sauvegardes de la base, qui ne servent qu'à restaurer le service après un incident, s'effacent d'elles-mêmes selon leur durée de conservation.",
+    "localTitle": "Sur vos appareils",
+    "localBody": "Les copies en cache sur un appareil (catalogue, préférences) disparaissent à sa prochaine synchronisation, à sa déconnexion ou en désinstallant l'application.",
+    "helpTitle": "Autre demande",
+    "helpBody": "Pour toute autre demande de suppression, écrivez-nous via le lien Contact en bas de page, depuis l'adresse de votre compte.",
+    "everythingTitle": "Tout supprimer",
+    "everythingBody": "Pour effacer votre compte et l'ensemble de vos données en une fois, supprimez votre compte.",
+    "accountLink": "Supprimer son compte",
+    "privacyLink": "Lire la politique de confidentialité"
+  },
   "Privacy": {
     "metaTitle": "Politique de confidentialité",
     "metaDescription": "Les données que Lumo TV traite, pourquoi, où elles vont et comment les supprimer.",
@@ -1100,7 +1155,8 @@
           "title": "Fiche Play (Store listing)",
           "answer": "Textes FR et EN, icône, image de présentation et captures sont prêts dans docs/releases/0.4.0/play/ : fiche-telephone.md, fiche-tv.md, graphismes/ et ecrans/."
         }
-      ]
+      ],
+      "addressDataDeletion": "Suppression de données"
     }
   }
 }

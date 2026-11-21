@@ -64,7 +64,7 @@ en affiche la preuve.
 
 | Zone | Routes | Rendu | Marque dans `next build` |
 |---|---|---|---|
-| Marketing | `/[locale]`, `/[locale]/guides/*`, `/privacy`, `/terms`, `/terms-of-sale`, `/delete-account` | SSG + ISR (`revalidate = 3600`) | `●` |
+| Marketing | `/[locale]`, `/[locale]/guides/*`, `/privacy`, `/terms`, `/terms-of-sale`, `/delete-account`, `/delete-data` | SSG + ISR (`revalidate = 3600`) | `●` |
 | Compte | `/[locale]/app/*` | SSR authentifié | `ƒ` |
 | Administration | `/[locale]/app/admin/*` | SSR, 404 sauf administrateur (`requireAdmin`, ADR 0015) | `ƒ` |
 | Activation | `/[locale]/activate` | SSR minimal | `ƒ` |
@@ -345,7 +345,9 @@ contorsions.
   Compte et appareils propose « Supprimer mon compte » (mot de passe,
   `POST /me/delete`, ADR 0014), et Aide lie `/privacy` et `/delete-account`,
   deux pages marketing statiques — la seconde est le lien de suppression donné
-  à Google Play. La politique porte un avertissement « à valider par Hamza »
+  à Google Play. `/delete-data` (pied de page) est le lien « supprimer ses données sans
+  supprimer son compte » : elle décrit les suppressions existantes (source, favori, liste,
+  appareil) et ce qui est conservé. La politique porte un avertissement « à valider par Hamza »
   et des passages entre crochets tant qu'aucune version n'est publiée.
 - **Administration (S16B-08, ADR 0015)** : `/app/admin/{legal|settings|play}`. Documents
   légaux versionnés, configuration, réponses aux tâches de la Play Console. Le web refuse de

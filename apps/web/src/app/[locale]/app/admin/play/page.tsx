@@ -73,6 +73,7 @@ export default async function AdminPlayPage({ params }: PageProps<"/[locale]/app
   const addresses = [
     { label: t("addressPrivacy"), value: `${base}/${locale}/privacy` },
     { label: t("addressDeletion"), value: `${base}/${locale}/delete-account` },
+    { label: t("addressDataDeletion"), value: `${base}/${locale}/delete-data` },
     { label: t("addressSite"), value: base },
   ];
   const tasks = t.raw("tasks") as PlayTask[];
