@@ -47,6 +47,7 @@
     <string name="feature_series_player_expired">Votre abonnement chez ce fournisseur a expiré.</string>
     <string name="feature_series_player_episode_gone">Cet épisode n\'est plus listé. Rouvrez la série.</string>
     <string name="feature_series_player_unplayable">Cet épisode ne peut pas être lu sur cet appareil.</string>
+    <string name="feature_series_player_not_a_stream">Le serveur de votre source a envoyé une page web au lieu de cet épisode. Votre fournisseur d’accès le bloque peut-être.</string>
     <string name="feature_series_player_unexpected">Cet épisode n\'a pas pu être lu.</string>
     <string name="feature_series_up_next">À suivre</string>
     <string name="feature_series_up_next_in">À suivre dans %1$d s</string>
@@ -67,4 +68,8 @@
     <string name="feature_series_watch_again_episode">Revoir %1$s</string>
     <string name="feature_series_start_over_episode">Recommencer %1$s</string>
     <string name="feature_series_episode_resume_at">Reprendre à %1$s</string>
+    <string name="feature_series_loading_title">Chargement de vos séries</string>
+    <string name="feature_series_loading_body">Le premier téléchargement du catalogue peut prendre plusieurs minutes. Les séries apparaissent quand il est terminé.</string>
+    <string name="feature_series_loading_progress">%1$,d séries téléchargées sur %2$,d. Elles apparaissent quand le téléchargement est terminé.</string>
+    <string name="feature_series_loading_count">Téléchargement : %1$,d sur %2$,d</string>
 </resources>

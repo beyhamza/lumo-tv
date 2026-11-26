@@ -576,6 +576,7 @@ private fun PlayerFailure.tvMessage(): String = when (this) {
     PlayerFailure.SubscriptionExpired -> stringResource(R.string.feature_live_player_expired)
     PlayerFailure.ChannelGone -> stringResource(R.string.feature_live_player_channel_gone)
     PlayerFailure.Unplayable -> stringResource(R.string.feature_live_player_unplayable)
+    PlayerFailure.NotAStream -> stringResource(R.string.feature_live_player_not_a_stream)
     PlayerFailure.Unexpected -> stringResource(R.string.feature_live_player_unexpected)
 }
 
