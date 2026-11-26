@@ -148,6 +148,7 @@ class DevicePollTest {
                 "id": "${UUID.randomUUID()}",
                 "email": "someone@example.test",
                 "locale": "fr",
+                "is_admin": false,
                 "created_at": "$now",
                 "updated_at": "$now"
               }
