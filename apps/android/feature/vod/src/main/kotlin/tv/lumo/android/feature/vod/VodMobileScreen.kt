@@ -211,6 +211,12 @@ fun VodMobileScreen(
                         actionLabel = stringResource(DataR.string.core_data_catalogue_retry),
                         onAction = viewModel::refresh,
                     )
+                } else if (films.itemCount == 0 && state.refreshing && state.query.isBlank()) {
+                    // See the television screen (S16B-10).
+                    Message(
+                        title = stringResource(R.string.feature_vod_loading_title),
+                        body = loadingBody(state.loadProgress),
+                    )
                 } else if (films.itemCount == 0 && !state.refreshing) {
                     Message(
                         title = if (state.query.isBlank()) {
@@ -267,9 +273,20 @@ private fun Header(state: VodState, onRefresh: () -> Unit) {
             // Discreet, and only when it is true — the same rule the channel
             // screen follows, for the same reason: serving the cache is what this
             // screen does well, and a banner would call it a failure.
-            if (state.origin == DataOrigin.Cache) {
+            // Not while a download runs: that is the network, working (S16B-10).
+            if (state.origin == DataOrigin.Cache && !state.refreshing) {
                 Text(
                     text = stringResource(R.string.feature_vod_offline),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // How far the download has got, whatever the grid holds: rows written by
+            // a rail or a favourite would otherwise pass for the catalogue (S16B-10).
+            state.loadProgress?.takeIf { it.total > 0 }?.let { progress ->
+                Text(
+                    text = stringResource(R.string.feature_vod_loading_count, progress.loaded, progress.total),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

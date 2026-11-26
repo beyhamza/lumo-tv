@@ -19,6 +19,7 @@ import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.internal.ApiCaller
 import tv.lumo.android.core.data.map
+import tv.lumo.android.core.data.model.CatalogueLoadProgress
 import tv.lumo.android.core.data.model.Cached
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
@@ -290,7 +291,10 @@ class SeriesRepository @Inject internal constructor(
      * (`adr/0010`), and an empty page means an empty grid — not a banner telling
      * somebody their source is broken.
      */
-    suspend fun refresh(sourceId: String): LumoResult<Unit> = withContext(io) {
+    suspend fun refresh(
+        sourceId: String,
+        onProgress: (CatalogueLoadProgress) -> Unit = {},
+    ): LumoResult<Unit> = withContext(io) {
         val id = UUID.fromString(sourceId)
 
         val categories = calls.call { api.listCategories(id, ContentType.SERIES) }
@@ -304,6 +308,8 @@ class SeriesRepository @Inject internal constructor(
 
             val body = (result as LumoResult.Success).value
             rows += body.items.map { it.asEntity() }
+            // Said after every page: the grid shows nothing until the end (S16B-10).
+            onProgress(CatalogueLoadProgress(loaded = rows.size, total = body.totalElements.toInt()))
 
             if (page + 1 >= body.totalPages || page + 1 >= MAX_PAGES) break
             page++

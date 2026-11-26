@@ -30,6 +30,7 @@
     <string name="feature_live_player_expired">Votre abonnement chez ce fournisseur a expiré. Lumo ne peut pas le renouveler.</string>
     <string name="feature_live_player_channel_gone">Cette chaîne n\'est plus dans votre playlist. Actualisez la liste pour voir ce qui y est.</string>
     <string name="feature_live_player_unplayable">Cet appareil ne sait pas décoder ce flux.</string>
+    <string name="feature_live_player_not_a_stream">Le serveur de votre source a envoyé une page web au lieu de cette chaîne. Votre fournisseur d’accès le bloque peut-être.</string>
     <string name="feature_live_player_unexpected">La lecture s\'est arrêtée. Réessayez.</string>
 
     <!-- Favoris (US-12). -->

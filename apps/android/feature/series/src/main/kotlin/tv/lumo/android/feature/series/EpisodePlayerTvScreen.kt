@@ -634,6 +634,9 @@ private fun EpisodePlayerFailure.tvMessage(): String = when (this) {
     EpisodePlayerFailure.Unplayable ->
         stringResource(R.string.feature_series_player_unplayable)
 
+    EpisodePlayerFailure.NotAStream ->
+        stringResource(R.string.feature_series_player_not_a_stream)
+
     EpisodePlayerFailure.Unexpected ->
         stringResource(R.string.feature_series_player_unexpected)
 }

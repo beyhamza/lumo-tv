@@ -256,9 +256,20 @@ private fun Browsing(
                 style = MaterialTheme.typography.displayMedium,
                 color = LumoColors.OnDark,
             )
-            if (state.origin == DataOrigin.Cache) {
+            // Not while a download runs: that is the network, working (S16B-10).
+            if (state.origin == DataOrigin.Cache && !state.refreshing) {
                 Text(
                     text = stringResource(R.string.feature_series_offline),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = LumoColors.OnDarkMuted,
+                )
+            }
+
+            // How far the download has got, whatever the grid holds: rows written by
+            // a rail or a favourite would otherwise pass for the catalogue (S16B-10).
+            state.loadProgress?.takeIf { it.total > 0 }?.let { progress ->
+                Text(
+                    text = stringResource(R.string.feature_series_loading_count, progress.loaded, progress.total),
                     style = MaterialTheme.typography.labelLarge,
                     color = LumoColors.OnDarkMuted,
                 )
@@ -308,6 +319,16 @@ private fun Browsing(
                 body = stringResource(DataR.string.core_data_catalogue_unavailable_body),
                 actionLabel = stringResource(DataR.string.core_data_catalogue_retry),
                 onAction = onRetry,
+            )
+            return@Column
+        }
+
+        // A first download writes once, at the end: until then the grid says
+        // how far it has got rather than nothing at all (S16B-10).
+        if (series.itemCount == 0 && state.refreshing) {
+            TvMessage(
+                title = stringResource(R.string.feature_series_loading_title),
+                body = loadingBody(state.loadProgress),
             )
             return@Column
         }
