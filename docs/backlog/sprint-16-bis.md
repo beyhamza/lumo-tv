@@ -77,8 +77,27 @@ installées depuis la piste de **test interne** de Google Play, sur un vrai tél
   - [ ] Hamza : accepter l'ADR 0015, se désigner administrateur en production
     ([procédure](../ops/deploy-vps.md)), compléter et publier la politique, rédiger CGU et CGV.
     Android non modifié : la fermeture des inscriptions y affiche le message générique
+- [ ] S16B-10 — lecture impossible sur la TV du test fermé — 85 % (signalé par Hamza, 26/11, branche
+  `feat/S16B-10-blocked-stream-notice`). Diagnostic sur l'émulateur avec la 0.4.0 de la piste : ni le
+  lecteur ni le HTTP en clair ne sont en cause. Le DNS du fournisseur d'accès redirige le panel vers
+  une page de blocage (`301` vers une page HTML) ; Media3 suit la redirection et échoue
+  (`#EXTM3U` absent pour le direct, aucun extracteur pour les films). Résolu par un DNS public, le
+  direct et les films se lisent. L'application ne contourne pas ce blocage (décision du 26/11 :
+  risque de retrait Play et de responsabilité de l'éditeur) ; elle le nomme :
+  - [x] lecteur : type de la dernière réponse noté, une page web servie à la place du flux devient
+    `PlaybackError.NOT_A_STREAM` au lieu de « l'appareil ne sait pas décoder » ; `PlaybackErrorsTest`
+  - [x] direct, films, épisodes, mobile et TV : message dédié FR/EN, sans nouvel essai proposé
+  - [x] films et séries : pendant le premier téléchargement du catalogue (≈ 7 min pour 146 000 films),
+    plus de « Hors ligne » ; progression « 39 800 sur 146 550 » dans l'en-tête et message de
+    chargement quand la grille est vide
+  - [x] fixtures Android de `core:data` complétées de `is_admin` (S16B-08 avait cassé 5 tests)
+  - [x] vérifié sur l'émulateur TV contre l'API de production (message sur un film bloqué,
+    progression pendant la synchronisation)
+  - [ ] Hamza : essai sur la TV avec une build de la piste. **Ne pas publier une build de `dev` ou de
+    `release/0.4.0` avant le redéploiement de l'API** : la prod n'envoie pas encore `is_admin`, et ces
+    builds ne savent plus ouvrir de session
 
-**Avancement global ≈ 72 %**.
+**Avancement global ≈ 73 %**.
 
 Branches : `feat/S16B-prod-stack` (pile VPS), `feat/S16B-account-privacy` (suppression de compte,
 confidentialité), `feat/S16B-play-release` (version, fiche Play) ; réunies dans `feat/merge-s16`.
@@ -108,6 +127,7 @@ confidentialité publiée.
 | S16B-06 | Envoi des deux bundles sur la piste de test interne, liste de testeurs. **Fait par Hamza** dans la Play Console : l'agent prépare, ne publie pas | Hamza ; tout le reste |
 | S16B-07 | Lecture web en https quand le panel Xtream l'annonce | Contrat, API, web |
 | S16B-08 | Administration réservée aux comptes administrateurs : versions des CGU, CGV et politique de confidentialité, configuration, réponses aux tâches de la Play Console | Contrat, API, web ; ADR 0015 |
+| S16B-10 | Nommer un flux remplacé par une page web (blocage du fournisseur d'accès) et dire l'avancement du premier téléchargement des films et séries | Android |
 
 ## Sortie
 
