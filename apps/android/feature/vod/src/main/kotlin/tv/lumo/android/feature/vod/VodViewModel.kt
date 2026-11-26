@@ -34,6 +34,7 @@ import tv.lumo.android.core.data.SourceNotice
 import tv.lumo.android.core.data.asCatalogueSource
 import tv.lumo.android.core.data.face
 import tv.lumo.android.core.data.model.Category
+import tv.lumo.android.core.data.model.CatalogueLoadProgress
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.ResumableFilm
 import tv.lumo.android.core.data.model.SheetPlay
@@ -251,7 +252,9 @@ class VodViewModel @Inject constructor(
         _state.update { it.copy(refreshing = true) }
 
         viewModelScope.launch {
-            val result = vod.refresh(sourceId)
+            val result = vod.refresh(sourceId) { progress ->
+                _state.update { if (it.sourceId == sourceId) it.copy(loadProgress = progress) else it }
+            }
 
             // `SOURCE_NOT_FOUND` is a deletion made elsewhere, not a refresh that
             // failed: the repository decides what is browsed next and this screen
@@ -267,6 +270,7 @@ class VodViewModel @Inject constructor(
                 } else {
                     it.copy(
                         refreshing = false,
+                        loadProgress = null,
                         refreshFailed = result is LumoResult.Failure && !gone,
                     )
                 }
@@ -362,6 +366,8 @@ data class VodState(
     val filter: VodFilter = VodFilter.All,
     val query: String = "",
     val refreshing: Boolean = false,
+    /** How far a whole-catalogue download has got, while one runs (S16B-10). */
+    val loadProgress: CatalogueLoadProgress? = null,
     val refreshFailed: Boolean = false,
     /**
      * What the active source is doing, said above the grid or in the first-import

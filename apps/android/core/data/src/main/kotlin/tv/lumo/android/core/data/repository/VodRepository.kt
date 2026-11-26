@@ -19,6 +19,7 @@ import tv.lumo.android.core.data.LumoError
 import tv.lumo.android.core.data.LumoResult
 import tv.lumo.android.core.data.internal.ApiCaller
 import tv.lumo.android.core.data.map
+import tv.lumo.android.core.data.model.CatalogueLoadProgress
 import tv.lumo.android.core.data.model.Cached
 import tv.lumo.android.core.data.model.Category
 import tv.lumo.android.core.data.model.DataOrigin
@@ -217,7 +218,10 @@ class VodRepository @Inject internal constructor(
      * carry none, and an empty page here means an empty grid and an empty
      * category strip — not a banner telling somebody their source is broken.
      */
-    suspend fun refresh(sourceId: String): LumoResult<Unit> = withContext(io) {
+    suspend fun refresh(
+        sourceId: String,
+        onProgress: (CatalogueLoadProgress) -> Unit = {},
+    ): LumoResult<Unit> = withContext(io) {
         val id = UUID.fromString(sourceId)
 
         val categories = probeFilmCategories(sourceId)
@@ -231,6 +235,8 @@ class VodRepository @Inject internal constructor(
 
             val body = (result as LumoResult.Success).value
             films += body.items.map { it.asEntity() }
+            // Said after every page: the grid shows nothing until the end (S16B-10).
+            onProgress(CatalogueLoadProgress(loaded = films.size, total = body.totalElements.toInt()))
 
             // The second condition stops a server that reports a total it does
             // not have. Without it this loop hammers the API and never ends.

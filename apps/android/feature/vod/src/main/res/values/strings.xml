@@ -84,4 +84,8 @@
     <!-- S12-03: the sheet's main action. Watch (nothing saved), Resume at… (started), Watch again (finished). -->
     <string name="feature_vod_watch">Watch</string>
     <string name="feature_vod_watch_again">Watch again</string>
+    <string name="feature_vod_loading_title">Loading your films</string>
+    <string name="feature_vod_loading_body">The first download of the catalogue can take several minutes. The films appear once it is complete.</string>
+    <string name="feature_vod_loading_progress">%1$,d of %2$,d films downloaded. They appear once the download is complete.</string>
+    <string name="feature_vod_loading_count">Downloading %1$,d of %2$,d</string>
 </resources>

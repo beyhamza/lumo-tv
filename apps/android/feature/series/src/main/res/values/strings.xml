@@ -88,4 +88,8 @@
     <string name="feature_series_start_over_episode">Start %1$s over</string>
     <!-- Under an episode row with a saved position. -->
     <string name="feature_series_episode_resume_at">Resume at %1$s</string>
+    <string name="feature_series_loading_title">Loading your series</string>
+    <string name="feature_series_loading_body">The first download of the catalogue can take several minutes. The series appear once it is complete.</string>
+    <string name="feature_series_loading_progress">%1$,d of %2$,d series downloaded. They appear once the download is complete.</string>
+    <string name="feature_series_loading_count">Downloading %1$,d of %2$,d</string>
 </resources>

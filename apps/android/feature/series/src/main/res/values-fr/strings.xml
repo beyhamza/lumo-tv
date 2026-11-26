@@ -68,4 +68,8 @@
     <string name="feature_series_watch_again_episode">Revoir %1$s</string>
     <string name="feature_series_start_over_episode">Recommencer %1$s</string>
     <string name="feature_series_episode_resume_at">Reprendre à %1$s</string>
+    <string name="feature_series_loading_title">Chargement de vos séries</string>
+    <string name="feature_series_loading_body">Le premier téléchargement du catalogue peut prendre plusieurs minutes. Les séries apparaissent quand il est terminé.</string>
+    <string name="feature_series_loading_progress">%1$,d séries téléchargées sur %2$,d. Elles apparaissent quand le téléchargement est terminé.</string>
+    <string name="feature_series_loading_count">Téléchargement : %1$,d sur %2$,d</string>
 </resources>

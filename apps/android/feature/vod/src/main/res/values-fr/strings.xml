@@ -68,4 +68,8 @@
     <!-- S12-03 : l'action principale de la fiche. -->
     <string name="feature_vod_watch">Regarder</string>
     <string name="feature_vod_watch_again">Revoir</string>
+    <string name="feature_vod_loading_title">Chargement de vos films</string>
+    <string name="feature_vod_loading_body">Le premier téléchargement du catalogue peut prendre plusieurs minutes. Les films apparaissent quand il est terminé.</string>
+    <string name="feature_vod_loading_progress">%1$,d films téléchargés sur %2$,d. Ils apparaissent quand le téléchargement est terminé.</string>
+    <string name="feature_vod_loading_count">Téléchargement : %1$,d sur %2$,d</string>
 </resources>

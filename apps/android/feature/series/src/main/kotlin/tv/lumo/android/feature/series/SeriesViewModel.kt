@@ -36,6 +36,7 @@ import tv.lumo.android.core.data.asCatalogueSource
 import tv.lumo.android.core.data.face
 import tv.lumo.android.core.data.isPlaylist
 import tv.lumo.android.core.data.model.Category
+import tv.lumo.android.core.data.model.CatalogueLoadProgress
 import tv.lumo.android.core.data.model.DataOrigin
 import tv.lumo.android.core.data.model.Series
 import tv.lumo.android.core.data.model.SeriesTree
@@ -224,7 +225,9 @@ class SeriesViewModel @Inject constructor(
         _state.update { it.copy(refreshing = true) }
 
         viewModelScope.launch {
-            val result = series.refresh(sourceId)
+            val result = series.refresh(sourceId) { progress ->
+                _state.update { if (it.sourceId == sourceId) it.copy(loadProgress = progress) else it }
+            }
 
             // `SOURCE_NOT_FOUND` is a deletion made elsewhere, not a refresh that
             // failed: the repository decides what is browsed next and this screen
@@ -240,6 +243,7 @@ class SeriesViewModel @Inject constructor(
                 } else {
                     it.copy(
                         refreshing = false,
+                        loadProgress = null,
                         refreshFailed = result is LumoResult.Failure && !gone,
                     )
                 }
@@ -318,6 +322,8 @@ data class SeriesState(
     val filter: SeriesFilter = SeriesFilter.All,
     val query: String = "",
     val refreshing: Boolean = false,
+    /** How far a whole-catalogue download has got, while one runs (S16B-10). */
+    val loadProgress: CatalogueLoadProgress? = null,
     val refreshFailed: Boolean = false,
     /**
      * What the active source is doing, said above the grid or in the first-import
