@@ -60,6 +60,13 @@ class PlayerFailureTest {
     }
 
     @Test
+    fun `a web page served instead of the channel is said as such`() {
+        // S16B-10: a provider block reads as a decoder problem otherwise.
+        assertThat(PlaybackError.NOT_A_STREAM.asPlayerFailure(null))
+            .isEqualTo(PlayerFailure.NotAStream)
+    }
+
+    @Test
     fun `no network is its own case, and is the one worth retrying unchanged`() {
         assertThat(LumoError.Offline(IOException("no route")).asPlayerFailure())
             .isEqualTo(PlayerFailure.Unreachable())

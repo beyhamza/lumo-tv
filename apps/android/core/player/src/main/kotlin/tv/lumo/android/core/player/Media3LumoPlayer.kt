@@ -164,8 +164,11 @@ internal class Media3LumoPlayer @Inject constructor(
     /** Actual playback of the current stream (S12-02); see [takeWatched]. */
     private val watched = WatchedSegmentTracker()
 
+    /** What the last response was, to word a failure (S16B-10). Before [exoPlayer], which uses it. */
+    private val lastResponse = LastResponse()
+
     override val exoPlayer: ExoPlayer = ExoPlayer.Builder(context)
-        .setMediaSourceFactory(mediaSourceFactory(context))
+        .setMediaSourceFactory(mediaSourceFactory(context, lastResponse))
         .build()
         .apply {
             setAudioAttributes(
@@ -185,6 +188,7 @@ internal class Media3LumoPlayer @Inject constructor(
         seekInFlight = false
         positionBeforeSeek = 0L
         liveEdgeRejoins = 0
+        lastResponse.clear()
         // A new stream is a new session: the previous one's intervals were taken
         // by its own last save, and must not be credited to this one.
         watched.reset()
@@ -640,7 +644,7 @@ internal class Media3LumoPlayer @Inject constructor(
                 return
             }
 
-            val failure = error.toLumoError()
+            val failure = playbackErrorFor(error.errorCode, lastResponse.contentType)
 
             if (seekInFlight && failure != PlaybackError.UNPLAYABLE) {
                 seekInFlight = false
@@ -772,10 +776,15 @@ internal fun httpDataSourceFactory(): DefaultHttpDataSource.Factory =
         .setConnectTimeoutMs(PLAYER_CONNECT_TIMEOUT_MS)
         .setReadTimeoutMs(PLAYER_READ_TIMEOUT_MS)
 
-/** Every stream, progressive or HLS, goes through [httpDataSourceFactory]. */
+/**
+ * Every stream, progressive or HLS, goes through [httpDataSourceFactory], and
+ * each response's type is noted in [lastResponse] (S16B-10).
+ */
 @OptIn(UnstableApi::class)
-private fun mediaSourceFactory(context: Context): MediaSource.Factory =
-    DefaultMediaSourceFactory(DefaultDataSource.Factory(context, httpDataSourceFactory()))
+private fun mediaSourceFactory(context: Context, lastResponse: LastResponse): MediaSource.Factory =
+    DefaultMediaSourceFactory(
+        DefaultDataSource.Factory(context, RecordingDataSourceFactory(httpDataSourceFactory(), lastResponse)),
+    )
 
 /** Panels that reject the stock ExoPlayer agent exist; the API's ingestion uses the same name. */
 private const val PLAYER_USER_AGENT = "LumoTV/1.0"
@@ -811,27 +820,6 @@ private val BITMAP_SUBTITLE_TYPES = setOf(
     MimeTypes.APPLICATION_VOBSUB,
 )
 
-private fun PlaybackException.toLumoError(): PlaybackError = when (errorCode) {
-    PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
-    PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
-    PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
-    -> PlaybackError.UNREACHABLE
-
-    // A panel that has run out of allowed simultaneous connections answers with
-    // an HTTP error, not with a network failure — which is why US-09 wants this
-    // case worded as a subscription limit rather than as an outage.
-    PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
-    PlaybackException.ERROR_CODE_DRM_PROVISIONING_FAILED,
-    -> PlaybackError.REFUSED
-
-    PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
-    PlaybackException.ERROR_CODE_DECODING_FAILED,
-    PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
-    PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED,
-    -> PlaybackError.UNPLAYABLE
-
-    else -> PlaybackError.UNKNOWN
-}
 
 private fun TrackKind.trackType(): Int = when (this) {
     TrackKind.AUDIO -> C.TRACK_TYPE_AUDIO

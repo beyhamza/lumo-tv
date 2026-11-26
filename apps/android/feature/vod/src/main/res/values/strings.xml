@@ -65,6 +65,7 @@
     <string name="feature_vod_player_expired">Your subscription with this provider has expired.</string>
     <string name="feature_vod_player_film_gone">This film is no longer in your catalogue. Refresh the list.</string>
     <string name="feature_vod_player_unplayable">This film cannot be played on this device.</string>
+    <string name="feature_vod_player_not_a_stream">Your source’s server sent a web page instead of this film. Your internet provider may be blocking it.</string>
     <string name="feature_vod_player_unexpected">This film could not be played.</string>
 
     <!-- ==== The television ==== -->

@@ -63,6 +63,7 @@
     <string name="feature_series_player_expired">Your subscription with this provider has expired.</string>
     <string name="feature_series_player_episode_gone">This episode is no longer listed. Reopen the series.</string>
     <string name="feature_series_player_unplayable">This episode cannot be played on this device.</string>
+    <string name="feature_series_player_not_a_stream">Your source’s server sent a web page instead of this episode. Your internet provider may be blocking it.</string>
     <string name="feature_series_player_unexpected">This episode could not be played.</string>
     <string name="feature_series_up_next">Up next</string>
     <string name="feature_series_up_next_in">Up next in %1$d s</string>

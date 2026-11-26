@@ -647,6 +647,12 @@ sealed interface EpisodePlayerFailure {
     /** Reached, and not decodable on this device. Retrying will not help. */
     data object Unplayable : EpisodePlayerFailure
 
+    /**
+     * The server sent a web page instead of the stream (S16B-10): a block by the
+     * internet provider, or the server's own error page. Not the device's fault.
+     */
+    data object NotAStream : EpisodePlayerFailure
+
     data object Unexpected : EpisodePlayerFailure
 }
 
@@ -669,6 +675,7 @@ internal fun PlaybackError.asEpisodeFailure(
     PlaybackError.UNREACHABLE -> EpisodePlayerFailure.Unreachable()
     PlaybackError.REFUSED -> EpisodePlayerFailure.TooManyStreams(target?.maxConnections)
     PlaybackError.UNPLAYABLE -> EpisodePlayerFailure.Unplayable
+    PlaybackError.NOT_A_STREAM -> EpisodePlayerFailure.NotAStream
     PlaybackError.UNKNOWN -> EpisodePlayerFailure.Unexpected
 }
 
@@ -681,6 +688,7 @@ internal fun EpisodePlayerFailure.isRetryable(): Boolean = when (this) {
     EpisodePlayerFailure.SubscriptionExpired -> false
     EpisodePlayerFailure.EpisodeGone -> false
     EpisodePlayerFailure.Unplayable -> false
+    EpisodePlayerFailure.NotAStream -> false
     EpisodePlayerFailure.Unexpected -> true
 }
 

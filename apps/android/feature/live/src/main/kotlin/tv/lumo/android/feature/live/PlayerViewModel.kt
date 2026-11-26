@@ -398,6 +398,12 @@ sealed interface PlayerFailure {
     /** Reached, and not decodable on this device. Retrying will not help. */
     data object Unplayable : PlayerFailure
 
+    /**
+     * The server sent a web page instead of the stream (S16B-10): a block by the
+     * internet provider, or the server's own error page. Not the device's fault.
+     */
+    data object NotAStream : PlayerFailure
+
     data object Unexpected : PlayerFailure
 }
 
@@ -427,5 +433,6 @@ internal fun PlaybackError.asPlayerFailure(target: PlaybackTarget?): PlayerFailu
     PlaybackError.UNREACHABLE -> PlayerFailure.Unreachable()
     PlaybackError.REFUSED -> PlayerFailure.TooManyStreams(target?.maxConnections)
     PlaybackError.UNPLAYABLE -> PlayerFailure.Unplayable
+    PlaybackError.NOT_A_STREAM -> PlayerFailure.NotAStream
     PlaybackError.UNKNOWN -> PlayerFailure.Unexpected
 }

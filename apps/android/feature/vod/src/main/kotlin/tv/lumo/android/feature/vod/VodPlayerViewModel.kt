@@ -417,6 +417,12 @@ sealed interface VodPlayerFailure {
     /** Reached, and not decodable on this device. Retrying will not help. */
     data object Unplayable : VodPlayerFailure
 
+    /**
+     * The server sent a web page instead of the stream (S16B-10): a block by the
+     * internet provider, or the server's own error page. Not the device's fault.
+     */
+    data object NotAStream : VodPlayerFailure
+
     data object Unexpected : VodPlayerFailure
 }
 
@@ -439,6 +445,7 @@ internal fun PlaybackError.asVodFailure(
     PlaybackError.UNREACHABLE -> VodPlayerFailure.Unreachable()
     PlaybackError.REFUSED -> VodPlayerFailure.TooManyStreams(target?.maxConnections)
     PlaybackError.UNPLAYABLE -> VodPlayerFailure.Unplayable
+    PlaybackError.NOT_A_STREAM -> VodPlayerFailure.NotAStream
     PlaybackError.UNKNOWN -> VodPlayerFailure.Unexpected
 }
 
@@ -451,6 +458,7 @@ internal fun VodPlayerFailure.isRetryable(): Boolean = when (this) {
     VodPlayerFailure.SubscriptionExpired -> false
     VodPlayerFailure.FilmGone -> false
     VodPlayerFailure.Unplayable -> false
+    VodPlayerFailure.NotAStream -> false
     VodPlayerFailure.Unexpected -> true
 }
 

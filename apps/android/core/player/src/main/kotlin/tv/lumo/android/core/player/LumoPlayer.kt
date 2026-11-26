@@ -332,6 +332,16 @@ enum class PlaybackError {
     /** The stream was reached but could not be decoded on this device. */
     UNPLAYABLE,
 
+    /**
+     * The server answered with a web page instead of a stream (S16B-10).
+     *
+     * An internet provider blocking the user's panel does exactly this — a
+     * redirect to a notice page — and so does a panel serving its own error
+     * page. Neither is the device's fault, and a sentence about decoders would
+     * send somebody to the wrong place.
+     */
+    NOT_A_STREAM,
+
     UNKNOWN,
 }
 

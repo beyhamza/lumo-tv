@@ -489,6 +489,7 @@ private fun VodPlayerFailure.tvMessage(): String = when (this) {
     VodPlayerFailure.SubscriptionExpired -> stringResource(R.string.feature_vod_player_expired)
     VodPlayerFailure.FilmGone -> stringResource(R.string.feature_vod_player_film_gone)
     VodPlayerFailure.Unplayable -> stringResource(R.string.feature_vod_player_unplayable)
+    VodPlayerFailure.NotAStream -> stringResource(R.string.feature_vod_player_not_a_stream)
     VodPlayerFailure.Unexpected -> stringResource(R.string.feature_vod_player_unexpected)
 }
 
